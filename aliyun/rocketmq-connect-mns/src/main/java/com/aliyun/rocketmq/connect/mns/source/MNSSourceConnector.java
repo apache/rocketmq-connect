@@ -1,7 +1,7 @@
 package com.aliyun.rocketmq.connect.mns.source;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.internal.DefaultKeyValue;
@@ -65,8 +65,8 @@ public class MNSSourceConnector extends SourceConnector {
     }
 
     @Override
-    public void start(ComponentContext componentContext) {
-
+    public void start(ConnectorContext connectorContext) {
+        super.start(connectorContext);
     }
 
     @Override

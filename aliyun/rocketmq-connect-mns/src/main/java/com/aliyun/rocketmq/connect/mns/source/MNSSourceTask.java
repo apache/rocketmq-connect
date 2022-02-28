@@ -8,10 +8,12 @@ import com.aliyun.mns.common.ServiceException;
 import com.aliyun.mns.model.Message;
 import com.aliyun.rocketmq.connect.mns.source.utils.AliyunMnsUtil;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 public class MNSSourceTask extends SourceTask {
+    private static final Logger log = LoggerFactory.getLogger(MNSSourceTask.class);
 
     private String accessKeyId;
 
@@ -44,12 +47,6 @@ public class MNSSourceTask extends SourceTask {
     public List<ConnectRecord> poll() throws InterruptedException {
         List<ConnectRecord> result = new ArrayList<>(11);
         try{
-            for (int i = 0; i < 10; i++) {
-                Message message = new Message();
-                message.setMessageBody("demo_message_body" + i);
-                Message putMsg = cloudQueue.putMessage(message);
-                System.out.println("Send message id is: " + putMsg.getMessageId());
-            }
             List<Message> messageList = cloudQueue.batchPopMessage(batchSize);
             if (messageList != null && !messageList.isEmpty()) {
                 messageList.forEach(message -> {
@@ -58,19 +55,17 @@ public class MNSSourceTask extends SourceTask {
                 });
             }
         } catch (ClientException ce) {
-            System.out.println("Something wrong with the network connection between client and MNS service."
-                    + "Please check your network and DNS availability.");
-            ce.printStackTrace();
+            log.error("Something wrong with the network connection between client and MNS service."
+                    + "Please check your network and DNS availability.", ce);
         } catch (ServiceException se) {
+            log.error("MNS exception requestId: " + se.getRequestId(), se);
             if (se.getErrorCode().equals("QueueNotExist")) {
-                System.out.println("Queue is not exist.Please create before use");
+                log.error("Queue is not exist.Please create before use");
             } else if (se.getErrorCode().equals("TimeExpired")) {
-                System.out.println("The request is time expired. Please check your local machine timeclock");
+                log.error("The request is time expired. Please check your local machine timeclock");
             }
-            se.printStackTrace();
         } catch (Exception e) {
-            System.out.println("Unknown exception happened!");
-            e.printStackTrace();
+            log.error("Unknown exception happened! ", e);
         }
         return result;
     }
@@ -119,7 +114,8 @@ public class MNSSourceTask extends SourceTask {
             receiptHandles.addAll(receiptHandlesSet);
             cloudQueue.batchDeleteMessage(receiptHandles);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("MNSSourceTask | commit | error => ", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -129,12 +125,14 @@ public class MNSSourceTask extends SourceTask {
     }
 
     @Override
-    public void start(ComponentContext componentContext) {
+    public void start(SourceTaskContext sourceTaskContext) {
+        super.start(sourceTaskContext);
         try {
             CloudAccount cloudAccount = new CloudAccount(accessKeyId, accessKeySecret, accountEndpoint);
             mnsClient = cloudAccount.getMNSClient();
             cloudQueue = mnsClient.getQueueRef(queueName);
         } catch (Exception e) {
+            log.error("MNSSourceTask | start | error => ", e);
             throw new RuntimeException(e);
         }
     }
