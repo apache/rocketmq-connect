@@ -20,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.aliyun.rocketmq.connect.mns.source.constant.MNSConstant.*;
+
 public class MNSSourceTask extends SourceTask {
     private static final Logger log = LoggerFactory.getLogger(MNSSourceTask.class);
 
@@ -82,23 +84,24 @@ public class MNSSourceTask extends SourceTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString("MNSAccessKeyId"))
-                || StringUtils.isBlank(config.getString("MNSAccessKeySecret"))
-                || StringUtils.isBlank(config.getString("MNSAccountEndpoint"))
-                || StringUtils.isBlank(config.getString("queueName"))) {
+        if (StringUtils.isBlank(config.getString(ACCESS_KEY_ID))
+                || StringUtils.isBlank(config.getString(ACCESS_KEY_SECRET))
+                || StringUtils.isBlank(config.getString(ACCOUNT_ENDPOINT))
+                || StringUtils.isBlank(config.getString(QUEUE_NAME))
+                || StringUtils.isBlank(config.getString(ACCOUNT_ID))) {
             throw new RuntimeException("mns required parameter is null !");
         }
     }
 
     @Override
     public void init(KeyValue config) {
-        accessKeyId = config.getString("accessKeyId");
-        accessKeySecret = config.getString("accessKeySecret");
-        accountEndpoint = config.getString("accountEndpoint");
-        queueName = config.getString("queueName");
-        batchSize = config.getInt("batchSize", 8);
-        accountId = config.getString("accountId");
-        isBase64Decode = config.getString("isBase64Decode", "true");
+        accessKeyId = config.getString(ACCESS_KEY_ID);
+        accessKeySecret = config.getString(ACCESS_KEY_SECRET);
+        accountEndpoint = config.getString(ACCOUNT_ENDPOINT);
+        queueName = config.getString(QUEUE_NAME);
+        batchSize = config.getInt(BATCH_SIZE, 8);
+        accountId = config.getString(ACCOUNT_ID);
+        isBase64Decode = config.getString(IS_BASE64_DECODE, "true");
         abstractMNSRecordConvert = new MNSRecordConverImpl();
     }
 

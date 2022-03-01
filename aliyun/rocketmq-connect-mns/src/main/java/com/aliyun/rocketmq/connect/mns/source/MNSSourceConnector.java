@@ -5,16 +5,14 @@ import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.internal.DefaultKeyValue;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MNSSourceConnector extends SourceConnector {
+import static com.aliyun.rocketmq.connect.mns.source.constant.MNSConstant.*;
 
-    private static final String ACCESS_KEY_ID = "accessKeyId";
-    private static final String ACCESS_KEY_SECRET = "accessKeySecret";
-    private static final String ACCOUNT_ENDPOINT = "accountEndpoint";
-    private static final String QUEUE_NAME = "queueName";
+public class MNSSourceConnector extends SourceConnector {
 
     private String accessKeyId;
 
@@ -23,6 +21,12 @@ public class MNSSourceConnector extends SourceConnector {
     private String accountEndpoint;
 
     private String queueName;
+
+    private String accountId;
+
+    private String isBase64Decode;
+
+    private Integer batchSize;
 
     @Override
     public void pause() {
@@ -42,6 +46,9 @@ public class MNSSourceConnector extends SourceConnector {
         keyValue.put(ACCESS_KEY_SECRET, accessKeySecret);
         keyValue.put(ACCOUNT_ENDPOINT, accountEndpoint);
         keyValue.put(QUEUE_NAME, queueName);
+        keyValue.put(ACCOUNT_ID, accountId);
+        keyValue.put(BATCH_SIZE, batchSize);
+        keyValue.put(IS_BASE64_DECODE, isBase64Decode);
         taskConfigList.add(keyValue);
         return taskConfigList;
     }
@@ -53,15 +60,24 @@ public class MNSSourceConnector extends SourceConnector {
 
     @Override
     public void validate(KeyValue config) {
-
+        if (StringUtils.isBlank(config.getString(ACCESS_KEY_ID))
+                || StringUtils.isBlank(config.getString(ACCESS_KEY_SECRET))
+                || StringUtils.isBlank(config.getString(ACCOUNT_ENDPOINT))
+                || StringUtils.isBlank(config.getString(QUEUE_NAME))
+                || StringUtils.isBlank(config.getString(ACCOUNT_ID))) {
+            throw new RuntimeException("mns required parameter is null !");
+        }
     }
 
     @Override
     public void init(KeyValue config) {
-        accessKeyId = config.getString("MNSAccessKeyId");
-        accessKeySecret = config.getString("MNSAccessKeySecret");
-        accountEndpoint = config.getString("MNSAccountEndpoint");
-        queueName = config.getString("queueName");
+        accessKeyId = config.getString(ACCESS_KEY_ID);
+        accessKeySecret = config.getString(ACCESS_KEY_SECRET);
+        accountEndpoint = config.getString(ACCOUNT_ENDPOINT);
+        queueName = config.getString(QUEUE_NAME);
+        batchSize = config.getInt(BATCH_SIZE, 8);
+        accountId = config.getString(ACCOUNT_ID);
+        isBase64Decode = config.getString(IS_BASE64_DECODE, "true");
     }
 
     @Override
