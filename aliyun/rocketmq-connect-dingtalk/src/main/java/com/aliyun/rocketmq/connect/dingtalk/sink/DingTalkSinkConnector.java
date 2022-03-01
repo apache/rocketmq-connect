@@ -5,6 +5,7 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.internal.DefaultKeyValue;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,13 +43,15 @@ public class DingTalkSinkConnector extends SinkConnector {
 
     @Override
     public void validate(KeyValue config) {
-
+        if (StringUtils.isBlank(config.getString(DingTalkConstant.WEB_HOOK))) {
+            throw new RuntimeException("ding talk required parameter is null !");
+        }
     }
 
     @Override
     public void init(KeyValue config) {
-        webHook = config.getString("webhook");
-        msgType = config.getString("msgtype", "text");
+        webHook = config.getString(DingTalkConstant.WEB_HOOK);
+        msgType = config.getString(DingTalkConstant.MSG_TYPE_CONSTANT, "text");
     }
 
     @Override
