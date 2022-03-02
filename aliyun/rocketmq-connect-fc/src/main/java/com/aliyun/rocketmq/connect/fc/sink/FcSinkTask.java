@@ -4,11 +4,10 @@ import com.alibaba.fastjson.JSON;
 import com.aliyun.rocketmq.connect.fc.sink.constant.FcConstant;
 import com.aliyuncs.fc.client.FunctionComputeClient;
 import com.aliyuncs.fc.constants.Const;
+import com.aliyuncs.fc.exceptions.ClientException;
 import com.aliyuncs.fc.request.GetFunctionRequest;
 import com.aliyuncs.fc.request.GetServiceRequest;
 import com.aliyuncs.fc.request.InvokeFunctionRequest;
-import com.aliyuncs.fc.response.GetFunctionResponse;
-import com.aliyuncs.fc.response.GetServiceResponse;
 import com.aliyuncs.fc.response.InvokeFunctionResponse;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
@@ -90,14 +89,16 @@ public class FcSinkTask extends SinkTask {
             || StringUtils.isBlank(config.getString(FcConstant.FUNCTION_NAME_CONSTANT))) {
             throw new RuntimeException("fc required parameter is null !");
         }
-        GetServiceRequest getServiceRequest = new GetServiceRequest(config.getString(FcConstant.SERVICE_NAME_CONSTANT));
-        getServiceRequest.setQualifier(config.getString(FcConstant.QUALIFIER_CONSTANT));
-        GetServiceResponse service = functionComputeClient.getService(getServiceRequest);
-        GetFunctionRequest getFunctionRequest = new GetFunctionRequest(config.getString(FcConstant.SERVICE_NAME_CONSTANT), config.getString(FcConstant.FUNCTION_NAME_CONSTANT));
-        getFunctionRequest.setQualifier(config.getString(FcConstant.QUALIFIER_CONSTANT));
-        GetFunctionResponse function = functionComputeClient.getFunction(getFunctionRequest);
-        if (StringUtils.isBlank(service.getServiceName()) || StringUtils.isBlank(function.getFunctionName())) {
-            throw new RuntimeException("fc required parameter is null !");
+        try {
+            GetServiceRequest getServiceRequest = new GetServiceRequest(config.getString(FcConstant.SERVICE_NAME_CONSTANT));
+            getServiceRequest.setQualifier(config.getString(FcConstant.QUALIFIER_CONSTANT));
+            functionComputeClient.getService(getServiceRequest);
+            GetFunctionRequest getFunctionRequest = new GetFunctionRequest(config.getString(FcConstant.SERVICE_NAME_CONSTANT), config.getString(FcConstant.FUNCTION_NAME_CONSTANT));
+            getFunctionRequest.setQualifier(config.getString(FcConstant.QUALIFIER_CONSTANT));
+            functionComputeClient.getFunction(getFunctionRequest);
+        } catch (ClientException e) {
+            log.error("FcSinkTask | validate | error => ", e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 
