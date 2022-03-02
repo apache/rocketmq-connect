@@ -34,7 +34,7 @@ public class TestConnector extends Connector {
     }
 
     @Override public void init(KeyValue config) {
-
+        this.config = config;
     }
 
     @Override public void start(ConnectorContext componentContext) {

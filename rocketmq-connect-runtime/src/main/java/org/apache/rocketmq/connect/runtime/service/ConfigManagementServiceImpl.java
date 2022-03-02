@@ -169,6 +169,7 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
         }
         final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
         connector.validate(configs);
+        connector.init(configs);
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return "";
