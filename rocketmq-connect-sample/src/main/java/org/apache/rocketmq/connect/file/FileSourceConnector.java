@@ -17,8 +17,9 @@
 package org.apache.rocketmq.connect.file;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,18 +29,16 @@ public class FileSourceConnector extends SourceConnector {
 
     private KeyValue config;
 
-    @Override public String verifyAndSetConfig(KeyValue config) {
+    @Override public void validate(KeyValue config) {
         for (String requestKey : FileConfig.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
+                throw new ConnectException("Request config key: " + requestKey);
             }
         }
-        this.config = config;
-        return "";
     }
 
-    @Override public void start() {
-
+    @Override public void init(KeyValue config) {
+        this.config = config;
     }
 
     @Override public void stop() {
@@ -54,13 +53,14 @@ public class FileSourceConnector extends SourceConnector {
 
     }
 
-    @Override public Class<? extends Task> taskClass() {
-        return FileSourceTask.class;
-    }
-
-    @Override public List<KeyValue> taskConfigs() {
+    @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> config = new ArrayList<>();
         config.add(this.config);
         return config;
     }
+
+    @Override public Class<? extends Task> taskClass() {
+        return FileSourceTask.class;
+    }
+
 }

@@ -17,20 +17,19 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
-import io.openmessaging.connector.api.PositionStorageReader;
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.Collection;
 import java.util.Map;
 
-public class TestPositionStorageReader implements PositionStorageReader {
+public class TestPositionStorageReader implements OffsetStorageReader {
 
-    @Override
-    public ByteBuffer getPosition(ByteBuffer partition) {
+    @Override public <T> RecordOffset readOffset(RecordPartition partition) {
         return null;
     }
 
-    @Override
-    public Map<ByteBuffer, ByteBuffer> getPositions(Collection<ByteBuffer> partitions) {
+    @Override public <T> Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
         return null;
     }
 }

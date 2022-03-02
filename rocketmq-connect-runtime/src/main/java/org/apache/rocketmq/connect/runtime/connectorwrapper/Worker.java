@@ -19,11 +19,11 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.internal.ConcurrentSet;
-import io.openmessaging.connector.api.Connector;
-import io.openmessaging.connector.api.Task;
+import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.Converter;
-import io.openmessaging.connector.api.sink.SinkTask;
-import io.openmessaging.connector.api.source.SourceTask;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

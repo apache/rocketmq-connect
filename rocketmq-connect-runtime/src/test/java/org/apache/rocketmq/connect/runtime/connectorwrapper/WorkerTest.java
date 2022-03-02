@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
-import io.openmessaging.connector.api.ConnectorContext;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +32,10 @@ import org.apache.rocketmq.connect.runtime.ConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.*;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;

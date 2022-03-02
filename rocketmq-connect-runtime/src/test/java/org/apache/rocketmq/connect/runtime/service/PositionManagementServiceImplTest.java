@@ -17,14 +17,14 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import com.alibaba.fastjson.JSONObject;
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.Future;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.producer.SendResult;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +41,7 @@ import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.assertj.core.util.Maps;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,15 +74,15 @@ public class PositionManagementServiceImplTest {
 
     private PositionManagementServiceImpl positionManagementService;
 
-    private Set<ByteBuffer> needSyncPartition;
+    private Set<RecordPartition> needSyncPartition;
 
-    private KeyValueStore<ByteBuffer, ByteBuffer> positionStore;
+    private KeyValueStore<RecordPartition, RecordOffset> positionStore;
 
-    private ByteBuffer sourcePartition;
+    private RecordPartition sourcePartition;
 
-    private ByteBuffer sourcePosition;
+    private RecordOffset sourcePosition;
 
-    private Map<ByteBuffer, ByteBuffer> positions;
+    private Map<RecordPartition, RecordOffset> positions;
 
     @Before
     public void init() throws Exception {
@@ -131,19 +132,18 @@ public class PositionManagementServiceImplTest {
 
         Field positionStoreField = PositionManagementServiceImpl.class.getDeclaredField("positionStore");
         positionStoreField.setAccessible(true);
-        positionStore = (KeyValueStore<ByteBuffer, ByteBuffer>) positionStoreField.get(positionManagementService);
+        positionStore = (KeyValueStore<RecordPartition, RecordOffset>) positionStoreField.get(positionManagementService);
 
 
         Field needSyncPartitionField = PositionManagementServiceImpl.class.getDeclaredField("needSyncPartition");
         needSyncPartitionField.setAccessible(true);
-        needSyncPartition = (ConcurrentSet<ByteBuffer>) needSyncPartitionField.get(positionManagementService);
-
-        sourcePartition = ByteBuffer.wrap("127.0.0.13306".getBytes("UTF-8"));
-        JSONObject jsonObject = new JSONObject();
-//        jsonObject.put(MysqlConstants.BINLOG_FILENAME, "binlogFilename");
-//        jsonObject.put(MysqlConstants.NEXT_POSITION, "100");
-        sourcePosition = ByteBuffer.wrap(jsonObject.toJSONString().getBytes());
-        positions = new HashMap<ByteBuffer, ByteBuffer>() {
+        needSyncPartition = (ConcurrentSet<RecordPartition>) needSyncPartitionField.get(positionManagementService);
+        Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.13306");
+        sourcePartition = new RecordPartition(map);
+        Map<String, String> map1 = Maps.newHashMap("binlog_file", "binlogFilename");
+        map1.put("next_position", "100");
+        sourcePosition = new RecordOffset(map1);
+        positions = new HashMap<RecordPartition, RecordOffset>() {
             {
                 put(sourcePartition, sourcePosition);
             }
@@ -158,8 +158,8 @@ public class PositionManagementServiceImplTest {
 
     @Test
     public void testGetPositionTable() {
-        Map<ByteBuffer, ByteBuffer> positionTable = positionManagementService.getPositionTable();
-        ByteBuffer bytes = positionTable.get(sourcePartition);
+        Map<RecordPartition, RecordOffset> positionTable = positionManagementService.getPositionTable();
+        RecordOffset bytes = positionTable.get(sourcePartition);
 
         assertNull(bytes);
 
@@ -172,7 +172,7 @@ public class PositionManagementServiceImplTest {
 
     @Test
     public void testPutPosition() throws Exception {
-        ByteBuffer bytes = positionStore.get(sourcePartition);
+        RecordOffset bytes = positionStore.get(sourcePartition);
 
         assertNull(bytes);
 
@@ -186,11 +186,11 @@ public class PositionManagementServiceImplTest {
     @Test
     public void testRemovePosition() {
         positionManagementService.putPosition(positions);
-        ByteBuffer bytes = positionStore.get(sourcePartition);
+        RecordOffset bytes = positionStore.get(sourcePartition);
 
         assertNotNull(bytes);
 
-        List<ByteBuffer> sourcePartitions = new ArrayList<ByteBuffer>(8) {
+        List<RecordPartition> sourcePartitions = new ArrayList<RecordPartition>(8) {
             {
                 add(sourcePartition);
             }
@@ -209,7 +209,7 @@ public class PositionManagementServiceImplTest {
 
         assertTrue(needSyncPartition.contains(sourcePartition));
 
-        List<ByteBuffer> sourcePartitions = new ArrayList<ByteBuffer>(8) {
+        List<RecordPartition> sourcePartitions = new ArrayList<RecordPartition>(8) {
             {
                 add(sourcePartition);
             }
@@ -231,26 +231,28 @@ public class PositionManagementServiceImplTest {
     public void testSendNeedSynchronizePosition() throws Exception {
         positionManagementService.putPosition(positions);
 
-        ByteBuffer sourcePartitionTmp = ByteBuffer.wrap("127.0.0.2:3306".getBytes("UTF-8"));
-        JSONObject jsonObject = new JSONObject();
-        ByteBuffer sourcePositionTmp = ByteBuffer.wrap(jsonObject.toJSONString().getBytes());
+        Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.2:3306");
+        RecordPartition sourcePartitionTmp = new RecordPartition(map);
+        Map<String, String> map1 = Maps.newHashMap("binlog_file", "binlogFilename");
+        map1.put("next_position", "100");
+        RecordOffset sourcePositionTmp = new RecordOffset(map1);
         positionStore.put(sourcePartitionTmp, sourcePositionTmp);
 
-        Set<ByteBuffer> needSyncPartitionTmp = needSyncPartition;
+        Set<RecordPartition> needSyncPartitionTmp = needSyncPartition;
         needSyncPartition = new ConcurrentSet<>();
-        Map<ByteBuffer, ByteBuffer> needSyncPosition = positionStore.getKVMap().entrySet().stream()
+        Map<RecordPartition, RecordOffset> needSyncPosition = positionStore.getKVMap().entrySet().stream()
             .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
             .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
         assertTrue(needSyncPartition.size() == 0);
 
-        ByteBuffer bytes = needSyncPosition.get(sourcePartition);
+        RecordOffset bytes = needSyncPosition.get(sourcePartition);
         assertNotNull(bytes);
 
-        ByteBuffer tmpBytes = needSyncPosition.get(sourcePartitionTmp);
+        RecordOffset tmpBytes = needSyncPosition.get(sourcePartitionTmp);
         assertNull(tmpBytes);
 
-        List<ByteBuffer> sourcePartitions = new ArrayList<ByteBuffer>(8) {
+        List<RecordPartition> sourcePartitions = new ArrayList<RecordPartition>(8) {
             {
                 add(sourcePartition);
                 add(sourcePartitionTmp);

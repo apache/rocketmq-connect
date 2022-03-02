@@ -8,16 +8,18 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +44,11 @@ public interface PositionManagementService {
     void persist();
 
     /**
+     * Persist position info in a persist store.
+     */
+    void load();
+
+    /**
      * Synchronize to other nodes.
      * */
     void synchronize();
@@ -51,23 +58,23 @@ public interface PositionManagementService {
      *
      * @return
      */
-    Map<ByteBuffer, ByteBuffer> getPositionTable();
+    Map<RecordPartition, RecordOffset> getPositionTable();
 
-    ByteBuffer getPosition(ByteBuffer partition);
+    RecordOffset getPosition(RecordPartition partition);
 
     /**
      * Put a position info.
      */
-    void putPosition(Map<ByteBuffer, ByteBuffer> positions);
+    void putPosition(Map<RecordPartition, RecordOffset> positions);
 
-    void putPosition(ByteBuffer partition, ByteBuffer position);
+    void putPosition(RecordPartition partition, RecordOffset position);
 
     /**
      * Remove a position info.
      *
      * @param partitions
      */
-    void removePosition(List<ByteBuffer> partitions);
+    void removePosition(List<RecordPartition> partitions);
 
     /**
      * Register a listener.

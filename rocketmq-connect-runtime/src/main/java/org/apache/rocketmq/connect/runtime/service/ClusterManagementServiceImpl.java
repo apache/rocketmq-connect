@@ -18,7 +18,7 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.openmessaging.connector.api.exception.ConnectException;
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -76,7 +76,7 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
             this.defaultMQPullConsumer.start();
         } catch (MQClientException e) {
             log.error("Start RocketMQ consumer for cluster management service error", e);
-            throw new ConnectException(-1, "Start RocketMQ consumer for cluster management service error");
+            throw new ConnectException("Start RocketMQ consumer for cluster management service error");
         }
         WorkerChangeListener workerChangeListener = new WorkerChangeListener();
 

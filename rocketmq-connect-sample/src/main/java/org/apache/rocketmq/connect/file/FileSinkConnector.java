@@ -18,8 +18,9 @@
 package org.apache.rocketmq.connect.file;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.sink.SinkConnector;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,18 +28,17 @@ public class FileSinkConnector extends SinkConnector {
 
     private KeyValue config;
 
-    @Override public String verifyAndSetConfig(KeyValue config) {
+
+    @Override public void validate(KeyValue config) {
         for (String requestKey : FileConfig.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
+                throw new ConnectException("Request config key: " + requestKey);
             }
         }
-        this.config = config;
-        return "";
     }
 
-    @Override public void start() {
-
+    @Override public void init(KeyValue config) {
+        this.config = config;
     }
 
     @Override public void stop() {
@@ -57,7 +57,7 @@ public class FileSinkConnector extends SinkConnector {
         return FileSinkTask.class;
     }
 
-    @Override public List<KeyValue> taskConfigs() {
+    @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> config = new ArrayList<>();
         config.add(this.config);
         return config;

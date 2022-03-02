@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
-import io.openmessaging.connector.api.ConnectorContext;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
 import org.junit.After;

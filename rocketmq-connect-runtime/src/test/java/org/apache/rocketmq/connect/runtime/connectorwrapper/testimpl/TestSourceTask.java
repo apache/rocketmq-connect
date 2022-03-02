@@ -8,47 +8,52 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.EntryType;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
-import java.nio.ByteBuffer;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import org.assertj.core.util.Maps;
 
 public class TestSourceTask extends SourceTask {
 
     @Override
-    public Collection<SourceDataEntry> poll() {
-        Set<SourceDataEntry> sourceTasks = new HashSet<>();
-        Object[] newPayload = new Object[1];
-        newPayload[0] = Base64.getEncoder().encodeToString("test".getBytes());
-        sourceTasks.add(new SourceDataEntry(
-            ByteBuffer.wrap("1".getBytes()),
-            ByteBuffer.wrap("2".getBytes()),
-            System.currentTimeMillis(),
-            EntryType.CREATE,
-            "test-queue",
-            new Schema(),
-            newPayload
-        ));
+    public List<ConnectRecord> poll() {
+        List<ConnectRecord> sourceTasks = new ArrayList<>(8);
+        Map<String, String> partition = Maps.newHashMap("file", "fileName1");
+        RecordPartition recordPartition = new RecordPartition(partition);
+        Map<String, String> offset = Maps.newHashMap("offset", "2");
+        RecordOffset recordOffset = new RecordOffset(offset);
+        ConnectRecord record = new ConnectRecord(recordPartition, recordOffset, new Date().getTime(), SchemaBuilder.string().build(), "test");
+        sourceTasks.add(record);
         return sourceTasks;
     }
 
-    @Override
-    public void start(KeyValue config) {
+    @Override public void validate(KeyValue config) {
+
+    }
+
+    @Override public void init(KeyValue config) {
+
+    }
+
+    @Override public void start(SourceTaskContext sourceTaskContext) {
 
     }
 

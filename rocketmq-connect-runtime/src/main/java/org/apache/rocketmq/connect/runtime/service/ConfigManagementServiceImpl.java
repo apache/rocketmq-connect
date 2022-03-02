@@ -18,7 +18,7 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Connector;
+import io.openmessaging.connector.api.component.connector.Connector;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -168,20 +168,18 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
             clazz = Class.forName(connectorClass);
         }
         final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
-        String errorMessage = connector.verifyAndSetConfig(configs);
-        if (errorMessage != null && errorMessage.length() > 0) {
-            return errorMessage;
-        }
+        connector.validate(configs);
         connectorKeyValueStore.put(connectorName, configs);
-        recomputeTaskConfigs(connectorName, connector, currentTimestamp);
+        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return "";
     }
 
     @Override
-    public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp) {
+    public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
+        int maxTask = configs.getInt(RuntimeConfigDefine.MAX_TASK, 1);
         ConnectKeyValue connectConfig = connectorKeyValueStore.get(connectorName);
         boolean directEnable = Boolean.parseBoolean(connectConfig.getString(RuntimeConfigDefine.CONNECTOR_DIRECT_ENABLE));
-        List<KeyValue> taskConfigs = connector.taskConfigs();
+        List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
         List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
         for (KeyValue keyValue : taskConfigs) {
             ConnectKeyValue newKeyValue = new ConnectKeyValue();
@@ -195,6 +193,9 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
             }
             newKeyValue.put(RuntimeConfigDefine.TASK_CLASS, connector.taskClass().getName());
             newKeyValue.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
+
+            newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAME));
+            newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAMES, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAMES));
             converterdConfigs.add(newKeyValue);
         }
         putTaskConfigs(connectorName, converterdConfigs);

@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.connect.runtime.utils;
 
-import io.openmessaging.connector.api.sink.SinkConnector;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.Locale;
 
 public class PluginWrapper<T> {

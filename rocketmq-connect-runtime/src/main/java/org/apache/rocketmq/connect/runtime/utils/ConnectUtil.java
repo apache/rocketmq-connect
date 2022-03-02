@@ -17,9 +17,13 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
@@ -30,6 +34,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
@@ -39,6 +44,8 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
+
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
 public class ConnectUtil {
 
@@ -160,4 +167,45 @@ public class ConnectUtil {
         }
         return subGroup;
     }
+
+
+    public static RecordPartition convertToRecordPartition(MessageQueue messageQueue) {
+        Map<String, String> map = new HashMap<>();
+        map.put("topic", messageQueue.getTopic());
+        map.put("brokerName", messageQueue.getBrokerName());
+        map.put("queueId", messageQueue.getQueueId() + "");
+        RecordPartition recordPartition = new RecordPartition(map);
+        return recordPartition;
+    }
+
+    public static RecordOffset convertToRecordOffset(Long offset) {
+        Map<String, String> offsetMap = new HashMap<>();
+        offsetMap.put(QUEUE_OFFSET, offset + "");
+        RecordOffset recordOffset = new RecordOffset(offsetMap);
+        return recordOffset;
+    }
+
+    public static Long convertToOffset(RecordOffset recordOffset) {
+        if (null == recordOffset || null == recordOffset.getOffset()) {
+            return null;
+        }
+        Map<String, ?> offsetMap = (Map<String, String>) recordOffset.getOffset();
+        Object offsetObject = offsetMap.get(QUEUE_OFFSET);
+        if (null == offsetObject) {
+            return null;
+        }
+        return Long.valueOf(String.valueOf(offsetObject));
+    }
+
+
+
+    public static RecordPartition convertToRecordPartition(String topic, String brokerName, int queueId) {
+        Map<String, String> map = new HashMap<>();
+        map.put("topic", topic);
+        map.put("brokerName", brokerName);
+        map.put("queueId", queueId + "");
+        RecordPartition recordPartition = new RecordPartition(map);
+        return recordPartition;
+    }
+
 }

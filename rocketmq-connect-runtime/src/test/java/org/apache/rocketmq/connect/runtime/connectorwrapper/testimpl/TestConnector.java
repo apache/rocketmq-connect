@@ -8,18 +8,20 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Connector;
-import io.openmessaging.connector.api.Task;
+import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import io.openmessaging.connector.api.component.task.Task;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,14 +29,15 @@ public class TestConnector extends Connector {
 
     private KeyValue config;
 
-    @Override
-    public String verifyAndSetConfig(KeyValue config) {
-        this.config = config;
-        return "";
+    @Override public void validate(KeyValue config) {
+
     }
 
-    @Override
-    public void start() {
+    @Override public void init(KeyValue config) {
+
+    }
+
+    @Override public void start(ConnectorContext componentContext) {
 
     }
 
@@ -42,6 +45,7 @@ public class TestConnector extends Connector {
     public void stop() {
 
     }
+
 
     @Override
     public void pause() {
@@ -53,15 +57,14 @@ public class TestConnector extends Connector {
 
     }
 
-    @Override
-    public Class<? extends Task> taskClass() {
-        return TestTask.class;
-    }
-
-    @Override
-    public List<KeyValue> taskConfigs() {
+    @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> configs = new ArrayList<>();
         configs.add(this.config);
         return configs;
+    }
+
+    @Override
+    public Class<? extends Task> taskClass() {
+        return TestTask.class;
     }
 }

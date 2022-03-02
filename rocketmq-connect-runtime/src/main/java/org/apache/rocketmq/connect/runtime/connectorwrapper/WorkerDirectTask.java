@@ -18,26 +18,24 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.PositionStorageReader;
-import io.openmessaging.connector.api.common.QueueMetaData;
-import io.openmessaging.connector.api.data.DataEntryBuilder;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SinkDataEntry;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.sink.SinkTask;
-import io.openmessaging.connector.api.sink.SinkTaskContext;
-import io.openmessaging.connector.api.source.SourceTask;
-import io.openmessaging.connector.api.source.SourceTaskContext;
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.slf4j.Logger;
@@ -77,7 +75,7 @@ public class WorkerDirectTask implements WorkerTask {
 
     private final PositionManagementService positionManagementService;
 
-    private final PositionStorageReader positionStorageReader;
+    private final OffsetStorageReader positionStorageReader;
 
     private final AtomicReference<WorkerState> workerState;
 
@@ -108,7 +106,7 @@ public class WorkerDirectTask implements WorkerTask {
             log.info("Direct task start, config:{}", JSON.toJSONString(taskConfig));
             while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
                 try {
-                    Collection<SourceDataEntry> toSendEntries = sourceTask.poll();
+                    Collection<ConnectRecord> toSendEntries = sourceTask.poll();
                     if (null != toSendEntries && toSendEntries.size() > 0) {
                         sendRecord(toSendEntries);
                     }
@@ -127,31 +125,21 @@ public class WorkerDirectTask implements WorkerTask {
         }
     }
 
-    private void sendRecord(Collection<SourceDataEntry> sourceDataEntries) {
-        List<SinkDataEntry> sinkDataEntries = new ArrayList<>(sourceDataEntries.size());
-        ByteBuffer position = null;
-        ByteBuffer partition = null;
-        for (SourceDataEntry sourceDataEntry : sourceDataEntries) {
-            Schema schema = sourceDataEntry.getSchema();
-            Object[] payload = sourceDataEntry.getPayload();
-            DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema)
-                .entryType(sourceDataEntry.getEntryType())
-                .queue(sourceDataEntry.getQueueName())
-                .timestamp(sourceDataEntry.getTimestamp());
-            if (schema.getFields() != null) {
-                schema.getFields().forEach(field -> dataEntryBuilder.putFiled(field.getName(), payload[field.getIndex()]));
-            }
-            SinkDataEntry sinkDataEntry = dataEntryBuilder.buildSinkDataEntry(-1L);
-            sinkDataEntries.add(sinkDataEntry);
-            position = sourceDataEntry.getSourcePosition();
-            partition = sourceDataEntry.getSourcePartition();
+    private void sendRecord(Collection<ConnectRecord> sourceDataEntries) {
+        List<ConnectRecord> sinkDataEntries = new ArrayList<>(sourceDataEntries.size());
+        RecordPartition partition = null;
+        RecordOffset offset = null;
+        for (ConnectRecord sourceDataEntry : sourceDataEntries) {
+            sinkDataEntries.add(sourceDataEntry);
+            partition = sourceDataEntry.getPosition().getPartition();
+            offset = sourceDataEntry.getPosition().getOffset();
         }
 
         try {
             sinkTask.put(sinkDataEntries);
             try {
-                if (null != position && null != partition) {
-                    positionManagementService.putPosition(position, partition);
+                if (null != partition && null != offset) {
+                    positionManagementService.putPosition(partition, offset);
                 }
             } catch (Exception e) {
                 log.error("Source task save position info failed.", e);
@@ -162,34 +150,37 @@ public class WorkerDirectTask implements WorkerTask {
     }
 
     private void starkSinkTask() {
-        sinkTask.initialize(new SinkTaskContext() {
+        sinkTask.init(taskConfig);
+        sinkTask.start(new SinkTaskContext() {
 
-            @Override
-            public KeyValue configs() {
-                return taskConfig;
+            @Override public String getConnectorName() {
+                return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
             }
 
-            @Override
-            public void resetOffset(QueueMetaData queueMetaData, Long offset) {
-
+            @Override public String getTaskName() {
+                return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
 
-            @Override
-            public void resetOffset(Map<QueueMetaData, Long> offsets) {
-
-            }
-
-            @Override
-            public void pause(List<QueueMetaData> queues) {
+            @Override public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
 
             }
 
-            @Override
-            public void resume(List<QueueMetaData> queues) {
+            @Override public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
 
+            }
+
+            @Override public void pause(List<RecordPartition> partitions) {
+
+            }
+
+            @Override public void resume(List<RecordPartition> partitions) {
+
+            }
+
+            @Override public Set<RecordPartition> assignment() {
+                return null;
             }
         });
-        sinkTask.start(taskConfig);
         log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
     }
 
@@ -200,18 +191,20 @@ public class WorkerDirectTask implements WorkerTask {
 
     private void startSourceTask() {
         state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-        sourceTask.initialize(new SourceTaskContext() {
-            @Override
-            public PositionStorageReader positionStorageReader() {
+        sourceTask.init(taskConfig);
+        sourceTask.start(new SourceTaskContext() {
+            @Override public OffsetStorageReader offsetStorageReader() {
                 return positionStorageReader;
             }
 
-            @Override
-            public KeyValue configs() {
-                return taskConfig;
+            @Override public String getConnectorName() {
+                return null;
+            }
+
+            @Override public String getTaskName() {
+                return null;
             }
         });
-        sourceTask.start(taskConfig);
         state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
         log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
     }

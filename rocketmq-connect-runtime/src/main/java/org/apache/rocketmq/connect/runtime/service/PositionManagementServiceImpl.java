@@ -18,7 +18,8 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.netty.util.internal.ConcurrentSet;
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,17 +42,17 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     /**
      * Current position info in store.
      */
-    private KeyValueStore<ByteBuffer, ByteBuffer> positionStore;
+    private KeyValueStore<RecordPartition, RecordOffset> positionStore;
 
     /**
      * The updated partition of the task in the current instance.
      * */
-    private Set<ByteBuffer> needSyncPartition;
+    private Set<RecordPartition> needSyncPartition;
 
     /**
      * Synchronize data with other workers.
      */
-    private DataSynchronizer<String, Map<ByteBuffer, ByteBuffer>> dataSynchronizer;
+    private DataSynchronizer<String, Map<RecordPartition, RecordOffset>> dataSynchronizer;
 
     /**
      * Listeners.
@@ -97,6 +98,10 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         positionStore.persist();
     }
 
+    @Override public void load() {
+        positionStore.load();
+    }
+
     @Override
     public void synchronize() {
 
@@ -104,39 +109,39 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public Map<ByteBuffer, ByteBuffer> getPositionTable() {
+    public Map<RecordPartition, RecordOffset> getPositionTable() {
 
         return positionStore.getKVMap();
     }
 
     @Override
-    public ByteBuffer getPosition(ByteBuffer partition) {
+    public RecordOffset getPosition(RecordPartition partition) {
 
         return positionStore.get(partition);
     }
 
     @Override
-    public void putPosition(Map<ByteBuffer, ByteBuffer> positions) {
+    public void putPosition(Map<RecordPartition, RecordOffset> positions) {
 
         positionStore.putAll(positions);
         needSyncPartition.addAll(positions.keySet());
     }
 
     @Override
-    public void putPosition(ByteBuffer partition, ByteBuffer position) {
+    public void putPosition(RecordPartition partition, RecordOffset position) {
 
         positionStore.put(partition, position);
         needSyncPartition.add(partition);
     }
 
     @Override
-    public void removePosition(List<ByteBuffer> partitions) {
+    public void removePosition(List<RecordPartition> partitions) {
 
         if (null == partitions) {
             return;
         }
 
-        for (ByteBuffer partition : partitions) {
+        for (RecordPartition partition : partitions) {
             needSyncPartition.remove(partition);
             positionStore.remove(partition);
         }
@@ -156,9 +161,9 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     private void sendNeedSynchronizePosition() {
 
-        Set<ByteBuffer> needSyncPartitionTmp = needSyncPartition;
+        Set<RecordPartition> needSyncPartitionTmp = needSyncPartition;
         needSyncPartition = new ConcurrentSet<>();
-        Map<ByteBuffer, ByteBuffer> needSyncPosition = positionStore.getKVMap().entrySet().stream()
+        Map<RecordPartition, RecordOffset> needSyncPosition = positionStore.getKVMap().entrySet().stream()
             .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
             .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
@@ -170,10 +175,10 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         dataSynchronizer.send(PositionChangeEnum.POSITION_CHANG_KEY.name(), positionStore.getKVMap());
     }
 
-    private class PositionChangeCallback implements DataSynchronizerCallback<String, Map<ByteBuffer, ByteBuffer>> {
+    private class PositionChangeCallback implements DataSynchronizerCallback<String, Map<RecordPartition, RecordOffset>> {
 
         @Override
-        public void onCompletion(Throwable error, String key, Map<ByteBuffer, ByteBuffer> result) {
+        public void onCompletion(Throwable error, String key, Map<RecordPartition, RecordOffset> result) {
 
             boolean changed = false;
             switch (PositionChangeEnum.valueOf(key)) {
@@ -206,16 +211,16 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * @param result
      * @return
      */
-    private boolean mergePositionInfo(Map<ByteBuffer, ByteBuffer> result) {
+    private boolean mergePositionInfo(Map<RecordPartition, RecordOffset> result) {
 
         boolean changed = false;
         if (null == result || 0 == result.size()) {
             return changed;
         }
 
-        for (Map.Entry<ByteBuffer, ByteBuffer> newEntry : result.entrySet()) {
+        for (Map.Entry<RecordPartition, RecordOffset> newEntry : result.entrySet()) {
             boolean find = false;
-            for (Map.Entry<ByteBuffer, ByteBuffer> existedEntry : positionStore.getKVMap().entrySet()) {
+            for (Map.Entry<RecordPartition, RecordOffset> existedEntry : positionStore.getKVMap().entrySet()) {
                 if (newEntry.getKey().equals(existedEntry.getKey())) {
                     find = true;
                     if (!newEntry.getValue().equals(existedEntry.getValue())) {

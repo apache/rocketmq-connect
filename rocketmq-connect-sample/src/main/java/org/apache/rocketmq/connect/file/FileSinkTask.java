@@ -17,21 +17,23 @@
 
 package org.apache.rocketmq.connect.file;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.common.QueueMetaData;
+import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SinkDataEntry;
-import io.openmessaging.connector.api.exception.ConnectException;
-import io.openmessaging.connector.api.sink.SinkTask;
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -44,32 +46,39 @@ public class FileSinkTask extends SinkTask {
     private FileConfig fileConfig;
 
     private PrintStream outputStream;
+    
+    private KeyValue config;
 
-    @Override public void put(Collection<SinkDataEntry> sinkDataEntries) {
-        for (SinkDataEntry record : sinkDataEntries) {
-            Object[] payloads = record.getPayload();
-            log.trace("Writing line to {}: {}", logFilename(), payloads);
+    @Override public void put(List<ConnectRecord> sinkDataEntries) {
+        for (ConnectRecord record : sinkDataEntries) {
+            Object payload = record.getData();
+            log.trace("Writing line to {}: {}", logFilename(), payload);
             Schema schema = record.getSchema();
+            if (null == schema || null == schema.getFieldType()) {
+                log.warn("error record {}", JSON.toJSONString(record));
+                continue;
+            }
             List<Field> fields = schema.getFields();
             for (Field field : fields) {
-                FieldType type = field.getType();
+                FieldType type = schema.getFieldType();
                 if (type.equals(FieldType.STRING)) {
-                    log.info("Writing line to {}: {}", logFilename(), payloads[field.getIndex()]);
-                    outputStream.println(String.valueOf(payloads[field.getIndex()]));
+                    log.info("Writing line to {}: {}", logFilename(), payload);
+                    outputStream.println(payload);
                 }
             }
         }
 
     }
 
-    @Override public void commit(Map<QueueMetaData, Long> map) {
+
+    @Override public void flush(Map<RecordPartition, RecordOffset> currentOffsets) throws ConnectException {
         log.trace("Flushing output stream for {}", logFilename());
         outputStream.flush();
     }
 
-    @Override public void start(KeyValue props) {
+    @Override public void start(SinkTaskContext sinkTaskContext) {
         fileConfig = new FileConfig();
-        fileConfig.load(props);
+        fileConfig.load(config);
         if (fileConfig.getFilename() == null || fileConfig.getFilename().isEmpty()) {
             outputStream = System.out;
         } else {
@@ -79,9 +88,17 @@ public class FileSinkTask extends SinkTask {
                     false,
                     StandardCharsets.UTF_8.name());
             } catch (IOException e) {
-                throw new ConnectException(-1, "Couldn't find or create file '" + fileConfig.getFilename() + "' for FileStreamSinkTask", e);
+                throw new ConnectException("Couldn't find or create file '" + fileConfig.getFilename() + "' for FileStreamSinkTask", e);
             }
         }
+    }
+
+    @Override public void validate(KeyValue config) {
+
+    }
+
+    @Override public void init(KeyValue config) {
+        this.config = config;
     }
 
     @Override public void stop() {
