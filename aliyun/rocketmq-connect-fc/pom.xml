@@ -21,7 +21,7 @@
         <openmessaging-connector.version>0.1.2-SNAPSHOT</openmessaging-connector.version>
         <fastjson.version>1.2.62</fastjson.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
-        <aliyun-java-sdk-fc.version>1.8.25</aliyun-java-sdk-fc.version>xx
+        <aliyun-java-sdk-fc.version>1.8.25</aliyun-java-sdk-fc.version>
     </properties>
 
     <dependencies>
