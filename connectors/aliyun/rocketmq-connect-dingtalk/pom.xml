@@ -124,7 +124,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.apache.rocketmq.connect.jdbc.jdbcSourceConnector</mainClass>
+                            <mainClass>com.aliyun.rocketmq.connect.dingtalk.sink.DingTalkSinkConnector</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
