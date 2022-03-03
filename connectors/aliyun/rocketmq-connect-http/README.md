@@ -7,20 +7,6 @@ mvn clean install -Dmaven.test.skip=true
 
 ## rocketmq-connect-http 启动
 
-* **http-source-connector** 启动
-
-```
-http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-http-source-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"com.aliyun.rocketmq.connect.http.sink.HttpSinkConnector",“url”:"${url}"}
-```
-
-例子
-
-```
-http://localhost:8081/connectors/httpConnectorSource?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"com.aliyun.rocketmq.connect.http.sink.HttpSinkConnector","url":"http://127.0.0.1"}
-```
-
 * **http-sink-connector** 启动
 
 ```
