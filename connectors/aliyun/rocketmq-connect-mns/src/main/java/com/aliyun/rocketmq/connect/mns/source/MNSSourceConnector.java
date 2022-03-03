@@ -47,7 +47,9 @@ public class MNSSourceConnector extends SourceConnector {
         keyValue.put(ACCOUNT_ENDPOINT, accountEndpoint);
         keyValue.put(QUEUE_NAME, queueName);
         keyValue.put(ACCOUNT_ID, accountId);
-        keyValue.put(BATCH_SIZE, batchSize);
+        if (batchSize == null) {
+            keyValue.put(BATCH_SIZE, 8);
+        }
         keyValue.put(IS_BASE64_DECODE, isBase64Decode);
         taskConfigList.add(keyValue);
         return taskConfigList;
