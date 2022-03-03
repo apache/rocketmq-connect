@@ -121,7 +121,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.apache.rocketmq.connect.jdbc.jdbcSourceConnector</mainClass>
+                            <mainClass>com.aliyun.rocketmq.connect.mns.source.MNSSourceConnector</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
