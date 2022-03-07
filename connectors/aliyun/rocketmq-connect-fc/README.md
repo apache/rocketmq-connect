@@ -1,4 +1,8 @@
 # rocketmq-connect-fc
+* **rocketmq-connect-fc** 说明
+```
+Be responsible for consuming messages from producer and writing data to function calculation FC.
+```
 
 ## rocketmq-connect-fc 打包
 ```
