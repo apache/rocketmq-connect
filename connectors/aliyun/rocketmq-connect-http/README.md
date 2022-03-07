@@ -1,7 +1,7 @@
 # rocketmq-connect-http
 * **rocketmq-connect-http** 说明
 ```
-Be responsible for consuming messages from producer and writing data to another we service system.
+Be responsible for consuming messages from producer and writing data to another web service system.
 ```
 
 ## rocketmq-connect-http 打包
