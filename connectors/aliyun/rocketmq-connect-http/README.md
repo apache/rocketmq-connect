@@ -6,6 +6,10 @@ mvn clean install -Dmaven.test.skip=true
 ```
 
 ## rocketmq-connect-http 启动
+* **rocketmq-connect-http** 说明
+```
+Be responsible for consuming messages from producer and writing data to another we service system.
+```
 
 * **http-sink-connector** 启动
 
