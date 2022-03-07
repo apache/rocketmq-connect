@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.connect.runtime.utils;
 
+import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.Task;
 import java.io.IOException;
@@ -91,6 +92,7 @@ public class Plugin extends URLClassLoader {
         Reflections reflections = new PluginReflections(builder);
         getPlugin(reflections, Connector.class, loader);
         getPlugin(reflections, Task.class, loader);
+        getPlugin(reflections, Transform.class, loader);
     }
 
     private <T> Collection<Class<? extends T>> getPlugin(

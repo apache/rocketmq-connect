@@ -29,6 +29,7 @@ import io.openmessaging.connector.api.data.RecordPosition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,13 +102,16 @@ public class WorkerSourceTask implements WorkerTask {
 
     private List<ConnectRecord> toSendRecord;
 
+    private TransformChain<ConnectRecord> transformChain;
+
     public WorkerSourceTask(String connectorName,
         SourceTask sourceTask,
         ConnectKeyValue taskConfig,
         PositionManagementService positionManagementService,
         Converter recordConverter,
         DefaultMQProducer producer,
-        AtomicReference<WorkerState> workerState) {
+        AtomicReference<WorkerState> workerState,
+        TransformChain<ConnectRecord> transformChain) {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -117,6 +121,7 @@ public class WorkerSourceTask implements WorkerTask {
         this.recordConverter = recordConverter;
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
+        this.transformChain = transformChain;
     }
 
     /**
@@ -179,7 +184,14 @@ public class WorkerSourceTask implements WorkerTask {
         List<ConnectRecord> connectRecordList = null;
         try {
             connectRecordList = sourceTask.poll();
-            return connectRecordList;
+            List<ConnectRecord> connectRecordList1 = new ArrayList<>(32);
+            for (ConnectRecord connectRecord : connectRecordList) {
+                ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
+                if (null != connectRecord1) {
+                    connectRecordList1.add(connectRecord1);
+                }
+            }
+            return connectRecordList1;
         } catch (RetriableException e) {
             log.error("Source task RetriableException exception, taskconfig {}", JSON.toJSONString(taskConfig), e);
             return null;
