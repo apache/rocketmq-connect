@@ -22,8 +22,10 @@ import com.google.common.base.Splitter;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -69,6 +71,15 @@ public class TransformChain<R extends ConnectRecord> {
             String transformClass = config.getString(PREFIX + transformStr + "-class");
             try {
                 Transform transform = getTransform(transformClass);
+                transform.validate(config);
+                KeyValue transformConfig = new DefaultKeyValue();
+                Set<String> configKeys = config.keySet();
+                for (String key : configKeys) {
+                    if (key.startsWith(PREFIX + transformStr)) {
+                        transformConfig.put(key, config.getString(key));
+                    }
+                }
+                transform.init(transformConfig);
                 this.transformList.add(transform);
             } catch (Exception e) {
                 log.error("transform new instance error", e);
