@@ -1,4 +1,8 @@
 # rocketmq-connect-ding-talk
+* **rocketmq-connect-ding-talk** 说明
+```
+Be responsible for consuming messages from producer and writing data into ding talk group.
+```
 
 ## rocketmq-connect-ding-talk 打包
 ```
