@@ -1,4 +1,8 @@
 # rocketmq-connect-mns
+* **rocketmq-connect-mns** 说明
+```
+It is responsible for obtaining data from the message service MNS and sending it to rocketmq through producer.
+```
 
 ## rocketmq-connect-mns 打包
 ```
