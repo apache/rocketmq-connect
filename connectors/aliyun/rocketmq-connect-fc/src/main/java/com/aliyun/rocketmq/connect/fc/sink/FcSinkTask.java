@@ -55,7 +55,6 @@ public class FcSinkTask extends SinkTask {
                 }
                 invokeFunctionRequest.setQualifier(qualifier);
                 InvokeFunctionResponse invokeFunctionResponse = functionComputeClient.invokeFunction(invokeFunctionRequest);
-                log.info("Call result return。content : {}", new String(invokeFunctionResponse.getContent()));
                 if (Const.INVOCATION_TYPE_ASYNC.equals(invocationType)) {
                     if (HttpURLConnection.HTTP_ACCEPTED == invokeFunctionResponse.getStatus()) {
                         log.info("Async invocation has been queued for execution, request ID: {}", invokeFunctionResponse.getRequestId());
