@@ -18,11 +18,21 @@
 package org.apache.rocketmq.connect.runtime.config;
 
 import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUNTIME;
 
 /**
  * Configurations for runtime.
  */
 public class ConnectConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
+
+    public static final String COMMA = ",";
+
+    public static final String SEMICOLON = ";";
 
     /**
      * The unique ID of each worker instance in the cluster
