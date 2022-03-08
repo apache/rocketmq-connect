@@ -61,8 +61,6 @@ public class DingTalkSinkTask extends SinkTask {
 
     @Override
     public void init(KeyValue config) {
-        webHook = config.getString(DingTalkConstant.WEB_HOOK);
-        msgType = config.getString(DingTalkConstant.MSG_TYPE_CONSTANT, "text");
     }
 
     @Override
