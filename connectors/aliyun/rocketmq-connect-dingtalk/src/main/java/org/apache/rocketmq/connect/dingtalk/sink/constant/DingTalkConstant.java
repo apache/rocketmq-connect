@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.dingtalk.sink.constant;
+package org.apache.rocketmq.connect.dingtalk.sink.constant;
 
 public class DingTalkConstant {
 

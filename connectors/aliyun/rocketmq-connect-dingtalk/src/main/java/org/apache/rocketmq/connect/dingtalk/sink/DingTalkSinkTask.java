@@ -1,8 +1,8 @@
-package com.aliyun.rocketmq.connect.dingtalk.sink;
+package org.apache.rocketmq.connect.dingtalk.sink;
 
 import com.alibaba.fastjson.JSON;
-import com.aliyun.rocketmq.connect.dingtalk.sink.common.OkHttpUtils;
-import com.aliyun.rocketmq.connect.dingtalk.sink.constant.DingTalkConstant;
+import org.apache.rocketmq.connect.dingtalk.sink.common.OkHttpUtils;
+import org.apache.rocketmq.connect.dingtalk.sink.constant.DingTalkConstant;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;

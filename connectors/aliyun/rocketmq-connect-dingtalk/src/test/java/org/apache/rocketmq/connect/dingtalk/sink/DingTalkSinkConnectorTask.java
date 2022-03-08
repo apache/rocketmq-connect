@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.dingtalk.sink;
+package org.apache.rocketmq.connect.dingtalk.sink;
 
 import org.junit.Assert;
 import org.junit.Test;
