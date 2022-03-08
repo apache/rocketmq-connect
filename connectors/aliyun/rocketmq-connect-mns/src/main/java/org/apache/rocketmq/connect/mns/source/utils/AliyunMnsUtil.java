@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.mns.source.utils;
+package org.apache.rocketmq.connect.mns.source.utils;
 
 import org.apache.commons.lang3.StringUtils;
 

@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.aliyun</groupId>
+    <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-connect-mns</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
@@ -121,7 +121,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.aliyun.rocketmq.connect.mns.source.MNSSourceConnector</mainClass>
+                            <mainClass>org.apache.rocketmq.connect.mns.source.MNSSourceConnector</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

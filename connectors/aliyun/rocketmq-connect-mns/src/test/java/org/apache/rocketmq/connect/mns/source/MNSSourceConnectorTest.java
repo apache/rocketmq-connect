@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.mns.source;
+package org.apache.rocketmq.connect.mns.source;
 
 import org.junit.Assert;
 import org.junit.Test;

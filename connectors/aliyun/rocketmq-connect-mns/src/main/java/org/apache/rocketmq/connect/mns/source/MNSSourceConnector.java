@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.mns.source;
+package org.apache.rocketmq.connect.mns.source;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
@@ -10,7 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.aliyun.rocketmq.connect.mns.source.constant.MNSConstant.*;
+import static org.apache.rocketmq.connect.mns.source.constant.MNSConstant.*;
 
 public class MNSSourceConnector extends SourceConnector {
 

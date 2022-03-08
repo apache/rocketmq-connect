@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.mns.source;
+package org.apache.rocketmq.connect.mns.source;
 
 import com.aliyun.mns.client.CloudAccount;
 import com.aliyun.mns.client.CloudQueue;
@@ -8,7 +8,7 @@ import com.aliyun.mns.common.ServiceException;
 import com.aliyun.mns.model.Message;
 import com.aliyun.mns.model.PagingListResult;
 import com.aliyun.mns.model.QueueMeta;
-import com.aliyun.rocketmq.connect.mns.source.utils.AliyunMnsUtil;
+import org.apache.rocketmq.connect.mns.source.utils.AliyunMnsUtil;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.aliyun.rocketmq.connect.mns.source.constant.MNSConstant.*;
+import static org.apache.rocketmq.connect.mns.source.constant.MNSConstant.*;
 
 public class MNSSourceTask extends SourceTask {
     private static final Logger log = LoggerFactory.getLogger(MNSSourceTask.class);

@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.mns.source.constant;
+package org.apache.rocketmq.connect.mns.source.constant;
 
 public class MNSConstant {
 

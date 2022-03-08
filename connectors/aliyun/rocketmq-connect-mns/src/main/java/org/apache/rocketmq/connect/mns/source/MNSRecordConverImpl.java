@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.mns.source;
+package org.apache.rocketmq.connect.mns.source;
 
 import com.aliyun.mns.model.Message;
 import com.google.gson.Gson;
