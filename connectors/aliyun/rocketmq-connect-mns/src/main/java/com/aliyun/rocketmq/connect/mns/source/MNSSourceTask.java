@@ -6,6 +6,8 @@ import com.aliyun.mns.client.MNSClient;
 import com.aliyun.mns.common.ClientException;
 import com.aliyun.mns.common.ServiceException;
 import com.aliyun.mns.model.Message;
+import com.aliyun.mns.model.PagingListResult;
+import com.aliyun.mns.model.QueueMeta;
 import com.aliyun.rocketmq.connect.mns.source.utils.AliyunMnsUtil;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
@@ -91,17 +93,16 @@ public class MNSSourceTask extends SourceTask {
                 || StringUtils.isBlank(config.getString(ACCOUNT_ID))) {
             throw new RuntimeException("mns required parameter is null !");
         }
+        // 检测队列名称是否存在
+        PagingListResult<QueueMeta> queueMetaPagingListResult = mnsClient.listQueue(queueName, null, 1);
+        List<QueueMeta> result = queueMetaPagingListResult.getResult();
+        if (result == null || result.isEmpty()) {
+            throw new RuntimeException("mns queue name parameter is null !");
+        }
     }
 
     @Override
     public void init(KeyValue config) {
-        accessKeyId = config.getString(ACCESS_KEY_ID);
-        accessKeySecret = config.getString(ACCESS_KEY_SECRET);
-        accountEndpoint = config.getString(ACCOUNT_ENDPOINT);
-        queueName = config.getString(QUEUE_NAME);
-        batchSize = config.getInt(BATCH_SIZE, 8);
-        accountId = config.getString(ACCOUNT_ID);
-        isBase64Decode = config.getString(IS_BASE64_DECODE, "true");
         abstractMNSRecordConvert = new MNSRecordConverImpl();
     }
 
