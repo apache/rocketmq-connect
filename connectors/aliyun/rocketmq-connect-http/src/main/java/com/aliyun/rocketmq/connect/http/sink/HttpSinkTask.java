@@ -53,7 +53,6 @@ public class HttpSinkTask extends SinkTask {
 
     @Override
     public void init(KeyValue config) {
-        url = config.getString(HttpConstant.URL_CONSTANT);
     }
 
     @Override
