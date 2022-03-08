@@ -1,7 +1,7 @@
-package com.aliyun.rocketmq.connect.fc.sink;
+package org.apache.rocketmq.connect.fc.sink;
 
 import com.alibaba.fastjson.JSON;
-import com.aliyun.rocketmq.connect.fc.sink.constant.FcConstant;
+import org.apache.rocketmq.connect.fc.sink.constant.FcConstant;
 import com.aliyuncs.fc.client.FunctionComputeClient;
 import com.aliyuncs.fc.constants.Const;
 import com.aliyuncs.fc.exceptions.ClientException;

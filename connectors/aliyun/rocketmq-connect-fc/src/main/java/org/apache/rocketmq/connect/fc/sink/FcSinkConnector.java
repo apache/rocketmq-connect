@@ -1,6 +1,6 @@
-package com.aliyun.rocketmq.connect.fc.sink;
+package org.apache.rocketmq.connect.fc.sink;
 
-import com.aliyun.rocketmq.connect.fc.sink.constant.FcConstant;
+import org.apache.rocketmq.connect.fc.sink.constant.FcConstant;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;

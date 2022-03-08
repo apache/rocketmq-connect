@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.fc.sink.constant;
+package org.apache.rocketmq.connect.fc.sink.constant;
 
 public class FcConstant {
 

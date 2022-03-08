@@ -1,6 +1,6 @@
-package com.aliyun.rocketmq.connect.fc.sink;
+package org.apache.rocketmq.connect.fc.sink;
 
-import com.aliyun.rocketmq.connect.fc.sink.constant.FcConstant;
+import org.apache.rocketmq.connect.fc.sink.constant.FcConstant;
 import com.aliyuncs.fc.client.FunctionComputeClient;
 import com.aliyuncs.fc.request.InvokeFunctionRequest;
 import com.aliyuncs.fc.response.InvokeFunctionResponse;
