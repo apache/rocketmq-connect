@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.http.sink.common;
+package org.apache.rocketmq.connect.http.sink.common;
 
 import com.alibaba.fastjson.JSON;
 import okhttp3.*;

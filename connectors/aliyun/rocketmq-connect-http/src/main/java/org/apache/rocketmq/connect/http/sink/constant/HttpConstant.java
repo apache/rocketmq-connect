@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.http.sink.constant;
+package org.apache.rocketmq.connect.http.sink.constant;
 
 public class HttpConstant {
 

@@ -1,4 +1,4 @@
-package com.aliyun.rocketmq.connect.http.sink;
+package org.apache.rocketmq.connect.http.sink;
 
 import org.junit.Assert;
 import org.junit.Test;
