@@ -47,6 +47,8 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
@@ -100,6 +102,10 @@ public class WorkerSourceTask implements WorkerTask {
 
     private final AtomicReference<WorkerState> workerState;
 
+    private ConnectStatsManager connectStatsManager;
+
+    private ConnectStatsService connectStatsService;
+
     private List<ConnectRecord> toSendRecord;
 
     private TransformChain<ConnectRecord> transformChain;
@@ -111,6 +117,8 @@ public class WorkerSourceTask implements WorkerTask {
         Converter recordConverter,
         DefaultMQProducer producer,
         AtomicReference<WorkerState> workerState,
+        ConnectStatsManager connectStatsManager,
+        ConnectStatsService connectStatsService,
         TransformChain<ConnectRecord> transformChain) {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
@@ -121,6 +129,8 @@ public class WorkerSourceTask implements WorkerTask {
         this.recordConverter = recordConverter;
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
+        this.connectStatsManager = connectStatsManager;
+        this.connectStatsService = connectStatsService;
         this.transformChain = transformChain;
     }
 
@@ -155,22 +165,28 @@ public class WorkerSourceTask implements WorkerTask {
                     try {
                         toSendRecord = poll();
                         if (null != toSendRecord && toSendRecord.size() > 0) {
+                            connectStatsManager.incSourceRecordPollTotalNums();
+                            connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                             sendRecord();
                         }
                     } catch (RetriableException e) {
+                        connectStatsManager.incSourceRecordPollTotalFailNums();
+                        connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                         log.error("Source task RetriableException exception", e);
                     } catch (Exception e) {
+                        connectStatsManager.incSourceRecordPollTotalFailNums();
+                        connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                         log.error("Source task RetriableException exception", e);
                         state.set(WorkerTaskState.ERROR);
                     }
                 }
-
+                connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID)).addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
             }
             sourceTask.stop();
             state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
             log.info("Source task stop, config:{}", JSON.toJSONString(taskConfig));
         } catch (Exception e) {
-            log.error("Run task failed., task config {}", JSON.toJSONString(taskConfig), e);
+            log.error("Run task failed., task config: " +  JSON.toJSONString(taskConfig), e);
             state.set(WorkerTaskState.ERROR);
         } finally {
             if (producer != null) {
@@ -273,6 +289,8 @@ public class WorkerSourceTask implements WorkerTask {
                 producer.send(sourceMessage, new SendCallback() {
                     @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                         log.info("Successful send message to RocketMQ:{}", result.getMsgId());
+                        connectStatsManager.incSourceRecordWriteTotalNums();
+                        connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                         RecordPartition partition = position.getPartition();
                         try {
                             if (null != partition && null != position) {
@@ -288,14 +306,22 @@ public class WorkerSourceTask implements WorkerTask {
 
                     @Override public void onException(Throwable throwable) {
                         log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
+                        connectStatsManager.incSourceRecordWriteTotalFailNums();
+                        connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                     }
                 });
             } catch (MQClientException e) {
                 log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
+                connectStatsManager.incSourceRecordWriteTotalFailNums();
+                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
             } catch (RemotingException e) {
                 log.error("Send message RemotingException. message: {}, error info: {}.", sourceMessage, e);
+                connectStatsManager.incSourceRecordWriteTotalFailNums();
+                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
             } catch (InterruptedException e) {
                 log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
+                connectStatsManager.incSourceRecordWriteTotalFailNums();
+                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                 throw e;
             }
         }

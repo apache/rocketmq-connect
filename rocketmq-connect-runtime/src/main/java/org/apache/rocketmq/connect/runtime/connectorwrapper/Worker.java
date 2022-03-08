@@ -48,9 +48,12 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.TaskPositionCommitService;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
@@ -93,8 +96,6 @@ public class Worker {
      */
     private Map<Runnable, Future> taskToFutureMap = new ConcurrentHashMap<>();
 
-
-
     /**
      * Thread pool for connectors and tasks.
      */
@@ -104,11 +105,6 @@ public class Worker {
      * Position management for source tasks.
      */
     private final PositionManagementService positionManagementService;
-
-    /**
-     * Offset management for source tasks.
-     */
-    private final PositionManagementService offsetManagementService;
 
     /**
      * A scheduled task to commit source position of source tasks.
@@ -131,18 +127,23 @@ public class Worker {
 
     private StateMachineService stateMachineService = new StateMachineService();
 
+
+    private final ConnectStatsManager connectStatsManager;
+
+    private final ConnectStatsService connectStatsService;
+
     public Worker(ConnectConfig connectConfig,
-                  PositionManagementService positionManagementService, PositionManagementService offsetManagementService,
-                  Plugin plugin) {
+        PositionManagementService positionManagementService, ConfigManagementService configManagementService,
+        Plugin plugin, ConnectController connectController) {
         this.connectConfig = connectConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
-        this.offsetManagementService = offsetManagementService;
         this.taskPositionCommitService = new TaskPositionCommitService(
             this,
-            positionManagementService,
-            offsetManagementService);
+            positionManagementService);
         this.plugin = plugin;
+        this.connectStatsManager = connectController.getConnectStatsManager();
+        this.connectStatsService = connectController.getConnectStatsService();
     }
 
     public void start() {
@@ -419,7 +420,7 @@ public class Worker {
                     DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
                     TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                     WorkerSourceTask workerSourceTask = new WorkerSourceTask(connectorName,
-                        (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, transformChain);
+                        (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain);
                     Plugin.compareAndSwapLoaders(currentThreadLoader);
 
                     Future future = taskExecutor.submit(workerSourceTask);
@@ -432,7 +433,7 @@ public class Worker {
                     }
                     TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                     WorkerSinkTask workerSinkTask = new WorkerSinkTask(connectorName,
-                        (SinkTask) task, keyValue, offsetManagementService, recordConverter, consumer, workerState, transformChain);
+                        (SinkTask) task, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain);
                     Plugin.compareAndSwapLoaders(currentThreadLoader);
                     Future future = taskExecutor.submit(workerSinkTask);
                     taskToFutureMap.put(workerSinkTask, future);

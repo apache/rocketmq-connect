@@ -38,7 +38,10 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnect
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.junit.After;
@@ -60,6 +63,9 @@ public class WorkerTest {
     private PositionManagementService offsetManagementService;
 
     @Mock
+    private ConfigManagementService configManagementService;
+
+    @Mock
     private DefaultMQProducer producer;
 
     private ConnectConfig connectConfig;
@@ -75,13 +81,19 @@ public class WorkerTest {
     @Mock
     private ConnectController connectController;
 
+    @Mock
+    private ConnectStatsManager connectStatsManager;
+
+    @Mock
+    private ConnectStatsService connectStatsService;
+
     @Before
     public void init() {
         connectConfig = new ConnectConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setNamesrvAddr("localhost:9876");
-        worker = new Worker(connectConfig, positionManagementService, offsetManagementService, plugin);
+        worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController);
 
         Set<WorkerConnector> workingConnectors = new HashSet<>();
         for (int i = 0; i < 3; i++) {
@@ -105,6 +117,7 @@ public class WorkerTest {
                 new TestConverter(),
                 producer,
                 new AtomicReference(WorkerState.STARTED),
+                connectStatsManager, connectStatsService,
                 transformChain));
         }
         worker.setWorkingTasks(runnables);

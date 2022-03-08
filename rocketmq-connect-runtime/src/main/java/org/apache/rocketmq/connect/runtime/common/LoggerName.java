@@ -22,4 +22,7 @@ package org.apache.rocketmq.connect.runtime.common;
  */
 public class LoggerName {
     public static final String ROCKETMQ_RUNTIME = "RocketMQRuntime";
+    public static final String BROKER_BASE_LOG = "BrokerBaseLog";
+    public static final String COMMON_LOGGER_NAME = "ConnectCommon";
+    public static final String ROCKETMQ_CONNECT_STATS = "RocketmqConnectStats";
 }
