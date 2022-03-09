@@ -159,6 +159,18 @@ public class WorkerSinkTask implements WorkerTask {
     public static final String TOPIC = "topic";
     public static final String QUEUE_OFFSET = "queueOffset";
 
+    private static final Set<String> MQ_SYS_KEYS = new HashSet<String>() {
+        {
+            add("MIN_OFFSET");
+            add("TRACE_ON");
+            add("MAX_OFFSET");
+            add("MSG_REGION");
+            add("UNIQ_KEY");
+            add("WAIT");
+            add("TAGS");
+        }
+    };
+
     public WorkerSinkTask(String connectorName,
         SinkTask sinkTask,
         ConnectKeyValue taskConfig,
@@ -233,7 +245,7 @@ public class WorkerSinkTask implements WorkerTask {
         } finally {
             if (consumer != null) {
                 consumer.shutdown();
-                log.info("Sink task consumer shutdown.");
+                log.info("Sink task consumer shutdown. config:{}", JSON.toJSONString(taskConfig));
             }
         }
     }
@@ -553,7 +565,13 @@ public class WorkerSinkTask implements WorkerTask {
             KeyValue keyValue = new DefaultKeyValue();
             if (MapUtils.isNotEmpty(properties)) {
                 for (Map.Entry<String, String> entry : properties.entrySet()) {
-                    keyValue.put(entry.getKey(), entry.getValue());
+                    if (MQ_SYS_KEYS.contains(entry.getKey())) {
+                        keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
+                    } else if (entry.getKey().startsWith("connect-ext-")){
+                        keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
+                    } else {
+                        keyValue.put(entry.getKey(), entry.getValue());
+                    }
                 }
             }
             sinkDataEntry.addExtension(keyValue);

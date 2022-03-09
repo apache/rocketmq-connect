@@ -340,7 +340,7 @@ public class WorkerSourceTask implements WorkerTask {
             return;
         }
         for (String key : keySet) {
-            MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
+            MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
         }
     }
 
