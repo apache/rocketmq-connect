@@ -19,6 +19,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -26,14 +27,13 @@ import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.RecordPosition;
-import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -329,34 +329,18 @@ public class WorkerSourceTask implements WorkerTask {
     }
 
     private void putExtendMsgProperty(ConnectRecord sourceDataEntry, Message sourceMessage, String topic) {
-        String shardingKey = sourceDataEntry.getExtension(RuntimeConfigDefine.CONNECT_SHARDINGKEY);
-        if (StringUtils.isNotEmpty(shardingKey)) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_SHARDINGKEY, shardingKey);
+        KeyValue extensionKeyValues = sourceDataEntry.getExtensions();
+        if (null == extensionKeyValues) {
+            log.info("extension key value is null.");
+            return;
         }
-        if (StringUtils.isNotEmpty(topic)) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_TOPICNAME, topic);
+        Set<String> keySet = extensionKeyValues.keySet();
+        if (CollectionUtils.isEmpty(keySet)) {
+            log.info("extension keySet null.");
+            return;
         }
-        String sourcePartition = sourceDataEntry.getExtension(RuntimeConfigDefine.CONNECT_SOURCE_PARTITION);
-        if (StringUtils.isNotEmpty(sourcePartition)) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_SOURCE_PARTITION, sourcePartition);
-        }
-        String sourcePosition = sourceDataEntry.getExtension(RuntimeConfigDefine.CONNECT_SOURCE_POSITION);
-        if (StringUtils.isNotEmpty(sourcePosition)) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_SOURCE_POSITION, sourcePosition);
-        }
-        String entryType = sourceDataEntry.getExtension(RuntimeConfigDefine.CONNECT_ENTRYTYPE);
-        if (StringUtils.isNotEmpty(entryType)) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_ENTRYTYPE, entryType);
-        }
-        Long timestamp = sourceDataEntry.getTimestamp();
-        Optional<Long> otimestamp = Optional.ofNullable(timestamp);
-        if (otimestamp.isPresent()) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_TIMESTAMP, otimestamp.get().toString());
-        }
-        Schema schema = sourceDataEntry.getSchema();
-        Optional<Schema> oschema = Optional.ofNullable(schema);
-        if (oschema.isPresent()) {
-            MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_SCHEMA, JSON.toJSONString(oschema.get()));
+        for (String key : keySet) {
+            MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
         }
     }
 
