@@ -7,4 +7,9 @@ public class DingTalkConstant {
     public static final String CONTENT_CONSTANT = "content";
     public static final String MSG_TYPE_CONSTANT = "msgtype";
     public static final String WEB_HOOK = "webHook";
+    public static final String BODY_TRANSFORM = "bodyTransform";
+    public static final String SECRET_KEY = "secretKey";
+    public static final String TIMESTAMP_CONSTANT = "timestamp";
+    public static final String SIGN_CONSTANT = "sign";
+    public static final String HMAC_SHA256_CONSTANT = "HmacSHA256";
 }

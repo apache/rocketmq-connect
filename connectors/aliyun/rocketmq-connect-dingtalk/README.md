@@ -35,8 +35,10 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 ## rocketmq-connect-ding-talk 参数说明
 * **ding-talk-sink-connector 参数说明**
 
-|         KEY            |  TYPE   | Must be filled | Description   | Example  
-|------------------------|---------|----------------|---------------|----------|
-|webHook                   | String  | YES            | 机器人的Webhook地址 | https://oapi.dingtalk.com/robot/send?access_token=XXXXXX |
-|msgtype                  | String  | NO             | 消息类型 | text     |
+|         KEY            |  TYPE   | Must be filled | Description | Example                                                  
+|------------------------|---------|----------------|-----------|----------------------------------------------------------|
+|webHook                 | String  | YES            | 机器人的Webhook地址 | https://oapi.dingtalk.com/robot/send?access_token=XXXXXX |
+|msgtype                 | String  | NO             | 消息类型      | text                                                     |
+|bodyTransform           | String  | NO             | body transform     | body transform                                                     |
+|secretKey               | String  | NO             | 密钥        | SC                                                       |
 

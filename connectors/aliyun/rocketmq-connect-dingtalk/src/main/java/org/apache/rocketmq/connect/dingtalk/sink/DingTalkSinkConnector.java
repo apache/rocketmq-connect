@@ -7,6 +7,8 @@ import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +17,10 @@ public class DingTalkSinkConnector extends SinkConnector {
     private String webHook;
 
     private String msgType;
+
+    private String bodyTransform;
+
+    private String secretKey;
 
     @Override
     public void pause() {
@@ -32,6 +38,8 @@ public class DingTalkSinkConnector extends SinkConnector {
         KeyValue keyValue = new DefaultKeyValue();
         keyValue.put(DingTalkConstant.WEB_HOOK, webHook);
         keyValue.put(DingTalkConstant.MSG_TYPE_CONSTANT, msgType);
+        keyValue.put(DingTalkConstant.BODY_TRANSFORM, bodyTransform);
+        keyValue.put(DingTalkConstant.SECRET_KEY, secretKey);
         taskConfigList.add(keyValue);
         return taskConfigList;
     }
@@ -46,12 +54,22 @@ public class DingTalkSinkConnector extends SinkConnector {
         if (StringUtils.isBlank(config.getString(DingTalkConstant.WEB_HOOK))) {
             throw new RuntimeException("ding talk required parameter is null !");
         }
+        try {
+            URL urlConnect = new URL(webHook);
+            URLConnection urlConnection = urlConnect.openConnection();
+            urlConnection.setConnectTimeout(5000);
+            urlConnection.connect();
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
     @Override
     public void init(KeyValue config) {
         webHook = config.getString(DingTalkConstant.WEB_HOOK);
         msgType = config.getString(DingTalkConstant.MSG_TYPE_CONSTANT, "text");
+        bodyTransform = config.getString(DingTalkConstant.BODY_TRANSFORM);
+        secretKey = config.getString(DingTalkConstant.SECRET_KEY);
     }
 
     @Override

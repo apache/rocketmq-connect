@@ -12,6 +12,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +26,11 @@ public class DingTalkSinkTask extends SinkTask {
 
     private String webHook;
 
-    private String msgType;
+    private static String msgType;
+
+    private String bodyTransform;
+
+    private String secretKey;
 
     @Override
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
@@ -29,13 +38,17 @@ public class DingTalkSinkTask extends SinkTask {
             sinkRecords.forEach(sinkRecord -> {
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put(DingTalkConstant.CONTENT_CONSTANT, sinkRecord.getData());
-                OkHttpUtils.builder()
-                        .url(webHook)
-                        .addParam(DingTalkConstant.MSG_TYPE_CONSTANT, msgType)
-                        .addParam(msgType, JSON.toJSONString(objectMap))
-                        .addHeader(DingTalkConstant.CONTENT_TYPE, DingTalkConstant.APPLICATION_JSON_UTF_8_TYPE)
-                        .post(true)
-                        .sync();
+                try {
+                    OkHttpUtils.builder()
+                            .url(getWebHook())
+                            .addParam(DingTalkConstant.MSG_TYPE_CONSTANT, msgType)
+                            .addParam(msgType, JSON.toJSONString(objectMap))
+                            .addHeader(DingTalkConstant.CONTENT_TYPE, DingTalkConstant.APPLICATION_JSON_UTF_8_TYPE)
+                            .post(true)
+                            .sync();
+                } catch (Exception e) {
+                    log.error("DingTalkSinkTask | put | addParam | error => ", e);
+                }
             });
         } catch (Exception e) {
             log.error("DingTalkSinkTask | put | error => ", e);
@@ -54,7 +67,8 @@ public class DingTalkSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(DingTalkConstant.WEB_HOOK))) {
+        if (StringUtils.isBlank(config.getString(DingTalkConstant.WEB_HOOK)) ||
+            StringUtils.isBlank(config.getString(DingTalkConstant.SECRET_KEY))) {
             throw new RuntimeException("ding talk required parameter is null !");
         }
     }
@@ -71,5 +85,20 @@ public class DingTalkSinkTask extends SinkTask {
     @Override
     public void stop() {
 
+    }
+
+    private String signByHmacSHA256(String secretKey, long timestamp) throws Exception {
+        String strToSign = timestamp + "\n" + secretKey;
+        byte[] data = secretKey.getBytes(StandardCharsets.UTF_8);
+        SecretKey secret = new SecretKeySpec(data, DingTalkConstant.HMAC_SHA256_CONSTANT);
+        Mac mac = Mac.getInstance(DingTalkConstant.HMAC_SHA256_CONSTANT);
+        mac.init(secret);
+        byte[] bytes = strToSign.getBytes(StandardCharsets.UTF_8);
+        return Base64.getEncoder().encodeToString(mac.doFinal(bytes));
+    }
+
+    public String getWebHook() throws Exception {
+        long timeMillis = System.currentTimeMillis();
+        return webHook + "&" + DingTalkConstant.TIMESTAMP_CONSTANT + "=" + timeMillis + "&" + DingTalkConstant.SIGN_CONSTANT + "=" + signByHmacSHA256(secretKey, timeMillis);
     }
 }
