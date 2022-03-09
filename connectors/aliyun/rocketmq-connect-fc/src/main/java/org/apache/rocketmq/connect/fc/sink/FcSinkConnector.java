@@ -27,6 +27,8 @@ public class FcSinkConnector extends SinkConnector {
 
     private String qualifier;
 
+    private String bodyTransform;
+
     @Override
     public void pause() {
 
@@ -49,6 +51,7 @@ public class FcSinkConnector extends SinkConnector {
         keyValue.put(FcConstant.FUNCTION_NAME_CONSTANT, functionName);
         keyValue.put(FcConstant.INVOCATION_TYPE_CONSTANT, invocationType);
         keyValue.put(FcConstant.QUALIFIER_CONSTANT, qualifier);
+        keyValue.put(FcConstant.BODY_TRANSFORM, bodyTransform);
         keyValueList.add(keyValue);
         return keyValueList;
     }
@@ -73,6 +76,7 @@ public class FcSinkConnector extends SinkConnector {
         functionName = config.getString(FcConstant.FUNCTION_NAME_CONSTANT);
         invocationType = config.getString(FcConstant.INVOCATION_TYPE_CONSTANT, null);
         qualifier = config.getString(FcConstant.QUALIFIER_CONSTANT, FcConstant.DEFAULT_QUALIFIER_CONSTANT);
+        bodyTransform = config.getString(FcConstant.BODY_TRANSFORM);
     }
 
     @Override

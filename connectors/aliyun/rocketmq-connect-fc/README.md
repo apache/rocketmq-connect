@@ -43,6 +43,7 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-fc-connector-name}/st
 |accountId               | String  | YES            | 阿里云yourAccountId                      | xxxx |
 |serviceName             | String  | YES            | 服务名称 | xxxx |
 |functionName            | String  | YES            | 函数名称 | xxxx |
-|invocationType    | String | NO             | 同步或者异步                           | null |
-|qualifier        | String | NO             | 服务版本和别名                          | LATEST |
+|invocationType          | String | NO             | 同步或者异步                           | null |
+|qualifier               | String | NO             | 服务版本和别名                          | LATEST |
+|bodyTransform           | String | NO             | body transform                          | body transform |
 
