@@ -42,6 +42,8 @@ public class FcSinkTask extends SinkTask {
 
     private String qualifier;
 
+    private String bodyTransform;
+
     private FunctionComputeClient functionComputeClient;
 
     @Override
