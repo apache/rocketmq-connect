@@ -37,12 +37,13 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-mns-connector-name}/s
 ## rocketmq-connect-mns 参数说明
 * **mns-source-connector 参数说明**
 
-|         KEY            | TYPE    | Must be filled | Description             | Example  
-|------------------------|---------|----------------|-------------------------|----------|
-|accessKeyId                   | String  | YES            | 阿里云身份验证，在阿里云用户信息管理控制台获取 | xxxx     |
-|accessKeySecret                  | String  | YES            | 阿里云身份验证，在阿里云用户信息管理控制台获取 | xxxx     |
-|accountEndpoint              | String  | YES            | 阿里云MNS官方接入点             | xxxx     |
-|queueName              | String  | YES            | 队列名称                    | xxxx     |
-|accountId           | String  | YES            | 阿里云yourAccountId        | 10000000 |
-|batchSize                    | Integer | NO            | 批量接受消息数量                | 8        |
-|isBase64Decode           | String  | NO             | 是否开启Base64解码            | true     |
+| KEY             | TYPE    | Must be filled | Description             | Example  
+|-----------------|---------|----------------|-------------------------|----------|
+| accessKeyId     | String  | YES            | 阿里云身份验证，在阿里云用户信息管理控制台获取 | xxxx     |
+| accessKeySecret | String  | YES            | 阿里云身份验证，在阿里云用户信息管理控制台获取 | xxxx     |
+| accountEndpoint | String  | YES            | 阿里云MNS官方接入点             | xxxx     |
+| queueName       | String  | YES            | 队列名称                    | xxxx     |
+| accountId       | String  | YES            | 阿里云yourAccountId        | 10000000 |
+| batchSize       | Integer | NO            | 批量接受消息数量                | 8        |
+| isBase64Decode  | String  | NO             | 是否开启Base64解码            | true     |
+| bodyTransform   | String | NO             | body transform                          | body transform |

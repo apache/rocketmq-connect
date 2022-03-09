@@ -28,6 +28,8 @@ public class MNSSourceConnector extends SourceConnector {
 
     private Integer batchSize;
 
+    private String bodyTransform;
+
     @Override
     public void pause() {
 
@@ -51,6 +53,7 @@ public class MNSSourceConnector extends SourceConnector {
             keyValue.put(BATCH_SIZE, 8);
         }
         keyValue.put(IS_BASE64_DECODE, isBase64Decode);
+        keyValue.put(BODY_TRANSFORM, bodyTransform);
         taskConfigList.add(keyValue);
         return taskConfigList;
     }
@@ -80,6 +83,7 @@ public class MNSSourceConnector extends SourceConnector {
         batchSize = config.getInt(BATCH_SIZE, 8);
         accountId = config.getString(ACCOUNT_ID);
         isBase64Decode = config.getString(IS_BASE64_DECODE, "true");
+        bodyTransform = config.getString(BODY_TRANSFORM);
     }
 
     @Override

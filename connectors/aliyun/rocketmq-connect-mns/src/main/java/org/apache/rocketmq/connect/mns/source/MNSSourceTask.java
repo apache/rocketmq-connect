@@ -45,6 +45,8 @@ public class MNSSourceTask extends SourceTask {
 
     private Integer batchSize;
 
+    private String bodyTransform;
+
     private AbstractMNSRecordConvert abstractMNSRecordConvert;
 
     @Override
