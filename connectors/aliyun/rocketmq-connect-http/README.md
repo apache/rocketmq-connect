@@ -38,4 +38,5 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-http-connector-name}/
 | KEY |  TYPE   | Must be filled | Description | Example          
 |-----|---------|----------------|-------------|------------------|
 | url | String  | YES            | sink端 域名地址  | http://127.0.0.1 |
+|bodyTransform           | String | NO             | body transform                          | body transform |
 

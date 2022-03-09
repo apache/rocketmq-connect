@@ -18,6 +18,7 @@ public class HttpSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(HttpSinkTask.class);
 
     private String url;
+    private String bodyTransform;
 
     @Override
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {

@@ -15,6 +15,7 @@ import java.util.List;
 public class HttpSinkConnector extends SinkConnector {
 
     private String url;
+    private String bodyTransform;
 
     @Override
     public void pause() {
@@ -31,6 +32,7 @@ public class HttpSinkConnector extends SinkConnector {
         List<KeyValue> keyValueList = new ArrayList<>(11);
         KeyValue keyValue = new DefaultKeyValue();
         keyValue.put(HttpConstant.URL_CONSTANT, url);
+        keyValue.put(HttpConstant.BODY_TRANSFORM, bodyTransform);
         keyValueList.add(keyValue);
         return keyValueList;
     }
@@ -58,6 +60,7 @@ public class HttpSinkConnector extends SinkConnector {
     @Override
     public void init(KeyValue config) {
         url = config.getString(HttpConstant.URL_CONSTANT);
+        bodyTransform = config.getString(HttpConstant.BODY_TRANSFORM);
     }
 
     @Override
