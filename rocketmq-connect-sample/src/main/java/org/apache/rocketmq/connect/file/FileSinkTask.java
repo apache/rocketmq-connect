@@ -17,16 +17,12 @@
 
 package org.apache.rocketmq.connect.file;
 
-import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Field;
-import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -53,19 +49,7 @@ public class FileSinkTask extends SinkTask {
         for (ConnectRecord record : sinkDataEntries) {
             Object payload = record.getData();
             log.trace("Writing line to {}: {}", logFilename(), payload);
-            Schema schema = record.getSchema();
-            if (null == schema || null == schema.getFieldType()) {
-                log.warn("error record {}", JSON.toJSONString(record));
-                continue;
-            }
-            List<Field> fields = schema.getFields();
-            for (Field field : fields) {
-                FieldType type = schema.getFieldType();
-                if (type.equals(FieldType.STRING)) {
-                    log.info("Writing line to {}: {}", logFilename(), payload);
-                    outputStream.println(payload);
-                }
-            }
+            outputStream.println(payload);
         }
 
     }
