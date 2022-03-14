@@ -427,7 +427,8 @@ public class Worker {
                     taskToFutureMap.put(workerSourceTask, future);
                     this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
                 } else if (task instanceof SinkTask) {
-                    DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
+                    log.info("sink task config keyValue is {}", keyValue.getProperties());
+                    DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorName, keyValue);
                     if (connectConfig.isAutoCreateGroupEnable()) {
                         ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
                     }

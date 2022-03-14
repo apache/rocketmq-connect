@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -288,6 +289,9 @@ public class ConnectStatsService extends ServiceThread {
     }
 
     public AtomicLong singleSourceTaskTimesTotal(String taskId) {
+        if (StringUtils.isBlank(taskId)) {
+            return null;
+        }
         AtomicLong rs = sourceTaskTimesTotal.get(taskId);
         if (null == rs) {
             rs = new AtomicLong(0);
@@ -300,6 +304,9 @@ public class ConnectStatsService extends ServiceThread {
     }
 
     public AtomicLong singleSinkTaskTimesTotal(String taskId) {
+        if (StringUtils.isBlank(taskId)) {
+            return null;
+        }
         AtomicLong rs = sinkTaskTimesTotal.get(taskId);
         if (null == rs) {
             rs = new AtomicLong(0);

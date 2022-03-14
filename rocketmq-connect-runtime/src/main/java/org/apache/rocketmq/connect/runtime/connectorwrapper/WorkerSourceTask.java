@@ -27,6 +27,7 @@ import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.RecordPosition;
+import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -180,7 +182,10 @@ public class WorkerSourceTask implements WorkerTask {
                         state.set(WorkerTaskState.ERROR);
                     }
                 }
-                connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID)).addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
+                AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                if (null != atomicLong) {
+                    atomicLong.addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
+                }
             }
             sourceTask.stop();
             state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
@@ -200,6 +205,9 @@ public class WorkerSourceTask implements WorkerTask {
         List<ConnectRecord> connectRecordList = null;
         try {
             connectRecordList = sourceTask.poll();
+            if (CollectionUtils.isEmpty(connectRecordList)) {
+                return null;
+            }
             List<ConnectRecord> connectRecordList1 = new ArrayList<>(32);
             for (ConnectRecord connectRecord : connectRecordList) {
                 ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
@@ -264,6 +272,9 @@ public class WorkerSourceTask implements WorkerTask {
                     return;
                 }
                 topic = (String) o;
+            }
+            if (StringUtils.isBlank(topic)) {
+                throw new ConnectException("source connect lack of topic config");
             }
             sourceMessage.setTopic(topic);
             if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
