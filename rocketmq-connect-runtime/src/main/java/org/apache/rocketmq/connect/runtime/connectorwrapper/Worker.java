@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
+import com.alibaba.fastjson.JSON;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.component.connector.Connector;
@@ -89,7 +90,6 @@ public class Worker {
 
     private Set<Runnable> cleanedStoppedTasks = new ConcurrentSet<>();
 
-
     Map<String, List<ConnectKeyValue>> latestTaskConfigs = new HashMap<>();
     /**
      * Current running tasks to its Future map.
@@ -115,18 +115,16 @@ public class Worker {
 
     private final Plugin plugin;
 
-    private  static final int MAX_START_TIMEOUT_MILLS = 5000;
+    private static final int MAX_START_TIMEOUT_MILLS = 5000;
 
-    private  static final long MAX_STOP_TIMEOUT_MILLS = 20000;
+    private static final long MAX_STOP_TIMEOUT_MILLS = 20000;
 
     /**
      * Atomic state variable
      */
     private AtomicReference<WorkerState> workerState;
 
-
     private StateMachineService stateMachineService = new StateMachineService();
-
 
     private final ConnectStatsManager connectStatsManager;
 
@@ -161,17 +159,21 @@ public class Worker {
      * @throws Exception
      */
     public synchronized void startConnectors(Map<String, ConnectKeyValue> connectorConfigs,
-                                             ConnectController connectController) throws Exception {
+        ConnectController connectController) throws Exception {
         Set<WorkerConnector> stoppedConnector = new HashSet<>();
         for (WorkerConnector workerConnector : workingConnectors) {
-            String connectorName = workerConnector.getConnectorName();
-            ConnectKeyValue keyValue = connectorConfigs.get(connectorName);
-            if (null == keyValue || 0 != keyValue.getInt(RuntimeConfigDefine.CONFIG_DELETED)) {
-                workerConnector.stop();
-                log.info("Connector {} stop", workerConnector.getConnectorName());
-                stoppedConnector.add(workerConnector);
-            } else if (!keyValue.equals(workerConnector.getKeyValue())) {
-                workerConnector.reconfigure(keyValue);
+            try {
+                String connectorName = workerConnector.getConnectorName();
+                ConnectKeyValue keyValue = connectorConfigs.get(connectorName);
+                if (null == keyValue || 0 != keyValue.getInt(RuntimeConfigDefine.CONFIG_DELETED)) {
+                    workerConnector.stop();
+                    log.info("Connector {} stop", workerConnector.getConnectorName());
+                    stoppedConnector.add(workerConnector);
+                } else if (!keyValue.equals(workerConnector.getKeyValue())) {
+                    workerConnector.reconfigure(keyValue);
+                }
+            } catch (Exception e) {
+                log.error("stop or reconfigure connector error, connectName: " + workerConnector.getConnectorName(), e);
             }
         }
         workingConnectors.removeAll(stoppedConnector);
@@ -194,28 +196,32 @@ public class Worker {
         }
 
         for (String connectorName : newConnectors.keySet()) {
-            ConnectKeyValue keyValue = newConnectors.get(connectorName);
-            String connectorClass = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-            ClassLoader loader = plugin.getPluginClassLoader(connectorClass);
-            final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
-            Class clazz;
-            boolean isolationFlag = false;
-            if (loader instanceof PluginClassLoader) {
-                clazz = ((PluginClassLoader) loader).loadClass(connectorClass, false);
-                isolationFlag = true;
-            } else {
-                clazz = Class.forName(connectorClass);
+            try {
+                ConnectKeyValue keyValue = newConnectors.get(connectorName);
+                String connectorClass = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
+                ClassLoader loader = plugin.getPluginClassLoader(connectorClass);
+                final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
+                Class clazz;
+                boolean isolationFlag = false;
+                if (loader instanceof PluginClassLoader) {
+                    clazz = ((PluginClassLoader) loader).loadClass(connectorClass, false);
+                    isolationFlag = true;
+                } else {
+                    clazz = Class.forName(connectorClass);
+                }
+                final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
+                WorkerConnector workerConnector = new WorkerConnector(connectorName, connector, connectorConfigs.get(connectorName), new DefaultConnectorContext(connectorName, connectController));
+                if (isolationFlag) {
+                    Plugin.compareAndSwapLoaders(loader);
+                }
+                workerConnector.initialize();
+                workerConnector.start();
+                log.info("Connector {} start", workerConnector.getConnectorName());
+                Plugin.compareAndSwapLoaders(currentThreadLoader);
+                this.workingConnectors.add(workerConnector);
+            } catch (Exception e) {
+                log.error("worker connector start exception. workerName: " + connectorName, e);
             }
-            final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
-            WorkerConnector workerConnector = new WorkerConnector(connectorName, connector, connectorConfigs.get(connectorName), new DefaultConnectorContext(connectorName, connectController));
-            if (isolationFlag) {
-                Plugin.compareAndSwapLoaders(loader);
-            }
-            workerConnector.initialize();
-            workerConnector.start();
-            log.info("Connector {} start", workerConnector.getConnectorName());
-            Plugin.compareAndSwapLoaders(currentThreadLoader);
-            this.workingConnectors.add(workerConnector);
         }
     }
 
@@ -231,7 +237,6 @@ public class Worker {
             this.latestTaskConfigs = taskConfigs;
         }
     }
-
 
     private boolean isConfigInSet(ConnectKeyValue keyValue, Set<Runnable> set) {
         for (Runnable runnable : set) {
@@ -269,15 +274,15 @@ public class Worker {
     }
 
     public void setWorkingConnectors(
-            Set<WorkerConnector> workingConnectors) {
+        Set<WorkerConnector> workingConnectors) {
         this.workingConnectors = workingConnectors;
     }
-
 
     /**
      * Beaware that we are not creating a defensive copy of these tasks
      * So developers should only use these references for read-only purposes.
      * These variables should be immutable
+     *
      * @return
      */
     public Set<Runnable> getWorkingTasks() {
@@ -312,7 +317,6 @@ public class Worker {
         this.runningTasks = workingTasks;
     }
 
-
     public void maintainConnectorState() {
 
     }
@@ -333,7 +337,6 @@ public class Worker {
             List<ConnectKeyValue> keyValues = taskConfigs.get(connectorName);
             WorkerTaskState state = ((WorkerTask) runnable).getState();
 
-
             if (WorkerTaskState.ERROR == state) {
                 errorTasks.add(runnable);
                 runningTasks.remove(runnable);
@@ -348,10 +351,12 @@ public class Worker {
                     }
                 }
 
-
                 if (needStop) {
-                    workerTask.stop();
-
+                    try {
+                        workerTask.stop();
+                    } catch (Exception e) {
+                        log.error("workerTask stop exception, workerTask: " + workerTask.getTaskConfig(), e);
+                    }
                     log.info("Task stopping, connector name {}, config {}", workerTask.getConnectorName(), workerTask.getTaskConfig());
                     runningTasks.remove(runnable);
                     stoppingTasks.put(runnable, System.currentTimeMillis());
@@ -394,55 +399,57 @@ public class Worker {
                     createDirectTask(connectorName, keyValue);
                     continue;
                 }
-
-                String taskClass = keyValue.getString(RuntimeConfigDefine.TASK_CLASS);
-                ClassLoader loader = plugin.getPluginClassLoader(taskClass);
-                final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
-                Class taskClazz;
-                boolean isolationFlag = false;
-                if (loader instanceof PluginClassLoader) {
-                    taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
-                    isolationFlag = true;
-                } else {
-                    taskClazz = Class.forName(taskClass);
-                }
-                final Task task = (Task) taskClazz.getDeclaredConstructor().newInstance();
-                final String converterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER);
-                Converter recordConverter = null;
-                if (StringUtils.isNotEmpty(converterClazzName)) {
-                    Class converterClazz = Class.forName(converterClazzName);
-                    recordConverter = (Converter) converterClazz.newInstance();
-                }
-                if (isolationFlag) {
-                    Plugin.compareAndSwapLoaders(loader);
-                }
-                if (task instanceof SourceTask) {
-                    DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
-                    TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
-                    WorkerSourceTask workerSourceTask = new WorkerSourceTask(connectorName,
-                        (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain);
-                    Plugin.compareAndSwapLoaders(currentThreadLoader);
-
-                    Future future = taskExecutor.submit(workerSourceTask);
-                    taskToFutureMap.put(workerSourceTask, future);
-                    this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
-                } else if (task instanceof SinkTask) {
-                    log.info("sink task config keyValue is {}", keyValue.getProperties());
-                    DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorName, keyValue);
-                    if (connectConfig.isAutoCreateGroupEnable()) {
-                        ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
+                try {
+                    String taskClass = keyValue.getString(RuntimeConfigDefine.TASK_CLASS);
+                    ClassLoader loader = plugin.getPluginClassLoader(taskClass);
+                    final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
+                    Class taskClazz;
+                    boolean isolationFlag = false;
+                    if (loader instanceof PluginClassLoader) {
+                        taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
+                        isolationFlag = true;
+                    } else {
+                        taskClazz = Class.forName(taskClass);
                     }
-                    TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
-                    WorkerSinkTask workerSinkTask = new WorkerSinkTask(connectorName,
-                        (SinkTask) task, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain);
-                    Plugin.compareAndSwapLoaders(currentThreadLoader);
-                    Future future = taskExecutor.submit(workerSinkTask);
-                    taskToFutureMap.put(workerSinkTask, future);
-                    this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
+                    final Task task = (Task) taskClazz.getDeclaredConstructor().newInstance();
+                    final String converterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER);
+                    Converter recordConverter = null;
+                    if (StringUtils.isNotEmpty(converterClazzName)) {
+                        Class converterClazz = Class.forName(converterClazzName);
+                        recordConverter = (Converter) converterClazz.newInstance();
+                    }
+                    if (isolationFlag) {
+                        Plugin.compareAndSwapLoaders(loader);
+                    }
+                    if (task instanceof SourceTask) {
+                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
+                        TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
+                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(connectorName,
+                            (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain);
+                        Plugin.compareAndSwapLoaders(currentThreadLoader);
+
+                        Future future = taskExecutor.submit(workerSourceTask);
+                        taskToFutureMap.put(workerSourceTask, future);
+                        this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
+                    } else if (task instanceof SinkTask) {
+                        log.info("sink task config keyValue is {}", keyValue.getProperties());
+                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorName, keyValue);
+                        if (connectConfig.isAutoCreateGroupEnable()) {
+                            ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
+                        }
+                        TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
+                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(connectorName,
+                            (SinkTask) task, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain);
+                        Plugin.compareAndSwapLoaders(currentThreadLoader);
+                        Future future = taskExecutor.submit(workerSinkTask);
+                        taskToFutureMap.put(workerSinkTask, future);
+                        this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
+                    }
+                } catch (Exception e) {
+                    log.error("start worker task exception. config {}" + JSON.toJSONString(keyValue), e);
                 }
             }
         }
-
 
         //  STEP 3: check all pending state
         for (Map.Entry<Runnable, Long> entry : pendingTasks.entrySet()) {
@@ -505,7 +512,7 @@ public class Worker {
         }
 
         //  STEP 5 check errorTasks and stopped tasks
-        for (Runnable runnable: errorTasks) {
+        for (Runnable runnable : errorTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
             Future future = taskToFutureMap.get(runnable);
 
@@ -517,7 +524,7 @@ public class Worker {
                 }
             } catch (ExecutionException e) {
                 Throwable t = e.getCause();
-            } catch (CancellationException | TimeoutException |  InterruptedException e) {
+            } catch (CancellationException | TimeoutException | InterruptedException e) {
 
             } finally {
                 future.cancel(true);
@@ -529,9 +536,8 @@ public class Worker {
             }
         }
 
-
         //  STEP 5 check errorTasks and stopped tasks
-        for (Runnable runnable: stoppedTasks) {
+        for (Runnable runnable : stoppedTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
             workerTask.cleanup();
             Future future = taskToFutureMap.get(runnable);
@@ -554,8 +560,7 @@ public class Worker {
             } catch (InterruptedException e) {
                 log.info("[BUG] Stopped Tasks should not throw any exception");
                 e.printStackTrace();
-            }
-            finally {
+            } finally {
                 future.cancel(true);
                 taskToFutureMap.remove(runnable);
                 stoppedTasks.remove(runnable);
