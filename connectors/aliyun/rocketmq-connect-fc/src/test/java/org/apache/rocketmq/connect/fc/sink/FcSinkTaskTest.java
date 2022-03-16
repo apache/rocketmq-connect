@@ -70,4 +70,60 @@ public class FcSinkTaskTest {
         fcSinkTask.put(sinkRecords);
     }
 
+    @Test
+    public void testFcPut() {
+        FcSinkTask fcSinkTask = new FcSinkTask();
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(FcConstant.REGION_CONSTANT, "cn-hangzhou");
+        keyValue.put(FcConstant.ACCESS_KEY_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.ACCESS_SECRET_KEY_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.ACCOUNT_ID_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.SERVICE_NAME_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.FUNCTION_NAME_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.INVOCATION_TYPE_CONSTANT, null);
+        keyValue.put(FcConstant.QUALIFIER_CONSTANT, "LATEST");
+        fcSinkTask.init(keyValue);
+        List<ConnectRecord> connectRecordList = new ArrayList<>();
+        ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
+        connectRecord.setData("test fc");
+        connectRecordList.add(connectRecord);
+        fcSinkTask.start(new SinkTaskContext() {
+            @Override
+            public String getConnectorName() {
+                return null;
+            }
+
+            @Override
+            public String getTaskName() {
+                return null;
+            }
+
+            @Override
+            public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
+
+            }
+
+            @Override
+            public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
+
+            }
+
+            @Override
+            public void pause(List<RecordPartition> partitions) {
+
+            }
+
+            @Override
+            public void resume(List<RecordPartition> partitions) {
+
+            }
+
+            @Override
+            public Set<RecordPartition> assignment() {
+                return null;
+            }
+        });
+        fcSinkTask.put(connectRecordList);
+    }
+
 }
