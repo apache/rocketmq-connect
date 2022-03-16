@@ -142,6 +142,13 @@ public class OkHttpUtils {
         return this;
     }
 
+    public OkHttpUtils postForStringBody(Object data) {
+        String json = JSON.toJSONString(data);
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
+        request = new Request.Builder().post(requestBody).url(url);
+        return this;
+    }
+
     /**
      * 同步请求
      *

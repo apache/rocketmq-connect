@@ -16,10 +16,6 @@ public class DingTalkSinkConnector extends SinkConnector {
 
     private String webHook;
 
-    private String msgType;
-
-    private String bodyTransform;
-
     private String secretKey;
 
     @Override
@@ -37,8 +33,6 @@ public class DingTalkSinkConnector extends SinkConnector {
         List<KeyValue> taskConfigList = new ArrayList<>(11);
         KeyValue keyValue = new DefaultKeyValue();
         keyValue.put(DingTalkConstant.WEB_HOOK, webHook);
-        keyValue.put(DingTalkConstant.MSG_TYPE_CONSTANT, msgType);
-        keyValue.put(DingTalkConstant.BODY_TRANSFORM, bodyTransform);
         keyValue.put(DingTalkConstant.SECRET_KEY, secretKey);
         taskConfigList.add(keyValue);
         return taskConfigList;
@@ -67,8 +61,6 @@ public class DingTalkSinkConnector extends SinkConnector {
     @Override
     public void init(KeyValue config) {
         webHook = config.getString(DingTalkConstant.WEB_HOOK);
-        msgType = config.getString(DingTalkConstant.MSG_TYPE_CONSTANT, "text");
-        bodyTransform = config.getString(DingTalkConstant.BODY_TRANSFORM);
         secretKey = config.getString(DingTalkConstant.SECRET_KEY);
     }
 

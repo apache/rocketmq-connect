@@ -1,6 +1,5 @@
 package org.apache.rocketmq.connect.dingtalk.sink;
 
-import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.connect.dingtalk.sink.common.OkHttpUtils;
 import org.apache.rocketmq.connect.dingtalk.sink.constant.DingTalkConstant;
 import io.openmessaging.KeyValue;
@@ -17,18 +16,12 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class DingTalkSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(DingTalkSinkTask.class);
 
     private String webHook;
-
-    private static String msgType;
-
-    private String bodyTransform;
 
     private String secretKey;
 
@@ -36,16 +29,13 @@ public class DingTalkSinkTask extends SinkTask {
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
         try {
             sinkRecords.forEach(sinkRecord -> {
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put(DingTalkConstant.CONTENT_CONSTANT, sinkRecord.getData());
                 try {
-                    OkHttpUtils.builder()
+                    String sync = OkHttpUtils.builder()
                             .url(getWebHook())
-                            .addParam(DingTalkConstant.MSG_TYPE_CONSTANT, msgType)
-                            .addParam(msgType, JSON.toJSONString(objectMap))
                             .addHeader(DingTalkConstant.CONTENT_TYPE, DingTalkConstant.APPLICATION_JSON_UTF_8_TYPE)
-                            .post(true)
+                            .postForStringBody(sinkRecord.getData())
                             .sync();
+                    log.info("DingTalkSinkTask put sync : {}", sync);
                 } catch (Exception e) {
                     log.error("DingTalkSinkTask | put | addParam | error => ", e);
                 }
@@ -75,6 +65,8 @@ public class DingTalkSinkTask extends SinkTask {
 
     @Override
     public void init(KeyValue config) {
+        webHook = config.getString(DingTalkConstant.WEB_HOOK);
+        secretKey = config.getString(DingTalkConstant.SECRET_KEY);
     }
 
     @Override
