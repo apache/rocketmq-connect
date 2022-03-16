@@ -45,8 +45,6 @@ public class MNSSourceTask extends SourceTask {
 
     private Integer batchSize;
 
-    private String bodyTransform;
-
     private AbstractMNSRecordConvert abstractMNSRecordConvert;
 
     @Override
@@ -105,6 +103,13 @@ public class MNSSourceTask extends SourceTask {
 
     @Override
     public void init(KeyValue config) {
+        accessKeyId = config.getString(ACCESS_KEY_ID);
+        accessKeySecret = config.getString(ACCESS_KEY_SECRET);
+        accountEndpoint = config.getString(ACCOUNT_ENDPOINT);
+        queueName = config.getString(QUEUE_NAME);
+        batchSize = config.getInt(BATCH_SIZE, 8);
+        accountId = config.getString(ACCOUNT_ID);
+        isBase64Decode = config.getString(IS_BASE64_DECODE, "true");
         abstractMNSRecordConvert = new MNSRecordConverImpl();
     }
 

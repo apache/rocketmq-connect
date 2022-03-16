@@ -9,5 +9,4 @@ public class MNSConstant {
     public static final String ACCOUNT_ID = "accountId";
     public static final String BATCH_SIZE = "batchSize";
     public static final String IS_BASE64_DECODE = "isBase64Decode";
-    public static final String BODY_TRANSFORM = "bodyTransform";
 }
