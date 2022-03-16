@@ -45,5 +45,4 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-fc-connector-name}/st
 |functionName            | String  | YES            | 函数名称 | xxxx |
 |invocationType          | String | NO             | 同步或者异步                           | null |
 |qualifier               | String | NO             | 服务版本和别名                          | LATEST |
-|bodyTransform           | String | NO             | body transform                          | body transform |
 

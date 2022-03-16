@@ -11,5 +11,4 @@ public class FcConstant {
     public static final String INVOCATION_TYPE_CONSTANT = "invocationType";
     public static final String QUALIFIER_CONSTANT = "qualifier";
     public static final String DEFAULT_QUALIFIER_CONSTANT = "LATEST";
-    public static final String BODY_TRANSFORM = "bodyTransform";
 }

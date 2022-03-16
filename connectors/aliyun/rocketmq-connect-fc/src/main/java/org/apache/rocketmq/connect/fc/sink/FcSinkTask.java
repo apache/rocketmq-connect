@@ -42,8 +42,6 @@ public class FcSinkTask extends SinkTask {
 
     private String qualifier;
 
-    private String bodyTransform;
-
     private FunctionComputeClient functionComputeClient;
 
     @Override
@@ -105,6 +103,14 @@ public class FcSinkTask extends SinkTask {
 
     @Override
     public void init(KeyValue config) {
+        region = config.getString(FcConstant.REGION_CONSTANT);
+        accessKey = config.getString(FcConstant.ACCESS_KEY_CONSTANT);
+        accessSecretKey = config.getString(FcConstant.ACCESS_SECRET_KEY_CONSTANT);
+        accountId = config.getString(FcConstant.ACCOUNT_ID_CONSTANT);
+        serviceName = config.getString(FcConstant.SERVICE_NAME_CONSTANT);
+        functionName = config.getString(FcConstant.FUNCTION_NAME_CONSTANT);
+        invocationType = config.getString(FcConstant.INVOCATION_TYPE_CONSTANT, null);
+        qualifier = config.getString(FcConstant.QUALIFIER_CONSTANT, FcConstant.DEFAULT_QUALIFIER_CONSTANT);
     }
 
     @Override
