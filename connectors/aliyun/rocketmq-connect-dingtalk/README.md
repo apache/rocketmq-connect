@@ -38,7 +38,6 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 |         KEY            |  TYPE   | Must be filled | Description | Example                                                  
 |------------------------|---------|----------------|-----------|----------------------------------------------------------|
 |webHook                 | String  | YES            | 机器人的Webhook地址 | https://oapi.dingtalk.com/robot/send?access_token=XXXXXX |
-|msgtype                 | String  | NO             | 消息类型      | text                                                     |
-|bodyTransform           | String  | NO             | body transform     | body transform                                                     |
+|msgtype                 | String  | NO             | 消息类型      | text                                                     |             |
 |secretKey               | String  | NO             | 密钥        | SC                                                       |
 
