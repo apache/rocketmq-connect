@@ -46,4 +46,3 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-mns-connector-name}/s
 | accountId       | String  | YES            | 阿里云yourAccountId        | 10000000 |
 | batchSize       | Integer | NO            | 批量接受消息数量                | 8        |
 | isBase64Decode  | String  | NO             | 是否开启Base64解码            | true     |
-| bodyTransform   | String | NO             | body transform                          | body transform |
