@@ -71,7 +71,6 @@ public class TransformChain<R extends ConnectRecord> {
             String transformClass = config.getString(PREFIX + transformStr + "-class");
             try {
                 Transform transform = getTransform(transformClass);
-                transform.validate(config);
                 KeyValue transformConfig = new DefaultKeyValue();
                 Set<String> configKeys = config.keySet();
                 for (String key : configKeys) {
@@ -79,6 +78,7 @@ public class TransformChain<R extends ConnectRecord> {
                         transformConfig.put(key, config.getString(key));
                     }
                 }
+                transform.validate(config);
                 transform.init(transformConfig);
                 this.transformList.add(transform);
             } catch (Exception e) {
