@@ -75,6 +75,7 @@ public class TransformChain<R extends ConnectRecord> {
                 Set<String> configKeys = config.keySet();
                 for (String key : configKeys) {
                     if (key.startsWith(PREFIX + transformStr)) {
+                        key = key.replace(PREFIX + transformStr, "");
                         transformConfig.put(key, config.getString(key));
                     }
                 }
