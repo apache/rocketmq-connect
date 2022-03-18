@@ -197,6 +197,12 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
 
             newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAME));
             newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAMES, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAMES));
+            Set<String> connectConfigKeySet = configs.keySet();
+            for (String connectConfigKey : connectConfigKeySet) {
+                if (connectConfigKey.startsWith(RuntimeConfigDefine.TRANSFORMS)) {
+                    newKeyValue.put(connectConfigKey, configs.getString(connectConfigKey));
+                }
+            }
             converterdConfigs.add(newKeyValue);
         }
         putTaskConfigs(connectorName, converterdConfigs);
