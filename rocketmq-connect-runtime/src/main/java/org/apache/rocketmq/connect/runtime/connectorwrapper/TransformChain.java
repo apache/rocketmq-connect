@@ -68,13 +68,14 @@ public class TransformChain<R extends ConnectRecord> {
             return;
         }
         transformList.stream().forEach(transformStr -> {
-            String transformClass = config.getString(PREFIX + transformStr + "-class");
+            String transformClassKey = PREFIX + transformStr + "-class";
+            String transformClass = config.getString(transformClassKey);
             try {
                 Transform transform = getTransform(transformClass);
                 KeyValue transformConfig = new DefaultKeyValue();
                 Set<String> configKeys = config.keySet();
                 for (String key : configKeys) {
-                    if (key.startsWith(PREFIX + transformStr)) {
+                    if (key.startsWith(PREFIX + transformStr) && !key.equals(transformClassKey)) {
                         String originKey = key.replace(PREFIX + transformStr + "-", "");
                         transformConfig.put(originKey, config.getString(key));
                     }
