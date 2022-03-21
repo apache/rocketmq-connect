@@ -122,12 +122,4 @@ public class TransformChain<R extends ConnectRecord> {
         Plugin.compareAndSwapLoaders(currentThreadLoader);
         return transform;
     }
-
-    public static void main(String[] args) {
-        String key = "transforms-filter-key1";
-        String originKey = key.replace(PREFIX + "filter" + "-", "");
-        System.out.println(originKey);
-        System.out.println(key);
-
-    }
 }
