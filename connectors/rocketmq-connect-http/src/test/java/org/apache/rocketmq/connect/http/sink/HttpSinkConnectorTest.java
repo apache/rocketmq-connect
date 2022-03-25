@@ -31,4 +31,12 @@ public class HttpSinkConnectorTest {
         connectRecordList.add(connectRecord);
         httpSinkTask.put(connectRecordList);
     }
+
+    @Test(expected = RuntimeException.class)
+    public void testValidate() {
+        KeyValue keyValue = new DefaultKeyValue();
+        // 需要添加测试的http地址
+        keyValue.put(HttpConstant.URL_CONSTANT, "http://127.0.0.1");
+        httpSinkConnector.validate(keyValue);
+    }
 }

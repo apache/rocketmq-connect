@@ -46,7 +46,7 @@ public class HttpSinkConnector extends SinkConnector {
             throw new RuntimeException("http required parameter is null !");
         }
         try {
-            URL urlConnect = new URL(url);
+            URL urlConnect = new URL(config.getString(HttpConstant.URL_CONSTANT));
             URLConnection urlConnection = urlConnect.openConnection();
             urlConnection.setConnectTimeout(5000);
             urlConnection.connect();

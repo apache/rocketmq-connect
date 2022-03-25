@@ -1,6 +1,5 @@
 package org.apache.rocketmq.connect.http.sink;
 
-import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.connect.http.sink.common.OkHttpUtils;
 import org.apache.rocketmq.connect.http.sink.constant.HttpConstant;
 import io.openmessaging.KeyValue;
@@ -22,13 +21,11 @@ public class HttpSinkTask extends SinkTask {
     @Override
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
         try {
-            sinkRecords.forEach(connectRecord -> {
-                OkHttpUtils.builder()
-                        .url(url)
-                        .addParam(HttpConstant.DATA_CONSTANT, JSON.toJSONString(connectRecord.getData()))
-                        .post(true)
-                        .sync();
-            });
+            sinkRecords.forEach(connectRecord -> OkHttpUtils.builder()
+                    .url(url)
+                    .addParam(HttpConstant.DATA_CONSTANT, connectRecord.getData().toString())
+                    .post(true)
+                    .sync());
         } catch (Exception e) {
             log.error("HttpSinkTask | put | error => ", e);
         }
@@ -46,7 +43,7 @@ public class HttpSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString("url"))) {
+        if (StringUtils.isBlank(config.getString(HttpConstant.URL_CONSTANT))) {
             throw new RuntimeException("http required parameter is null !");
         }
     }
