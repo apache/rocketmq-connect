@@ -22,6 +22,7 @@ import java.util.List;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.Task;
 import io.openmessaging.connector.api.source.SourceConnector;
+import org.apache.commons.lang.StringUtils;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +36,9 @@ public class RedisSourceConnector extends SourceConnector {
     @Override public String verifyAndSetConfig(KeyValue keyValue) {
         this.keyValue = keyValue;
         String msg = Config.checkConfig(keyValue);
-        if (msg != null) {
-            return msg;
+        if (StringUtils.isNotBlank(msg)){
+            LOGGER.error("verify error:[{}]",msg);
+            throw new RuntimeException("verify error");
         }
         return null;
     }
