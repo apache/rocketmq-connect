@@ -6,7 +6,7 @@ public class RocketMQConstant {
 
     public static final String ACCESS_KEY_SECRET = "accessKeySecret";
 
-    public static final String NAMESRV_ADDR = "";
+    public static final String NAMESRV_ADDR = "namesrvAddr";
 
     public static final String TOPIC = "topic";
 

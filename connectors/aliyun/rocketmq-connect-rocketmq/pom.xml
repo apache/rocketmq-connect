@@ -19,7 +19,7 @@
         <assertj.version>3.22.0</assertj.version>
         <mockito.version>4.0.0</mockito.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <aliyun-ons.version>1.8.8.3.Final</aliyun-ons.version>
+        <ons-client.version>1.8.8.3.Final</ons-client.version>
         <ons20190214.version>1.0.0</ons20190214.version>
     </properties>
 
@@ -151,7 +151,7 @@
         <dependency>
             <groupId>com.aliyun.openservices</groupId>
             <artifactId>ons-client</artifactId>
-            <version>${aliyun-ons.verison}</version>
+            <version>${ons-client.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
