@@ -42,9 +42,7 @@ public class RedisSourceConnector extends SourceConnector {
     }
 
     @Override public void start() {
-        if (LOGGER.isDebugEnabled()){
-            LOGGER.info("the redis source start...");
-        }
+        LOGGER.info("the redis source start...");
     }
 
 
