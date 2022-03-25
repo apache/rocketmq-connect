@@ -3,6 +3,7 @@ package org.apache.rocketmq.connect.dingtalk.sink;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
+import org.apache.rocketmq.connect.dingtalk.sink.constant.DingTalkConstant;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -38,5 +39,13 @@ public class DingTalkSinkConnectorTest {
         connectRecord.setData(map);
         connectRecordList.add(connectRecord);
         dingTalkSinkTask.put(connectRecordList);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testValidate() {
+        KeyValue keyValue = new DefaultKeyValue();
+        // 需要添加测试的web_hook地址
+        keyValue.put(DingTalkConstant.WEB_HOOK, "http://127.0.0.1");
+        dingTalkSinkConnector.validate(keyValue);
     }
 }

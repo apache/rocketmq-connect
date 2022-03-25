@@ -49,7 +49,7 @@ public class DingTalkSinkConnector extends SinkConnector {
             throw new RuntimeException("ding talk required parameter is null !");
         }
         try {
-            URL urlConnect = new URL(webHook);
+            URL urlConnect = new URL(config.getString(DingTalkConstant.WEB_HOOK));
             URLConnection urlConnection = urlConnect.openConnection();
             urlConnection.setConnectTimeout(5000);
             urlConnection.connect();
