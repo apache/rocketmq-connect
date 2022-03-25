@@ -18,15 +18,15 @@ public class FcSinkConnectorTest {
     @Test
     public void testInit() {
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(FcConstant.REGION_CONSTANT, FcConstant.REGION_CONSTANT);
-        keyValue.put(FcConstant.ACCESS_KEY_CONSTANT, FcConstant.ACCESS_KEY_CONSTANT);
-        keyValue.put(FcConstant.ACCESS_SECRET_KEY_CONSTANT, FcConstant.ACCESS_SECRET_KEY_CONSTANT);
+        keyValue.put(FcConstant.REGION_ID_CONSTANT, FcConstant.REGION_ID_CONSTANT);
+        keyValue.put(FcConstant.ACCESS_KEY_ID_CONSTANT, FcConstant.ACCESS_KEY_ID_CONSTANT);
+        keyValue.put(FcConstant.ACCESS__KEY_SECRET_CONSTANT, FcConstant.ACCESS__KEY_SECRET_CONSTANT);
         keyValue.put(FcConstant.ACCOUNT_ID_CONSTANT, FcConstant.ACCOUNT_ID_CONSTANT);
         keyValue.put(FcConstant.SERVICE_NAME_CONSTANT, FcConstant.SERVICE_NAME_CONSTANT);
         keyValue.put(FcConstant.FUNCTION_NAME_CONSTANT, FcConstant.FUNCTION_NAME_CONSTANT);
         keyValue.put(FcConstant.INVOCATION_TYPE_CONSTANT, FcConstant.INVOCATION_TYPE_CONSTANT);
         keyValue.put(FcConstant.QUALIFIER_CONSTANT, FcConstant.QUALIFIER_CONSTANT);
         fcSinkConnector.init(keyValue);
-        Assert.assertEquals(fcSinkConnector.taskConfigs(1).get(0).getString(FcConstant.REGION_CONSTANT), FcConstant.REGION_CONSTANT);
+        Assert.assertEquals(fcSinkConnector.taskConfigs(1).get(0).getString(FcConstant.REGION_ID_CONSTANT), FcConstant.REGION_ID_CONSTANT);
     }
 }

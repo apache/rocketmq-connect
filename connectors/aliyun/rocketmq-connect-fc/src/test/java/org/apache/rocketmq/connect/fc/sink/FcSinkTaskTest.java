@@ -36,9 +36,9 @@ public class FcSinkTaskTest {
     @Before
     public void before() {
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(FcConstant.REGION_CONSTANT, FcConstant.REGION_CONSTANT);
-        keyValue.put(FcConstant.ACCESS_KEY_CONSTANT, FcConstant.ACCESS_KEY_CONSTANT);
-        keyValue.put(FcConstant.ACCESS_SECRET_KEY_CONSTANT, FcConstant.ACCESS_SECRET_KEY_CONSTANT);
+        keyValue.put(FcConstant.REGION_ID_CONSTANT, FcConstant.REGION_ID_CONSTANT);
+        keyValue.put(FcConstant.ACCESS_KEY_ID_CONSTANT, FcConstant.ACCESS_KEY_ID_CONSTANT);
+        keyValue.put(FcConstant.ACCESS__KEY_SECRET_CONSTANT, FcConstant.ACCESS__KEY_SECRET_CONSTANT);
         keyValue.put(FcConstant.ACCOUNT_ID_CONSTANT, FcConstant.ACCOUNT_ID_CONSTANT);
         keyValue.put(FcConstant.SERVICE_NAME_CONSTANT, FcConstant.SERVICE_NAME_CONSTANT);
         keyValue.put(FcConstant.FUNCTION_NAME_CONSTANT, FcConstant.FUNCTION_NAME_CONSTANT);
@@ -74,9 +74,9 @@ public class FcSinkTaskTest {
     public void testFcPut() {
         FcSinkTask fcSinkTask = new FcSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(FcConstant.REGION_CONSTANT, "cn-hangzhou");
-        keyValue.put(FcConstant.ACCESS_KEY_CONSTANT, "xxxx");
-        keyValue.put(FcConstant.ACCESS_SECRET_KEY_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.REGION_ID_CONSTANT, "cn-hangzhou");
+        keyValue.put(FcConstant.ACCESS_KEY_ID_CONSTANT, "xxxx");
+        keyValue.put(FcConstant.ACCESS__KEY_SECRET_CONSTANT, "xxxx");
         keyValue.put(FcConstant.ACCOUNT_ID_CONSTANT, "xxxx");
         keyValue.put(FcConstant.SERVICE_NAME_CONSTANT, "xxxx");
         keyValue.put(FcConstant.FUNCTION_NAME_CONSTANT, "xxxx");

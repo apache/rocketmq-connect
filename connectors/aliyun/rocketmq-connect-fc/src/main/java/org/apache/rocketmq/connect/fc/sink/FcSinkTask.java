@@ -26,11 +26,11 @@ public class FcSinkTask extends SinkTask {
 
     private static final Logger log = LoggerFactory.getLogger(FcSinkTask.class);
 
-    private String region;
+    private String regionId;
 
-    private String accessKey;
+    private String accessKeyId;
 
-    private String accessSecretKey;
+    private String accessKeySecret;
 
     private String accountId;
 
@@ -80,9 +80,9 @@ public class FcSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(FcConstant.REGION_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.ACCESS_KEY_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.ACCESS_SECRET_KEY_CONSTANT))
+        if (StringUtils.isBlank(config.getString(FcConstant.REGION_ID_CONSTANT))
+            || StringUtils.isBlank(config.getString(FcConstant.ACCESS_KEY_ID_CONSTANT))
+            || StringUtils.isBlank(config.getString(FcConstant.ACCESS__KEY_SECRET_CONSTANT))
             || StringUtils.isBlank(config.getString(FcConstant.ACCOUNT_ID_CONSTANT))
             || StringUtils.isBlank(config.getString(FcConstant.SERVICE_NAME_CONSTANT))
             || StringUtils.isBlank(config.getString(FcConstant.FUNCTION_NAME_CONSTANT))) {
@@ -103,9 +103,9 @@ public class FcSinkTask extends SinkTask {
 
     @Override
     public void init(KeyValue config) {
-        region = config.getString(FcConstant.REGION_CONSTANT);
-        accessKey = config.getString(FcConstant.ACCESS_KEY_CONSTANT);
-        accessSecretKey = config.getString(FcConstant.ACCESS_SECRET_KEY_CONSTANT);
+        regionId = config.getString(FcConstant.REGION_ID_CONSTANT);
+        accessKeyId = config.getString(FcConstant.ACCESS_KEY_ID_CONSTANT);
+        accessKeySecret = config.getString(FcConstant.ACCESS__KEY_SECRET_CONSTANT);
         accountId = config.getString(FcConstant.ACCOUNT_ID_CONSTANT);
         serviceName = config.getString(FcConstant.SERVICE_NAME_CONSTANT);
         functionName = config.getString(FcConstant.FUNCTION_NAME_CONSTANT);
@@ -117,7 +117,7 @@ public class FcSinkTask extends SinkTask {
     public void start(SinkTaskContext sinkTaskContext) {
         try {
             super.start(sinkTaskContext);
-            functionComputeClient = new FunctionComputeClient(region, accountId, accessKey, accessSecretKey);
+            functionComputeClient = new FunctionComputeClient(regionId, accountId, accessKeyId, accessKeySecret);
         } catch (Exception e) {
             log.error("FcSinkTask | start | error => ", e);
             throw new RuntimeException(e);

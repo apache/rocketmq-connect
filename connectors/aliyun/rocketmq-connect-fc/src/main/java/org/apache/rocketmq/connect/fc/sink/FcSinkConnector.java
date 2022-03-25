@@ -11,11 +11,11 @@ import java.util.List;
 
 public class FcSinkConnector extends SinkConnector {
 
-    private String region;
+    private String regionId;
 
-    private String accessKey;
+    private String accessKeyId;
 
-    private String accessSecretKey;
+    private String accessKeySecret;
 
     private String accountId;
 
@@ -41,9 +41,9 @@ public class FcSinkConnector extends SinkConnector {
     public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> keyValueList = new ArrayList<>(11);
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(FcConstant.REGION_CONSTANT, region);
-        keyValue.put(FcConstant.ACCESS_KEY_CONSTANT, accessKey);
-        keyValue.put(FcConstant.ACCESS_SECRET_KEY_CONSTANT, accessSecretKey);
+        keyValue.put(FcConstant.REGION_ID_CONSTANT, regionId);
+        keyValue.put(FcConstant.ACCESS_KEY_ID_CONSTANT, accessKeyId);
+        keyValue.put(FcConstant.ACCESS__KEY_SECRET_CONSTANT, accessKeySecret);
         keyValue.put(FcConstant.ACCOUNT_ID_CONSTANT, accountId);
         keyValue.put(FcConstant.SERVICE_NAME_CONSTANT, serviceName);
         keyValue.put(FcConstant.FUNCTION_NAME_CONSTANT, functionName);
@@ -65,9 +65,9 @@ public class FcSinkConnector extends SinkConnector {
 
     @Override
     public void init(KeyValue config) {
-        region = config.getString(FcConstant.REGION_CONSTANT);
-        accessKey = config.getString(FcConstant.ACCESS_KEY_CONSTANT);
-        accessSecretKey = config.getString(FcConstant.ACCESS_SECRET_KEY_CONSTANT);
+        regionId = config.getString(FcConstant.REGION_ID_CONSTANT);
+        accessKeyId = config.getString(FcConstant.ACCESS_KEY_ID_CONSTANT);
+        accessKeySecret = config.getString(FcConstant.ACCESS__KEY_SECRET_CONSTANT);
         accountId = config.getString(FcConstant.ACCOUNT_ID_CONSTANT);
         serviceName = config.getString(FcConstant.SERVICE_NAME_CONSTANT);
         functionName = config.getString(FcConstant.FUNCTION_NAME_CONSTANT);
