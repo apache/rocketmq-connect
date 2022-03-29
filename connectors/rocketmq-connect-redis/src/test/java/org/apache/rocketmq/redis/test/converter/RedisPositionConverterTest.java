@@ -19,7 +19,7 @@ package org.apache.rocketmq.redis.test.converter;
 
 import com.alibaba.fastjson.JSONObject;
 import java.nio.ByteBuffer;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.common.RedisConstants;
 import org.apache.rocketmq.connect.redis.converter.RedisPositionConverter;
 import org.junit.Assert;

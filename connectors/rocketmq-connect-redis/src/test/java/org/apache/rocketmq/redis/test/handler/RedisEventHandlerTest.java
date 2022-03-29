@@ -18,7 +18,7 @@ import com.moilioncircle.redis.replicator.rdb.datatype.ZSetEntry;
 import com.moilioncircle.redis.replicator.rdb.iterable.datatype.BatchedKeyStringValueString;
 import com.moilioncircle.redis.replicator.rdb.iterable.datatype.BatchedKeyValuePair;
 import io.openmessaging.connector.api.data.FieldType;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.common.SyncMod;
 import org.apache.rocketmq.connect.redis.handler.DefaultRedisEventHandler;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;

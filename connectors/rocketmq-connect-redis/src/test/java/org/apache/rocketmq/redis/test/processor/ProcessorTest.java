@@ -7,7 +7,7 @@ import java.util.Set;
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyStringValueSet;
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyStringValueString;
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyValuePair;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.common.SyncMod;
 import org.apache.rocketmq.connect.redis.handler.DefaultRedisEventHandler;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;

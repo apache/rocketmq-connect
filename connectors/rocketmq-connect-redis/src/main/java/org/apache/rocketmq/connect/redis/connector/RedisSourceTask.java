@@ -25,7 +25,7 @@ import java.util.Collection;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.SourceDataEntry;
 import io.openmessaging.connector.api.source.SourceTask;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
 import org.apache.rocketmq.connect.redis.converter.RedisEntryConverter;

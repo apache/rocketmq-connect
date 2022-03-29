@@ -6,7 +6,7 @@ import com.moilioncircle.redis.replicator.event.EventListener;
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyStringValueString;
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyValuePair;
 import java.io.IOException;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.handler.DefaultRedisEventHandler;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
 import org.apache.rocketmq.connect.redis.processor.DefaultRedisEventProcessor;

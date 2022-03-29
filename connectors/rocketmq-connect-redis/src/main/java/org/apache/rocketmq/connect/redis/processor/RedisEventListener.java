@@ -25,7 +25,7 @@ import com.moilioncircle.redis.replicator.event.PreCommandSyncEvent;
 import com.moilioncircle.redis.replicator.event.PreRdbSyncEvent;
 import com.moilioncircle.redis.replicator.rdb.datatype.AuxField;
 import java.io.IOException;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.pojo.RedisEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

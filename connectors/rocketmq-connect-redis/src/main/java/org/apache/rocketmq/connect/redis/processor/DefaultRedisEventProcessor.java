@@ -40,7 +40,7 @@ import com.moilioncircle.redis.replicator.ExceptionListener;
 import com.moilioncircle.redis.replicator.Replicator;
 import com.moilioncircle.redis.replicator.event.EventListener;
 import org.apache.commons.lang.StringUtils;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.common.RedisConstants;
 import org.apache.rocketmq.connect.redis.common.SyncMod;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;

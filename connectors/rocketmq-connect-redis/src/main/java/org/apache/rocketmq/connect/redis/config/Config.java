@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.redis.common;
+package org.apache.rocketmq.connect.redis.config;
 
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -26,6 +26,8 @@ import java.util.Set;
 
 import com.moilioncircle.redis.replicator.RedisURI;
 import org.apache.commons.lang.StringUtils;
+import org.apache.rocketmq.connect.redis.common.RedisConstants;
+import org.apache.rocketmq.connect.redis.common.SyncMod;
 import org.apache.rocketmq.connect.redis.util.PropertyToObjectUtils;
 import io.openmessaging.KeyValue;
 import org.slf4j.Logger;

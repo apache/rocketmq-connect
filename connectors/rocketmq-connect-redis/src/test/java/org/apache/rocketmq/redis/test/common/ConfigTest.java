@@ -6,7 +6,7 @@ import java.util.Set;
 import com.moilioncircle.redis.replicator.RedisURI;
 import io.openmessaging.KeyValue;
 import io.openmessaging.internal.DefaultKeyValue;
-import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.config.Config;
 import org.apache.rocketmq.connect.redis.common.SyncMod;
 import org.junit.Assert;
 import org.junit.Test;
