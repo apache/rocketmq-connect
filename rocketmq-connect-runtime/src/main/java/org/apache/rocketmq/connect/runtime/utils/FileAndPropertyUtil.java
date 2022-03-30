@@ -128,7 +128,7 @@ public class FileAndPropertyUtil {
                                 arg = Boolean.parseBoolean(property);
                             } else if ("float".equals(cn) || "Float".equals(cn)) {
                                 arg = Float.parseFloat(property);
-                            } else if (cn.equals("String")) {
+                            } else if ("String".equals(cn)) {
                                 arg = property;
                             } else {
                                 continue;
