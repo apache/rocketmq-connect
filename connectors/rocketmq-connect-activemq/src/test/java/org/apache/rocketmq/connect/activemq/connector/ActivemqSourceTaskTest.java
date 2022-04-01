@@ -129,23 +129,23 @@ public class ActivemqSourceTaskTest {
         ActivemqSourceTask task = new ActivemqSourceTask();
         TextMessage textMessage = new ActiveMQTextMessage();
         textMessage.setText(value);
-        ByteBuffer buffer = task.getMessageConnent(textMessage);
+        ByteBuffer buffer = task.getMessageContent(textMessage);
         Assert.assertEquals(new String(buffer.array()), textMessage.getText());
 
         ObjectMessage objectMessage = new ActiveMQObjectMessage();
         objectMessage.setObject(value);
-        buffer = task.getMessageConnent(objectMessage);
+        buffer = task.getMessageContent(objectMessage);
         Assert.assertEquals(new String(buffer.array()), "\"" + objectMessage.getObject().toString() + "\"");
 
         BytesMessage bytes = new ActiveMQBytesMessage();
         bytes.writeBytes(value.getBytes());
         bytes.reset();
-        buffer = task.getMessageConnent(bytes);
+        buffer = task.getMessageContent(bytes);
         Assert.assertEquals(new String(buffer.array()), value);
 
         MapMessage mapMessage = new ActiveMQMapMessage();
         mapMessage.setString("hello", "rocketmq");
-        buffer = task.getMessageConnent(mapMessage);
+        buffer = task.getMessageContent(mapMessage);
         Map<String, String> map = JSON.parseObject(buffer.array(), Map.class);
         Assert.assertEquals(map.get("hello"), "rocketmq");
         Assert.assertEquals(map.size(), 1);
@@ -157,9 +157,9 @@ public class ActivemqSourceTaskTest {
         }
         streamMessage.writeBytes(valueTwo.getBytes());
         streamMessage.reset();
-        buffer = task.getMessageConnent(streamMessage);
+        buffer = task.getMessageContent(streamMessage);
         Assert.assertEquals(new String(buffer.array()), valueTwo);
 
-        task.getMessageConnent(null);
+        task.getMessageContent(null);
     }
 }

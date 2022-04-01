@@ -19,13 +19,17 @@ package org.apache.rocketmq.connect.redis.connector;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.Task;
 import io.openmessaging.connector.api.source.SourceConnector;
 import org.apache.rocketmq.connect.redis.common.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RedisSourceConnector extends SourceConnector {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisSourceConnector.class);
+
     private KeyValue keyValue;
 
     @Override public String verifyAndSetConfig(KeyValue keyValue) {
@@ -38,7 +42,7 @@ public class RedisSourceConnector extends SourceConnector {
     }
 
     @Override public void start() {
-
+        LOGGER.info("the redis source start...");
     }
 
 
