@@ -111,6 +111,7 @@
                 <configuration>
                     <excludes>
                         <exclude>README.md</exclude>
+                        <exclude>scripts/requirements.txt</exclude>
                     </excludes>
                 </configuration>
             </plugin>
