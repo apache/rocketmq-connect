@@ -117,10 +117,10 @@ public class RmqSourceReplicator extends SourceConnector {
         }
 
         buildRoute();
-        startListner();
+        startListener();
     }
 
-    public void startListner() {
+    public void startListener() {
         executor.scheduleAtFixedRate(new Runnable() {
 
             boolean first = true;
