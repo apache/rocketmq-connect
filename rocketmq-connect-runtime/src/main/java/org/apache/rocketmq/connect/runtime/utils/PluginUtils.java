@@ -114,6 +114,7 @@ public class PluginUtils {
         + "|org\\.omg\\.stub\\.java\\.rmi"
         + "|org\\.w3c\\.dom"
         + "|org\\.xml\\.sax"
+        + "|io\\.openmessaging\\.connector\\.api"
         + ")\\..*$"
         + "|io\\.openmessaging\\.KeyValue");
 
