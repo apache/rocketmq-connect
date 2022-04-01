@@ -18,6 +18,8 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -90,7 +92,7 @@ public class WorkerTest {
         }
         worker.setWorkingConnectors(workingConnectors);
         assertThat(worker.getWorkingConnectors().size()).isEqualTo(3);
-
+        TransformChain<ConnectRecord> transformChain = new TransformChain<ConnectRecord>(new DefaultKeyValue(), plugin);
         Set<Runnable> runnables = new HashSet<>();
         for (int i = 0; i < 3; i++) {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
@@ -102,8 +104,8 @@ public class WorkerTest {
                 new TestPositionManageServiceImpl(),
                 new TestConverter(),
                 producer,
-                new AtomicReference(WorkerState.STARTED)
-            ));
+                new AtomicReference(WorkerState.STARTED),
+                transformChain));
         }
         worker.setWorkingTasks(runnables);
         assertThat(worker.getWorkingTasks().size()).isEqualTo(3);

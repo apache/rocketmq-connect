@@ -49,6 +49,7 @@
         <logback.version>1.0.13</logback.version>
         <commons.cli.version>1.2</commons.cli.version>
         <reflections.version>0.9.12</reflections.version>
+        <guava.version>22.0</guava.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
@@ -124,6 +125,11 @@
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections</artifactId>
                 <version>${reflections.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -139,6 +140,8 @@ public class WorkerSinkTask implements WorkerTask {
 
     private final AtomicReference<WorkerState> workerState;
 
+    private final TransformChain<ConnectRecord> transformChain;
+
     public static final String BROKER_NAME = "brokerName";
     public static final String QUEUE_ID = "queueId";
     public static final String TOPIC = "topic";
@@ -150,7 +153,8 @@ public class WorkerSinkTask implements WorkerTask {
         PositionManagementService offsetManagementService,
         Converter recordConverter,
         DefaultMQPullConsumer consumer,
-        AtomicReference<WorkerState> workerState) {
+        AtomicReference<WorkerState> workerState,
+        TransformChain<ConnectRecord> transformChain) {
         this.connectorName = connectorName;
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
@@ -162,6 +166,7 @@ public class WorkerSinkTask implements WorkerTask {
         this.messageQueuesStateMap = new ConcurrentHashMap<>(256);
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
+        this.transformChain = transformChain;
     }
 
     /**
@@ -462,8 +467,19 @@ public class WorkerSinkTask implements WorkerTask {
             String msgId = message.getMsgId();
             log.info("Received one message success : msgId {}", msgId);
         }
+        List<ConnectRecord> connectRecordList = new ArrayList<>(32);
+        for (ConnectRecord connectRecord : sinkDataEntries) {
+            ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
+            if (null != connectRecord1) {
+                connectRecordList.add(connectRecord1);
+            }
+        }
+        if (CollectionUtils.isEmpty(connectRecordList)) {
+            log.info("after transforms connectRecordList is null");
+            return;
+        }
         try {
-            sinkTask.put(sinkDataEntries);
+            sinkTask.put(connectRecordList);
             return;
         } catch (RetriableException e) {
             log.error("task {} put sink recode RetriableException", this, e.getMessage(), e);

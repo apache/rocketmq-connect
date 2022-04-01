@@ -23,6 +23,7 @@ import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Converter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -416,9 +417,9 @@ public class Worker {
                 }
                 if (task instanceof SourceTask) {
                     DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
-
+                    TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                     WorkerSourceTask workerSourceTask = new WorkerSourceTask(connectorName,
-                        (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState);
+                        (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, transformChain);
                     Plugin.compareAndSwapLoaders(currentThreadLoader);
 
                     Future future = taskExecutor.submit(workerSourceTask);
@@ -429,9 +430,9 @@ public class Worker {
                     if (connectConfig.isAutoCreateGroupEnable()) {
                         ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
                     }
-
+                    TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                     WorkerSinkTask workerSinkTask = new WorkerSinkTask(connectorName,
-                        (SinkTask) task, keyValue, offsetManagementService, recordConverter, consumer, workerState);
+                        (SinkTask) task, keyValue, offsetManagementService, recordConverter, consumer, workerState, transformChain);
                     Plugin.compareAndSwapLoaders(currentThreadLoader);
                     Future future = taskExecutor.submit(workerSinkTask);
                     taskToFutureMap.put(workerSinkTask, future);
