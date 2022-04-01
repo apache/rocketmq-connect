@@ -299,7 +299,7 @@ public class WorkerSourceTask implements WorkerTask {
             try {
                 producer.send(sourceMessage, new SendCallback() {
                     @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
-                        log.info("Successful send message to RocketMQ:{}", result.getMsgId());
+                        log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
                         connectStatsManager.incSourceRecordWriteTotalNums();
                         connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                         RecordPartition partition = position.getPartition();
