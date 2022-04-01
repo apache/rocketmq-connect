@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -36,6 +38,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
@@ -48,6 +51,10 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
 public class ConnectUtil {
+
+    private final static AtomicLong GROUP_POSTFIX_ID = new AtomicLong(0);
+
+    private static final String SYS_TASK_CG_PREFIX = "connect-";
 
     public static String createGroupName(String prefix) {
         StringBuilder sb = new StringBuilder();
@@ -206,6 +213,26 @@ public class ConnectUtil {
         map.put("queueId", queueId + "");
         RecordPartition recordPartition = new RecordPartition(map);
         return recordPartition;
+    }
+
+
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, String connectorName, ConnectKeyValue keyValue) {
+        RPCHook rpcHook = null;
+        if (connectConfig.getAclEnable()) {
+            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+        }
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(rpcHook);
+        consumer.setInstanceName(createInstance(connectorName));
+        String taskGroupId = keyValue.getString("task-group-id");
+        if (StringUtils.isNotBlank(taskGroupId)) {
+            consumer.setConsumerGroup(taskGroupId);
+        } else {
+            consumer.setConsumerGroup(SYS_TASK_CG_PREFIX + connectorName);
+        }
+        if (StringUtils.isNotBlank(connectConfig.getNamesrvAddr())) {
+            consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        }
+        return consumer;
     }
 
 }

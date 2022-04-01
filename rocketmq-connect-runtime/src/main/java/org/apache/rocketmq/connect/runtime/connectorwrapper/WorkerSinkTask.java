@@ -27,7 +27,6 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
-import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -60,8 +60,8 @@ import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
@@ -115,13 +115,6 @@ public class WorkerSinkTask implements WorkerTask {
      */
     private final DefaultMQPullConsumer consumer;
 
-    private final PositionManagementService offsetManagementService;
-
-    /**
-     *
-     */
-    private final OffsetStorageReader offsetStorageReader;
-
     /**
      * A converter to parse sink data entry to object.
      */
@@ -152,6 +145,10 @@ public class WorkerSinkTask implements WorkerTask {
 
     private final AtomicReference<WorkerState> workerState;
 
+    private final ConnectStatsManager connectStatsManager;
+
+    private final ConnectStatsService connectStatsService;
+
     private final CountDownLatch stopPullMsgLatch;
 
     private WorkerSinkTaskContext sinkTaskContext;
@@ -163,25 +160,38 @@ public class WorkerSinkTask implements WorkerTask {
     public static final String TOPIC = "topic";
     public static final String QUEUE_OFFSET = "queueOffset";
 
+    private static final Set<String> MQ_SYS_KEYS = new HashSet<String>() {
+        {
+            add("MIN_OFFSET");
+            add("TRACE_ON");
+            add("MAX_OFFSET");
+            add("MSG_REGION");
+            add("UNIQ_KEY");
+            add("WAIT");
+            add("TAGS");
+        }
+    };
+
     public WorkerSinkTask(String connectorName,
         SinkTask sinkTask,
         ConnectKeyValue taskConfig,
-        PositionManagementService offsetManagementService,
         Converter recordConverter,
         DefaultMQPullConsumer consumer,
         AtomicReference<WorkerState> workerState,
+        ConnectStatsManager connectStatsManager,
+        ConnectStatsService connectStatsService,
         TransformChain<ConnectRecord> transformChain) {
         this.connectorName = connectorName;
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
         this.consumer = consumer;
-        this.offsetManagementService = offsetManagementService;
-        this.offsetStorageReader = new PositionStorageReaderImpl(offsetManagementService);
         this.recordConverter = recordConverter;
         this.messageQueuesOffsetMap = new ConcurrentHashMap<>(256);
         this.messageQueuesStateMap = new ConcurrentHashMap<>(256);
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
+        this.connectStatsManager = connectStatsManager;
+        this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
         this.transformChain = transformChain;
     }
@@ -210,13 +220,19 @@ public class WorkerSinkTask implements WorkerTask {
                     setQueueOffset();
                     pullMessageFromQueues();
                 } catch (RetriableException e) {
+                    connectStatsManager.incSinkRecordPutTotalFailNums();
+                    connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                     log.error("Sink task RetriableException exception", e);
                 } catch (InterruptedException e) {
+                    connectStatsManager.incSinkRecordPutTotalFailNums();
+                    connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                     log.error("Sink task InterruptedException exception", e);
                     throw e;
                 } catch (Throwable e) {
                     state.set(WorkerTaskState.ERROR);
-                    log.error("sink task {}, pull message MQClientException, Error {} ", this, e.getMessage(), e);
+                    log.error(" sink task {}，pull message MQClientException, Error {} ", this, e.getMessage(), e);
+                    connectStatsManager.incSinkRecordPutTotalFailNums();
+                    connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
                 }
             }
 
@@ -230,7 +246,7 @@ public class WorkerSinkTask implements WorkerTask {
         } finally {
             if (consumer != null) {
                 consumer.shutdown();
-                log.info("Sink task consumer shutdown.");
+                log.info("Sink task consumer shutdown. config:{}", JSON.toJSONString(taskConfig));
             }
         }
     }
@@ -350,26 +366,52 @@ public class WorkerSinkTask implements WorkerTask {
                 break;
             }
             PullResult pullResult = null;
+            final long beginPullMsgTimestamp = System.currentTimeMillis();
             try {
                 shouldStopPullMsg();
                 pullResult = consumer.pullBlockIfNotFound(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
                 pullMsgErrorCount = 0;
             } catch (MQClientException e) {
                 pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message MQClientException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                log.error(" sink task message queue {}, offset {}, taskconfig {}，pull message MQClientException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                connectStatsManager.incSinkRecordReadTotalFailNums();
+                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
+                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
             } catch (RemotingException e) {
                 pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message RemotingException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                log.error(" sink task message queue {}, offset {}, taskconfig {}，pull message RemotingException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                connectStatsManager.incSinkRecordReadTotalFailNums();
+                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
+                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
             } catch (MQBrokerException e) {
                 pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message MQBrokerException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                log.error(" sink task message queue {}, offset {}, taskconfig {}，pull message MQBrokerException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                connectStatsManager.incSinkRecordReadTotalFailNums();
+                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
+                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
             } catch (InterruptedException e) {
                 pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message InterruptedException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                log.error(" sink task message queue {}, offset {}, taskconfig {}，pull message InterruptedException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
+                connectStatsManager.incSinkRecordReadTotalFailNums();
+                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
+                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
                 throw e;
             } catch (Throwable e) {
                 pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message Throwable, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), e);
+                log.error(" sink task message queue {}, offset {}, taskconfig {}，pull message Throwable, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), e);
+                connectStatsManager.incSinkRecordReadTotalFailNums();
+                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
+                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
                 throw e;
             }
             long currentTime = System.currentTimeMillis();
@@ -379,11 +421,16 @@ public class WorkerSinkTask implements WorkerTask {
             if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.FOUND)) {
                 this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
                 messages = pullResult.getMsgFoundList();
+                connectStatsManager.incSinkRecordReadTotalNums();
+                connectStatsManager.incSinkRecordReadNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), messages.size());
+                long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+                connectStatsManager.incSinkRecordReadTotalRT(pullRT);
+                connectStatsManager.incSinkRecordReadRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), pullRT);
                 receiveMessages(messages);
                 if (messageQueuesOffsetMap.containsKey(entry.getKey())) {
                     messageQueuesOffsetMap.put(entry.getKey(), pullResult.getNextBeginOffset());
                 } else {
-                    log.warn("The consumer may have load balancing, and the current task does not process the message queue,messageQueuesOffsetMap {}, messageQueue {}", JSON.toJSONString(messageQueuesOffsetMap), JSON.toJSONString(entry.getKey()));
+                    log.warn("The consumer may have load balancing, and the current task does not process the message queue，messageQueuesOffsetMap {}, messageQueue {}", JSON.toJSONString(messageQueuesOffsetMap), JSON.toJSONString(entry.getKey()));
                 }
                 try {
                     consumer.updateConsumeOffset(entry.getKey(), pullResult.getNextBeginOffset());
@@ -400,6 +447,11 @@ public class WorkerSinkTask implements WorkerTask {
                 this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
             } else {
                 log.info("no new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+            }
+
+            AtomicLong atomicLong = connectStatsService.singleSinkTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+            if (null != atomicLong) {
+                atomicLong.addAndGet(org.apache.commons.collections4.CollectionUtils.isEmpty(messages) ? 0 : messages.size());
             }
         }
     }
@@ -516,7 +568,13 @@ public class WorkerSinkTask implements WorkerTask {
             KeyValue keyValue = new DefaultKeyValue();
             if (MapUtils.isNotEmpty(properties)) {
                 for (Map.Entry<String, String> entry : properties.entrySet()) {
-                    keyValue.put(entry.getKey(), entry.getValue());
+                    if (MQ_SYS_KEYS.contains(entry.getKey())) {
+                        keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
+                    } else if (entry.getKey().startsWith("connect-ext-")){
+                        keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
+                    } else {
+                        keyValue.put(entry.getKey(), entry.getValue());
+                    }
                 }
             }
             sinkDataEntry.addExtension(keyValue);

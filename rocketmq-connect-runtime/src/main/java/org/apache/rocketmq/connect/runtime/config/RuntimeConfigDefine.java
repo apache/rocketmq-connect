@@ -99,6 +99,7 @@ public class RuntimeConfigDefine {
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
             add(CONNECTOR_CLASS);
+            add(CONNECT_TOPICNAME);
         }
     };
 

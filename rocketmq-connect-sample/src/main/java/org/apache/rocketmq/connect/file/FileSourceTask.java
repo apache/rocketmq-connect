@@ -85,7 +85,7 @@ public class FileSourceTask extends SourceTask {
                         }
                         log.debug("Skipped to offset {}", lastRecordedOffset);
                     }
-                    streamOffset = (lastRecordedOffset != null) ? (Long) lastRecordedOffset : 0L;
+                    streamOffset = (lastRecordedOffset != null) ? Long.valueOf(String.valueOf(lastRecordedOffset)) : 0L;
                 } else {
                     log.info("positionInfo is null!");
                     streamOffset = 0L;
@@ -203,6 +203,7 @@ public class FileSourceTask extends SourceTask {
 
 
     @Override public void start(SourceTaskContext sourceTaskContext) {
+        this.sourceTaskContext = sourceTaskContext;
         fileConfig = new FileConfig();
         fileConfig.load(config);
         log.info("fileName is:{}", fileConfig.getFilename());

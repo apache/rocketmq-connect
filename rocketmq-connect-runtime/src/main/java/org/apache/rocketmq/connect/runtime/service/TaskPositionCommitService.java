@@ -36,15 +36,10 @@ public class TaskPositionCommitService extends ServiceThread {
     private final PositionManagementService positionManagementService;
 
 
-    private final PositionManagementService offsetManagementService;
-
-
     public TaskPositionCommitService(Worker worker,
-        PositionManagementService positionManagementService,
-        PositionManagementService offsetManagementService) {
+        PositionManagementService positionManagementService) {
         this.worker = worker;
         this.positionManagementService = positionManagementService;
-        this.offsetManagementService = offsetManagementService;
     }
 
     @Override
@@ -67,8 +62,6 @@ public class TaskPositionCommitService extends ServiceThread {
 
     public void commitTaskPosition() {
         positionManagementService.persist();
-        offsetManagementService.persist();
         positionManagementService.synchronize();
-        offsetManagementService.synchronize();
     }
 }

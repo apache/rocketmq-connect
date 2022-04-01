@@ -57,6 +57,7 @@ public class RestHandler {
         app.get("/connectors/enableAll", this::handleEnableAllConnector);
         app.get("/connectors/disableAll", this::handleDisableAllConnector);
         app.get("/connectors/:connectorName", this::handleCreateConnector);
+        app.post("/connectors/:connectorName", this::handleCreateConnector);
         app.get("/connectors/:connectorName/config", this::handleQueryConnectorConfig);
         app.get("/connectors/:connectorName/status", this::handleQueryConnectorStatus);
         app.get("/connectors/:connectorName/stop", this::handleStopConnector);
@@ -124,7 +125,12 @@ public class RestHandler {
 
     private void handleCreateConnector(Context context) {
         String connectorName = context.pathParam("connectorName");
-        String arg = context.req.getParameter("config");
+        String arg;
+        if (context.req.getMethod().equals("POST")) {
+            arg = context.body();
+        } else {
+            arg = context.req.getParameter("config");
+        }
         if (arg == null) {
             context.result("failed! query param 'config' is required ");
             return;
@@ -145,7 +151,7 @@ public class RestHandler {
             }
         } catch (Exception e) {
             log.error("Handle createConnector error .", e);
-            context.result("failed");
+            context.result("failed:" + e.getMessage());
         }
     }
 

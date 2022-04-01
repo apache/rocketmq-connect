@@ -37,6 +37,8 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl
 import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;
 import org.apache.rocketmq.connect.runtime.service.RebalanceService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.slf4j.Logger;
@@ -101,6 +103,10 @@ public class ConnectController {
 
     private final Plugin plugin;
 
+    private ConnectStatsManager connectStatsManager;
+
+    private final ConnectStatsService connectStatsService;
+
     public ConnectController(
         ConnectConfig connectConfig) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
 
@@ -115,13 +121,14 @@ public class ConnectController {
         }
         plugin = new Plugin(pluginPaths);
         plugin.initPlugin();
-
+        this.connectStatsManager = new ConnectStatsManager(connectConfig);
+        this.connectStatsService = new ConnectStatsService();
         this.connectConfig = connectConfig;
         this.clusterManagementService = new ClusterManagementServiceImpl(connectConfig);
         this.configManagementService = new ConfigManagementServiceImpl(connectConfig, plugin);
         this.positionManagementService = new PositionManagementServiceImpl(connectConfig);
         this.offsetManagementService = new OffsetManagementServiceImpl(connectConfig);
-        this.worker = new Worker(connectConfig, positionManagementService, offsetManagementService, plugin);
+        this.worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, this);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.restHandler = new RestHandler(this);
@@ -140,6 +147,7 @@ public class ConnectController {
         offsetManagementService.start();
         worker.start();
         rebalanceService.start();
+        connectStatsService.start();
 
         // Persist configurations of current connectors and tasks.
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
@@ -232,5 +240,17 @@ public class ConnectController {
 
     public RebalanceImpl getRebalanceImpl() {
         return rebalanceImpl;
+    }
+
+    public ConnectStatsManager getConnectStatsManager() {
+        return connectStatsManager;
+    }
+
+    public void setConnectStatsManager(ConnectStatsManager connectStatsManager) {
+        this.connectStatsManager = connectStatsManager;
+    }
+
+    public ConnectStatsService getConnectStatsService() {
+        return connectStatsService;
     }
 }
