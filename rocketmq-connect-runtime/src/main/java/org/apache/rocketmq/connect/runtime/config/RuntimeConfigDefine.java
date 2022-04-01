@@ -8,16 +8,17 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package org.apache.rocketmq.connect.runtime.config;
 
-import io.openmessaging.connector.api.data.DataEntry;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -35,11 +36,17 @@ public class RuntimeConfigDefine {
 
     public static final String TASK_CLASS = "task-class";
 
+    public static final String TASK_ID = "task-id";
+
     public static final String TASK_TYPE = "task-type";
 
     public static final String SOURCE_TASK_CLASS = "source-task-class";
 
     public static final String SINK_TASK_CLASS = "sink-task-class";
+
+    public static final String MAX_TASK = "max-task";
+
+    public static final String CONNECTOR_ID = "connector-id";
 
     /**
      * Last updated time of the configuration.
@@ -52,7 +59,7 @@ public class RuntimeConfigDefine {
     public static final String CONFIG_DELETED = "config-deleted";
 
     /**
-     * The full class name of record converter. Which is used to parse {@link DataEntry} to/from byte[].
+     * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */
     public static final String SOURCE_RECORD_CONVERTER = "source-record-converter";
 
@@ -60,7 +67,7 @@ public class RuntimeConfigDefine {
 
     public static final String RMQ_PRODUCER_GROUP = "rmq-producer-group";
 
-    public static final String RMQ_CONSUMER_GROUP = "rmq-consumer-group";
+    public static final String RMQ_CONSUMNER_GROUP = "rmq-consumer-group";
 
     public static final String OPERATION_TIMEOUT = "operation-timeout";
 
@@ -71,6 +78,8 @@ public class RuntimeConfigDefine {
     public static final String CONNECT_SHARDINGKEY = "connect-shardingkey";
 
     public static final String CONNECT_TOPICNAME = "connect-topicname";
+
+    public static final String CONNECT_TOPICNAMES = "connect-topicnames";
 
     public static final String CONNECT_SOURCE_PARTITION = "connect-source-partition";
 

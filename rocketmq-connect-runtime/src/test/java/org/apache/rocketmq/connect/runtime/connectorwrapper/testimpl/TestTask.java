@@ -13,35 +13,38 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
+import io.openmessaging.connector.api.component.ComponentContext;
+import io.openmessaging.connector.api.component.task.Task;
 
-/**
- * @author 80011350
- */
 class TestTask implements Task {
 
-    @Override
-    public void start(KeyValue config) {
+    @Override public void validate(KeyValue config) {
 
     }
 
-    @Override
-    public void stop() {
+    @Override public void init(KeyValue config) {
 
     }
 
-    @Override
-    public void pause() {
+    @Override public void start(ComponentContext componentContext) {
 
     }
 
-    @Override
-    public void resume() {
+    @Override public void stop() {
+
+    }
+
+    @Override public void pause() {
+
+    }
+
+    @Override public void resume() {
 
     }
 }

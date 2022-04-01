@@ -19,9 +19,9 @@ package org.apache.rocketmq.connect.runtime.rest;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import io.openmessaging.connector.api.Connector;
+import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.Converter;
-import io.openmessaging.connector.api.source.SourceTask;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

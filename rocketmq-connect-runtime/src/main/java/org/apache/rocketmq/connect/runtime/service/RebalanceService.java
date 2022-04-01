@@ -59,9 +59,12 @@ public class RebalanceService extends ServiceThread {
         this.rebalanceImpl.checkClusterStoreTopic();
 
         while (!this.isStopped()) {
-
-            this.waitForRunning(waitInterval);
-            this.rebalanceImpl.doRebalance();
+            try {
+                this.waitForRunning(waitInterval);
+                this.rebalanceImpl.doRebalance();
+            } catch (Exception e) {
+                log.error("reblacne exception", e);
+            }
         }
 
         log.info(this.getServiceName() + " service end");

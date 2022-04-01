@@ -16,34 +16,34 @@
  */
 package org.apache.rocketmq.connect.file;
 
-import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.DataEntryBuilder;
-import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SinkDataEntry;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.exception.ConnectException;
-import io.openmessaging.connector.api.source.SourceTask;
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.rocketmq.connect.file.FileConfig.FILE_CONFIG;
 import static org.apache.rocketmq.connect.file.FileConstants.LINE;
+import static org.apache.rocketmq.connect.file.FileConstants.NEXT_POSITION;
 
 public class FileSourceTask extends SourceTask {
 
@@ -59,30 +59,28 @@ public class FileSourceTask extends SourceTask {
 
     private Long streamOffset;
 
-    @Override public Collection<SourceDataEntry> poll() {
+    private KeyValue config;
+
+    @Override public List<ConnectRecord> poll() {
         log.info("Start a poll stream is null:{}", stream == null);
         if (stream == null) {
             try {
                 stream = Files.newInputStream(Paths.get(fileConfig.getFilename()));
-                ByteBuffer positionInfo;
-                positionInfo = this.context.positionStorageReader().getPosition(ByteBuffer.wrap(FileConstants.getPartition(fileConfig.getFilename()).getBytes(Charset.defaultCharset())));
-                if (positionInfo != null) {
+                RecordOffset positionInfo = this.sourceTaskContext.offsetStorageReader().readOffset(offsetKey(FileConstants.getPartition(fileConfig.getFilename())));
+                if (positionInfo != null && null != positionInfo.getOffset()) {
                     log.info("positionInfo is not null!");
-                    String positionJson = new String(positionInfo.array(), Charset.defaultCharset());
-                    JSONObject jsonObject = JSONObject.parseObject(positionJson);
-                    Object lastRecordedOffset = jsonObject.getLong(FileConstants.NEXT_POSITION);
-                    if (lastRecordedOffset != null && !(lastRecordedOffset instanceof Long))
-                        throw new ConnectException(-1, "Offset position is the incorrect type");
+                    Map<String, ?> offset = (Map<String, String>) positionInfo.getOffset();
+                    Object lastRecordedOffset = offset.get(NEXT_POSITION);
                     if (lastRecordedOffset != null) {
                         log.debug("Found previous offset, trying to skip to file offset {}", lastRecordedOffset);
-                        long skipLeft = (Long) lastRecordedOffset;
+                        long skipLeft = Long.valueOf(String.valueOf(lastRecordedOffset));
                         while (skipLeft > 0) {
                             try {
                                 long skipped = stream.skip(skipLeft);
                                 skipLeft -= skipped;
                             } catch (IOException e) {
                                 log.error("Error while trying to seek to previous offset in file {}: ", fileConfig.getFilename(), e);
-                                throw new ConnectException(-1, e);
+                                throw new ConnectException(e);
                             }
                         }
                         log.debug("Skipped to offset {}", lastRecordedOffset);
@@ -106,7 +104,7 @@ public class FileSourceTask extends SourceTask {
                 return null;
             } catch (IOException e) {
                 log.error("Error while trying to open file {}: ", fileConfig.getFilename(), e);
-                throw new ConnectException(-1, e);
+                throw new ConnectException(e);
             }
         }
 
@@ -119,7 +117,7 @@ public class FileSourceTask extends SourceTask {
                 return null;
             }
 
-            Collection<SourceDataEntry> records = null;
+            List<ConnectRecord> records = null;
 
             int nread = 0;
             while (readerCopy.ready()) {
@@ -142,23 +140,14 @@ public class FileSourceTask extends SourceTask {
                             if (records == null) {
                                 records = new ArrayList<>();
                             }
-                            Schema schema = new Schema();
-                            schema.setDataSource(fileConfig.getFilename());
-                            schema.setName(fileConfig.getFilename() + LINE);
-                            final Field field = new Field(0, FileConstants.FILE_LINE_CONTENT, FieldType.STRING);
-                            List<Field> fields = new ArrayList<Field>() {
-                                {
-                                    add(field);
-                                }
-                            };
+                            List<Field> fields = new ArrayList<Field>();
+                            Schema schema = new Schema(fileConfig.getFilename() + LINE, FieldType.STRING, fields);
+                            final Field field = new Field(0, FileConstants.FILE_LINE_CONTENT, schema);
+                            fields.add(field);
                             schema.setFields(fields);
-                            DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema)
-                                .entryType(EntryType.CREATE)
-                                .queue(fileConfig.getTopic())
-                                .timestamp(System.currentTimeMillis())
-                                .putFiled(FileConstants.FILE_LINE_CONTENT, line);
-                            final SourceDataEntry sourceDataEntry = dataEntryBuilder.buildSourceDataEntry(offsetKey(FileConstants.getPartition(fileConfig.getFilename())), offsetValue(streamOffset));
-                            records.add(sourceDataEntry);
+                            ConnectRecord connectRecord = new ConnectRecord(offsetKey(fileConfig.getFilename()), offsetValue(streamOffset), System.currentTimeMillis(), schema, line);
+                            connectRecord.addExtension("topic", fileConfig.getTopic());
+                            records.add(connectRecord);
                             if (records.size() >= batchSize) {
                                 return records;
                             }
@@ -212,19 +201,24 @@ public class FileSourceTask extends SourceTask {
         }
     }
 
-    public void commitRecord(SourceDataEntry sourceDataEntry, SinkDataEntry sinkDataEntry) {
-        log.info("commit sink queueOffset: {} ", sinkDataEntry.getQueueOffset());
-    }
 
-    @Override public void start(KeyValue props) {
+    @Override public void start(SourceTaskContext sourceTaskContext) {
         fileConfig = new FileConfig();
-        fileConfig.load(props);
+        fileConfig.load(config);
         log.info("fileName is:{}", fileConfig.getFilename());
         if (fileConfig.getFilename() == null || fileConfig.getFilename().isEmpty()) {
             stream = System.in;
             streamOffset = null;
             reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
         }
+    }
+
+    @Override public void validate(KeyValue config) {
+
+    }
+
+    @Override public void init(KeyValue config) {
+        this.config = config;
     }
 
     @Override public void stop() {
@@ -254,14 +248,18 @@ public class FileSourceTask extends SourceTask {
         return fileConfig.getFilename() == null ? "stdin" : fileConfig.getFilename();
     }
 
-    private ByteBuffer offsetKey(String filename) {
-        return ByteBuffer.wrap(filename.getBytes(Charset.defaultCharset()));
+    private RecordPartition offsetKey(String filename) {
+        Map<String, String> map = new HashMap<>();
+        map.put(FILE_CONFIG, filename);
+        RecordPartition recordPartition = new RecordPartition(map);
+        return recordPartition;
     }
 
-    private ByteBuffer offsetValue(Long pos) {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put(FileConstants.NEXT_POSITION, pos);
-        return ByteBuffer.wrap(jsonObject.toJSONString().getBytes(Charset.defaultCharset()));
+    private RecordOffset offsetValue(Long pos) {
+        Map<String, String> map = new HashMap<>();
+        map.put(FileConstants.NEXT_POSITION, String.valueOf(pos));
+        RecordOffset recordOffset = new RecordOffset(map);
+        return recordOffset;
     }
 
 }

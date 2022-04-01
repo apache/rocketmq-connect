@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.connect.runtime.utils;
 
-import io.openmessaging.connector.api.Connector;
-import io.openmessaging.connector.api.Task;
+import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.component.task.Task;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;

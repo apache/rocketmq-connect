@@ -18,16 +18,18 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.netty.util.internal.ConcurrentSet;
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.converter.ByteBufferConverter;
-import org.apache.rocketmq.connect.runtime.converter.ByteMapConverter;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
+import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
+import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
+import org.apache.rocketmq.connect.runtime.converter.RecordPositionMapConverter;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -41,18 +43,18 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
     /**
      * Current offset info in store.
      */
-    private KeyValueStore<ByteBuffer, ByteBuffer> offsetStore;
+    private KeyValueStore<RecordPartition, RecordOffset> offsetStore;
 
 
     /**
      * The updated partition of the task in the current instance.
      */
-    private Set<ByteBuffer> needSyncPartition;
+    private Set<RecordPartition> needSyncPartition;
 
     /**
      * Synchronize data with other workers.
      */
-    private DataSynchronizer<String, Map<ByteBuffer, ByteBuffer>> dataSynchronizer;
+    private DataSynchronizer<String, Map<RecordPartition, RecordOffset>> dataSynchronizer;
 
     private final String offsetManagePrefix = "OffsetManage";
 
@@ -64,14 +66,14 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
     public OffsetManagementServiceImpl(ConnectConfig connectConfig) {
 
         this.offsetStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getOffsetPath(connectConfig.getStorePathRootDir()),
-            new ByteBufferConverter(),
-            new ByteBufferConverter());
+            new RecordPartitionConverter(),
+            new RecordOffsetConverter());
         this.dataSynchronizer = new BrokerBasedLog(connectConfig,
             connectConfig.getOffsetStoreTopic(),
             ConnectUtil.createGroupName(offsetManagePrefix, connectConfig.getWorkerId()),
             new OffsetChangeCallback(),
             new JsonConverter(),
-            new ByteMapConverter());
+            new RecordPositionMapConverter());
         this.offsetUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
     }
@@ -98,6 +100,10 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
         offsetStore.persist();
     }
 
+    @Override public void load() {
+        offsetStore.load();
+    }
+
     @Override
     public void synchronize() {
 
@@ -105,38 +111,38 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
     }
 
     @Override
-    public Map<ByteBuffer, ByteBuffer> getPositionTable() {
+    public Map<RecordPartition, RecordOffset> getPositionTable() {
 
         return offsetStore.getKVMap();
     }
 
     @Override
-    public ByteBuffer getPosition(ByteBuffer partition) {
+    public RecordOffset getPosition(RecordPartition partition) {
 
         return offsetStore.get(partition);
     }
 
     @Override
-    public void putPosition(Map<ByteBuffer, ByteBuffer> offsets) {
+    public void putPosition(Map<RecordPartition, RecordOffset> offsets) {
 
         offsetStore.putAll(offsets);
         needSyncPartition.addAll(offsets.keySet());
     }
 
     @Override
-    public void putPosition(ByteBuffer partition, ByteBuffer position) {
+    public void putPosition(RecordPartition partition, RecordOffset position) {
 
         offsetStore.put(partition, position);
         needSyncPartition.add(partition);
     }
 
     @Override
-    public void removePosition(List<ByteBuffer> offsets) {
+    public void removePosition(List<RecordPartition> offsets) {
 
         if (null == offsets) {
             return;
         }
-        for (ByteBuffer offset : offsets) {
+        for (RecordPartition offset : offsets) {
             needSyncPartition.remove(offset);
             offsetStore.remove(offset);
         }
@@ -156,9 +162,9 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
 
     private void sendNeedSynchronizeOffset() {
 
-        Set<ByteBuffer> needSyncPartitionTmp = needSyncPartition;
+        Set<RecordPartition> needSyncPartitionTmp = needSyncPartition;
         needSyncPartition = new ConcurrentSet<>();
-        Map<ByteBuffer, ByteBuffer> needSyncOffset = offsetStore.getKVMap().entrySet().stream()
+        Map<RecordPartition, RecordOffset> needSyncOffset = offsetStore.getKVMap().entrySet().stream()
             .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
             .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
@@ -170,10 +176,10 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
         dataSynchronizer.send(OffsetChangeEnum.OFFSET_CHANG_KEY.name(), offsetStore.getKVMap());
     }
 
-    private class OffsetChangeCallback implements DataSynchronizerCallback<String, Map<ByteBuffer, ByteBuffer>> {
+    private class OffsetChangeCallback implements DataSynchronizerCallback<String, Map<RecordPartition, RecordOffset>> {
 
         @Override
-        public void onCompletion(Throwable error, String key, Map<ByteBuffer, ByteBuffer> result) {
+        public void onCompletion(Throwable error, String key, Map<RecordPartition, RecordOffset> result) {
 
             boolean changed = false;
             switch (OffsetChangeEnum.valueOf(key)) {
@@ -206,16 +212,16 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
      * @param result
      * @return
      */
-    private boolean mergeOffsetInfo(Map<ByteBuffer, ByteBuffer> result) {
+    private boolean mergeOffsetInfo(Map<RecordPartition, RecordOffset> result) {
 
         boolean changed = false;
         if (null == result || 0 == result.size()) {
             return changed;
         }
 
-        for (Map.Entry<ByteBuffer, ByteBuffer> newEntry : result.entrySet()) {
+        for (Map.Entry<RecordPartition, RecordOffset> newEntry : result.entrySet()) {
             boolean find = false;
-            for (Map.Entry<ByteBuffer, ByteBuffer> existedEntry : offsetStore.getKVMap().entrySet()) {
+            for (Map.Entry<RecordPartition, RecordOffset> existedEntry : offsetStore.getKVMap().entrySet()) {
                 if (newEntry.getKey().equals(existedEntry.getKey())) {
                     find = true;
                     if (!newEntry.getValue().equals(existedEntry.getValue())) {

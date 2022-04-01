@@ -8,23 +8,25 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package org.apache.rocketmq.connect.runtime.store;
 
-import io.openmessaging.connector.api.PositionStorageReader;
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 
-public class PositionStorageReaderImpl implements PositionStorageReader {
+public class PositionStorageReaderImpl implements OffsetStorageReader {
 
     private PositionManagementService positionManagementService;
 
@@ -33,18 +35,14 @@ public class PositionStorageReaderImpl implements PositionStorageReader {
         this.positionManagementService = positionManagementService;
     }
 
-    @Override
-    public ByteBuffer getPosition(ByteBuffer partition) {
-
+    @Override public <T> RecordOffset readOffset(RecordPartition partition) {
         return positionManagementService.getPositionTable().get(partition);
     }
 
-    @Override
-    public Map<ByteBuffer, ByteBuffer> getPositions(Collection<ByteBuffer> partitions) {
-
-        Map<ByteBuffer, ByteBuffer> result = new HashMap<>();
-        Map<ByteBuffer, ByteBuffer> allData = positionManagementService.getPositionTable();
-        for (ByteBuffer key : partitions) {
+    @Override public <T> Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
+        Map<RecordPartition, RecordOffset> result = new HashMap<>();
+        Map<RecordPartition, RecordOffset> allData = positionManagementService.getPositionTable();
+        for (RecordPartition key : partitions) {
             if (allData.containsKey(key)) {
                 result.put(key, allData.get(key));
             }

@@ -17,9 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
@@ -40,33 +41,32 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
+    @Override public void load() {
+
+    }
+
     @Override
     public void synchronize() {
 
     }
 
-    @Override
-    public Map<ByteBuffer, ByteBuffer> getPositionTable() {
+    @Override public Map<RecordPartition, RecordOffset> getPositionTable() {
         return null;
     }
 
-    @Override
-    public ByteBuffer getPosition(ByteBuffer partition) {
+    @Override public RecordOffset getPosition(RecordPartition partition) {
         return null;
     }
 
-    @Override
-    public void putPosition(Map<ByteBuffer, ByteBuffer> positions) {
+    @Override public void putPosition(Map<RecordPartition, RecordOffset> positions) {
 
     }
 
-    @Override
-    public void putPosition(ByteBuffer partition, ByteBuffer position) {
+    @Override public void putPosition(RecordPartition partition, RecordOffset position) {
 
     }
 
-    @Override
-    public void removePosition(List<ByteBuffer> partitions) {
+    @Override public void removePosition(List<RecordPartition> partitions) {
 
     }
 
