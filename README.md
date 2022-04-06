@@ -88,7 +88,7 @@ connector-position-topic source数据处理进度
 
 ```
     GET请求  
-    http://(your worker ip):(port)/connectors/(connector name)?config={"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","topic":"fileTopic","filename":"/home/connect/rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}   
+    http://(your worker ip):(port)/connectors/(connector name)?config={"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","connect-topicname":"fileTopic","filename":"/home/connect/rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}   
 ```
    看到一下日志说明file source connector启动成功了
    
@@ -104,7 +104,7 @@ connector-position-topic source数据处理进度
 | connector-class         | false    |         | 实现Connector接口的类名称（包含包名）                                                  |
 | filename                | false    |         | 数据源文件名称                                                                         |
 | task-class              | false    |         | 实现SourceTask类名称（包含包名）                                                       |
-| topic                   | false    |         | 同步文件数据所需topic                                                                  |
+| connect-topicname                   | false    |         | 同步文件数据所需topic                                                                  |
 | update-timestamp        | false    |         | 配置更新时间戳                                                                         |
 | source-record-converter | false    |         | Full class name of the impl of the converter used to convert SourceDataEntry to byte[] |
 
@@ -127,7 +127,7 @@ connector-position-topic source数据处理进度
 | key                     | nullable | default | description                                                                            |
 | ----------------------- | -------- | ------- | -------------------------------------------------------------------------------------- |
 | connector-class         | false    |         | 实现Connector接口的类名称（包含包名）                                                  |
-| topicNames              | false    |         | sink需要处理数据消息topics                                                             |
+| connect-topicname              | false    |         | sink需要处理数据消息topics                                                             |
 | task-class              | false    |         | 实现SourceTask类名称（包含包名）                                                       |
 | filename                | false    |         | sink拉去的数据保存到文件                                                               |
 | update-timestamp        | false    |         | 配置更新时间戳                                                                         |
