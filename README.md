@@ -52,7 +52,7 @@ pluginPaths=/home/connect/file-connect/target
 
 ## 4.运行
 
-返回recoketmq-connect-runtime根目录运行
+返回rocketmq-connect-runtime根目录运行
 ```
 sh ./run_worker.sh
 ```
