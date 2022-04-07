@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -152,6 +154,45 @@ public class ConnectUtil {
         defaultMQAdminExt.setInstanceName(ConnectUtil.createUniqInstance(connectConfig.getNamesrvAddr()));
         defaultMQAdminExt.start();
         return defaultMQAdminExt;
+    }
+
+    public static void createTopic(ConnectConfig connectConfig, TopicConfig topicConfig) {
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+
+            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, connectConfig.getClusterName());
+            for (String addr : masterSet) {
+                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("create topic: " + topicConfig.getTopicName() + " failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+    }
+
+    public static boolean isAutoCreateTopic(ConnectConfig connectConfig) {
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        boolean autoCreateTopic = true;
+
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, connectConfig.getClusterName());
+            for (String addr : masterSet) {
+                Properties brokerConfig = defaultMQAdminExt.getBrokerConfig(addr);
+                autoCreateTopic = autoCreateTopic && Boolean.parseBoolean(brokerConfig.getProperty("autoCreateTopicEnable"));
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("get broker config autoCreateTopicEnable failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+        return autoCreateTopic;
     }
 
     public static String createSubGroup(ConnectConfig connectConfig, String subGroup) {
