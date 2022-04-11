@@ -25,11 +25,11 @@ import java.util.Map;
 
 public class TestPositionStorageReader implements OffsetStorageReader {
 
-    @Override public <T> RecordOffset readOffset(RecordPartition partition) {
+    @Override public RecordOffset readOffset(RecordPartition partition) {
         return null;
     }
 
-    @Override public <T> Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
+    @Override public Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
         return null;
     }
 }

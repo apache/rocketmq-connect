@@ -35,11 +35,11 @@ public class PositionStorageReaderImpl implements OffsetStorageReader {
         this.positionManagementService = positionManagementService;
     }
 
-    @Override public <T> RecordOffset readOffset(RecordPartition partition) {
+    @Override public RecordOffset readOffset(RecordPartition partition) {
         return positionManagementService.getPositionTable().get(partition);
     }
 
-    @Override public <T> Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
+    @Override public  Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
         Map<RecordPartition, RecordOffset> result = new HashMap<>();
         Map<RecordPartition, RecordOffset> allData = positionManagementService.getPositionTable();
         for (RecordPartition key : partitions) {
