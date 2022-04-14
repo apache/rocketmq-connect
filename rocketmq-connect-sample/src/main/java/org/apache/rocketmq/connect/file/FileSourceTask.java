@@ -25,6 +25,7 @@ import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.errors.ConnectException;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -142,7 +143,7 @@ public class FileSourceTask extends SourceTask {
                             }
                             List<Field> fields = new ArrayList<Field>();
                             Schema schema = new Schema(fileConfig.getFilename() + LINE, FieldType.STRING, fields);
-                            final Field field = new Field(0, FileConstants.FILE_LINE_CONTENT, schema);
+                            final Field field = new Field(0, FileConstants.FILE_LINE_CONTENT, SchemaBuilder.string().name(fileConfig.getFilename() + LINE).build());
                             fields.add(field);
                             schema.setFields(fields);
                             ConnectRecord connectRecord = new ConnectRecord(offsetKey(fileConfig.getFilename()), offsetValue(streamOffset), System.currentTimeMillis(), schema, line);
@@ -200,7 +201,6 @@ public class FileSourceTask extends SourceTask {
             return null;
         }
     }
-
 
     @Override public void start(SourceTaskContext sourceTaskContext) {
         this.sourceTaskContext = sourceTaskContext;
