@@ -115,7 +115,8 @@ public class PositionManagementServiceImplTest {
             }
         }).when(producer).send(any(Message.class), any(SendCallback.class));
 
-        positionManagementService = new PositionManagementServiceImpl(connectConfig);
+        positionManagementService = new PositionManagementServiceImpl();
+        positionManagementService.initialize(connectConfig);
 
         final Field dataSynchronizerField = PositionManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);

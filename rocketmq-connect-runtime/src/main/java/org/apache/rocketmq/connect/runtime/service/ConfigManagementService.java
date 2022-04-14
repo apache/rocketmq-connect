@@ -21,6 +21,7 @@ import io.openmessaging.connector.api.component.connector.Connector;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 
 /**
@@ -90,6 +91,8 @@ public interface ConfigManagementService {
      * @param listener
      */
     void registerListener(ConnectorConfigUpdateListener listener);
+
+    void initialize(ConnectConfig connectConfig, Plugin plugin);
 
     interface ConnectorConfigUpdateListener {
 

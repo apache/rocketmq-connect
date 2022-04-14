@@ -30,9 +30,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.rest.RestHandler;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;
 import org.apache.rocketmq.connect.runtime.service.RebalanceService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
@@ -121,13 +119,17 @@ public class ConnectController {
         ServiceLoader<ClusterManagementService> clusterManagementServiceServiceLoader = ServiceLoader.load(ClusterManagementService.class);
         this.clusterManagementService = clusterManagementServiceServiceLoader.iterator().next();
         this.clusterManagementService.initialize(connectConfig);
-        this.configManagementService = new ConfigManagementServiceImpl(connectConfig, plugin);
-        this.positionManagementService = new PositionManagementServiceImpl(connectConfig);
-        this.worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, this);
+        ServiceLoader<ConfigManagementService> configManagementServiceServiceLoader = ServiceLoader.load(ConfigManagementService.class);
+        this.configManagementService = configManagementServiceServiceLoader.iterator().next();
+        this.configManagementService.initialize(connectConfig, plugin);
+        ServiceLoader<PositionManagementService> positionManagementServiceServiceLoader = ServiceLoader.load(PositionManagementService.class);
+        this.positionManagementService = positionManagementServiceServiceLoader.iterator().next();
+        this.positionManagementService.initialize(connectConfig);
+        this.worker = new Worker(connectConfig, positionManagementService, this.configManagementService, plugin, this);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
-        this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
+        this.rebalanceImpl = new RebalanceImpl(worker, this.configManagementService, clusterManagementService, strategy, this);
         this.restHandler = new RestHandler(this);
-        this.rebalanceService = new RebalanceService(rebalanceImpl, configManagementService, clusterManagementService);
+        this.rebalanceService = new RebalanceService(rebalanceImpl, this.configManagementService, clusterManagementService);
     }
 
     public void initialize() {

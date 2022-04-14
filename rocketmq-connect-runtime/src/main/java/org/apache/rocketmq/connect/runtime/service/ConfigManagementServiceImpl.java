@@ -68,28 +68,11 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
      */
     private DataSynchronizer<String, ConnAndTaskConfigs> dataSynchronizer;
 
-    private final Plugin plugin;
+    private Plugin plugin;
 
     private final String configManagePrefix = "ConfigManage";
 
-    public ConfigManagementServiceImpl(ConnectConfig connectConfig, Plugin plugin) {
-
-        this.connectorConfigUpdateListener = new HashSet<>();
-        this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
-            connectConfig.getConfigStoreTopic(),
-            ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId()),
-            new ConfigChangeCallback(),
-            new JsonConverter(),
-            new ConnAndTaskConfigConverter());
-        this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
-            new JsonConverter(),
-            new JsonConverter(ConnectKeyValue.class));
-        this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
-            new JsonConverter(),
-            new ListConverter(ConnectKeyValue.class));
-        this.plugin = plugin;
+    public ConfigManagementServiceImpl() {
     }
 
     @Override
@@ -261,6 +244,25 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
     public void registerListener(ConnectorConfigUpdateListener listener) {
 
         this.connectorConfigUpdateListener.add(listener);
+    }
+
+    @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
+        this.connectorConfigUpdateListener = new HashSet<>();
+        this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
+            connectConfig.getConfigStoreTopic(),
+            ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId()),
+            new ConfigChangeCallback(),
+            new JsonConverter(),
+            new ConnAndTaskConfigConverter());
+        this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
+            FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
+            new JsonConverter(),
+            new JsonConverter(ConnectKeyValue.class));
+        this.taskKeyValueStore = new FileBaseKeyValueStore<>(
+            FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
+            new JsonConverter(),
+            new ListConverter(ConnectKeyValue.class));
+        this.plugin = plugin;
     }
 
     private void triggerListener() {

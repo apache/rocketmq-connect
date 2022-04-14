@@ -22,6 +22,7 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 
 /**
  * Interface for position manager.
@@ -82,6 +83,8 @@ public interface PositionManagementService {
      * @param listener
      */
     void registerListener(PositionUpdateListener listener);
+
+    void initialize(ConnectConfig connectConfig);
 
     interface PositionUpdateListener {
 

@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 
 import java.util.List;
@@ -72,6 +73,10 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     @Override
     public void registerListener(PositionUpdateListener listener) {
+
+    }
+
+    @Override public void initialize(ConnectConfig connectConfig) {
 
     }
 }
