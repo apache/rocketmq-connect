@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,6 @@ import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.rest.RestHandler;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
-import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.OffsetManagementServiceImpl;
@@ -124,7 +124,10 @@ public class ConnectController {
         this.connectStatsManager = new ConnectStatsManager(connectConfig);
         this.connectStatsService = new ConnectStatsService();
         this.connectConfig = connectConfig;
-        this.clusterManagementService = new ClusterManagementServiceImpl(connectConfig);
+//        this.clusterManagementService = new ClusterManagementServiceImpl(connectConfig);
+        ServiceLoader<ClusterManagementService> clusterManagementServiceServiceLoader = ServiceLoader.load(ClusterManagementService.class);
+        this.clusterManagementService = clusterManagementServiceServiceLoader.iterator().next();
+        this.clusterManagementService.initialize(connectConfig);
         this.configManagementService = new ConfigManagementServiceImpl(connectConfig, plugin);
         this.positionManagementService = new PositionManagementServiceImpl(connectConfig);
         this.offsetManagementService = new OffsetManagementServiceImpl(connectConfig);

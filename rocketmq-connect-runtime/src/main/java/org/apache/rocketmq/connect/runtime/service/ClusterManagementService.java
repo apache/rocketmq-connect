@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import java.util.List;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 
 /**
  * Interface for cluster management.
@@ -25,6 +26,8 @@ import java.util.List;
 public interface ClusterManagementService {
 
     Long WORKER_TIME_OUT = 30 * 1000L;
+
+    void initialize(ConnectConfig connectConfig);
 
     /**
      * Start the cluster manager.

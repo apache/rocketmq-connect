@@ -44,19 +44,14 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
     /**
      * Configs of current worker.
      */
-    private final ConnectConfig connectConfig;
+    private ConnectConfig connectConfig;
 
     /**
      * Used for worker discovery
      */
     private DefaultMQPullConsumer defaultMQPullConsumer;
 
-    public ClusterManagementServiceImpl(ConnectConfig connectConfig) {
-        this.connectConfig = connectConfig;
-        this.workerStatusListeners = new HashSet<>();
-        this.defaultMQPullConsumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
-        this.defaultMQPullConsumer.setConsumerGroup(connectConfig.getConnectClusterId());
-        this.prepare(connectConfig);
+    public ClusterManagementServiceImpl() {
     }
 
     /**
@@ -68,6 +63,14 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
         if (connectConfig.isAutoCreateGroupEnable()) {
             ConnectUtil.createSubGroup(connectConfig, this.defaultMQPullConsumer.getConsumerGroup());
         }
+    }
+
+    @Override public void initialize(ConnectConfig connectConfig) {
+        this.connectConfig = connectConfig;
+        this.workerStatusListeners = new HashSet<>();
+        this.defaultMQPullConsumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
+        this.defaultMQPullConsumer.setConsumerGroup(connectConfig.getConnectClusterId());
+        this.prepare(connectConfig);
     }
 
     @Override
