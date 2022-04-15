@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
+import com.beust.jcommander.internal.Sets;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.ArrayList;
@@ -39,6 +40,9 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -160,13 +164,17 @@ public class ConnectUtil {
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
-
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, connectConfig.getClusterName());
-            for (String addr : masterSet) {
-                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Set<String> clusterNameSet = clusterAddrTable.keySet();
+            for (String clusterName : clusterNameSet) {
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+                }
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("create topic: " + topicConfig.getTopicName() + " failed", e);
+            throw new RuntimeException("create topic: " + topicConfig.getTopicName() + " failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
@@ -180,13 +188,18 @@ public class ConnectUtil {
 
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, connectConfig.getClusterName());
-            for (String addr : masterSet) {
-                Properties brokerConfig = defaultMQAdminExt.getBrokerConfig(addr);
-                autoCreateTopic = autoCreateTopic && Boolean.parseBoolean(brokerConfig.getProperty("autoCreateTopicEnable"));
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Set<String> clusterNameSet = clusterAddrTable.keySet();
+            for (String clusterName : clusterNameSet) {
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    Properties brokerConfig = defaultMQAdminExt.getBrokerConfig(addr);
+                    autoCreateTopic = autoCreateTopic && Boolean.parseBoolean(brokerConfig.getProperty("autoCreateTopicEnable"));
+                }
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("get broker config autoCreateTopicEnable failed", e);
+            throw new RuntimeException("get broker config autoCreateTopicEnable failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
@@ -195,19 +208,85 @@ public class ConnectUtil {
         return autoCreateTopic;
     }
 
+    public static Set<String> fetchAllTopicList(ConnectConfig connectConfig) {
+        Set<String> topicSet = Sets.newHashSet();
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            topicSet = defaultMQAdminExt.fetchAllTopicList().getTopicList();
+        } catch (Exception e) {
+            throw new RuntimeException("fetch all topic  failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+        return topicSet;
+    }
+
+    public static Set<String> fetchAllConsumerGroupList(ConnectConfig connectConfig) {
+        Set<String> consumerGroupSet = Sets.newHashSet();
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            for (BrokerData brokerData : clusterInfo.getBrokerAddrTable().values()) {
+                SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(brokerData.selectBrokerAddr(), 3000L);
+                consumerGroupSet.addAll(subscriptionGroupWrapper.getSubscriptionGroupTable().keySet());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("fetch all topic  failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+        return consumerGroupSet;
+    }
+
+    public static boolean isAutoCreateGroup(ConnectConfig connectConfig) {
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        boolean autoCreateGroup = true;
+
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Set<String> clusterNameSet = clusterAddrTable.keySet();
+            for (String clusterName : clusterNameSet) {
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    Properties brokerConfig = defaultMQAdminExt.getBrokerConfig(addr);
+                    autoCreateGroup = autoCreateGroup && Boolean.parseBoolean(brokerConfig.getProperty("autoCreateSubscriprionGroup"));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("get broker config autoCreateTopicEnable failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+        return autoCreateGroup;
+    }
+
     public static String createSubGroup(ConnectConfig connectConfig, String subGroup) {
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
             SubscriptionGroupConfig initConfig = new SubscriptionGroupConfig();
             initConfig.setGroupName(subGroup);
-
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, connectConfig.getClusterName());
-            for (String addr : masterSet) {
-                defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, initConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Set<String> clusterNameSet = clusterAddrTable.keySet();
+            for (String clusterName : clusterNameSet) {
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, initConfig);
+                }
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("create subGroup: " + subGroup + " failed", e);
+            throw new RuntimeException("create subGroup: " + subGroup + " failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();

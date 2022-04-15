@@ -434,7 +434,8 @@ public class Worker {
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
                         DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorName, keyValue);
-                        if (connectConfig.isAutoCreateGroupEnable()) {
+                        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+                        if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
                             ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
                         }
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
