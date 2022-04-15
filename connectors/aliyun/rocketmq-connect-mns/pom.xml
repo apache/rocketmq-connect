@@ -17,7 +17,7 @@
         <openmessaging-connector.version>0.1.2-SNAPSHOT</openmessaging-connector.version>
         <aliyun-sdk-mns.version>1.1.9.1</aliyun-sdk-mns.version>
         <gson.version>2.9.0</gson.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <assertj.version>3.22.0</assertj.version>
         <mockito.version>4.0.0</mockito.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
