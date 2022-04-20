@@ -2,6 +2,7 @@ package org.apache.rocketmq.connect.mail.sink;
 
 import com.aliyun.dm20151123.Client;
 import com.aliyun.dm20151123.models.SingleSendMailRequest;
+import com.aliyun.dm20151123.models.SingleSendMailResponse;
 import com.aliyun.teaopenapi.models.Config;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
@@ -53,7 +54,10 @@ public class MailSinkTask extends SinkTask {
                 singleSendMailRequest.setTextBody(connectRecord.getData().toString());
             }
             try {
-                client.singleSendMail(singleSendMailRequest);
+                final SingleSendMailResponse singleSendMailResponse = client.singleSendMail(singleSendMailRequest);
+                log.info("singleSendMail | singleSendMailResponse | envId : {} | requestId : {}",
+                        singleSendMailResponse.getBody().getEnvId(),
+                        singleSendMailResponse.getBody().getRequestId());
             } catch (Exception e) {
                 log.error("MailSinkTask | put | error => ", e);
                 throw new RuntimeException(e);

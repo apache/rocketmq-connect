@@ -39,7 +39,9 @@ public class MailSinkTest {
         mailSinkTask.init(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
-        connectRecord.setData("test mail");
+        connectRecord.setData("{\n" +
+                "\t'UserName' : 'test'\n" +
+                "}");
         connectRecordList.add(connectRecord);
         mailSinkTask.start(new SinkTaskContext() {
             @Override
