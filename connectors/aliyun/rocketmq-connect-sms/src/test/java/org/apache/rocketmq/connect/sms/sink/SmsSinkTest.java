@@ -36,7 +36,9 @@ public class SmsSinkTest {
         smsSinkTask.init(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
-        connectRecord.setData("test sms");
+        connectRecord.setData("{\n" +
+                "\t'code' : '112233'\n" +
+                "}");
         connectRecordList.add(connectRecord);
         smsSinkTask.start(new SinkTaskContext() {
             @Override

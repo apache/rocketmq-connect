@@ -2,6 +2,7 @@ package org.apache.rocketmq.connect.sms.sink;
 
 import com.aliyun.dysmsapi20170525.Client;
 import com.aliyun.dysmsapi20170525.models.SendSmsRequest;
+import com.aliyun.dysmsapi20170525.models.SendSmsResponse;
 import com.aliyun.teaopenapi.models.Config;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
@@ -42,7 +43,12 @@ public class SmsSinkTask extends SinkTask {
                         .setTemplateCode(templateCode)
                         .setTemplateParam(connectRecord.getData().toString());
                 try {
-                    client.sendSms(sendSmsRequest);
+                    final SendSmsResponse sendSmsResponse = client.sendSms(sendSmsRequest);
+                    log.info("sendSms | sendSmsResponse | Code ：{} | Message : {} | BizId : {} | RequestId : {}",
+                            sendSmsResponse.getBody().getCode(),
+                            sendSmsResponse.getBody().getMessage(),
+                            sendSmsResponse.getBody().getBizId(),
+                            sendSmsResponse.getBody().getRequestId());
                 } catch (Exception e) {
                     log.error("SmsSinkTask | sendSms | error => ", e);
                     throw new RuntimeException(e);
