@@ -6,11 +6,14 @@ import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.mail.sink.constant.MailConstant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MailSinkConnector extends SinkConnector {
+    private static final Logger log = LoggerFactory.getLogger(MailSinkConnector.class);
 
     private String accessKeyId;
 
@@ -70,6 +73,13 @@ public class MailSinkConnector extends SinkConnector {
                 || StringUtils.isBlank(config.getString(MailConstant.ACCOUNT_NAME))
                 || StringUtils.isBlank(config.getString(MailConstant.SUBJECT))
                 || StringUtils.isBlank(config.getString(MailConstant.TO_ADDRESS))) {
+            log.info("MailSinkConnector | validate | accessKeyId : {} | accessKeySecret : {} | accountEndpoint : {} | accountName : {} | subject : {} | toAddress : {}",
+                    config.getString(MailConstant.ACCESS_KEY_ID),
+                    config.getString(MailConstant.ACCESS_KEY_SECRET),
+                    config.getString(MailConstant.ACCOUNT_ENDPOINT),
+                    config.getString(MailConstant.ACCOUNT_NAME),
+                    config.getString(MailConstant.SUBJECT),
+                    config.getString(MailConstant.TO_ADDRESS));
             throw new RuntimeException("mail required parameter is null !");
         }
     }

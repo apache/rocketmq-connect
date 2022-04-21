@@ -15,13 +15,13 @@ mvn clean install -Dmaven.test.skip=true
 
 ```
 http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-sms-sink-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.sms.sink.SmsSinkConnector",“accountEndpoint”:"${accountEndpoint}",accessKeyId”:"${accessKeyId}",accessSecretKey”:"${accessSecretKey}",phoneNumbers”:"${phoneNumbers}","signName":"${signName}","templateCode":"${templateCode}"}
+?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.sms.sink.SmsSinkConnector","connect-topicname" : "xxxx",“accountEndpoint”:"${accountEndpoint}",accessKeyId”:"${accessKeyId}",accessKeySecret”:"${accessKeySecret}",phoneNumbers”:"${phoneNumbers}","signName":"${signName}","templateCode":"${templateCode}"}
 ```
 
 例子 
 ```
 http://localhost:8081/connectors/smsConnectorSink?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"org.apache.rocketmq.connect.sms.sink.SmsSinkConnector",“accountEndpoint”:"xxxx", "accessKeyId”:"xxxx", "accessSecretKey”:"xxxx", "phoneNumbers”:"xxxx","signName":"xxxx","templateCode":"xxxx"}
+"connector-class":"org.apache.rocketmq.connect.sms.sink.SmsSinkConnector", "connect-topicname" : "xxxx",“accountEndpoint”:"xxxx", "accessKeyId”:"xxxx", "accessKeySecret”:"xxxx", "phoneNumbers”:"xxxx","signName":"xxxx","templateCode":"xxxx"}
 ```
 
 >**注：** `rocketmq-sms-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的所有`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
@@ -43,4 +43,5 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-sms-connector-name}/s
 |phoneNumbers            | String  | YES            | 接收短信的手机号码                     | xxxx |
 |signName                | String  | YES            | 短信签名名称                     | xxxx |
 |templateCode            | String  | YES            | 短信模板CODE                     | xxxx |
+|connect-topicname       | String  | YES            | sink需要处理数据消息topic                     | xxxx |
 

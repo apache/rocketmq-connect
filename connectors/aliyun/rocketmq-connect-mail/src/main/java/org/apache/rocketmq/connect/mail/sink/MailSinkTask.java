@@ -9,7 +9,6 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.mail.sink.constant.MailConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,14 +76,6 @@ public class MailSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(MailConstant.ACCESS_KEY_ID))
-                || StringUtils.isBlank(config.getString(MailConstant.ACCESS_KEY_SECRET))
-                || StringUtils.isBlank(config.getString(MailConstant.ACCOUNT_ENDPOINT))
-                || StringUtils.isBlank(config.getString(MailConstant.ACCOUNT_NAME))
-                || StringUtils.isBlank(config.getString(MailConstant.SUBJECT))
-                || StringUtils.isBlank(config.getString(MailConstant.TO_ADDRESS))) {
-            throw new RuntimeException("mail required parameter is null !");
-        }
     }
 
     @Override
@@ -107,6 +98,7 @@ public class MailSinkTask extends SinkTask {
                 .setAccessKeySecret(accessKeySecret);
         config.endpoint = accountEndpoint;
         try {
+            super.start(sinkTaskContext);
             client = new Client(config);
         } catch (Exception e) {
             log.error("MailSinkTask | start | error => ", e);

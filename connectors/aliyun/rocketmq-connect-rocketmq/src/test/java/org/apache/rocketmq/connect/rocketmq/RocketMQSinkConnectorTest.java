@@ -75,7 +75,8 @@ public class RocketMQSinkConnectorTest {
         ConnectRecord connectRecord = new ConnectRecord(new RecordPartition(new HashMap<>()), new RecordOffset(new HashMap<>()), System.currentTimeMillis());
         connectRecord.setData("test message");
         connectRecords.add(connectRecord);
-        connectRecord.addExtension("key", "value");
+        connectRecord.addExtension(RocketMQConstant.KEY, "value");
+        connectRecord.addExtension(RocketMQConstant.TAG, "tag");
         rocketMQSinkTask.put(connectRecords);
     }
 

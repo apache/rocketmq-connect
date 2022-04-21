@@ -9,7 +9,6 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.sms.sink.constant.SmsConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,14 +71,6 @@ public class SmsSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(SmsConstant.ACCESS_KEY_ID))
-                || StringUtils.isBlank(config.getString(SmsConstant.ACCESS_KEY_SECRET))
-                || StringUtils.isBlank(config.getString(SmsConstant.ACCOUNT_ENDPOINT))
-                || StringUtils.isBlank(config.getString(SmsConstant.PHONE_NUMBERS))
-                || StringUtils.isBlank(config.getString(SmsConstant.SIGN_NAME))
-                || StringUtils.isBlank(config.getString(SmsConstant.TEMPLATE_CODE))) {
-            throw new RuntimeException("sms required parameter is null !");
-        }
     }
 
     @Override
@@ -99,6 +90,7 @@ public class SmsSinkTask extends SinkTask {
                 .setAccessKeySecret(accessKeySecret);
         config.endpoint = accountEndpoint;
         try {
+            super.start(sinkTaskContext);
             client = new Client(config);
         } catch (Exception e) {
             log.error("SmsSinkTask | start | error => ", e);

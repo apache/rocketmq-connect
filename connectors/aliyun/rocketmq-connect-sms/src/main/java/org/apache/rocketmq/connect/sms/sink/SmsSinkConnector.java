@@ -6,11 +6,14 @@ import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.sms.sink.constant.SmsConstant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SmsSinkConnector extends SinkConnector {
+    private static final Logger log = LoggerFactory.getLogger(SmsSinkConnector.class);
     private String accessKeyId;
 
     private String accessKeySecret;
@@ -60,6 +63,13 @@ public class SmsSinkConnector extends SinkConnector {
                 || StringUtils.isBlank(config.getString(SmsConstant.PHONE_NUMBERS))
                 || StringUtils.isBlank(config.getString(SmsConstant.SIGN_NAME))
                 || StringUtils.isBlank(config.getString(SmsConstant.TEMPLATE_CODE))) {
+            log.info("SmsSinkConnector | validate | accessKeyId : {} | accessKeySecret : {} | accountEndpoint : {} | phoneNumbers : {} | signName : {} | templateCode : {}",
+                    config.getString(SmsConstant.ACCESS_KEY_ID),
+                    config.getString(SmsConstant.ACCESS_KEY_SECRET),
+                    config.getString(SmsConstant.ACCOUNT_ENDPOINT),
+                    config.getString(SmsConstant.PHONE_NUMBERS),
+                    config.getString(SmsConstant.SIGN_NAME),
+                    config.getString(SmsConstant.TEMPLATE_CODE));
             throw new RuntimeException("sms required parameter is null !");
         }
     }

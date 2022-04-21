@@ -57,10 +57,6 @@ public class DingTalkSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(DingTalkConstant.WEB_HOOK)) ||
-            StringUtils.isBlank(config.getString(DingTalkConstant.SECRET_KEY))) {
-            throw new RuntimeException("ding talk required parameter is null !");
-        }
     }
 
     @Override
