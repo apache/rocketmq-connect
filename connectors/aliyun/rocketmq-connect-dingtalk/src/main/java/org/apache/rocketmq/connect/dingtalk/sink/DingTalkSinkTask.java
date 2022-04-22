@@ -7,7 +7,6 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +56,6 @@ public class DingTalkSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(DingTalkConstant.WEB_HOOK)) ||
-            StringUtils.isBlank(config.getString(DingTalkConstant.SECRET_KEY))) {
-            throw new RuntimeException("ding talk required parameter is null !");
-        }
     }
 
     @Override
