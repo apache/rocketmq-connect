@@ -19,17 +19,14 @@ package org.apache.rocketmq.replicator;
 
 import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.DataEntryBuilder;
-import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import io.openmessaging.connector.api.data.SchemaBuilder;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +40,7 @@ import org.apache.rocketmq.replicator.config.ConfigUtil;
 import org.apache.rocketmq.replicator.config.TaskConfig;
 import org.apache.rocketmq.replicator.offset.OffsetSyncStore;
 import org.apache.rocketmq.replicator.schema.FieldName;
+import org.apache.rocketmq.replicator.schema.SchemaEnum;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,8 +62,18 @@ public class MetaSourceTask extends SourceTask {
     }
 
     @Override
-    public void start(KeyValue config) {
+    public void validate(KeyValue config) {
+
+    }
+
+    @Override
+    public void init(KeyValue config) {
         ConfigUtil.load(config, this.config);
+    }
+
+    @Override
+    public void start(SourceTaskContext sourceTaskContext) {
+        super.start(sourceTaskContext);
 
         try {
             this.srcMQAdminExt = Utils.startMQAdminTool(this.config);
@@ -78,22 +86,25 @@ public class MetaSourceTask extends SourceTask {
         this.started = true;
     }
 
-    @Override public void stop() {
+    @Override
+    public void stop() {
         if (started) {
             started = false;
         }
         srcMQAdminExt.shutdown();
     }
 
-    @Override public void pause() {
+    @Override
+    public void pause() {
 
     }
 
-    @Override public void resume() {
+    @Override
+    public void resume() {
 
     }
 
-    @Override public Collection<SourceDataEntry> poll() {
+    @Override public List<ConnectRecord> poll() {
         log.debug("polling...");
         List<String> groups = JSONObject.parseArray(this.config.getTaskGroupList(), String.class);
 
@@ -106,7 +117,7 @@ public class MetaSourceTask extends SourceTask {
             }
             return Collections.emptyList();
         }
-        List<SourceDataEntry> res = new ArrayList<>();
+        List<ConnectRecord> res = new ArrayList<>();
         for (String group : groups) {
             ConsumeStats stats;
             try {
@@ -117,38 +128,19 @@ public class MetaSourceTask extends SourceTask {
             }
 
             for (Map.Entry<MessageQueue, OffsetWrapper> offsetTable : stats.getOffsetTable().entrySet()) {
-
                 MessageQueue mq = offsetTable.getKey();
                 long srcOffset = offsetTable.getValue().getConsumerOffset();
                 long targetOffset = this.store.convertTargetOffset(mq, group, srcOffset);
 
+                List<Field> fields = new ArrayList<Field>();
+                Schema schema = new Schema(SchemaEnum.OFFSET.name(), FieldType.STRING, fields);
+                schema.getFields().add(new Field(0, FieldName.OFFSET.getKey(), SchemaBuilder.string().build()));
+
                 JSONObject jsonObject = new JSONObject();
-                jsonObject.put(RmqConstants.NEXT_POSITION, srcOffset);
-
-                Schema schema = new Schema();
-                schema.setDataSource(this.config.getSourceRocketmq());
-                schema.setName(mq.getTopic());
-                schema.setFields(new ArrayList<>());
-                schema.getFields().add(new Field(0,
-                    FieldName.OFFSET.getKey(), FieldType.INT64));
-
-                DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema);
-                dataEntryBuilder.timestamp(System.currentTimeMillis())
-                    .queue(this.config.getStoreTopic())
-                    .entryType(EntryType.UPDATE);
-                dataEntryBuilder.putFiled(FieldName.OFFSET.getKey(), targetOffset);
-
-                SourceDataEntry sourceDataEntry = dataEntryBuilder.buildSourceDataEntry(
-                    ByteBuffer.wrap(RmqConstants.getPartition(
-                        mq.getTopic(),
-                        mq.getBrokerName(),
-                        String.valueOf(mq.getQueueId())).getBytes(StandardCharsets.UTF_8)),
-                    ByteBuffer.wrap(jsonObject.toJSONString().getBytes(StandardCharsets.UTF_8))
-                );
-                String targetTopic = new StringBuilder().append(group).append("-").append(mq.getTopic())
-                    .append("-").append(mq.getQueueId()).toString();
-                sourceDataEntry.setQueueName(targetTopic);
-                res.add(sourceDataEntry);
+                jsonObject.put(FieldName.OFFSET.getKey(), targetOffset);
+                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(mq.getTopic(), mq.getBrokerName(), String.valueOf(mq.getQueueId())),
+                    Utils.offsetValue(srcOffset), System.currentTimeMillis(), schema, jsonObject.toJSONString());
+                res.add(connectRecord);
             }
         }
         return res;

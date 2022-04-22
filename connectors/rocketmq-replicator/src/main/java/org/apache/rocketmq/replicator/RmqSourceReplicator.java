@@ -17,8 +17,9 @@
 package org.apache.rocketmq.replicator;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,26 +90,27 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public String verifyAndSetConfig(KeyValue config) {
+    public void validate(KeyValue config) {
 
         // Check the need key.
         for (String requestKey : ConfigDefine.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
+                return;
             }
         }
 
         try {
             this.replicatorConfig.validate(config);
         } catch (IllegalArgumentException e) {
-            return e.getMessage();
+            return;
         }
         this.configValid = true;
-        return "";
+        return;
     }
 
     @Override
-    public void start() {
+    public void start(ConnectorContext componentContext) {
+        super.start(componentContext);
         try {
             startMQAdminTools();
         } catch (MQClientException e) {
@@ -117,10 +119,10 @@ public class RmqSourceReplicator extends SourceConnector {
         }
 
         buildRoute();
-        startListner();
+        startListener();
     }
 
-    public void startListner() {
+    public void startListener() {
         executor.scheduleAtFixedRate(new Runnable() {
 
             boolean first = true;
@@ -135,7 +137,7 @@ public class RmqSourceReplicator extends SourceConnector {
                     first = false;
                 }
                 if (!compare(origin, topicRouteMap)) {
-                    context.requestTaskReconfiguration();
+                    connectorContext.requestTaskReconfiguration();
                     origin = new HashMap<>(topicRouteMap);
                 }
             }
@@ -164,6 +166,11 @@ public class RmqSourceReplicator extends SourceConnector {
         return true;
     }
 
+
+    @Override public void init(KeyValue config) {
+
+    }
+
     @Override
     public void stop() {
         executor.shutdown();
@@ -188,7 +195,7 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public List<KeyValue> taskConfigs() {
+    public List<KeyValue> taskConfigs(int maxTasks) {
         if (!configValid) {
             return new ArrayList<KeyValue>();
         }
