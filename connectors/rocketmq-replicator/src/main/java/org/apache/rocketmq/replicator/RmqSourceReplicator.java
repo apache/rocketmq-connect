@@ -91,21 +91,13 @@ public class RmqSourceReplicator extends SourceConnector {
 
     @Override
     public void validate(KeyValue config) {
-
-        // Check the need key.
+        // Check they need key.
         for (String requestKey : ConfigDefine.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return;
+                log.error("RmqSourceReplicator check need key error , request config key: " + requestKey);
+                throw new RuntimeException("RmqSourceReplicator check need key error.");
             }
         }
-
-        try {
-            this.replicatorConfig.validate(config);
-        } catch (IllegalArgumentException e) {
-            return;
-        }
-        this.configValid = true;
-        return;
     }
 
     @Override
@@ -127,7 +119,6 @@ public class RmqSourceReplicator extends SourceConnector {
 
             boolean first = true;
             Map<String, Set<TaskTopicInfo>> origin = null;
-
 
             @Override public void run() {
 
@@ -166,9 +157,15 @@ public class RmqSourceReplicator extends SourceConnector {
         return true;
     }
 
-
-    @Override public void init(KeyValue config) {
-
+    @Override
+    public void init(KeyValue config) {
+        try {
+            this.replicatorConfig.init(config);
+        } catch (IllegalArgumentException e) {
+            log.error("RmqSourceReplicator init config error.", e);
+            throw new IllegalArgumentException("RmqSourceReplicator init config error.");
+        }
+        this.configValid = true;
     }
 
     @Override

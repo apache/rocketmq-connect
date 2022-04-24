@@ -45,6 +45,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.replicator.common.Utils;
+import org.apache.rocketmq.replicator.config.ConfigDefine;
 import org.apache.rocketmq.replicator.config.RmqConnectorConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -88,20 +89,27 @@ public class RmqMetaReplicator extends SourceConnector {
         executor = Executors.newSingleThreadScheduledExecutor(new BasicThreadFactory.Builder().namingPattern("RmqMetaReplicator-SourceWatcher-%d").daemon(true).build());
     }
 
-    @Override public void validate(KeyValue config) {
-        log.info("verifyAndSetConfig...");
-        try {
-            replicatorConfig.validate(config);
-            this.configValid = true;
-        } catch (IllegalArgumentException e) {
-            return;
+    @Override
+    public void validate(KeyValue config) {
+        // Check they need key.
+        for (String requestKey : ConfigDefine.REQUEST_CONFIG) {
+            if (!config.containsKey(requestKey)) {
+                log.error("RmqMetaReplicator check need key error , request config key: " + requestKey);
+                throw new RuntimeException("RmqMetaReplicator check need key error.");
+            }
         }
-        this.prepare();
-        return;
     }
 
-    @Override public void init(KeyValue config) {
-
+    @Override
+    public void init(KeyValue config) {
+        try {
+            replicatorConfig.init(config);
+        } catch (IllegalArgumentException e) {
+            log.error("RmqMetaReplicator validate config error.", e);
+            throw new IllegalArgumentException("RmqMetaReplicator validate config error.");
+        }
+        this.configValid = true;
+        this.prepare();
     }
 
     @Override
@@ -132,7 +140,7 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     @Override
-    public List<KeyValue> taskConfigs(int maxTasks)  {
+    public List<KeyValue> taskConfigs(int maxTasks) {
         log.debug("preparing taskConfig...");
         if (!configValid) {
             return new ArrayList<>();
@@ -212,7 +220,7 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     private void ensureSubConfig(Collection<String> targetBrokers,
-            SubscriptionGroupConfig subConfig) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        SubscriptionGroupConfig subConfig) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         for (String addr : targetBrokers) {
             this.targetMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subConfig);
         }

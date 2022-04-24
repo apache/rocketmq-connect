@@ -48,7 +48,7 @@ public class RmqConnectorConfig {
     public RmqConnectorConfig() {
     }
 
-    public void validate(KeyValue config) {
+    public void init(KeyValue config) {
         this.taskParallelism = config.getInt(ConfigDefine.CONN_TASK_PARALLELISM, 1);
 
         int strategy = config.getInt(ConfigDefine.CONN_TASK_DIVIDE_STRATEGY, DivideStrategyEnum.BY_QUEUE.ordinal());

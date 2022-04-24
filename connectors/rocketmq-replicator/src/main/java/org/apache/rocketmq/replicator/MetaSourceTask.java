@@ -133,7 +133,7 @@ public class MetaSourceTask extends SourceTask {
                 long targetOffset = this.store.convertTargetOffset(mq, group, srcOffset);
 
                 List<Field> fields = new ArrayList<Field>();
-                Schema schema = new Schema(SchemaEnum.OFFSET.name(), FieldType.STRING, fields);
+                Schema schema = new Schema(SchemaEnum.OFFSET.name(), FieldType.INT64, fields);
                 schema.getFields().add(new Field(0, FieldName.OFFSET.getKey(), SchemaBuilder.string().build()));
 
                 JSONObject jsonObject = new JSONObject();
