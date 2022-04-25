@@ -37,7 +37,7 @@ public class TaskDivideConfig {
     private String srcSecretKey;
 
     public TaskDivideConfig(String sourceNamesrvAddr, String srcCluster, String storeTopic, String srcRecordConverter,
-                            int dataType, int taskParallelism, boolean srcAclEnable, String srcAccessKey, String srcSecretKey) {
+        int dataType, int taskParallelism, boolean srcAclEnable, String srcAccessKey, String srcSecretKey) {
         this.sourceNamesrvAddr = sourceNamesrvAddr;
         this.srcCluster = srcCluster;
         this.storeTopic = storeTopic;

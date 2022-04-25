@@ -70,7 +70,7 @@ public class Utils {
         return String.valueOf(namesrvList.toString().hashCode());
     }
 
-    public static String createUniqIntanceName(String prefix) {
+    public static String createUniqInstanceName(String prefix) {
         return new StringBuilder(prefix).append("-").append(UUID.randomUUID().toString()).toString();
     }
 
@@ -160,7 +160,7 @@ public class Utils {
         DefaultMQAdminExt srcMQAdminExt = new DefaultMQAdminExt(rpcHook);
         srcMQAdminExt.setNamesrvAddr(replicatorConfig.getSrcNamesrvs());
         srcMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_ADMIN_GROUP);
-        srcMQAdminExt.setInstanceName(Utils.createUniqIntanceName(replicatorConfig.getSrcNamesrvs()));
+        srcMQAdminExt.setInstanceName(Utils.createUniqInstanceName(replicatorConfig.getSrcNamesrvs()));
 
         srcMQAdminExt.start();
         log.info("SOURCE: RocketMQ srcMQAdminExt started");
@@ -177,7 +177,7 @@ public class Utils {
         DefaultMQAdminExt targetMQAdminExt = new DefaultMQAdminExt(rpcHook);
         targetMQAdminExt.setNamesrvAddr(replicatorConfig.getTargetNamesrvs());
         targetMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_ADMIN_GROUP);
-        targetMQAdminExt.setInstanceName(Utils.createUniqIntanceName(replicatorConfig.getTargetNamesrvs()));
+        targetMQAdminExt.setInstanceName(Utils.createUniqInstanceName(replicatorConfig.getTargetNamesrvs()));
 
         targetMQAdminExt.start();
         log.info("TARGET: RocketMQ targetMQAdminExt started.");
@@ -193,7 +193,7 @@ public class Utils {
         DefaultMQAdminExt targetMQAdminExt = new DefaultMQAdminExt(rpcHook);
         targetMQAdminExt.setNamesrvAddr(taskConfig.getSourceRocketmq());
         targetMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_TASK_ADMIN_GROUP);
-        targetMQAdminExt.setInstanceName(Utils.createUniqIntanceName(taskConfig.getSourceRocketmq()));
+        targetMQAdminExt.setInstanceName(Utils.createUniqInstanceName(taskConfig.getSourceRocketmq()));
 
         targetMQAdminExt.start();
         log.info("TARGET: RocketMQ targetMQAdminExt started.");

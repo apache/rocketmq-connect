@@ -71,14 +71,14 @@ public class RmqConnectorConfig {
         renamePattern = config.getString(ConfigDefine.CONN_TOPIC_RENAME_FMT);
         offsetSyncTopic = config.getString(ConfigDefine.OFFSET_SYNC_TOPIC);
 
-        if (config.containsKey(ConfigDefine.CONN_SOURCE_ACL_ENBALE)) {
-            srcAclEnable = Boolean.parseBoolean(config.getString(ConfigDefine.CONN_SOURCE_ACL_ENBALE));
+        if (config.containsKey(ConfigDefine.CONN_SOURCE_ACL_ENABLE)) {
+            srcAclEnable = Boolean.parseBoolean(config.getString(ConfigDefine.CONN_SOURCE_ACL_ENABLE));
             srcAccessKey = config.getString(ConfigDefine.CONN_SOURCE_ACCESS_KEY);
             srcSecretKey = config.getString(ConfigDefine.CONN_SOURCE_SECRET_KEY);
         }
 
-        if (config.containsKey(ConfigDefine.CONN_TARGET_ACL_ENBALE)) {
-            targetAclEnable = Boolean.parseBoolean(config.getString(ConfigDefine.CONN_TARGET_ACL_ENBALE));
+        if (config.containsKey(ConfigDefine.CONN_TARGET_ACL_ENABLE)) {
+            targetAclEnable = Boolean.parseBoolean(config.getString(ConfigDefine.CONN_TARGET_ACL_ENABLE));
             targetAccessKey = config.getString(ConfigDefine.CONN_TARGET_ACCESS_KEY);
             targetSecretKey = config.getString(ConfigDefine.CONN_TARGET_SECRET_KEY);
         }
