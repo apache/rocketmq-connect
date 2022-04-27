@@ -5,6 +5,11 @@ import com.aliyun.eventbridge.models.CloudEvent;
 import com.aliyun.eventbridge.models.Config;
 import com.aliyun.eventbridge.models.PutEventsResponse;
 import com.aliyun.eventbridge.util.EventBuilder;
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.profile.DefaultProfile;
+import com.aliyuncs.sts.model.v20150401.AssumeRoleRequest;
+import com.aliyuncs.sts.model.v20150401.AssumeRoleResponse;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
@@ -22,23 +27,23 @@ import java.util.List;
 public class EventBridgeSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(EventBridgeSinkTask.class);
 
+    private String regionId;
+
     private String accessKeyId;
 
     private String accessKeySecret;
 
-    private String accountEndpoint;
+    private String roleArn;
 
-    private String eventId;
-
-    private String eventSource;
+    private String roleSessionName;
 
     private String eventTime;
-
-    private String eventType;
 
     private String eventSubject;
 
     private String aliyuneventbusname;
+
+    private String accountEndpoint;
 
     private EventBridgeClient eventBridgeClient;
 
@@ -47,9 +52,9 @@ public class EventBridgeSinkTask extends SinkTask {
         List<CloudEvent> cloudEventList = new ArrayList<>();
         try {
             sinkRecords.forEach(connectRecord -> cloudEventList.add(EventBuilder.builder()
-                    .withId(eventId)
-                    .withSource(URI.create(eventSource))
-                    .withType(eventType)
+                    .withId(connectRecord.getExtension(EventBridgeConstant.EVENT_ID))
+                    .withSource(URI.create(connectRecord.getExtension(EventBridgeConstant.EVENT_SOURCE)))
+                    .withType(connectRecord.getExtension(EventBridgeConstant.EVENT_TYPE))
                     .withSubject(eventSubject)
                     .withTime(DateUtils.getDate(eventTime, DateUtils.DEFAULT_DATE_FORMAT))
                     .withJsonStringData(connectRecord.getData().toString())
@@ -82,22 +87,30 @@ public class EventBridgeSinkTask extends SinkTask {
     public void init(KeyValue config) {
         accessKeyId = config.getString(EventBridgeConstant.ACCESS_KEY_ID);
         accessKeySecret = config.getString(EventBridgeConstant.ACCESS_KEY_SECRET);
-        accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
-        eventId = config.getString(EventBridgeConstant.EVENT_ID);
-        eventSource = config.getString(EventBridgeConstant.EVENT_SOURCE);
+        roleArn = config.getString(EventBridgeConstant.ROLE_ARN);
+        roleSessionName = config.getString(EventBridgeConstant.ROLE_SESSION_NAME);
         eventTime = config.getString(EventBridgeConstant.EVENT_TIME);
-        eventType = config.getString(EventBridgeConstant.EVENT_TYPE);
         eventSubject = config.getString(EventBridgeConstant.EVENT_SUBJECT);
         aliyuneventbusname = config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME);
+        regionId = config.getString(EventBridgeConstant.REGION_ID_CONSTANT);
+        accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
     }
 
     @Override
     public void start(SinkTaskContext sinkTaskContext) {
         super.start(sinkTaskContext);
         try {
+            DefaultProfile profile = DefaultProfile.getProfile(regionId, accessKeyId, accessKeySecret);
+            IAcsClient client = new DefaultAcsClient(profile);
+            AssumeRoleRequest request = new AssumeRoleRequest();
+            request.setRegionId(regionId);
+            request.setRoleArn(roleArn);
+            request.setRoleSessionName(roleSessionName);
+            AssumeRoleResponse response = client.getAcsResponse(request);
             Config authConfig = new Config();
-            authConfig.accessKeyId = accessKeyId;
-            authConfig.accessKeySecret = accessKeySecret;
+            authConfig.accessKeyId = response.getCredentials().getAccessKeyId();
+            authConfig.accessKeySecret = response.getCredentials().getAccessKeySecret();
+            authConfig.securityToken = response.getCredentials().getSecurityToken();
             authConfig.endpoint = accountEndpoint;
             eventBridgeClient = new EventBridgeClient(authConfig);
         } catch (Exception e) {
