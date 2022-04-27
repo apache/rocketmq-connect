@@ -29,13 +29,13 @@ public class EventBridgeSinkTest {
     public void testPut() {
         EventBridgeSinkTask eventBridgeSinkTask = new EventBridgeSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(EventBridgeConstant.REGION_ID_CONSTANT, "xxxx");
         keyValue.put(EventBridgeConstant.ACCESS_KEY_ID, "xxxx");
-        keyValue.put(EventBridgeConstant.ACCESS_KEY_SECRET, "xxxx");
         keyValue.put(EventBridgeConstant.ACCOUNT_ENDPOINT, "xxxx");
-        keyValue.put(EventBridgeConstant.EVENT_ID, UUID.randomUUID().toString());
-        keyValue.put(EventBridgeConstant.EVENT_SOURCE, "xxxx");
+        keyValue.put(EventBridgeConstant.ACCESS_KEY_SECRET, "xxxx");
+        keyValue.put(EventBridgeConstant.ROLE_ARN, "xxxx");
+        keyValue.put(EventBridgeConstant.ROLE_SESSION_NAME, "xxxx");
         keyValue.put(EventBridgeConstant.EVENT_TIME, "2022-04-24 16:12:00");
-        keyValue.put(EventBridgeConstant.EVENT_TYPE, "xxxx");
         keyValue.put(EventBridgeConstant.EVENT_SUBJECT, "xxxx");
         keyValue.put(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME, "xxxx");
         eventBridgeSinkTask.init(keyValue);
@@ -44,6 +44,9 @@ public class EventBridgeSinkTest {
         connectRecord.setData("{\n" +
                 "\t\"test\" :  \"test\"\n" +
                 "}");
+        connectRecord.addExtension(EventBridgeConstant.EVENT_ID, UUID.randomUUID().toString());
+        connectRecord.addExtension(EventBridgeConstant.EVENT_SOURCE, "xxxx");
+        connectRecord.addExtension(EventBridgeConstant.EVENT_TYPE, "xxxx");
         connectRecordList.add(connectRecord);
         eventBridgeSinkTask.start(new SinkTaskContext() {
             @Override
