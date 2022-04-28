@@ -108,7 +108,7 @@ public class ConnectController {
     private final ConnectStatsService connectStatsService;
 
     public ConnectController(
-        ConnectConfig connectConfig) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        ConnectConfig connectConfig) {
 
         List<String> pluginPaths = new ArrayList<>(16);
         if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
