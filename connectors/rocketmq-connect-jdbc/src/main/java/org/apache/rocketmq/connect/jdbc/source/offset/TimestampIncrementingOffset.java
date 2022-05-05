@@ -66,7 +66,7 @@ public class TimestampIncrementingOffset {
       return new TimestampIncrementingOffset(null, null);
     }
 
-    Long incr = (Long) map.get(INCREMENTING_FIELD);
+    Long incr = Long.valueOf(map.get(INCREMENTING_FIELD).toString());
     Long millis = (Long) map.get(TIMESTAMP_FIELD);
     Timestamp ts = null;
     if (millis != null) {

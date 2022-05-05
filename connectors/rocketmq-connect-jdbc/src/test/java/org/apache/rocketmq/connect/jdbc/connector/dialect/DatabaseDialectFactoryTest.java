@@ -8,4 +8,8 @@ public class DatabaseDialectFactoryTest {
     public void findDialectFor() throws InterruptedException {
         DatabaseDialectFactory.findDialectFor("jdbc:mysql://*****:3306",null);
     }
+    @Test
+    public void findOpenMLDBDialectFor() throws InterruptedException {
+        DatabaseDialectFactory.findDialectFor("jdbc:openmldb:///test_db?zk=localhost:6181&zkPath=/openmldb",null);
+    }
 }

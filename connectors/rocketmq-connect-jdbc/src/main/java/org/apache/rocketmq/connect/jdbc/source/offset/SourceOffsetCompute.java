@@ -154,7 +154,7 @@ public class SourceOffsetCompute {
             }
             Map<String, Object> offset = null ;
             if (offsets != null && tablePartitionsToCheck !=null) {
-                offset = (Map<String, Object>) tablePartitionsToCheck.getPartition();
+                offset = (Map<String, Object>) offsets.get(tablePartitionsToCheck).getOffset();
             }
             offset = computeInitialOffset(
                     cachedConnectionProvider,

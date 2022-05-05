@@ -47,11 +47,6 @@ public class JdbcSinkConfig extends AbstractConfig {
 
     public static final String TABLE_NAME_FORMAT = "table.name.format";
     public static final String TABLE_NAME_FORMAT_DEFAULT = "${topic}";
-    private static final String TABLE_NAME_FORMAT_DOC =
-            "A format string for the destination table name, which may contain '${topic}' as a "
-                    + "placeholder for the originating topic name.\n"
-                    + "For example, ``kafka_${topic}`` for the topic 'orders' will map to the table name "
-                    + "'kafka_orders'.";
     private static final String TABLE_NAME_FORMAT_DISPLAY = "Table Name Format";
 
     /**
@@ -68,43 +63,26 @@ public class JdbcSinkConfig extends AbstractConfig {
     private static final int MAX_RETRIES_DEFAULT = 10;
     private static final String MAX_RETRIES_DOC =
             "The maximum number of times to retry on errors before failing the task.";
-    private static final String MAX_RETRIES_DISPLAY = "Maximum Retries";
 
     public static final String RETRY_BACKOFF_MS = "retry.backoff.ms";
     private static final int RETRY_BACKOFF_MS_DEFAULT = 3000;
-    private static final String RETRY_BACKOFF_MS_DOC =
-            "The time in milliseconds to wait following an error before a retry attempt is made.";
-    private static final String RETRY_BACKOFF_MS_DISPLAY = "Retry Backoff (millis)";
-
 
     public static final String BATCH_SIZE = "batch.size";
     private static final int BATCH_SIZE_DEFAULT = 3000;
-    private static final String BATCH_SIZE_DOC =
-            "Specifies how many records to attempt to batch together for insertion into the destination"
-                    + " table, when possible.";
-    private static final String BATCH_SIZE_DISPLAY = "Batch Size";
 
 
     public static final String DELETE_ENABLED = "delete.enabled";
     private static final boolean DELETE_ENABLED_DEFAULT = false;
-    private static final String DELETE_ENABLED_DOC =
-            "Whether to treat ``null`` record values as deletes. Requires ``pk.mode`` "
-                    + "to be ``record_key``.";
-    private static final String DELETE_ENABLED_DISPLAY = "Enable deletes";
+
 
     public static final String AUTO_CREATE = "auto.create";
     private static final boolean AUTO_CREATE_DEFAULT = false;
-    private static final String AUTO_CREATE_DOC =
-            "Whether to automatically create the destination table based on record schema if it is "
-                    + "found to be missing by issuing ``CREATE``.";
-    private static final String AUTO_CREATE_DISPLAY = "Auto-Create";
 
     public static final String AUTO_EVOLVE = "auto.evolve";
     private static final boolean AUTO_EVOLVE_DEFAULT = false;
     private static final String AUTO_EVOLVE_DOC =
             "Whether to automatically add columns in the table schema when found to be missing relative "
                     + "to the record schema by issuing ``ALTER``.";
-    private static final String AUTO_EVOLVE_DISPLAY = "Auto-Evolve";
 
     public static final String INSERT_MODE = "insert.mode";
     private static final String INSERT_MODE_DEFAULT = "insert";
@@ -143,8 +121,6 @@ public class JdbcSinkConfig extends AbstractConfig {
                     + "Supported modes are:\n"
                     + "``none``\n"
                     + "    No keys utilized.\n"
-                    + "``record_key``\n"
-                    + "    Field(s) from the record key are used, which may be a primitive or a struct.\n"
                     + "``record_value``\n"
                     + "    Field(s) from the record value are used, which must be a struct.";
     private static final String PK_MODE_DISPLAY = "Primary Key Mode";
@@ -161,23 +137,11 @@ public class JdbcSinkConfig extends AbstractConfig {
 
 
     public static final String DIALECT_NAME_CONFIG = "dialect.name";
-    private static final String DIALECT_NAME_DISPLAY = "Database Dialect";
     public static final String DIALECT_NAME_DEFAULT = "";
-    private static final String DIALECT_NAME_DOC =
-            "The name of the database dialect that should be used for this connector. By default this "
-                    + "is empty, and the connector automatically determines the dialect based upon the "
-                    + "JDBC connection URL. Use this if you want to override that behavior and use a "
-                    + "specific dialect. All properly-packaged dialects in the JDBC connector plugin "
-                    + "can be used.";
-
 
 
     public static final String DB_TIMEZONE_CONFIG = "db.timezone";
     public static final String DB_TIMEZONE_DEFAULT = "UTC";
-    private static final String DB_TIMEZONE_CONFIG_DOC =
-            "Name of the JDBC timezone that should be used in the connector when "
-                    + "inserting time-based values. Defaults to UTC.";
-    private static final String DB_TIMEZONE_CONFIG_DISPLAY = "DB Time Zone";
 
     // table types
     public static final String TABLE_TYPES_CONFIG = "table.types";
