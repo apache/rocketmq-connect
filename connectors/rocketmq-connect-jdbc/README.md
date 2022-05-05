@@ -59,10 +59,10 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 
 |         KEY                 |  TYPE   | Must be filled | Description| Example
 |------------------------|----|---------|---------------|------------------|
-|connection.url               | String  | YES           | sink端 jdbc连接 | jdbc:mysql://XXXXXXXXX:3306|
-|connection.user              | String  | YES           | sink端 DB 用户名 | root |
-|connection.password          | String  | YES           | sink端 DB 密码   | root |
-|connection.attempts          | String  | YES           | sink端 DB连接重试次数 | 3 |
+|connection.url               | String  | YES           | source端 jdbc连接 | jdbc:mysql://XXXXXXXXX:3306|
+|connection.user              | String  | YES           | source端 DB 用户名 | root |
+|connection.password          | String  | YES           | source端 DB 密码   | root |
+|connection.attempts          | String  | YES           | source端 DB连接重试次数 | 3 |
 |connection.backoff.ms        | Long    | YES           |  |
 |poll.interval.ms             | Long    | YES           |拉取间隔时间  | 3000ms |
 |batch.max.rows               | Integer | NO            |每次拉取数量 | 300 |
@@ -81,10 +81,10 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 
 |         KEY                 |  TYPE   | Must be filled | Description| Example
 |------------------------|----|---------|---------------|------------------|
-|connection.url               | String  | YES           | jdbc连接          | jdbc:mysql://XXXXXXXXX:3306|
-|connection.user              | String  | YES           | source端 DB 用户名 | root |
-|connection.password          | String  | YES           | source端 DB 密码   | root |
-|connection.attempts          | String  | NO           | source端 DB连接重试次数 | 3 |
+|connection.url               | String  | YES           | sink端 jdbc连接          | jdbc:mysql://XXXXXXXXX:3306|
+|connection.user              | String  | YES           | sink端 DB 用户名 | root |
+|connection.password          | String  | YES           | sink端 DB 密码   | root |
+|connection.attempts          | String  | NO           | sink端 DB连接重试次数 | 3 |
 |connection.backoff.ms        | Long    | NO           |  |
 |connect-topicname            | Long    | YES          |监听的topic  | topic-name |
 |pk.fields                     | String  | NO           |写入侧主键配置，用于更新使用 | id |
