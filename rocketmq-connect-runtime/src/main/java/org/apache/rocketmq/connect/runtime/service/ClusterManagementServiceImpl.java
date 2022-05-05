@@ -67,14 +67,13 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
      */
     private void prepare(ConnectConfig connectConfig) {
         String consumerGroup = this.defaultMQPullConsumer.getConsumerGroup();
-        Set<String> topicSet = ConnectUtil.fetchAllTopicList(connectConfig);
         Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
         if (!consumerGroupSet.contains(consumerGroup)) {
             log.info("try to create consumerGroup: {}!", consumerGroup);
             ConnectUtil.createSubGroup(connectConfig, consumerGroup);
         }
         String clusterStoreTopic = connectConfig.getClusterStoreTopic();
-        if (!topicSet.contains(clusterStoreTopic)) {
+        if (!ConnectUtil.isTopicExist(connectConfig, clusterStoreTopic)) {
             log.info("try to create cluster store topic: {}!", clusterStoreTopic);
             TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
             ConnectUtil.createTopic(connectConfig, topicConfig);

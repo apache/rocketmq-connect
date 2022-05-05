@@ -101,8 +101,7 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
      */
     private void prepare(ConnectConfig connectConfig) {
         String configStoreTopic = connectConfig.getConfigStoreTopic();
-        Set<String> topicSet = ConnectUtil.fetchAllTopicList(connectConfig);
-        if (!topicSet.contains(configStoreTopic)) {
+        if (!ConnectUtil.isTopicExist(connectConfig, configStoreTopic)) {
             log.info("try to create config store topic: {}!", configStoreTopic);
             TopicConfig topicConfig = new TopicConfig(configStoreTopic, 1, 1, 6);
             ConnectUtil.createTopic(connectConfig, topicConfig);

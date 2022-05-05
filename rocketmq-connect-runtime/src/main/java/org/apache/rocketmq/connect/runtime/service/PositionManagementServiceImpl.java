@@ -90,8 +90,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      */
     private void prepare(ConnectConfig connectConfig) {
         String positionStoreTopic = connectConfig.getPositionStoreTopic();
-        Set<String> topicSet = ConnectUtil.fetchAllTopicList(connectConfig);
-        if (!topicSet.contains(positionStoreTopic)) {
+        if (!ConnectUtil.isTopicExist(connectConfig, positionStoreTopic)) {
             log.info("try to create position store topic: {}!", positionStoreTopic);
             TopicConfig topicConfig = new TopicConfig(positionStoreTopic, 1, 1, 6);
             ConnectUtil.createTopic(connectConfig, topicConfig);

@@ -91,8 +91,7 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
      */
     private void prepare(ConnectConfig connectConfig) {
         String offsetStoreTopic = connectConfig.getOffsetStoreTopic();
-        Set<String> topicSet = ConnectUtil.fetchAllTopicList(connectConfig);
-        if (!topicSet.contains(offsetStoreTopic)) {
+        if (!ConnectUtil.isTopicExist(connectConfig, offsetStoreTopic)) {
             log.info("try to create offset store topic: {}!", offsetStoreTopic);
             TopicConfig topicConfig = new TopicConfig(offsetStoreTopic, 1, 1, 6);
             ConnectUtil.createTopic(connectConfig, topicConfig);
