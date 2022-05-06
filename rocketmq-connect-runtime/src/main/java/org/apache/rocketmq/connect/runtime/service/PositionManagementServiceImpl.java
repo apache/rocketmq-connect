@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
@@ -37,8 +39,11 @@ import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PositionManagementServiceImpl implements PositionManagementService {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     /**
      * Current position info in store.
@@ -75,6 +80,21 @@ public class PositionManagementServiceImpl implements PositionManagementService 
             new RecordPositionMapConverter());
         this.positionUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
+        this.prepare(connectConfig);
+    }
+
+    /**
+     * Preparation before startup
+     *
+     * @param connectConfig
+     */
+    private void prepare(ConnectConfig connectConfig) {
+        String positionStoreTopic = connectConfig.getPositionStoreTopic();
+        if (!ConnectUtil.isTopicExist(connectConfig, positionStoreTopic)) {
+            log.info("try to create position store topic: {}!", positionStoreTopic);
+            TopicConfig topicConfig = new TopicConfig(positionStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
+        }
     }
 
     @Override

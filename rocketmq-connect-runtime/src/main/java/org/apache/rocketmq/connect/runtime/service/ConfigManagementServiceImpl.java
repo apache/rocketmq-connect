@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -90,6 +91,21 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
             new JsonConverter(),
             new ListConverter(ConnectKeyValue.class));
         this.plugin = plugin;
+        this.prepare(connectConfig);
+    }
+
+    /**
+     * Preparation before startup
+     *
+     * @param connectConfig
+     */
+    private void prepare(ConnectConfig connectConfig) {
+        String configStoreTopic = connectConfig.getConfigStoreTopic();
+        if (!ConnectUtil.isTopicExist(connectConfig, configStoreTopic)) {
+            log.info("try to create config store topic: {}!", configStoreTopic);
+            TopicConfig topicConfig = new TopicConfig(configStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
+        }
     }
 
     @Override

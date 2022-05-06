@@ -19,12 +19,15 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.ConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +72,11 @@ public class RebalanceImpl {
 
     public void checkClusterStoreTopic() {
         if (!clusterManagementService.hasClusterStoreTopic()) {
-            log.error("cluster store topic not exist, apply first please!");
+            ConnectConfig connectConfig = this.connectController.getConnectConfig();
+            String clusterStoreTopic = this.connectController.getConnectConfig().getClusterStoreTopic();
+            log.info("cluster store topic not exist, try to create it!");
+            TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
         }
     }
 
@@ -78,7 +85,9 @@ public class RebalanceImpl {
      */
     public void doRebalance() {
         List<String> curAliveWorkers = clusterManagementService.getAllAliveWorkers();
-        log.info("Current Alive workers : " + curAliveWorkers.size());
+        if (curAliveWorkers != null) {
+            log.info("Current Alive workers : " + curAliveWorkers.size());
+        }
         Map<String, ConnectKeyValue> curConnectorConfigs = configManagementService.getConnectorConfigs();
         log.info("Current ConnectorConfigs : " + curConnectorConfigs);
         Map<String, List<ConnectKeyValue>> curTaskConfigs = configManagementService.getTaskConfigs();
