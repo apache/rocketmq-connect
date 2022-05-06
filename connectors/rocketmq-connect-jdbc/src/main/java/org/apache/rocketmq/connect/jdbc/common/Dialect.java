@@ -23,9 +23,7 @@ import java.lang.annotation.Target;
 
 /**
  * dialect annotation
- * @author xiaoyi
  */
-
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface Dialect {

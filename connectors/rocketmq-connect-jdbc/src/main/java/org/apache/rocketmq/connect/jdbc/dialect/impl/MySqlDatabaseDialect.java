@@ -33,7 +33,6 @@ import java.util.Collection;
 
 /**
  * mysql database dialect
- * @author
  */
 public class MySqlDatabaseDialect extends GenericDatabaseDialect {
 

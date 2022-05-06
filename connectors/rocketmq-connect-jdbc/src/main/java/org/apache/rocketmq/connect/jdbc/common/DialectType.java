@@ -18,7 +18,6 @@ package org.apache.rocketmq.connect.jdbc.common;
 
 /**
  * dialect type source or sink
- * @author xiaoyi
  */
 public enum DialectType {
     SOURCE,

@@ -22,7 +22,6 @@ import java.util.List;
 
 /**
  * task config
- * @author xiaoyi
  */
 public class JdbcSourceTaskConfig extends JdbcSourceConfig {
   public static final String TABLES_CONFIG = "tables";

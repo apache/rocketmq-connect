@@ -19,15 +19,11 @@ package org.apache.rocketmq.connect.jdbc.dialect.impl;
 import lombok.SneakyThrows;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.DatabaseDialectProvider;
 import org.apache.rocketmq.connect.jdbc.util.IdentifierRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * openmldb database dialect

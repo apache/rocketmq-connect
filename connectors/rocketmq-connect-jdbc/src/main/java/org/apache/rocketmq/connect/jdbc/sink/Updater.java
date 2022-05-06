@@ -32,7 +32,6 @@ import java.util.*;
 
 /**
  * jdbc db updater
- * @author xiaoyi
  */
 public class Updater {
 

@@ -40,7 +40,6 @@ import java.util.Map;
 
 /**
  * database dialect
- * @author xiaoyi
  */
 public interface DatabaseDialect extends ConnectionProvider {
 

@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 
 /**
  * abstract config
- * @author xiaoyi
  */
 public abstract class AbstractConfig {
 

@@ -23,7 +23,6 @@ import java.util.Objects;
 
 /**
  * schema pair
- * @author xiaoyi
  */
 public class SchemaPair {
   public final Schema schema;

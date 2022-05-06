@@ -27,7 +27,6 @@ import java.util.*;
 
 /**
  * fields metadata
- * @author xiaoyi
  */
 public class FieldsMetadata {
 

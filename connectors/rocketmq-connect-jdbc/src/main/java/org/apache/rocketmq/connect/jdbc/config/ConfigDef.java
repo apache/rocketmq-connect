@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 /**
  * config def
- * @author xiaoyi
  */
 public class ConfigDef {
 

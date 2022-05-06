@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 /**
  * jdbc sink config
- * @author xiaoyi
  */
 public class JdbcSinkConfig extends AbstractConfig {
 

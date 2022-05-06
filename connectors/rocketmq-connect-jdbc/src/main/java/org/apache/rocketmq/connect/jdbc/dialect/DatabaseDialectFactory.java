@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 
 /**
  * load and find database dialect
- * @author xiaoyi
  */
 public class DatabaseDialectFactory {
 

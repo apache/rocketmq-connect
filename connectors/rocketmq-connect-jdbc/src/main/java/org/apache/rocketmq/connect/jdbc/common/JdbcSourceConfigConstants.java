@@ -18,10 +18,6 @@ package org.apache.rocketmq.connect.jdbc.common;
 
 import org.apache.commons.lang3.StringUtils;
 
-/**
- *
- * @author xiaoyi
- */
 public class JdbcSourceConfigConstants {
   private static final String TABLE_NAME_KEY_PREFIX = "table";
   private static final String QUERY_NAME_KEY_PREFIX = "query";

@@ -26,7 +26,6 @@ import java.util.*;
 
 /**
  * jdbc source config
- * @author xiaoyi
  */
 public class JdbcSourceConfig extends AbstractConfig {
     /**

@@ -24,7 +24,6 @@ import java.util.Objects;
 
 /**
  * column id
- * @author xiaoyi
  */
 public class ColumnId implements ExpressionBuilder.Expressable {
 

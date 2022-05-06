@@ -25,7 +25,6 @@ import java.util.Objects;
 
 /**
  * column mapping
- * @author xiaoyi
  */
 public class ColumnMapping {
 
