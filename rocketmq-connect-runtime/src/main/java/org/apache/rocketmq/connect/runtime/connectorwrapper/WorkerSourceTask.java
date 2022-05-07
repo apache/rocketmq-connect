@@ -44,6 +44,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
@@ -351,7 +352,11 @@ public class WorkerSourceTask implements WorkerTask {
             return;
         }
         for (String key : keySet) {
-            MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
+            if (key.equals(MessageConst.PROPERTY_KEYS) || key.equals(MessageConst.PROPERTY_TAGS)) {
+                MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
+            } else {
+                MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
+            }
         }
     }
 
