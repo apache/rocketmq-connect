@@ -45,6 +45,7 @@ public class ConfigDefine {
 
     public static final String CONN_SOURCE_RECORD_CONVERTER = "source-record-converter";
 
+    @Deprecated
     public static final String CONN_TASK_PARALLELISM = "task-parallelism";
 
     public static final String CONN_TOPIC_RENAME_FMT = "topic.rename.format";

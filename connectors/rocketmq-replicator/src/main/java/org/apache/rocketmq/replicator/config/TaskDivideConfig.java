@@ -28,6 +28,7 @@ public class TaskDivideConfig {
 
     private int dataType;
 
+    @Deprecated
     private int taskParallelism;
 
     private boolean srcAclEnable = false;

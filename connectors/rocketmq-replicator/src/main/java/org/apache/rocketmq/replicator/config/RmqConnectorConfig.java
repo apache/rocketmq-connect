@@ -25,7 +25,7 @@ import org.apache.rocketmq.replicator.strategy.DivideTaskByTopic;
 import org.apache.rocketmq.replicator.strategy.TaskDivideStrategy;
 
 public class RmqConnectorConfig {
-
+    @Deprecated
     private int taskParallelism;
     private Set<String> whiteList;
     private String srcNamesrvs;

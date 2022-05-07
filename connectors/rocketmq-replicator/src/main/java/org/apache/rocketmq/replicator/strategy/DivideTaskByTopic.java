@@ -33,7 +33,7 @@ public class DivideTaskByTopic extends TaskDivideStrategy {
         int maxTasks) {
 
         List<KeyValue> config = new ArrayList<KeyValue>();
-        int parallelism = Math.min(tdc.getTaskParallelism(), maxTasks);
+        int parallelism = Math.min(topicRouteMap.keySet().size(), maxTasks);
         int id = -1;
         Map<Integer, List<TaskTopicInfo>> taskTopicList = new HashMap<Integer, List<TaskTopicInfo>>();
         for (Map.Entry<String, Set<TaskTopicInfo>> entry : topicRouteMap.entrySet()) {
