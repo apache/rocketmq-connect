@@ -217,7 +217,7 @@ public class RmqSourceReplicator extends SourceConnector {
             this.replicatorConfig.getSrcAccessKey(),
             this.replicatorConfig.getSrcSecretKey()
         );
-        return this.replicatorConfig.getTaskDivideStrategy().divide(this.topicRouteMap, tdc);
+        return this.replicatorConfig.getTaskDivideStrategy().divide(this.topicRouteMap, tdc, maxTasks);
     }
 
     public void buildRoute() {

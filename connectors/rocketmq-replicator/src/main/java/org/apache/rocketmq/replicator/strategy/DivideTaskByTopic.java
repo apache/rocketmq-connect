@@ -28,10 +28,12 @@ import java.util.Map;
 
 public class DivideTaskByTopic extends TaskDivideStrategy {
 
-    @Override public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicRouteMap, TaskDivideConfig tdc) {
+    @Override
+    public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicRouteMap, TaskDivideConfig tdc,
+        int maxTasks) {
 
         List<KeyValue> config = new ArrayList<KeyValue>();
-        int parallelism = tdc.getTaskParallelism();
+        int parallelism = Math.min(tdc.getTaskParallelism(), maxTasks);
         int id = -1;
         Map<Integer, List<TaskTopicInfo>> taskTopicList = new HashMap<Integer, List<TaskTopicInfo>>();
         for (Map.Entry<String, Set<TaskTopicInfo>> entry : topicRouteMap.entrySet()) {

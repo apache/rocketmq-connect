@@ -32,10 +32,11 @@ import org.apache.rocketmq.replicator.config.TaskDivideConfig;
 import org.apache.rocketmq.replicator.config.TaskTopicInfo;
 
 public class DivideTaskByConsistentHash extends TaskDivideStrategy {
-    @Override public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicMap, TaskDivideConfig tdc) {
+    @Override
+    public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicMap, TaskDivideConfig tdc, int maxTasks) {
 
         List<KeyValue> config = new ArrayList<>();
-        int parallelism = tdc.getTaskParallelism();
+        int parallelism = Math.min(tdc.getTaskParallelism(), maxTasks);
         Map<Integer, List<TaskTopicInfo>> queueTopicList = new HashMap<>();
         int id = -1;
 

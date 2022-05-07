@@ -31,10 +31,11 @@ import org.apache.rocketmq.replicator.config.TaskTopicInfo;
 
 public class DivideTaskByQueue extends TaskDivideStrategy {
 
-    @Override public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicRouteMap, TaskDivideConfig tdc) {
+    @Override
+    public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicRouteMap, TaskDivideConfig tdc, int maxTasks) {
 
         List<KeyValue> config = new ArrayList<KeyValue>();
-        int parallelism = tdc.getTaskParallelism();
+        int parallelism = Math.min(tdc.getTaskParallelism(), maxTasks);
         Map<Integer, List<TaskTopicInfo>> queueTopicList = new HashMap<Integer, List<TaskTopicInfo>>();
         int id = -1;
         for (String t : topicRouteMap.keySet()) {
