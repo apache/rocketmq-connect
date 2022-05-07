@@ -29,7 +29,8 @@ import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.ConnectionProvider;
 import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingCriteria;
-import org.apache.rocketmq.connect.jdbc.util.*;
+import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
+import org.apache.rocketmq.connect.jdbc.util.IdentifierRules;
 
 import java.io.IOException;
 import java.sql.*;
@@ -121,8 +122,11 @@ public interface DatabaseDialect extends ConnectionProvider {
   TableDefinition describeTable(Connection connection, TableId tableId) throws SQLException;
 
   /**
-   * Create the definition for the columns in the result set returned when querying the table. This
-   * may not work if the table is empty.
+   * describe columns by query sql
+   * @param connection
+   * @param tableId
+   * @return
+   * @throws SQLException
    */
   Map<ColumnId, ColumnDefinition> describeColumnsByQuerying(Connection connection, TableId tableId) throws SQLException;
 
@@ -149,8 +153,31 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @return
    */
   String buildInsertStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
+
+  /**
+   * update statement
+   * @param table
+   * @param keyColumns
+   * @param nonKeyColumns
+   * @return
+   */
   String buildUpdateStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
+
+  /**
+   * upsert statment
+   * @param table
+   * @param keyColumns
+   * @param nonKeyColumns
+   * @return
+   */
   String buildUpsertQueryStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
+
+  /**
+   * delete statement
+   * @param table
+   * @param keyColumns
+   * @return
+   */
   default String buildDeleteStatement(TableId table, Collection<ColumnId> keyColumns) {
     throw new UnsupportedOperationException();
   }
@@ -162,36 +189,31 @@ public interface DatabaseDialect extends ConnectionProvider {
   String buildSelectTableMode();
   void buildSelectTable(ExpressionBuilder builder, TableId tableId);
 
-  /**
-   * Build DDL statement
+
+  /** drop table
+   * @param table
+   * @param options
+   * @return
    */
   String buildDropTableStatement(TableId table, DropOptions options);
+
+  /**
+   * create table
+   * @param table
+   * @param fields
+   * @return
+   */
   String buildCreateTableStatement(TableId table, Collection<SinkRecordField> fields);
+  /**
+   * build alter table
+   * @param table
+   * @param fields
+   * @return
+   */
   List<String> buildAlterTable(TableId table, Collection<SinkRecordField> fields);
 
   /**
    * Create a component that can bind record values into the supplied prepared statement.
-   * @param statement      the prepared statement
-   * @param pkMode         the primary key mode; may not be null
-   * @param schemaPair     the key and value schemas; may not be null
-   * @param fieldsMetadata the field metadata; may not be null
-   * @param insertMode     the insert mode; may not be null
-   * @return the statement binder; may not be null
-   */
-  @Deprecated
-  StatementBinder statementBinder(
-      PreparedStatement statement,
-      JdbcSinkConfig.PrimaryKeyMode pkMode,
-      SchemaPair schemaPair,
-      FieldsMetadata fieldsMetadata,
-      JdbcSinkConfig.InsertMode insertMode
-  );
-
-  /**
-   * Create a component that can bind record values into the supplied prepared statement. By
-   * default, the behavior is the same as the other overloaded method with the extra parameter
-   * tableDefinition. This overloading method is introduced to deprecate the other overloaded
-   * method eventually.
    *
    * @param statement      the prepared statement
    * @param pkMode         the primary key mode; may not be null
@@ -201,16 +223,14 @@ public interface DatabaseDialect extends ConnectionProvider {
    * @param insertMode     the insert mode; may not be null
    * @return the statement binder; may not be null
    */
-  default StatementBinder statementBinder(
+  StatementBinder statementBinder(
       PreparedStatement statement,
       JdbcSinkConfig.PrimaryKeyMode pkMode,
       SchemaPair schemaPair,
       FieldsMetadata fieldsMetadata,
       TableDefinition tableDefinition,
       JdbcSinkConfig.InsertMode insertMode
-  ) {
-    return statementBinder(statement, pkMode, schemaPair, fieldsMetadata, insertMode);
-  }
+  );
 
   /**
    * value column types

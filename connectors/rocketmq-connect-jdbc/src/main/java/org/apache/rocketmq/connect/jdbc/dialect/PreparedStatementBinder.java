@@ -32,6 +32,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Objects;
 
+/**
+ * prepared statement binder
+ */
 public class PreparedStatementBinder implements DatabaseDialect.StatementBinder {
 
   private final JdbcSinkConfig.PrimaryKeyMode pkMode;
@@ -41,26 +44,6 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
   private final JdbcSinkConfig.InsertMode insertMode;
   private final DatabaseDialect dialect;
   private final TableDefinition tabDef;
-
-  @Deprecated
-  public PreparedStatementBinder(
-      DatabaseDialect dialect,
-      PreparedStatement statement,
-      JdbcSinkConfig.PrimaryKeyMode pkMode,
-      SchemaPair schemaPair,
-      FieldsMetadata fieldsMetadata,
-      JdbcSinkConfig.InsertMode insertMode
-  ) {
-    this(
-        dialect,
-        statement,
-        pkMode,
-        schemaPair,
-        fieldsMetadata,
-        null,
-        insertMode
-    );
-  }
 
   public PreparedStatementBinder(
       DatabaseDialect dialect,

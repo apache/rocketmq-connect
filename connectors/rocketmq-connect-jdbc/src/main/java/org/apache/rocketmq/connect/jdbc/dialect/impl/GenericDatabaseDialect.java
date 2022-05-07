@@ -1468,25 +1468,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     builder.append(mode).append(tableId);
   }
 
-  @SuppressWarnings("deprecation")
-  @Override
-  public StatementBinder statementBinder(
-          PreparedStatement statement,
-          JdbcSinkConfig.PrimaryKeyMode pkMode,
-          SchemaPair schemaPair,
-          FieldsMetadata fieldsMetadata,
-          JdbcSinkConfig.InsertMode insertMode
-  ) {
-    return new PreparedStatementBinder(
-            this,
-            statement,
-            pkMode,
-            schemaPair,
-            fieldsMetadata,
-            insertMode
-    );
-  }
-
   @Override
   public StatementBinder statementBinder(
           PreparedStatement statement,
