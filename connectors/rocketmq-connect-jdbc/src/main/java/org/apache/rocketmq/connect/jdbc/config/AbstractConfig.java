@@ -20,8 +20,9 @@ import com.beust.jcommander.internal.Lists;
 import io.openmessaging.KeyValue;
 import org.apache.rocketmq.connect.jdbc.util.QuoteMethod;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -31,21 +32,15 @@ public abstract class AbstractConfig {
 
     private static final Pattern COMMA_WITH_WHITESPACE = Pattern.compile("\\s*,\\s*");
 
-    /**
-     * 存放数据
-     */
-    Map<String,Object> configs= new ConcurrentHashMap<>();
     // connection url
     public static final String CONNECTION_PREFIX = "connection.";
     public static final String CONNECTION_URL_CONFIG = CONNECTION_PREFIX + "url";
     // connection user
     public static final String CONNECTION_USER_CONFIG = CONNECTION_PREFIX + "user";
     private static final String CONNECTION_USER_DOC = "JDBC connection user.";
-    private static final String CONNECTION_USER_DISPLAY = "JDBC User";
     // connection password
     public static final String CONNECTION_PASSWORD_CONFIG = CONNECTION_PREFIX + "password";
     private static final String CONNECTION_PASSWORD_DOC = "JDBC connection password.";
-    private static final String CONNECTION_PASSWORD_DISPLAY = "JDBC Password";
     // connection attempts
     public static final String CONNECTION_ATTEMPTS_CONFIG = CONNECTION_PREFIX + "attempts";
     public static final String CONNECTION_ATTEMPTS_DOC = "Maximum number of attempts to retrieve a valid JDBC connection.Must be a positive integer.";
@@ -53,7 +48,6 @@ public abstract class AbstractConfig {
     // backoff ms
     public static final String CONNECTION_BACKOFF_CONFIG = CONNECTION_PREFIX + "backoff.ms";
     public static final String CONNECTION_BACKOFF_DOC = "Backoff time in milliseconds between connection attempts.";
-    public static final String CONNECTION_BACKOFF_DISPLAY = "JDBC connection backoff in milliseconds";
     public static final long CONNECTION_BACKOFF_DEFAULT = 10000L;
     /**
      * quote.sql.identifiers
@@ -63,7 +57,6 @@ public abstract class AbstractConfig {
     public static final String QUOTE_SQL_IDENTIFIERS_DOC =
             "When to quote table names, column names, and other identifiers in SQL statements. "
                     + "For backward compatibility, the default is ``always``.";
-    public static final String QUOTE_SQL_IDENTIFIERS_DISPLAY = "Quote Identifiers";
 
 
     private String connectionDbUrl;

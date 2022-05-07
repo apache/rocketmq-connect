@@ -19,7 +19,12 @@ package org.apache.rocketmq.connect.jdbc.schema.table;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.util.TableType;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
 
 /**
  * A description of a table.

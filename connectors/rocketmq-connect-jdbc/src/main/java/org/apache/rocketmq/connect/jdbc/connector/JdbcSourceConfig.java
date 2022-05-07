@@ -22,7 +22,11 @@ import org.apache.rocketmq.connect.jdbc.util.NumericMapping;
 import org.apache.rocketmq.connect.jdbc.util.TableType;
 
 import java.time.ZoneId;
-import java.util.*;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * jdbc source config

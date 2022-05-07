@@ -31,7 +31,12 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -140,7 +145,7 @@ public class DbStructure {
       final int maxRetries
   ) throws SQLException, TableAlterOrCreateException {
     final TableDefinition tableDefn = tableDefns.get(connection, tableId);
-    final Set<SinkRecordField>  missingFields = missingFields(
+    final Set<SinkRecordField> missingFields = missingFields(
         fieldsMetadata.allFields.values(),
         tableDefn.columnNames()
     );

@@ -24,7 +24,8 @@ import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**

@@ -23,7 +23,15 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 
 /**
  * fields metadata
@@ -97,7 +105,6 @@ public class FieldsMetadata {
     switch (pkMode) {
       case NONE:
         break;
-
       case RECORD_VALUE:
         extractRecordValuePk(tableName, configuredPkFields, schema, headers, allFields, keyFieldNames);
         break;
