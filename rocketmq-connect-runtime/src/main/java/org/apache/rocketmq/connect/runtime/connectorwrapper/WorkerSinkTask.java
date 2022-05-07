@@ -421,7 +421,7 @@ public class WorkerSinkTask implements WorkerTask {
             if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.FOUND)) {
                 this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
                 messages = pullResult.getMsgFoundList();
-                connectStatsManager.incSinkRecordReadTotalNums();
+                connectStatsManager.incSinkRecordReadTotalNums(messages.size());
                 connectStatsManager.incSinkRecordReadNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), messages.size());
                 long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
                 connectStatsManager.incSinkRecordReadTotalRT(pullRT);

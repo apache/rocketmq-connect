@@ -167,8 +167,8 @@ public class WorkerSourceTask implements WorkerTask {
                     try {
                         toSendRecord = poll();
                         if (null != toSendRecord && toSendRecord.size() > 0) {
-                            connectStatsManager.incSourceRecordPollTotalNums();
-                            connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                            connectStatsManager.incSourceRecordPollTotalNums(toSendRecord.size());
+                            connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), toSendRecord.size());
                             sendRecord();
                         }
                     } catch (RetriableException e) {
