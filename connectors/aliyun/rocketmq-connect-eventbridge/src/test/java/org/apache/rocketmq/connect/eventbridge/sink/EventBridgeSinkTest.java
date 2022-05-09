@@ -29,8 +29,8 @@ public class EventBridgeSinkTest {
     public void testPut() {
         EventBridgeSinkTask eventBridgeSinkTask = new EventBridgeSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(EventBridgeConstant.REGION_ID_CONSTANT, "xxxx");
         keyValue.put(EventBridgeConstant.ACCESS_KEY_ID, "xxxx");
+        keyValue.put(EventBridgeConstant.STS_ENDPOINT, "xxxx");
         keyValue.put(EventBridgeConstant.ACCOUNT_ENDPOINT, "xxxx");
         keyValue.put(EventBridgeConstant.ACCESS_KEY_SECRET, "xxxx");
         keyValue.put(EventBridgeConstant.ROLE_ARN, "xxxx");
