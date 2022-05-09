@@ -32,6 +32,7 @@ import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,6 +113,16 @@ public class WorkerSourceTask implements WorkerTask {
     private List<ConnectRecord> toSendRecord;
 
     private TransformChain<ConnectRecord> transformChain;
+
+    /**
+     * The property of message in WHITE_KEY_SET don't need add a connect prefix
+     */
+    private static final Set<String> WHITE_KEY_SET = new HashSet<>();
+
+    static {
+        WHITE_KEY_SET.add(MessageConst.PROPERTY_KEYS);
+        WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
+    }
 
     public WorkerSourceTask(String connectorName,
         SourceTask sourceTask,
@@ -352,7 +363,7 @@ public class WorkerSourceTask implements WorkerTask {
             return;
         }
         for (String key : keySet) {
-            if (key.equals(MessageConst.PROPERTY_KEYS) || key.equals(MessageConst.PROPERTY_TAGS)) {
+            if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
             } else {
                 MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
