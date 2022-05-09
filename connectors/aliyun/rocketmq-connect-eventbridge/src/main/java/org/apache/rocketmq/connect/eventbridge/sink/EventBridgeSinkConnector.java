@@ -12,8 +12,6 @@ import java.util.List;
 
 public class EventBridgeSinkConnector extends SinkConnector {
 
-    private String regionId;
-
     private String accessKeyId;
 
     private String accessKeySecret;
@@ -30,6 +28,8 @@ public class EventBridgeSinkConnector extends SinkConnector {
 
     private String accountEndpoint;
 
+    private String stsEndpoint;
+
     @Override
     public void pause() {
 
@@ -44,7 +44,6 @@ public class EventBridgeSinkConnector extends SinkConnector {
     public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> keyValueList = new ArrayList<>(11);
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(EventBridgeConstant.REGION_ID_CONSTANT, regionId);
         keyValue.put(EventBridgeConstant.ACCESS_KEY_ID, accessKeyId);
         keyValue.put(EventBridgeConstant.ACCESS_KEY_SECRET, accessKeySecret);
         keyValue.put(EventBridgeConstant.ROLE_ARN, roleArn);
@@ -53,6 +52,7 @@ public class EventBridgeSinkConnector extends SinkConnector {
         keyValue.put(EventBridgeConstant.EVENT_SUBJECT, eventSubject);
         keyValue.put(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME, aliyuneventbusname);
         keyValue.put(EventBridgeConstant.ACCOUNT_ENDPOINT, accountEndpoint);
+        keyValue.put(EventBridgeConstant.STS_ENDPOINT, stsEndpoint);
         keyValueList.add(keyValue);
         return keyValueList;
     }
@@ -71,7 +71,7 @@ public class EventBridgeSinkConnector extends SinkConnector {
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ROLE_SESSION_NAME))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_TIME))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME))
-                || StringUtils.isBlank(config.getString(EventBridgeConstant.REGION_ID_CONSTANT))) {
+                || StringUtils.isBlank(config.getString(EventBridgeConstant.STS_ENDPOINT))) {
             throw new RuntimeException("EventBridge required parameter is null !");
         }
     }
@@ -85,8 +85,8 @@ public class EventBridgeSinkConnector extends SinkConnector {
         eventTime = config.getString(EventBridgeConstant.EVENT_TIME);
         eventSubject = config.getString(EventBridgeConstant.EVENT_SUBJECT);
         aliyuneventbusname = config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME);
-        regionId = config.getString(EventBridgeConstant.REGION_ID_CONSTANT);
         accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
+        stsEndpoint = config.getString(EventBridgeConstant.STS_ENDPOINT);
     }
 
     @Override

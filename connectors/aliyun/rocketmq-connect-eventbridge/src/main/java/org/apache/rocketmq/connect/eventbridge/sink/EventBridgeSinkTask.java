@@ -7,9 +7,10 @@ import com.aliyun.eventbridge.models.PutEventsResponse;
 import com.aliyun.eventbridge.util.EventBuilder;
 import com.aliyuncs.DefaultAcsClient;
 import com.aliyuncs.IAcsClient;
+import com.aliyuncs.http.FormatType;
 import com.aliyuncs.profile.DefaultProfile;
-import com.aliyuncs.sts.model.v20150401.AssumeRoleRequest;
-import com.aliyuncs.sts.model.v20150401.AssumeRoleResponse;
+import com.aliyuncs.sts.model.v20150401.AssumeRoleWithServiceIdentityRequest;
+import com.aliyuncs.sts.model.v20150401.AssumeRoleWithServiceIdentityResponse;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
@@ -27,11 +28,11 @@ import java.util.List;
 public class EventBridgeSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(EventBridgeSinkTask.class);
 
-    private String regionId;
-
     private String accessKeyId;
 
     private String accessKeySecret;
+
+    private String stsEndpoint;
 
     private String roleArn;
 
@@ -61,7 +62,7 @@ public class EventBridgeSinkTask extends SinkTask {
                     .withAliyunEventBus(aliyuneventbusname)
                     .build()));
             PutEventsResponse putEventsResponse = eventBridgeClient.putEvents(cloudEventList);
-            log.info("EventBridgeSinkTask | put | putEventsResponse | entryList : {} | requestId : {}", putEventsResponse.getEntryList(), putEventsResponse.getRequestId());
+            log.info("EventBridgeSinkTask | put | putEventsResponse | eventId : {} | traceId : {} | requestId : {}", putEventsResponse.getEntryList().get(0).getEventId(), putEventsResponse.getEntryList().get(0).getTraceId(), putEventsResponse.getRequestId());
         } catch (Exception e) {
             log.error("EventBridgeSinkTask | put | error => ", e);
             throw new RuntimeException(e);
@@ -92,21 +93,24 @@ public class EventBridgeSinkTask extends SinkTask {
         eventTime = config.getString(EventBridgeConstant.EVENT_TIME);
         eventSubject = config.getString(EventBridgeConstant.EVENT_SUBJECT);
         aliyuneventbusname = config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME);
-        regionId = config.getString(EventBridgeConstant.REGION_ID_CONSTANT);
         accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
+        stsEndpoint = config.getString(EventBridgeConstant.STS_ENDPOINT);
     }
 
     @Override
     public void start(SinkTaskContext sinkTaskContext) {
         super.start(sinkTaskContext);
         try {
-            DefaultProfile profile = DefaultProfile.getProfile(regionId, accessKeyId, accessKeySecret);
+            DefaultProfile.addEndpoint("", "", "Sts", stsEndpoint);
+            DefaultProfile profile = DefaultProfile.getProfile("", accessKeyId, accessKeySecret);
             IAcsClient client = new DefaultAcsClient(profile);
-            AssumeRoleRequest request = new AssumeRoleRequest();
-            request.setRegionId(regionId);
+            AssumeRoleWithServiceIdentityRequest request = new AssumeRoleWithServiceIdentityRequest();
             request.setRoleArn(roleArn);
             request.setRoleSessionName(roleSessionName);
-            AssumeRoleResponse response = client.getAcsResponse(request);
+            request.setAssumeRoleFor(roleSessionName);
+            request.setAcceptFormat(FormatType.JSON);
+            request.setDurationSeconds(3600L);
+            final AssumeRoleWithServiceIdentityResponse response = client.getAcsResponse(request);
             Config authConfig = new Config();
             authConfig.accessKeyId = response.getCredentials().getAccessKeyId();
             authConfig.accessKeySecret = response.getCredentials().getAccessKeySecret();

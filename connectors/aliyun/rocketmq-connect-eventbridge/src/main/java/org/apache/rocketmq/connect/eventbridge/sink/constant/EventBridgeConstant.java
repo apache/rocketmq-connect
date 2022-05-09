@@ -13,5 +13,5 @@ public class EventBridgeConstant {
     public static final String EVENT_TYPE = "type";
     public static final String EVENT_SUBJECT = "eventSubject";
     public static final String ALIYUN_EVENT_BUS_NAME = "aliyuneventbusname";
-    public static final String REGION_ID_CONSTANT = "regionId";
+    public static final String STS_ENDPOINT = "stsEndpoint";
 }
