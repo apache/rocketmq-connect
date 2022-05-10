@@ -212,7 +212,6 @@ public class RmqSourceReplicator extends SourceConnector {
             this.replicatorConfig.getStoreTopic(),
             this.replicatorConfig.getConverter(),
             DataType.COMMON_MESSAGE.ordinal(),
-            this.replicatorConfig.getTaskParallelism(),
             this.replicatorConfig.isSrcAclEnable(),
             this.replicatorConfig.getSrcAccessKey(),
             this.replicatorConfig.getSrcSecretKey()

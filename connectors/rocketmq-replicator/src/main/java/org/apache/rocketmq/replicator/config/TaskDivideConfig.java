@@ -28,9 +28,6 @@ public class TaskDivideConfig {
 
     private int dataType;
 
-    @Deprecated
-    private int taskParallelism;
-
     private boolean srcAclEnable = false;
 
     private String srcAccessKey;
@@ -38,13 +35,12 @@ public class TaskDivideConfig {
     private String srcSecretKey;
 
     public TaskDivideConfig(String sourceNamesrvAddr, String srcCluster, String storeTopic, String srcRecordConverter,
-                            int dataType, int taskParallelism, boolean srcAclEnable, String srcAccessKey, String srcSecretKey) {
+                            int dataType, boolean srcAclEnable, String srcAccessKey, String srcSecretKey) {
         this.sourceNamesrvAddr = sourceNamesrvAddr;
         this.srcCluster = srcCluster;
         this.storeTopic = storeTopic;
         this.srcRecordConverter = srcRecordConverter;
         this.dataType = dataType;
-        this.taskParallelism = taskParallelism;
         this.srcAclEnable = srcAclEnable;
         this.srcAccessKey = srcAccessKey;
         this.srcSecretKey = srcSecretKey;
@@ -88,14 +84,6 @@ public class TaskDivideConfig {
 
     public void setDataType(int dataType) {
         this.dataType = dataType;
-    }
-
-    public int getTaskParallelism() {
-        return taskParallelism;
-    }
-
-    public void setTaskParallelism(int taskParallelism) {
-        this.taskParallelism = taskParallelism;
     }
 
     public boolean isSrcAclEnable() {

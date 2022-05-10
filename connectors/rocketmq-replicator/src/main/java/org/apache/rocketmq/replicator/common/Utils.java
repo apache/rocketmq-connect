@@ -122,12 +122,12 @@ public class Utils {
         }
     }
 
-    public static List<KeyValue> groupPartitions(List<String> elements, int numGroups, RmqConnectorConfig tdc,
+    public static List<KeyValue> groupPartitions(List<String> elements, RmqConnectorConfig tdc,
         int maxTasks) {
-        if (numGroups <= 0)
+        if (maxTasks <= 0)
             throw new IllegalArgumentException("Number of groups must be positive.");
 
-        numGroups = Math.min(numGroups, maxTasks);
+        int numGroups = Math.min(elements.size(), maxTasks);
         List<KeyValue> result = new ArrayList<>(numGroups);
 
         // Each group has either n+1 or n raw partitions

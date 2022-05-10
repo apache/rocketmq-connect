@@ -153,7 +153,7 @@ public class RmqMetaReplicator extends SourceConnector {
             e.printStackTrace();
         }
 
-        return Utils.groupPartitions(new ArrayList<>(this.knownGroups), this.replicatorConfig.getTaskParallelism(), replicatorConfig, maxTasks);
+        return Utils.groupPartitions(new ArrayList<>(this.knownGroups), replicatorConfig, maxTasks);
     }
 
     private void prepare() {
