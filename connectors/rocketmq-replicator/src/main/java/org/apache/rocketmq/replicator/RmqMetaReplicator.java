@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -56,6 +57,7 @@ public class RmqMetaReplicator extends SourceConnector {
     private static final Logger log = LoggerFactory.getLogger(RmqSourceReplicator.class);
 
     private static final Set<String> INNER_CONSUMER_GROUPS = new HashSet<>();
+    private static final Set<String> SYS_CONSUMER_PREFIX = new HashSet<>();
 
     private RmqConnectorConfig replicatorConfig;
 
@@ -68,18 +70,23 @@ public class RmqMetaReplicator extends SourceConnector {
     private List<Pattern> whiteListPatterns;
 
     static {
-        INNER_CONSUMER_GROUPS.add("TOOLS_CONSUMER");
-        INNER_CONSUMER_GROUPS.add("FILTERSRV_CONSUMER");
-        INNER_CONSUMER_GROUPS.add("__MONITOR_CONSUMER");
-        INNER_CONSUMER_GROUPS.add("CLIENT_INNER_PRODUCER");
-        INNER_CONSUMER_GROUPS.add("SELF_TEST_P_GROUP");
-        INNER_CONSUMER_GROUPS.add("SELF_TEST_C_GROUP");
-        INNER_CONSUMER_GROUPS.add("SELF_TEST_TOPIC");
-        INNER_CONSUMER_GROUPS.add("OFFSET_MOVED_EVENT");
-        INNER_CONSUMER_GROUPS.add("CID_ONS-HTTP-PROXY");
-        INNER_CONSUMER_GROUPS.add("CID_ONSAPI_PERMISSION");
-        INNER_CONSUMER_GROUPS.add("CID_ONSAPI_OWNER");
-        INNER_CONSUMER_GROUPS.add("CID_ONSAPI_PULL");
+        INNER_CONSUMER_GROUPS.add(MixAll.TOOLS_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.FILTERSRV_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.MONITOR_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.SELF_TEST_PRODUCER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.SELF_TEST_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CID_ONSAPI_PERMISSION_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.ONS_HTTP_PROXY_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CID_ONSAPI_OWNER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CID_ONSAPI_PULL_GROUP);
+
+        SYS_CONSUMER_PREFIX.add(MixAll.CID_RMQ_SYS_PREFIX);
+        SYS_CONSUMER_PREFIX.add("PositionManage");
+        SYS_CONSUMER_PREFIX.add("ConfigManage");
+        SYS_CONSUMER_PREFIX.add("OffsetManage");
+        SYS_CONSUMER_PREFIX.add("DefaultConnectCluster");
+        SYS_CONSUMER_PREFIX.add("RebalanceService");
     }
 
     public RmqMetaReplicator() {
@@ -181,7 +188,7 @@ public class RmqMetaReplicator extends SourceConnector {
 
     private void refreshConsumerGroups() {
         try {
-            log.debug("refreshConsuemrGroups...");
+            log.debug("refreshConsumerGroups...");
             Set<String> groups = fetchConsumerGroups();
             Set<String> newGroups = new HashSet<>(groups);
             Set<String> deadGroups = new HashSet<>(knownGroups);
@@ -242,11 +249,10 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     private boolean skipInnerGroup(String group) {
-        if (INNER_CONSUMER_GROUPS.contains(group) || group.startsWith("CID_RMQ_SYS_") || group.startsWith("PositionManage") ||
-            group.startsWith("ConfigManage") || group.startsWith("OffsetManage") || group.startsWith("DefaultConnectCluster") || group.startsWith("RebalanceService")) {
+        if (INNER_CONSUMER_GROUPS.contains(group)) {
             return false;
         }
-        return true;
+        return !SYS_CONSUMER_PREFIX.stream().anyMatch(prefix -> group.startsWith(prefix));
     }
 
     private boolean skipNotInWhiteList(String group) {

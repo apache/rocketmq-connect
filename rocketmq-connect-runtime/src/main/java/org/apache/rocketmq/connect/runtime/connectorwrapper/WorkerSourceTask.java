@@ -32,6 +32,7 @@ import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
@@ -111,6 +113,16 @@ public class WorkerSourceTask implements WorkerTask {
     private List<ConnectRecord> toSendRecord;
 
     private TransformChain<ConnectRecord> transformChain;
+
+    /**
+     * The property of message in WHITE_KEY_SET don't need add a connect prefix
+     */
+    private static final Set<String> WHITE_KEY_SET = new HashSet<>();
+
+    static {
+        WHITE_KEY_SET.add(MessageConst.PROPERTY_KEYS);
+        WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
+    }
 
     public WorkerSourceTask(String connectorName,
         SourceTask sourceTask,
@@ -351,7 +363,11 @@ public class WorkerSourceTask implements WorkerTask {
             return;
         }
         for (String key : keySet) {
-            MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
+            if (WHITE_KEY_SET.contains(key)) {
+                MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
+            } else {
+                MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
+            }
         }
     }
 
