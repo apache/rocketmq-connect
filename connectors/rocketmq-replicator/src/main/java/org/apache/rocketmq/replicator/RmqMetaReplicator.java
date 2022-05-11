@@ -101,8 +101,8 @@ public class RmqMetaReplicator extends SourceConnector {
         } catch (IllegalArgumentException e) {
             return e.getMessage();
         }
-        this.prepare();
         this.configValid = true;
+        this.prepare();
         return "";
     }
 

@@ -158,9 +158,6 @@ public class RmqSourceTask extends SourceTask {
                         this.mqOffsetMap.get(taskTopicConfig), 32);
                     switch (pullResult.getPullStatus()) {
                         case FOUND: {
-                            this.mqOffsetMap.put(taskTopicConfig, pullResult.getNextBeginOffset());
-                            JSONObject jsonObject = new JSONObject();
-                            jsonObject.put(RmqConstants.NEXT_POSITION, pullResult.getNextBeginOffset());
                             List<MessageExt> msgs = pullResult.getMsgFoundList();
                             Schema schema = new Schema();
                             schema.setDataSource(this.config.getSourceRocketmq());
@@ -169,7 +166,16 @@ public class RmqSourceTask extends SourceTask {
                             schema.getFields().add(new Field(0,
                                 FieldName.COMMON_MESSAGE.getKey(), FieldType.STRING));
 
+                            int idx = 0;
+                            long batchNextBeginOffset = pullResult.getNextBeginOffset();
+                            JSONObject jsonObject = new JSONObject();
+
                             for (MessageExt msg : msgs) {
+                                ++idx;
+                                long msgNextBeginOffset = batchNextBeginOffset - msgs.size() + idx;
+                                this.mqOffsetMap.put(taskTopicConfig, msgNextBeginOffset);
+                                jsonObject.put(RmqConstants.NEXT_POSITION, msgNextBeginOffset);
+
                                 DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema);
                                 dataEntryBuilder.timestamp(System.currentTimeMillis())
                                     .queue(this.config.getStoreTopic()).entryType(EntryType.CREATE);
