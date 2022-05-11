@@ -176,6 +176,9 @@ public class RmqSourceTask extends SourceTask {
                                 jsonObject.put(FieldName.COMMON_MESSAGE.getKey(), new String(msg.getBody()));
                                 ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig.getTopic(), taskTopicConfig.getBrokerName(), String.valueOf(msg.getQueueId())),
                                     Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, jsonObject.toJSONString());
+                                final Map<String, String> properties = msg.getProperties();
+                                final Set<String> keys = properties.keySet();
+                                keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));
                                 res.add(connectRecord);
                             }
                             break;
