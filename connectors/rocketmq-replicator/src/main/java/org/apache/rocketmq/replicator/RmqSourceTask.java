@@ -19,17 +19,16 @@ package org.apache.rocketmq.replicator;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.PositionStorageReader;
-import io.openmessaging.connector.api.data.DataEntryBuilder;
-import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
-import java.nio.charset.StandardCharsets;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,11 +47,10 @@ import org.apache.rocketmq.replicator.config.DataType;
 import org.apache.rocketmq.replicator.config.TaskConfig;
 import org.apache.rocketmq.replicator.config.TaskTopicInfo;
 import org.apache.rocketmq.replicator.schema.FieldName;
+import org.apache.rocketmq.replicator.schema.SchemaEnum;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 
 public class RmqSourceTask extends SourceTask {
 
@@ -74,7 +72,7 @@ public class RmqSourceTask extends SourceTask {
     }
 
     @Override
-    public Collection<SourceDataEntry> poll() {
+    public List<ConnectRecord> poll() {
 
         if (this.config.getDataType() == DataType.COMMON_MESSAGE.ordinal()) {
             return pollCommonMessage();
@@ -88,8 +86,8 @@ public class RmqSourceTask extends SourceTask {
     }
 
     @Override
-    public void start(KeyValue config) {
-        ConfigUtil.load(config, this.config);
+    public void start(SourceTaskContext sourceTaskContext) {
+        super.start(sourceTaskContext);
         RPCHook rpcHook = null;
         if (this.config.isSrcAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(this.config.getSrcAccessKey(), this.config.getSrcSecretKey()));
@@ -117,14 +115,24 @@ public class RmqSourceTask extends SourceTask {
                     }
                 }
             }
-            PositionStorageReader positionStorageReader = this.context.positionStorageReader();
-            mqOffsetMap.putAll(getPositionMapWithCheck(topicListFilter, positionStorageReader, this.TIMEOUT, TimeUnit.MILLISECONDS));
+            OffsetStorageReader offsetStorageReader = this.sourceTaskContext.offsetStorageReader();
+            mqOffsetMap.putAll(getPositionMapWithCheck(topicListFilter, offsetStorageReader, this.TIMEOUT, TimeUnit.MILLISECONDS));
             started = true;
         } catch (Exception e) {
             log.error("Consumer of task {} start failed.", this.taskId, e);
             throw new IllegalStateException(String.format("Consumer of task %s start failed.", this.taskId));
         }
         log.info("RocketMQ source task started");
+    }
+
+    @Override
+    public void validate(KeyValue config) {
+
+    }
+
+    @Override
+    public void init(KeyValue config) {
+        ConfigUtil.load(config, this.config);
     }
 
     @Override
@@ -148,9 +156,9 @@ public class RmqSourceTask extends SourceTask {
 
     }
 
-    private Collection<SourceDataEntry> pollCommonMessage() {
+    private List<ConnectRecord> pollCommonMessage() {
 
-        List<SourceDataEntry> res = new ArrayList<>();
+        List<ConnectRecord> res = new ArrayList<>();
         if (started) {
             try {
                 for (TaskTopicInfo taskTopicConfig : this.mqOffsetMap.keySet()) {
@@ -159,32 +167,17 @@ public class RmqSourceTask extends SourceTask {
                     switch (pullResult.getPullStatus()) {
                         case FOUND: {
                             this.mqOffsetMap.put(taskTopicConfig, pullResult.getNextBeginOffset());
-                            JSONObject jsonObject = new JSONObject();
-                            jsonObject.put(RmqConstants.NEXT_POSITION, pullResult.getNextBeginOffset());
                             List<MessageExt> msgs = pullResult.getMsgFoundList();
-                            Schema schema = new Schema();
-                            schema.setDataSource(this.config.getSourceRocketmq());
-                            schema.setName(taskTopicConfig.getTopic());
-                            schema.setFields(new ArrayList<>());
-                            schema.getFields().add(new Field(0,
-                                FieldName.COMMON_MESSAGE.getKey(), FieldType.STRING));
-
+                            List<Field> fields = new ArrayList<>();
+                            Schema schema = new Schema(SchemaEnum.MESSAGE.name(), FieldType.STRING, fields);
+                            schema.getFields().add(new Field(0, FieldName.COMMON_MESSAGE.getKey(), SchemaBuilder.string().build()));
                             for (MessageExt msg : msgs) {
-                                DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema);
-                                dataEntryBuilder.timestamp(System.currentTimeMillis())
-                                    .queue(this.config.getStoreTopic()).entryType(EntryType.CREATE);
-                                dataEntryBuilder.putFiled(FieldName.COMMON_MESSAGE.getKey(), new String(msg.getBody()));
-                                SourceDataEntry sourceDataEntry = dataEntryBuilder.buildSourceDataEntry(
-                                    ByteBuffer.wrap(RmqConstants.getPartition(
-                                        taskTopicConfig.getTopic(),
-                                        taskTopicConfig.getBrokerName(),
-                                        String.valueOf(taskTopicConfig.getQueueId())).getBytes(StandardCharsets.UTF_8)),
-                                    ByteBuffer.wrap(jsonObject.toJSONString().getBytes(StandardCharsets.UTF_8))
-                                );
-                                sourceDataEntry.setQueueName(taskTopicConfig.getTargetTopic());
-                                res.add(sourceDataEntry);
+                                JSONObject jsonObject = new JSONObject();
+                                jsonObject.put(FieldName.COMMON_MESSAGE.getKey(), new String(msg.getBody()));
+                                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig.getTopic(), taskTopicConfig.getBrokerName(), String.valueOf(msg.getQueueId())),
+                                    Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, jsonObject.toJSONString());
+                                res.add(connectRecord);
                             }
-
                             break;
                         }
                         default:
@@ -202,21 +195,21 @@ public class RmqSourceTask extends SourceTask {
         return res;
     }
 
-    private Collection<SourceDataEntry> pollTopicConfig() {
+    private List<ConnectRecord> pollTopicConfig() {
         DefaultMQAdminExt srcMQAdminExt;
         return new ArrayList<>();
     }
 
-    private Collection<SourceDataEntry> pollBrokerConfig() {
+    private List<ConnectRecord> pollBrokerConfig() {
         return new ArrayList<>();
     }
 
-    private Collection<SourceDataEntry> pollSubConfig() {
+    private List<ConnectRecord> pollSubConfig() {
         return new ArrayList<>();
     }
 
     public Map<TaskTopicInfo, Long> getPositionMapWithCheck(List<TaskTopicInfo> taskList,
-        PositionStorageReader positionStorageReader, long timeout, TimeUnit unit) {
+        OffsetStorageReader positionStorageReader, long timeout, TimeUnit unit) {
         unit = unit == null ? TimeUnit.MILLISECONDS : unit;
 
         Map<TaskTopicInfo, Long> positionMap = getPositionMap(taskList, positionStorageReader);
@@ -243,25 +236,23 @@ public class RmqSourceTask extends SourceTask {
             }
 
             waitTime = msecs - (System.currentTimeMillis() - startTime);
-        } while (!waitPositionReady && waitTime > 0L);
+        }
+        while (!waitPositionReady && waitTime > 0L);
 
         return positionMap;
     }
 
     public Map<TaskTopicInfo, Long> getPositionMap(List<TaskTopicInfo> taskList,
-        PositionStorageReader positionStorageReader) {
+        OffsetStorageReader offsetStorageReader) {
         Map<TaskTopicInfo, Long> positionMap = new HashMap<>();
         for (TaskTopicInfo tti : taskList) {
-            ByteBuffer positionInfo = positionStorageReader.getPosition(
-                ByteBuffer.wrap(RmqConstants.getPartition(
-                    tti.getTopic(),
-                    tti.getBrokerName(),
-                    String.valueOf(tti.getQueueId())).getBytes(StandardCharsets.UTF_8)));
-
-            if (null != positionInfo && positionInfo.array().length > 0) {
-                String positionJson = new String(positionInfo.array(), StandardCharsets.UTF_8);
-                JSONObject jsonObject = JSONObject.parseObject(positionJson);
-                positionMap.put(tti, jsonObject.getLong(RmqConstants.NEXT_POSITION));
+            RecordOffset positionInfo = offsetStorageReader.readOffset(Utils.offsetKey(tti.getTopic(), tti.getBrokerName(),
+                String.valueOf(tti.getQueueId())));
+            if (positionInfo != null && null != positionInfo.getOffset()) {
+                Map<String, ?> offset = positionInfo.getOffset();
+                Object lastRecordedOffset = offset.get(RmqConstants.NEXT_POSITION);
+                long skipLeft = Long.parseLong(String.valueOf(lastRecordedOffset));
+                positionMap.put(tti, skipLeft);
             } else {
                 positionMap.put(tti, 0L);
             }
@@ -269,5 +260,6 @@ public class RmqSourceTask extends SourceTask {
 
         return positionMap;
     }
+
 }
 

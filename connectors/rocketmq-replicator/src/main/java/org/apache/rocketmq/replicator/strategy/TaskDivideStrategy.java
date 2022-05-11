@@ -25,5 +25,5 @@ import org.apache.rocketmq.replicator.config.TaskTopicInfo;
 
 public abstract class TaskDivideStrategy {
 
-    public abstract List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicMap, TaskDivideConfig tdc);
+    public abstract List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicMap, TaskDivideConfig tdc, int maxTasks);
 }

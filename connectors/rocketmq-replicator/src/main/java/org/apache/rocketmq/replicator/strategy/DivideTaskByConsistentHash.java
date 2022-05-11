@@ -33,15 +33,15 @@ import org.apache.rocketmq.replicator.config.TaskDivideConfig;
 import org.apache.rocketmq.replicator.config.TaskTopicInfo;
 
 public class DivideTaskByConsistentHash extends TaskDivideStrategy {
-    @Override public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicMap, TaskDivideConfig tdc) {
+    @Override
+    public List<KeyValue> divide(Map<String, Set<TaskTopicInfo>> topicMap, TaskDivideConfig tdc, int maxTasks) {
 
         List<KeyValue> config = new ArrayList<>();
-        int parallelism = tdc.getTaskParallelism();
         Map<Integer, List<TaskTopicInfo>> queueTopicList = new HashMap<>();
         int id = -1;
 
         Collection<ClientNode> cidNodes = new ArrayList<>();
-        for (int i = 0; i < parallelism; i++) {
+        for (int i = 0; i < maxTasks; i++) {
             cidNodes.add(new ClientNode(i, Integer.toString(i)));
             queueTopicList.put(i, new ArrayList<>());
         }
@@ -57,7 +57,7 @@ public class DivideTaskByConsistentHash extends TaskDivideStrategy {
             }
         }
 
-        for (int i = 0; i < parallelism; i++) {
+        for (int i = 0; i < maxTasks; i++) {
             KeyValue keyValue = new DefaultKeyValue();
             keyValue.put(TaskConfigEnum.TASK_STORE_ROCKETMQ.getKey(), tdc.getStoreTopic());
             keyValue.put(TaskConfigEnum.TASK_SOURCE_ROCKETMQ.getKey(), tdc.getSourceNamesrvAddr());
