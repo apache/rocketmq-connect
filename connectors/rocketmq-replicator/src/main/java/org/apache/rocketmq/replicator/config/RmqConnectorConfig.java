@@ -25,8 +25,6 @@ import org.apache.rocketmq.replicator.strategy.DivideTaskByTopic;
 import org.apache.rocketmq.replicator.strategy.TaskDivideStrategy;
 
 public class RmqConnectorConfig {
-
-    private int taskParallelism;
     private Set<String> whiteList;
     private String srcNamesrvs;
     private String targetNamesrvs;
@@ -48,8 +46,7 @@ public class RmqConnectorConfig {
     public RmqConnectorConfig() {
     }
 
-    public void validate(KeyValue config) {
-        this.taskParallelism = config.getInt(ConfigDefine.CONN_TASK_PARALLELISM, 1);
+    public void init(KeyValue config) {
 
         int strategy = config.getInt(ConfigDefine.CONN_TASK_DIVIDE_STRATEGY, DivideStrategyEnum.BY_QUEUE.ordinal());
         if (strategy == DivideStrategyEnum.BY_QUEUE.ordinal()) {
@@ -96,10 +93,6 @@ public class RmqConnectorConfig {
                 this.whiteList.add(t.trim());
             }
         }
-    }
-
-    public int getTaskParallelism() {
-        return this.taskParallelism;
     }
 
     public Set<String> getWhiteList() {

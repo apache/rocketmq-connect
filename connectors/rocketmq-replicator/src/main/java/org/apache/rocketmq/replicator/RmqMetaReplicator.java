@@ -17,8 +17,9 @@
 package org.apache.rocketmq.replicator;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,6 +46,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.replicator.common.Utils;
+import org.apache.rocketmq.replicator.config.ConfigDefine;
 import org.apache.rocketmq.replicator.config.RmqConnectorConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -94,20 +96,32 @@ public class RmqMetaReplicator extends SourceConnector {
         executor = Executors.newSingleThreadScheduledExecutor(new BasicThreadFactory.Builder().namingPattern("RmqMetaReplicator-SourceWatcher-%d").daemon(true).build());
     }
 
-    @Override public String verifyAndSetConfig(KeyValue config) {
-        log.info("verifyAndSetConfig...");
-        try {
-            replicatorConfig.validate(config);
-        } catch (IllegalArgumentException e) {
-            return e.getMessage();
+    @Override
+    public void validate(KeyValue config) {
+        // Check they need key.
+        for (String requestKey : ConfigDefine.REQUEST_CONFIG) {
+            if (!config.containsKey(requestKey)) {
+                log.error("RmqMetaReplicator check need key error , request config key: " + requestKey);
+                throw new RuntimeException("RmqMetaReplicator check need key error.");
+            }
         }
-        this.prepare();
-        this.configValid = true;
-        return "";
     }
 
     @Override
-    public void start() {
+    public void init(KeyValue config) {
+        try {
+            replicatorConfig.init(config);
+        } catch (IllegalArgumentException e) {
+            log.error("RmqMetaReplicator validate config error.", e);
+            throw new IllegalArgumentException("RmqMetaReplicator validate config error.");
+        }
+        this.configValid = true;
+        this.prepare();
+    }
+
+    @Override
+    public void start(ConnectorContext componentContext) {
+        super.start(componentContext);
         log.info("starting...");
         executor.scheduleAtFixedRate(this::refreshConsumerGroups, replicatorConfig.getRefreshInterval(), replicatorConfig.getRefreshInterval(), TimeUnit.SECONDS);
         executor.scheduleAtFixedRate(this::syncSubConfig, replicatorConfig.getRefreshInterval(), replicatorConfig.getRefreshInterval(), TimeUnit.SECONDS);
@@ -133,7 +147,7 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     @Override
-    public List<KeyValue> taskConfigs() {
+    public List<KeyValue> taskConfigs(int maxTasks) {
         log.debug("preparing taskConfig...");
         if (!configValid) {
             return new ArrayList<>();
@@ -146,7 +160,7 @@ public class RmqMetaReplicator extends SourceConnector {
             e.printStackTrace();
         }
 
-        return Utils.groupPartitions(new ArrayList<>(this.knownGroups), this.replicatorConfig.getTaskParallelism(), replicatorConfig);
+        return Utils.groupPartitions(new ArrayList<>(this.knownGroups), replicatorConfig, maxTasks);
     }
 
     private void prepare() {
@@ -183,7 +197,7 @@ public class RmqMetaReplicator extends SourceConnector {
             if (!newGroups.isEmpty() || !deadGroups.isEmpty()) {
                 log.info("reconfig consumer groups, new Groups: {} , dead groups: {}, previous groups: {}", newGroups, deadGroups, knownGroups);
                 knownGroups = groups;
-                context.requestTaskReconfiguration();
+                connectorContext.requestTaskReconfiguration();
             }
         } catch (Exception e) {
             log.error("refresh consumer groups failed.", e);
@@ -213,7 +227,7 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     private void ensureSubConfig(Collection<String> targetBrokers,
-            SubscriptionGroupConfig subConfig) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        SubscriptionGroupConfig subConfig) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         for (String addr : targetBrokers) {
             this.targetMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subConfig);
         }
