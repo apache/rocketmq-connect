@@ -30,6 +30,7 @@ public class TaskConfig {
     private boolean srcAclEnable = false;
     private String srcAccessKey;
     private String srcSecretKey;
+    private String filterRule;
 
     public String getSourceGroup() {
         return sourceGroup;
@@ -129,5 +130,13 @@ public class TaskConfig {
 
     public void setSrcSecretKey(String srcSecretKey) {
         this.srcSecretKey = srcSecretKey;
+    }
+
+    public String getFilterRule() {
+        return filterRule;
+    }
+
+    public void setFilterRule(String filterRule) {
+        this.filterRule = filterRule;
     }
 }

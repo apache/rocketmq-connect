@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -55,6 +56,8 @@ import org.slf4j.LoggerFactory;
 public class RmqSourceTask extends SourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(RmqSourceTask.class);
+
+    private static final String NULL_STR = "null";
 
     private final String taskId;
     private final TaskConfig config;
@@ -162,7 +165,9 @@ public class RmqSourceTask extends SourceTask {
         if (started) {
             try {
                 for (TaskTopicInfo taskTopicConfig : this.mqOffsetMap.keySet()) {
-                    PullResult pullResult = consumer.pull(taskTopicConfig, "*",
+                    String subExpression = (StringUtils.isEmpty(this.config.getFilterRule()) || NULL_STR.equals(this.config.getFilterRule()))
+                        ? "*" : this.config.getFilterRule();
+                    PullResult pullResult = consumer.pull(taskTopicConfig, subExpression,
                         this.mqOffsetMap.get(taskTopicConfig), 32);
                     switch (pullResult.getPullStatus()) {
                         case FOUND: {

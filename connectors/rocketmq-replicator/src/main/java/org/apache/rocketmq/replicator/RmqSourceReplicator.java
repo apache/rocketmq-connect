@@ -214,7 +214,8 @@ public class RmqSourceReplicator extends SourceConnector {
             DataType.COMMON_MESSAGE.ordinal(),
             this.replicatorConfig.isSrcAclEnable(),
             this.replicatorConfig.getSrcAccessKey(),
-            this.replicatorConfig.getSrcSecretKey()
+            this.replicatorConfig.getSrcSecretKey(),
+            this.replicatorConfig.getFilterRule()
         );
         return this.replicatorConfig.getTaskDivideStrategy().divide(this.topicRouteMap, tdc, maxTasks);
     }
