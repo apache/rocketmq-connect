@@ -32,7 +32,7 @@ public class ConfigUtil {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
             String mn = method.getName();
-            if ("set".startsWith(mn)) {
+            if (mn.startsWith("set")) {
                 try {
                     String tmp = mn.substring(4);
                     String first = mn.substring(3, 4);
