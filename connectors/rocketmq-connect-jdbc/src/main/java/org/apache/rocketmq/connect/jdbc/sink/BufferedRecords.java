@@ -21,6 +21,8 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.dialect.impl.GenericDatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.dialect.impl.OpenMLDBDatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
@@ -47,7 +49,6 @@ import static java.util.Objects.nonNull;
  */
 public class BufferedRecords {
   private static final Logger log = LoggerFactory.getLogger(BufferedRecords.class);
-
 
   private final TableId tableId;
   private final JdbcSinkConfig config;
@@ -169,19 +170,28 @@ public class BufferedRecords {
     }
     Optional<Long> totalUpdateCount = executeUpdates();
     long totalDeleteCount = executeDeletes();
-
     final long expectedCount = updateRecordCount();
     log.trace("{} records:{} resulting in totalUpdateCount:{} totalDeleteCount:{}",
-        config.getInsertMode(), records.size(), totalUpdateCount, totalDeleteCount
+            config.getInsertMode(),
+            records.size(),
+            totalUpdateCount,
+            totalDeleteCount
     );
     if (totalUpdateCount.filter(total -> total != expectedCount).isPresent()
         && config.getInsertMode() == JdbcSinkConfig.InsertMode.INSERT) {
-      throw new ConnectException(String.format(
-          "Update count (%d) did not sum up to total number of records inserted (%d)",
-          totalUpdateCount.get(),
-          expectedCount
-      ));
+      if (dbDialect.name().equals(GenericDatabaseDialect.DialectName.generateDialectName(OpenMLDBDatabaseDialect.class)) && totalUpdateCount.get()==0){
+        // openMLDB execute success result 0； do nothing
+      }else{
+        throw new ConnectException(
+                String.format(
+                        "Update count (%d) did not sum up to total number of records inserted (%d)",
+                        totalUpdateCount.get(),
+                        expectedCount
+                )
+        );
+      }
     }
+
     if (!totalUpdateCount.isPresent()) {
       log.info(
           "{} records:{} , but no count of the number of rows it affected is available",
@@ -210,8 +220,18 @@ public class BufferedRecords {
           }
         }
       }catch(SQLException e){
-        log.error("updatePreparedStatement.executeBatch failed, errCode={}, sqlState={}, error msg={}, cause={}, sql={}",
-                e.getErrorCode(), e.getSQLState(), e.getMessage(), e.getCause(), updatePreparedStatement);
+        log.error("updatePreparedStatement.executeBatch failed, " +
+                        "errCode={}, " +
+                        "sqlState={}, " +
+                        "error msg={}, " +
+                        "cause={}, " +
+                        "sql={}",
+                e.getErrorCode(),
+                e.getSQLState(),
+                e.getMessage(),
+                e.getCause(),
+                updatePreparedStatement
+        );
         throw e;
       }
     }
@@ -254,7 +274,7 @@ public class BufferedRecords {
     }
   }
 
-  private String getInsertSql() throws SQLException {
+  private String getInsertSql() {
     switch (config.getInsertMode()) {
       case INSERT:
         return dbDialect.buildInsertStatement(

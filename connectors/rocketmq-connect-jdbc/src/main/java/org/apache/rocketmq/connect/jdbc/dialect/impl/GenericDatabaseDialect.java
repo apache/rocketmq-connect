@@ -107,6 +107,16 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
   }
 
+  /**
+   * The provider for GenericDatabaseDialect
+   */
+  public static class DialectName{
+    public static String generateDialectName(Class clazz){
+      return clazz.getSimpleName().replace("DatabaseDialect", "");
+    }
+  }
+
+
   private static final Logger glog = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
   @Deprecated
@@ -164,8 +174,10 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
   @Override
   public String name() {
-    return getClass().getSimpleName().replace("DatabaseDialect", "");
+    return DialectName.generateDialectName(getClass());
+//    return getClass().getSimpleName().replace("DatabaseDialect", "");
   }
+
 
   /**
    * init jdbc connection
@@ -1406,7 +1418,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   public String buildInsertStatement(
           TableId table,
           Collection<ColumnId> keyColumns,

@@ -94,3 +94,28 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 |source-record-converter      | Integer | YES          |data转换器  | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
 
 ```  
+注: openMLDB maven包的引入：
+---------MacOS 系统下运行-------------
+     <dependency>
+            <groupId>com.4paradigm.openmldb</groupId>
+            <artifactId>openmldb-native</artifactId>
+            <version>0.5.0-macos</version>
+        </dependency>
+        <dependency>
+            <groupId>com.4paradigm.openmldb</groupId>
+            <artifactId>openmldb-jdbc</artifactId>
+            <version>0.5.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.4paradigm.openmldb</groupId>
+                    <artifactId>openmldb-native</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+---------Linux 系统下运行-------------
+        <dependency>
+            <groupId>com.4paradigm.openmldb</groupId>
+            <artifactId>openmldb-jdbc</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+```  

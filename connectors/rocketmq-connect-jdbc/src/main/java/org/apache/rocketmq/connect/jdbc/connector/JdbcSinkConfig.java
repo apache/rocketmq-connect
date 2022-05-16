@@ -72,7 +72,7 @@ public class JdbcSinkConfig extends AbstractConfig {
     private static final int RETRY_BACKOFF_MS_DEFAULT = 3000;
 
     public static final String BATCH_SIZE = "batch.size";
-    private static final int BATCH_SIZE_DEFAULT = 3000;
+    private static final int BATCH_SIZE_DEFAULT = 100;
 
 
     public static final String DELETE_ENABLED = "delete.enabled";
@@ -186,7 +186,7 @@ public class JdbcSinkConfig extends AbstractConfig {
         super(config);
         tableNameFormat = config.getString(TABLE_NAME_FORMAT,TABLE_NAME_FORMAT_DEFAULT).trim();
         tableFromHeader=getBoolean(config,TABLE_NAME_FROM_HEADER,false);
-        batchSize = config.getInt(BATCH_SIZE);
+        batchSize = config.getInt(BATCH_SIZE,BATCH_SIZE_DEFAULT);
         deleteEnabled = getBoolean(config,DELETE_ENABLED,DELETE_ENABLED_DEFAULT);
         maxRetries = config.getInt(MAX_RETRIES,MAX_RETRIES_DEFAULT);
         retryBackoffMs =config.getInt(RETRY_BACKOFF_MS,RETRY_BACKOFF_MS_DEFAULT);
