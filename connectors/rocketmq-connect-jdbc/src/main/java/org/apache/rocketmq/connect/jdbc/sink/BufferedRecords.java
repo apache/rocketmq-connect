@@ -191,7 +191,6 @@ public class BufferedRecords {
         );
       }
     }
-
     if (!totalUpdateCount.isPresent()) {
       log.info(
           "{} records:{} , but no count of the number of rows it affected is available",

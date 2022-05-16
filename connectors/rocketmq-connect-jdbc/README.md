@@ -118,4 +118,4 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
             <artifactId>openmldb-jdbc</artifactId>
             <version>0.5.0</version>
         </dependency>
-```  
+```

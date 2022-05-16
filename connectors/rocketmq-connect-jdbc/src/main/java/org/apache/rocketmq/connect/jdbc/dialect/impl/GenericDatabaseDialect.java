@@ -116,7 +116,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
   }
 
-
   private static final Logger glog = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
   @Deprecated
@@ -177,8 +176,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     return DialectName.generateDialectName(getClass());
 //    return getClass().getSimpleName().replace("DatabaseDialect", "");
   }
-
-
   /**
    * init jdbc connection
    * @return
@@ -1462,7 +1459,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   public String buildUpsertQueryStatement(
           TableId table,
           Collection<ColumnId> keyColumns,
