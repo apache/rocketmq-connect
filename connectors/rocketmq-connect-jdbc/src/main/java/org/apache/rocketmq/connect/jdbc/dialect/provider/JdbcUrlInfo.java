@@ -39,4 +39,4 @@ public interface JdbcUrlInfo {
      * @return the URL.
      */
     String url();
-  }
+}

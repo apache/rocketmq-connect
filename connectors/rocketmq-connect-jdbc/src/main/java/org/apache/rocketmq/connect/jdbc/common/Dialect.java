@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.connect.jdbc.common;
 
 import java.lang.annotation.ElementType;
@@ -29,12 +30,14 @@ import java.lang.annotation.Target;
 public @interface Dialect {
     /**
      * dialect name
+     *
      * @return
      */
     String name() default "";
 
     /**
      * support protocol
+     *
      * @return
      */
     String protocol() default "";

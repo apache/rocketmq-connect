@@ -33,10 +33,10 @@ public class ColumnDefAdjuster {
                                            String catalogPattern,
                                            String schemaPattern,
                                            String tablePattern,
-                                           String columnPattern){
+                                           String columnPattern) {
         ColumnDefAdjuster adjuster = new ColumnDefAdjuster();
-        try(ResultSet rs = conn.getMetaData().getColumns(
-                catalogPattern, schemaPattern, tablePattern, columnPattern)){
+        try (ResultSet rs = conn.getMetaData().getColumns(
+                catalogPattern, schemaPattern, tablePattern, columnPattern)) {
             final int rsColumnCount = rs.getMetaData().getColumnCount();
             while (rs.next()) {
                 final String columnName = rs.getString(4);
@@ -56,15 +56,15 @@ public class ColumnDefAdjuster {
                 }
                 adjuster.nullable.put(columnName, nullability);
             }
-        }catch (SQLException e){
+        } catch (SQLException e) {
             //pass
         }
 
         return adjuster;
     }
 
-    public ColumnDefinition.Nullability nullable(String columnName){
-        if(nullable == null || !nullable.containsKey(columnName)){
+    public ColumnDefinition.Nullability nullable(String columnName) {
+        if (nullable == null || !nullable.containsKey(columnName)) {
             return null;
         }
         return nullable.get(columnName);

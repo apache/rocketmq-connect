@@ -41,118 +41,121 @@ import java.util.Map;
  * schema mapping
  */
 public final class SchemaMapping {
-  private  static  final Logger logger = LoggerFactory.getLogger(SchemaMapping.class);
+    private static final Logger log = LoggerFactory.getLogger(SchemaMapping.class);
 
-  public static SchemaMapping create(
-      Connection conn,
-      TableId tableId,
-      ResultSetMetaData metadata,
-      DatabaseDialect dialect
-  ) throws SQLException {
-    // backwards compatible
-    String schemaName = tableId != null ? tableId.tableName() : null;
-    // describe columns
-    Map<ColumnId, ColumnDefinition> colDefins = dialect.describeColumns(conn, tableId, metadata);
-    Map<String, DatabaseDialect.ColumnConverter> colConvertersByFieldName = new LinkedHashMap<>();
-    Schema builder = SchemaBuilder.struct().name(schemaName).build();
-    builder.setFields(new ArrayList<>());
+    public static SchemaMapping create(
+            Connection conn,
+            TableId tableId,
+            ResultSetMetaData metadata,
+            DatabaseDialect dialect
+    ) throws SQLException {
+        // backwards compatible
+        String schemaName = tableId != null ? tableId.tableName() : null;
+        // describe columns
+        Map<ColumnId, ColumnDefinition> colDefins = dialect.describeColumns(conn, tableId, metadata);
+        Map<String, DatabaseDialect.ColumnConverter> colConvertersByFieldName = new LinkedHashMap<>();
+        Schema builder = SchemaBuilder.struct().name(schemaName).build();
+        builder.setFields(new ArrayList<>());
 
-    int columnNumber = 0;
-    for (ColumnDefinition colDefn : colDefins.values()) {
-      String fieldName = dialect.addFieldToSchema(colDefn, builder,columnNumber);
-      if (fieldName == null) {
-        continue;
-      }
-      Field field = builder.getField(fieldName);
-      ColumnMapping mapping = new ColumnMapping(colDefn,  ++columnNumber, field);
-      DatabaseDialect.ColumnConverter converter = dialect.createColumnConverter(mapping);
-      colConvertersByFieldName.put(fieldName, converter);
+        int columnNumber = 0;
+        for (ColumnDefinition colDefn : colDefins.values()) {
+            String fieldName = dialect.addFieldToSchema(colDefn, builder, columnNumber);
+            if (fieldName == null) {
+                continue;
+            }
+            Field field = builder.getField(fieldName);
+            ColumnMapping mapping = new ColumnMapping(colDefn, ++columnNumber, field);
+            DatabaseDialect.ColumnConverter converter = dialect.createColumnConverter(mapping);
+            colConvertersByFieldName.put(fieldName, converter);
+        }
+        return new SchemaMapping(builder, colConvertersByFieldName);
     }
-    return new SchemaMapping(builder, colConvertersByFieldName);
-  }
 
-  private final Schema schema;
-  private final List<FieldSetter> fieldSetters;
+    private final Schema schema;
+    private final List<FieldSetter> fieldSetters;
 
-  private SchemaMapping(
-      Schema schema,
-      Map<String, DatabaseDialect.ColumnConverter> convertersByFieldName
-  ) {
-    assert schema != null;
-    assert convertersByFieldName != null;
-    assert !convertersByFieldName.isEmpty();
-    this.schema = schema;
-    List<FieldSetter> fieldSetters = new ArrayList<>(convertersByFieldName.size());
-    for (Map.Entry<String, DatabaseDialect.ColumnConverter> entry : convertersByFieldName.entrySet()) {
-      DatabaseDialect.ColumnConverter converter = entry.getValue();
-      Field field = schema.getField(entry.getKey());
-      assert field != null;
-      fieldSetters.add(new FieldSetter(converter, field));
-    }
-    this.fieldSetters = Collections.unmodifiableList(fieldSetters);
-  }
-
-  /**
-   * schema
-   * @return
-   */
-  public Schema schema() {
-    return schema;
-  }
-
-  /**
-   * field setters
-   * @return
-   */
-  public List<FieldSetter> fieldSetters() {
-    return fieldSetters;
-  }
-
-  @Override
-  public String toString() {
-    return "Mapping for " + schema.getName();
-  }
-
-  public static final class FieldSetter {
-
-    private final DatabaseDialect.ColumnConverter converter;
-    private final Field field;
-
-    private FieldSetter(
-        DatabaseDialect.ColumnConverter converter,
-        Field field
+    private SchemaMapping(
+            Schema schema,
+            Map<String, DatabaseDialect.ColumnConverter> convertersByFieldName
     ) {
-      this.converter = converter;
-      this.field = field;
+        assert schema != null;
+        assert convertersByFieldName != null;
+        assert !convertersByFieldName.isEmpty();
+        this.schema = schema;
+        List<FieldSetter> fieldSetters = new ArrayList<>(convertersByFieldName.size());
+        for (Map.Entry<String, DatabaseDialect.ColumnConverter> entry : convertersByFieldName.entrySet()) {
+            DatabaseDialect.ColumnConverter converter = entry.getValue();
+            Field field = schema.getField(entry.getKey());
+            assert field != null;
+            fieldSetters.add(new FieldSetter(converter, field));
+        }
+        this.fieldSetters = Collections.unmodifiableList(fieldSetters);
     }
 
     /**
-     * Get the {@link Field} that this setter function sets.
+     * schema
      *
-     * @return the field; never null
+     * @return
      */
-    public Field field() {
-      return field;
+    public Schema schema() {
+        return schema;
     }
 
     /**
-     * set field
-     * @param payload
-     * @param resultSet
-     * @throws SQLException
-     * @throws IOException
+     * field setters
+     *
+     * @return
      */
-    public void setField(
-            Object[] payload,
-            ResultSet resultSet
-    ) throws SQLException, IOException {
-      Object value = this.converter.convert(resultSet);
-      payload[field.getIndex()]=value;
+    public List<FieldSetter> fieldSetters() {
+        return fieldSetters;
     }
 
     @Override
     public String toString() {
-      return field.getName();
+        return "Mapping for " + schema.getName();
     }
-  }
+
+    public static final class FieldSetter {
+
+        private final DatabaseDialect.ColumnConverter converter;
+        private final Field field;
+
+        private FieldSetter(
+                DatabaseDialect.ColumnConverter converter,
+                Field field
+        ) {
+            this.converter = converter;
+            this.field = field;
+        }
+
+        /**
+         * Get the {@link Field} that this setter function sets.
+         *
+         * @return the field; never null
+         */
+        public Field field() {
+            return field;
+        }
+
+        /**
+         * set field
+         *
+         * @param payload
+         * @param resultSet
+         * @throws SQLException
+         * @throws IOException
+         */
+        public void setField(
+                Object[] payload,
+                ResultSet resultSet
+        ) throws SQLException, IOException {
+            Object value = this.converter.convert(resultSet);
+            payload[field.getIndex()] = value;
+        }
+
+        @Override
+        public String toString() {
+            return field.getName();
+        }
+    }
 }

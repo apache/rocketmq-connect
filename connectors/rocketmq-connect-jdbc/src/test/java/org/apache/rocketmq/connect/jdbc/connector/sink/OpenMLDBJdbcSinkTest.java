@@ -47,7 +47,7 @@ import static org.junit.Assert.assertNotNull;
  */
 public class OpenMLDBJdbcSinkTest {
 
-    private static JdbcSinkTask openJDBCSinkTask=new JdbcSinkTask();
+    private static JdbcSinkTask openJDBCSinkTask = new JdbcSinkTask();
     private String dbName = "openmldb_db_test_01";
     private String tableName = "openmldb_table_test_02";
     // local
@@ -55,9 +55,10 @@ public class OpenMLDBJdbcSinkTest {
     private String zkPath = "/openmldb_cluster";
     private String jdbcUrl = String.format("jdbc:openmldb:///?zk=%s&zkPath=%s", zk, zkPath);
     // set db name
-    private String jdbcUrlDB = String.format("jdbc:openmldb:///%s?zk=%s&zkPath=%s",dbName, zk, zkPath);
+    private String jdbcUrlDB = String.format("jdbc:openmldb:///%s?zk=%s&zkPath=%s", dbName, zk, zkPath);
 
-    private  Connection connection = null;
+    private Connection connection = null;
+
     @Before
     public void testOpenMLDBJdbcSinkTest() {
         try {
@@ -76,7 +77,7 @@ public class OpenMLDBJdbcSinkTest {
     }
 
     @After
-    public void close(){
+    public void close() {
         try {
             connection.close();
         } catch (SQLException e) {
@@ -86,15 +87,15 @@ public class OpenMLDBJdbcSinkTest {
 
     private KeyValue buildConfig(String jdbcUrl) {
         KeyValue config = new DefaultKeyValue();
-        config.put("connector-class","org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector");
-        config.put("max-task","1");
-        config.put("connection.url",jdbcUrl);
+        config.put("connector-class", "org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector");
+        config.put("max-task", "1");
+        config.put("connection.url", jdbcUrl);
 //        config.put("pk.fields","c1");
 //        config.put("pk.mode","record_value");
-        config.put("insert.mode","INSERT");
-        config.put("db.timezone","UTC");
-        config.put("table.types","TABLE");
-        config.put("source-record-converter","org.apache.rocketmq.connect.runtime.converter.JsonConverter");
+        config.put("insert.mode", "INSERT");
+        config.put("db.timezone", "UTC");
+        config.put("table.types", "TABLE");
+        config.put("source-record-converter", "org.apache.rocketmq.connect.runtime.converter.JsonConverter");
         return config;
     }
 
@@ -103,19 +104,19 @@ public class OpenMLDBJdbcSinkTest {
      */
     @Test
     public void testOpenMLDBJdbcSinkWriterTest() throws SQLException {
-        List<ConnectRecord> records=new ArrayList<>();
+        List<ConnectRecord> records = new ArrayList<>();
         // build schema
         Schema schema = SchemaBuilder.struct().name(
                 tableName
         ).build();
-        schema.addField(new Field(0,"c1", SchemaBuilder.int32().build()));
-        schema.addField(new Field(1,"c2", SchemaBuilder.string().build()));
+        schema.addField(new Field(0, "c1", SchemaBuilder.int32().build()));
+        schema.addField(new Field(1, "c2", SchemaBuilder.string().build()));
         // build record
-        Object[] payload=new Object[2];
-        int param0=1001;
-        payload[0] = param0 ;
-        payload[1] = String.format("test-data-%s",param0) ;
-        ConnectRecord record=new ConnectRecord(
+        Object[] payload = new Object[2];
+        int param0 = 1001;
+        payload[0] = param0;
+        payload[1] = String.format("test-data-%s", param0);
+        ConnectRecord record = new ConnectRecord(
                 // offset partition
                 // offset partition"
                 new RecordPartition(new ConcurrentHashMap<>()),
@@ -132,8 +133,8 @@ public class OpenMLDBJdbcSinkTest {
     public void testOpenMLDBSelect() throws SQLException {
         Statement stmt = this.connection.createStatement();
         ResultSet rs = stmt.executeQuery(String.format("SELECT * from %s", tableName));
-        while(rs.next()){
-            System.out.println(rs.getInt(1) +"-------"+ rs.getString(2));
+        while (rs.next()) {
+            System.out.println(rs.getInt(1) + "-------" + rs.getString(2));
         }
     }
 

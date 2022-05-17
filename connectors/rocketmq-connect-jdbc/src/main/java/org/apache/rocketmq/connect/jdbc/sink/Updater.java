@@ -37,69 +37,69 @@ import java.util.Map;
  */
 public class Updater {
 
-  private static final Logger log = LoggerFactory.getLogger(Updater.class);
-  private final JdbcSinkConfig config;
-  private final DatabaseDialect dbDialect;
-  private final DbStructure dbStructure;
-  final CachedConnectionProvider cachedConnectionProvider;
+    private static final Logger log = LoggerFactory.getLogger(Updater.class);
+    private final JdbcSinkConfig config;
+    private final DatabaseDialect dbDialect;
+    private final DbStructure dbStructure;
+    final CachedConnectionProvider cachedConnectionProvider;
 
-  public Updater(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
-    this.config = config;
-    this.dbDialect = dbDialect;
-    this.dbStructure = dbStructure;
+    public Updater(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
+        this.config = config;
+        this.dbDialect = dbDialect;
+        this.dbStructure = dbStructure;
 
-    this.cachedConnectionProvider = connectionProvider(
-        config.getAttempts(),
-        config.getRetryBackoffMs()
-    );
-  }
-
-  protected CachedConnectionProvider connectionProvider(int maxConnAttempts, long retryBackoff) {
-    return new CachedConnectionProvider(this.dbDialect, maxConnAttempts, retryBackoff) {
-      @Override
-      protected void onConnect(final Connection connection) throws SQLException {
-        connection.setAutoCommit(false);
-      }
-    };
-  }
-
-  public void write(final Collection<ConnectRecord> records)
-      throws SQLException, TableAlterOrCreateException {
-    final Connection connection = cachedConnectionProvider.getConnection();
-    try {
-      final Map<TableId, BufferedRecords> bufferByTable = new HashMap<>();
-      for (ConnectRecord record : records) {
-        // destination table
-        final TableId tableId = destinationTable(record);
-        if (!config.filterWhiteTable(dbDialect,tableId)){
-          continue;
-        }
-        BufferedRecords buffer = bufferByTable.get(tableId);
-        if (buffer == null) {
-          buffer = new BufferedRecords(config, tableId, dbDialect, dbStructure, connection);
-          bufferByTable.put(tableId, buffer);
-        }
-        buffer.add(record);
-      }
-      for (Map.Entry<TableId, BufferedRecords> entry : bufferByTable.entrySet()) {
-        TableId tableId = entry.getKey();
-        BufferedRecords buffer = entry.getValue();
-        log.debug("Flushing records in JDBC Writer for table ID: {}", tableId);
-        buffer.flush();
-        buffer.close();
-      }
-      connection.commit();
-    } catch (SQLException | TableAlterOrCreateException e) {
-      connection.rollback();
+        this.cachedConnectionProvider = connectionProvider(
+                config.getAttempts(),
+                config.getRetryBackoffMs()
+        );
     }
-  }
 
-  public void closeQuietly() {
-    cachedConnectionProvider.close();
-  }
+    protected CachedConnectionProvider connectionProvider(int maxConnAttempts, long retryBackoff) {
+        return new CachedConnectionProvider(this.dbDialect, maxConnAttempts, retryBackoff) {
+            @Override
+            protected void onConnect(final Connection connection) throws SQLException {
+                connection.setAutoCommit(false);
+            }
+        };
+    }
 
-  TableId destinationTable(ConnectRecord record) {
-    // todo table from header
-    return dbDialect.parseToTableId(record.getSchema().getName());
-  }
+    public void write(final Collection<ConnectRecord> records)
+            throws SQLException, TableAlterOrCreateException {
+        final Connection connection = cachedConnectionProvider.getConnection();
+        try {
+            final Map<TableId, BufferedRecords> bufferByTable = new HashMap<>();
+            for (ConnectRecord record : records) {
+                // destination table
+                final TableId tableId = destinationTable(record);
+                if (!config.filterWhiteTable(dbDialect, tableId)) {
+                    continue;
+                }
+                BufferedRecords buffer = bufferByTable.get(tableId);
+                if (buffer == null) {
+                    buffer = new BufferedRecords(config, tableId, dbDialect, dbStructure, connection);
+                    bufferByTable.put(tableId, buffer);
+                }
+                buffer.add(record);
+            }
+            for (Map.Entry<TableId, BufferedRecords> entry : bufferByTable.entrySet()) {
+                TableId tableId = entry.getKey();
+                BufferedRecords buffer = entry.getValue();
+                log.debug("Flushing records in JDBC Writer for table ID: {}", tableId);
+                buffer.flush();
+                buffer.close();
+            }
+            connection.commit();
+        } catch (SQLException | TableAlterOrCreateException e) {
+            connection.rollback();
+        }
+    }
+
+    public void closeQuietly() {
+        cachedConnectionProvider.close();
+    }
+
+    TableId destinationTable(ConnectRecord record) {
+        // todo table from header
+        return dbDialect.parseToTableId(record.getSchema().getName());
+    }
 }

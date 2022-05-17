@@ -11,16 +11,17 @@ import org.junit.Test;
  */
 public class JdbcSourceTaskTest {
     // jdbc source task
-    JdbcSourceTask jdbcSourceTask=new JdbcSourceTask();
-    KeyValue conf=new DefaultKeyValue();
-    public void init(){
-        conf.put(JdbcSourceTaskConfig.CONNECTION_URL_CONFIG,"");
-        conf.put(JdbcSourceTaskConfig.CONNECTION_USER_CONFIG,"");
-        conf.put(JdbcSourceTaskConfig.CONNECTION_PASSWORD_CONFIG,"");
+    JdbcSourceTask jdbcSourceTask = new JdbcSourceTask();
+    KeyValue conf = new DefaultKeyValue();
+
+    public void init() {
+        conf.put(JdbcSourceTaskConfig.CONNECTION_URL_CONFIG, "");
+        conf.put(JdbcSourceTaskConfig.CONNECTION_USER_CONFIG, "");
+        conf.put(JdbcSourceTaskConfig.CONNECTION_PASSWORD_CONFIG, "");
     }
 
     @Test
-    public void pollTest(){
+    public void pollTest() {
 
     }
 }

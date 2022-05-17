@@ -49,271 +49,299 @@ import java.util.Map;
  */
 public interface DatabaseDialect extends ConnectionProvider {
 
-  /**
-   * dialect name
-   * @return
-   */
-  String name();
-
-  /**
-   * create jdbc prepared statement
-   * @param connection
-   * @param query
-   * @return
-   * @throws SQLException
-   */
-  PreparedStatement createPreparedStatement(Connection connection, String query) throws SQLException;
-
-  /**
-   * parse to Table Id
-   * @param fqn
-   * @return
-   */
-  TableId parseToTableId(String fqn);
-
-  /**
-   * Get the identifier rules for this database.
-   * @return the identifier rules
-   */
-  IdentifierRules identifierRules();
-
-  /**
-   *  Get a new expression builder that can be used to build expressions with quoted identifiers.
-   * @return
-   */
-  ExpressionBuilder expressionBuilder();
-  Timestamp currentTimeOnDB(Connection connection, Calendar cal) throws SQLException;
-
-  /**
-   *  Get a list of identifiers of the non-system tables in the database.
-   * @param connection
-   * @return
-   * @throws SQLException
-   */
-  List<TableId> tableIds(Connection connection) throws SQLException;
-
-  /**
-   * table exists
-   * @param connection
-   * @param tableId
-   * @return
-   * @throws SQLException
-   */
-  boolean tableExists(Connection connection, TableId tableId) throws SQLException;
-
-
-  /**
-   * Create the definition for the columns described by the database metadata.
-   */
-  Map<ColumnId, ColumnDefinition> describeColumns(Connection connection, String tablePattern, String columnPattern) throws SQLException;
-
-  /**
-   * Create the definition for the columns described by the database metadata.
-   */
-  Map<ColumnId, ColumnDefinition> describeColumns(Connection connection, String catalogPattern, String schemaPattern, String tablePattern, String columnPattern) throws SQLException;
-
-  /**
-   * Create the definition for the columns in the result set.
-   */
-  Map<ColumnId, ColumnDefinition> describeColumns(Connection conn, TableId tableId, ResultSetMetaData rsMetadata) throws SQLException;
-
-  /**
-   * describe table info
-   * @param connection
-   * @param tableId
-   * @return
-   * @throws SQLException
-   */
-  TableDefinition describeTable(Connection connection, TableId tableId) throws SQLException;
-
-  /**
-   * describe columns by query sql
-   * @param connection
-   * @param tableId
-   * @return
-   * @throws SQLException
-   */
-  Map<ColumnId, ColumnDefinition> describeColumnsByQuerying(Connection connection, TableId tableId) throws SQLException;
-
-  /**
-   * 添加字段到schema中
-   * @param column
-   * @param schema
-   * @param index
-   * @return
-   */
-  String addFieldToSchema(ColumnDefinition column, Schema schema,int index);
-
-  /**
-   * Apply the supplied DDL statements using the given connection. This gives the dialect the
-   * opportunity to execute the statements with a different autocommit setting.
-   */
-  void applyDdlStatements(Connection connection, List<String> statements) throws SQLException;
-
-  /**
-   * build dml statement
-   * @param table
-   * @param keyColumns
-   * @param nonKeyColumns
-   * @return
-   */
-  String buildInsertStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
-
-  /**
-   * update statement
-   * @param table
-   * @param keyColumns
-   * @param nonKeyColumns
-   * @return
-   */
-  String buildUpdateStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
-
-  /**
-   * upsert statment
-   * @param table
-   * @param keyColumns
-   * @param nonKeyColumns
-   * @return
-   */
-  String buildUpsertQueryStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
-
-  /**
-   * delete statement
-   * @param table
-   * @param keyColumns
-   * @return
-   */
-  default String buildDeleteStatement(TableId table, Collection<ColumnId> keyColumns) {
-    throw new UnsupportedOperationException();
-  }
-
-
-  /**
-   * build select table
-   */
-  String buildSelectTableMode();
-  void buildSelectTable(ExpressionBuilder builder, TableId tableId);
-
-
-  /** drop table
-   * @param table
-   * @param options
-   * @return
-   */
-  String buildDropTableStatement(TableId table, DropOptions options);
-
-  /**
-   * create table
-   * @param table
-   * @param fields
-   * @return
-   */
-  String buildCreateTableStatement(TableId table, Collection<SinkRecordField> fields);
-  /**
-   * build alter table
-   * @param table
-   * @param fields
-   * @return
-   */
-  List<String> buildAlterTable(TableId table, Collection<SinkRecordField> fields);
-
-  /**
-   * Create a component that can bind record values into the supplied prepared statement.
-   *
-   * @param statement      the prepared statement
-   * @param pkMode         the primary key mode; may not be null
-   * @param schemaPair     the key and value schemas; may not be null
-   * @param fieldsMetadata the field metadata; may not be null
-   * @param tableDefinition the table definition; may be null
-   * @param insertMode     the insert mode; may not be null
-   * @return the statement binder; may not be null
-   */
-  StatementBinder statementBinder(
-      PreparedStatement statement,
-      JdbcSinkConfig.PrimaryKeyMode pkMode,
-      SchemaPair schemaPair,
-      FieldsMetadata fieldsMetadata,
-      TableDefinition tableDefinition,
-      JdbcSinkConfig.InsertMode insertMode
-  );
-
-  /**
-   * value column types
-   * @param rsMetadata
-   * @param columns
-   * @throws io.openmessaging.connector.api.errors.ConnectException
-   */
-  void validateColumnTypes(
-          ResultSetMetaData rsMetadata,
-          List<ColumnId> columns
-  ) throws io.openmessaging.connector.api.errors.ConnectException;
-
-
-  /**
-   * bind field
-   * @param statement
-   * @param index
-   * @param schema
-   * @param value
-   * @param colDef
-   * @throws SQLException
-   */
-  void bindField(PreparedStatement statement, int index, Schema schema, Object value, ColumnDefinition colDef) throws SQLException ;
-
-  /**
-   * criteria for
-   * @param incrementingColumn
-   * @param timestampColumns
-   * @return
-   */
-  TimestampIncrementingCriteria criteriaFor(
-          ColumnId incrementingColumn,
-          List<ColumnId> timestampColumns
-  );
-
-  /**
-   * get min timestamp value
-   * @param con
-   * @param tableOrQuery
-   * @param timestampColumns
-   * @return
-   * @throws SQLException
-   */
-  Long getMinTimestampValue(Connection con, String tableOrQuery, List<String> timestampColumns) throws SQLException;
-
-  /**
-   * A function to bind the values from a sink record into a prepared statement.
-   */
-  @FunctionalInterface
-  interface StatementBinder {
     /**
-     * bind record
-     * @param record
-     * @throws SQLException
+     * dialect name
+     *
+     * @return
      */
-    void bindRecord(ConnectRecord record) throws SQLException;
-  }
+    String name();
 
-
-  /**
-   * Create a function that converts column values for the column defined by the specified mapping.
-   * @param mapping
-   * @return
-   */
-  ColumnConverter createColumnConverter(ColumnMapping mapping);
-
-  /**
-   * A function that obtains a column value from the current row of the specified result set.
-   */
-  @FunctionalInterface
-  interface ColumnConverter {
     /**
-     * convert
-     * @param resultSet
+     * create jdbc prepared statement
+     *
+     * @param connection
+     * @param query
      * @return
      * @throws SQLException
-     * @throws IOException
      */
-    Object convert(ResultSet resultSet) throws SQLException, IOException;
-  }
+    PreparedStatement createPreparedStatement(Connection connection, String query) throws SQLException;
+
+    /**
+     * parse to Table Id
+     *
+     * @param fqn
+     * @return
+     */
+    TableId parseToTableId(String fqn);
+
+    /**
+     * Get the identifier rules for this database.
+     *
+     * @return the identifier rules
+     */
+    IdentifierRules identifierRules();
+
+    /**
+     * Get a new expression builder that can be used to build expressions with quoted identifiers.
+     *
+     * @return
+     */
+    ExpressionBuilder expressionBuilder();
+
+    Timestamp currentTimeOnDB(Connection connection, Calendar cal) throws SQLException;
+
+    /**
+     * Get a list of identifiers of the non-system tables in the database.
+     *
+     * @param connection
+     * @return
+     * @throws SQLException
+     */
+    List<TableId> tableIds(Connection connection) throws SQLException;
+
+    /**
+     * table exists
+     *
+     * @param connection
+     * @param tableId
+     * @return
+     * @throws SQLException
+     */
+    boolean tableExists(Connection connection, TableId tableId) throws SQLException;
+
+
+    /**
+     * Create the definition for the columns described by the database metadata.
+     */
+    Map<ColumnId, ColumnDefinition> describeColumns(Connection connection, String tablePattern, String columnPattern) throws SQLException;
+
+    /**
+     * Create the definition for the columns described by the database metadata.
+     */
+    Map<ColumnId, ColumnDefinition> describeColumns(Connection connection, String catalogPattern, String schemaPattern, String tablePattern, String columnPattern) throws SQLException;
+
+    /**
+     * Create the definition for the columns in the result set.
+     */
+    Map<ColumnId, ColumnDefinition> describeColumns(Connection conn, TableId tableId, ResultSetMetaData rsMetadata) throws SQLException;
+
+    /**
+     * describe table info
+     *
+     * @param connection
+     * @param tableId
+     * @return
+     * @throws SQLException
+     */
+    TableDefinition describeTable(Connection connection, TableId tableId) throws SQLException;
+
+    /**
+     * describe columns by query sql
+     *
+     * @param connection
+     * @param tableId
+     * @return
+     * @throws SQLException
+     */
+    Map<ColumnId, ColumnDefinition> describeColumnsByQuerying(Connection connection, TableId tableId) throws SQLException;
+
+    /**
+     * add field to schema
+     *
+     * @param column
+     * @param schema
+     * @param index
+     * @return
+     */
+    String addFieldToSchema(ColumnDefinition column, Schema schema, int index);
+
+    /**
+     * Apply the supplied DDL statements using the given connection. This gives the dialect the
+     * opportunity to execute the statements with a different autocommit setting.
+     */
+    void applyDdlStatements(Connection connection, List<String> statements) throws SQLException;
+
+    /**
+     * build dml statement
+     *
+     * @param table
+     * @param keyColumns
+     * @param nonKeyColumns
+     * @return
+     */
+    String buildInsertStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
+
+    /**
+     * update statement
+     *
+     * @param table
+     * @param keyColumns
+     * @param nonKeyColumns
+     * @return
+     */
+    String buildUpdateStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
+
+    /**
+     * upsert statment
+     *
+     * @param table
+     * @param keyColumns
+     * @param nonKeyColumns
+     * @return
+     */
+    String buildUpsertQueryStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns);
+
+    /**
+     * delete statement
+     *
+     * @param table
+     * @param keyColumns
+     * @return
+     */
+    default String buildDeleteStatement(TableId table, Collection<ColumnId> keyColumns) {
+        throw new UnsupportedOperationException();
+    }
+
+
+    /**
+     * build select table
+     */
+    String buildSelectTableMode();
+
+    void buildSelectTable(ExpressionBuilder builder, TableId tableId);
+
+
+    /**
+     * drop table
+     *
+     * @param table
+     * @param options
+     * @return
+     */
+    String buildDropTableStatement(TableId table, DropOptions options);
+
+    /**
+     * create table
+     *
+     * @param table
+     * @param fields
+     * @return
+     */
+    String buildCreateTableStatement(TableId table, Collection<SinkRecordField> fields);
+
+    /**
+     * build alter table
+     *
+     * @param table
+     * @param fields
+     * @return
+     */
+    List<String> buildAlterTable(TableId table, Collection<SinkRecordField> fields);
+
+    /**
+     * Create a component that can bind record values into the supplied prepared statement.
+     *
+     * @param statement       the prepared statement
+     * @param pkMode          the primary key mode; may not be null
+     * @param schemaPair      the key and value schemas; may not be null
+     * @param fieldsMetadata  the field metadata; may not be null
+     * @param tableDefinition the table definition; may be null
+     * @param insertMode      the insert mode; may not be null
+     * @return the statement binder; may not be null
+     */
+    StatementBinder statementBinder(
+            PreparedStatement statement,
+            JdbcSinkConfig.PrimaryKeyMode pkMode,
+            SchemaPair schemaPair,
+            FieldsMetadata fieldsMetadata,
+            TableDefinition tableDefinition,
+            JdbcSinkConfig.InsertMode insertMode
+    );
+
+    /**
+     * value column types
+     *
+     * @param rsMetadata
+     * @param columns
+     * @throws io.openmessaging.connector.api.errors.ConnectException
+     */
+    void validateColumnTypes(
+            ResultSetMetaData rsMetadata,
+            List<ColumnId> columns
+    ) throws io.openmessaging.connector.api.errors.ConnectException;
+
+
+    /**
+     * bind field
+     *
+     * @param statement
+     * @param index
+     * @param schema
+     * @param value
+     * @param colDef
+     * @throws SQLException
+     */
+    void bindField(PreparedStatement statement, int index, Schema schema, Object value, ColumnDefinition colDef) throws SQLException;
+
+    /**
+     * criteria for
+     *
+     * @param incrementingColumn
+     * @param timestampColumns
+     * @return
+     */
+    TimestampIncrementingCriteria criteriaFor(
+            ColumnId incrementingColumn,
+            List<ColumnId> timestampColumns
+    );
+
+    /**
+     * get min timestamp value
+     *
+     * @param con
+     * @param tableOrQuery
+     * @param timestampColumns
+     * @return
+     * @throws SQLException
+     */
+    Long getMinTimestampValue(Connection con, String tableOrQuery, List<String> timestampColumns) throws SQLException;
+
+    /**
+     * A function to bind the values from a sink record into a prepared statement.
+     */
+    @FunctionalInterface
+    interface StatementBinder {
+        /**
+         * bind record
+         *
+         * @param record
+         * @throws SQLException
+         */
+        void bindRecord(ConnectRecord record) throws SQLException;
+    }
+
+
+    /**
+     * Create a function that converts column values for the column defined by the specified mapping.
+     *
+     * @param mapping
+     * @return
+     */
+    ColumnConverter createColumnConverter(ColumnMapping mapping);
+
+    /**
+     * A function that obtains a column value from the current row of the specified result set.
+     */
+    @FunctionalInterface
+    interface ColumnConverter {
+        /**
+         * convert
+         *
+         * @param resultSet
+         * @return
+         * @throws SQLException
+         * @throws IOException
+         */
+        Object convert(ResultSet resultSet) throws SQLException, IOException;
+    }
 }

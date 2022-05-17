@@ -30,39 +30,40 @@ import org.slf4j.LoggerFactory;
  */
 public class OpenMLDBDatabaseDialect extends GenericDatabaseDialect {
 
-  private final Logger log = LoggerFactory.getLogger(OpenMLDBDatabaseDialect.class);
+    private final Logger log = LoggerFactory.getLogger(OpenMLDBDatabaseDialect.class);
 
-  /**
-   * The provider for {@link OpenMLDBDatabaseDialect}.
-   */
-  public static class Provider extends DatabaseDialectProvider {
-    @SneakyThrows
-    public Provider() {
-      super(OpenMLDBDatabaseDialect.class.getSimpleName(), "openmldb");
-      Class.forName("com._4paradigm.openmldb.jdbc.SQLDriver");
+    /**
+     * The provider for {@link OpenMLDBDatabaseDialect}.
+     */
+    public static class Provider extends DatabaseDialectProvider {
+        @SneakyThrows
+        public Provider() {
+            super(OpenMLDBDatabaseDialect.class.getSimpleName(), "openmldb");
+            Class.forName("com._4paradigm.openmldb.jdbc.SQLDriver");
+        }
+
+        @Override
+        public DatabaseDialect create(AbstractConfig config) {
+            return new OpenMLDBDatabaseDialect(config);
+        }
     }
+
+    /**
+     * create openMLDB database dialect
+     *
+     * @param config
+     */
+    public OpenMLDBDatabaseDialect(AbstractConfig config) {
+        super(config, new IdentifierRules(".", "`", "`"));
+    }
+
 
     @Override
-    public DatabaseDialect create(AbstractConfig config) {
-      return new OpenMLDBDatabaseDialect(config);
-    }
-  }
-
-  /**
-   * create openMLDB database dialect
-   * @param config
-   */
-  public OpenMLDBDatabaseDialect(AbstractConfig config) {
-    super(config, new IdentifierRules(".", "`", "`"));
-  }
-
-
-  @Override
-  protected String sanitizedUrl(String url) {
-    // MySQL can also have "username:password@" at the beginning of the host list and
-    // in parenthetical properties
-    return super.sanitizedUrl(url)
+    protected String sanitizedUrl(String url) {
+        // MySQL can also have "username:password@" at the beginning of the host list and
+        // in parenthetical properties
+        return super.sanitizedUrl(url)
                 .replaceAll("(?i)([(,]password=)[^,)]*", "$1****")
                 .replaceAll("(://[^:]*:)([^@]*)@", "$1****@");
-  }
+    }
 }

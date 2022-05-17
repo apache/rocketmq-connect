@@ -38,11 +38,12 @@ public class JdbcSinkConnector extends SinkConnector {
 
     @Override
     public void start(ConnectorContext context) {
-        this.context=context;
+        this.context = context;
     }
 
     /**
      * Should invoke before start the connector.
+     *
      * @param config
      * @return error message
      */
@@ -58,17 +59,20 @@ public class JdbcSinkConnector extends SinkConnector {
      */
     @Override
     public void init(KeyValue config) {
-        this.connectConfig=config;
+        this.connectConfig = config;
     }
 
     @Override
-    public void stop() {}
+    public void stop() {
+    }
 
     @Override
-    public void pause() {}
+    public void pause() {
+    }
 
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
     /**
      * Returns a set of configurations for Tasks based on the current configuration,
@@ -81,7 +85,7 @@ public class JdbcSinkConnector extends SinkConnector {
     public List<KeyValue> taskConfigs(int maxTasks) {
         log.info("Starting task config !!! ");
         List<KeyValue> configs = new ArrayList<>();
-        for (int i =0 ; i< maxTasks; i++){
+        for (int i = 0; i < maxTasks; i++) {
             configs.add(this.connectConfig);
         }
         return configs;

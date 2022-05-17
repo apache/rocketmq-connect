@@ -28,7 +28,7 @@ public class ConfigException extends RuntimeException {
     }
 
     public ConfigException(String name, Object value) {
-        this(name, value, (String)null);
+        this(name, value, null);
     }
 
     public ConfigException(String name, Object value, String message) {

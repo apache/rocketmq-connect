@@ -17,6 +17,7 @@
 package org.apache.rocketmq.connect.jdbc.connector;
 
 import io.openmessaging.KeyValue;
+
 import java.util.List;
 
 
@@ -24,16 +25,17 @@ import java.util.List;
  * task config
  */
 public class JdbcSourceTaskConfig extends JdbcSourceConfig {
-  public static final String TABLES_CONFIG = "tables";
-  private static final String TABLES_DOC = "List of tables for this task to watch for changes.";
+    public static final String TABLES_CONFIG = "tables";
+    private static final String TABLES_DOC = "List of tables for this task to watch for changes.";
 
-  private List<String> tables;
-  public JdbcSourceTaskConfig(KeyValue config) {
-    super(config);
-    this.tables=getList(config,TABLES_CONFIG);
-  }
+    private List<String> tables;
 
-  public List<String> getTables() {
-    return tables;
-  }
+    public JdbcSourceTaskConfig(KeyValue config) {
+        super(config);
+        this.tables = getList(config, TABLES_CONFIG);
+    }
+
+    public List<String> getTables() {
+        return tables;
+    }
 }

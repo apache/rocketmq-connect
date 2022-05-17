@@ -1,8 +1,11 @@
 # rocketmq-connect-jdbc
+
 ```  
 注: 目前支持的数据库类型为 mysql ,openMLDB ，其它数据库的jdbc模式持续扩展中
 ```  
+
 ## rocketmq-connect-jdbc 打包
+
 ```
 mvn clean package -Dmaven.test.skip=true
 ```
@@ -10,6 +13,7 @@ mvn clean package -Dmaven.test.skip=true
 ## rocketmq-connect-jdbc 启动
 
 * **jdbc-source-connector** 启动
+
 ```
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
 {
@@ -25,7 +29,6 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-con
     "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
 }
 ```
-
 
 * **jdbc-sink-connector** 启动
 
@@ -45,7 +48,7 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-conne
 }
 ```
 
->**注：** `rocketmq-jdbc-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的所有`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
+> **注：** `rocketmq-jdbc-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的所有`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
 
 ## rocketmq-connect-jdbc 停止
 
@@ -54,8 +57,8 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 ```
 
 ## rocketmq-connect-jdbc 参数说明
-* **jdbc-source-connector 参数说明**
 
+* **jdbc-source-connector 参数说明**
 
 |         KEY                 |  TYPE   | Must be filled | Description| Example
 |------------------------|----|---------|---------------|------------------|
@@ -72,12 +75,13 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 |table.whitelist              | String  | YES           |需要扫描的表 | db.table,db.table01 |
 |max-task                     | Integer | YES           |任务数量，最大不能大于表的数量 | 2 |
 |source-record-converter      | Integer | YES           |data转换器  | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
+
 ```  
 注：1.source拉取的数据写入到以表名自动创建的topic中，如果需要写入特定的topic中则需要指定"connect-topicname" 参数
    2.topic.prefix参数可以为自动创建的topic增加前缀，用来进行逻辑的隔离
 ```  
-* **jdbc-sink-connector 参数说明**
 
+* **jdbc-sink-connector 参数说明**
 
 |         KEY                 |  TYPE   | Must be filled | Description| Example
 |------------------------|----|---------|---------------|------------------|

@@ -25,7 +25,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
-public class TimeColumnParser{
+public class TimeColumnParser {
     public static final String LOGICAL_NAME = "org.apache.rocketmq.connect.jdbc.schema.column.parser.TimeColumnParser";
     private static final long MILLIS_PER_DAY = 86400000L;
     private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
@@ -43,7 +43,7 @@ public class TimeColumnParser{
             calendar.setTime(value);
             long unixMillis = calendar.getTimeInMillis();
             if (unixMillis >= 0L && unixMillis <= 86400000L) {
-                return (int)unixMillis;
+                return (int) unixMillis;
             } else {
                 throw new ConnectException("Kafka Connect Time type should not have any date fields set to non-zero values.");
             }
@@ -53,8 +53,8 @@ public class TimeColumnParser{
     public static Date toLogical(Schema schema, int value) {
         if (!LOGICAL_NAME.equals(schema.getName())) {
             throw new ConnectException("Requested conversion of Date object but the schema does not match.");
-        } else if (value >= 0 && (long)value <= 86400000L) {
-            return new Date((long)value);
+        } else if (value >= 0 && (long) value <= 86400000L) {
+            return new Date((long) value);
         } else {
             throw new ConnectException("Time values must use number of milliseconds greater than 0 and less than 86400000");
         }

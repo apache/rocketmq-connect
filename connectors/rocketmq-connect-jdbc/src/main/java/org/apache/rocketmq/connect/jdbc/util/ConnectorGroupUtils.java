@@ -35,11 +35,11 @@ public class ConnectorGroupUtils {
             int leftover = elements.size() - numGroups * perGroup;
             int assigned = 0;
 
-            for(int group = 0; group < numGroups; ++group) {
+            for (int group = 0; group < numGroups; ++group) {
                 int numThisGroup = group < leftover ? perGroup + 1 : perGroup;
                 List<T> groupList = new ArrayList(numThisGroup);
 
-                for(int i = 0; i < numThisGroup; ++i) {
+                for (int i = 0; i < numThisGroup; ++i) {
                     groupList.add(elements.get(assigned));
                     ++assigned;
                 }

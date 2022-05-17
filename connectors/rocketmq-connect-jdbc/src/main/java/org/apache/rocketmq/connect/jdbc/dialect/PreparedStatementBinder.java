@@ -37,94 +37,94 @@ import java.util.Objects;
  */
 public class PreparedStatementBinder implements DatabaseDialect.StatementBinder {
 
-  private final JdbcSinkConfig.PrimaryKeyMode pkMode;
-  private final PreparedStatement statement;
-  private final SchemaPair schemaPair;
-  private final FieldsMetadata fieldsMetadata;
-  private final JdbcSinkConfig.InsertMode insertMode;
-  private final DatabaseDialect dialect;
-  private final TableDefinition tabDef;
+    private final JdbcSinkConfig.PrimaryKeyMode pkMode;
+    private final PreparedStatement statement;
+    private final SchemaPair schemaPair;
+    private final FieldsMetadata fieldsMetadata;
+    private final JdbcSinkConfig.InsertMode insertMode;
+    private final DatabaseDialect dialect;
+    private final TableDefinition tabDef;
 
-  public PreparedStatementBinder(
-      DatabaseDialect dialect,
-      PreparedStatement statement,
-      JdbcSinkConfig.PrimaryKeyMode pkMode,
-      SchemaPair schemaPair,
-      FieldsMetadata fieldsMetadata,
-      TableDefinition tabDef,
-      JdbcSinkConfig.InsertMode insertMode
-  ) {
-    this.dialect = dialect;
-    this.pkMode = pkMode;
-    this.statement = statement;
-    this.schemaPair = schemaPair;
-    this.fieldsMetadata = fieldsMetadata;
-    this.insertMode = insertMode;
-    this.tabDef = tabDef;
-  }
-
-  @Override
-  public void bindRecord(ConnectRecord record) throws SQLException {
-    final boolean isDelete = Objects.isNull(record.getData());
-
-    int index = 1;
-    if (isDelete) {
-      bindKeyFields(record, index);
-    } else {
-      switch (insertMode) {
-        case INSERT:
-        case UPSERT:
-          index = bindKeyFields(record, index);
-          bindNonKeyFields(record,index);
-          break;
-
-        case UPDATE:
-          index = bindNonKeyFields(record, index);
-          bindKeyFields(record, index);
-          break;
-        default:
-          throw new AssertionError();
-
-      }
+    public PreparedStatementBinder(
+            DatabaseDialect dialect,
+            PreparedStatement statement,
+            JdbcSinkConfig.PrimaryKeyMode pkMode,
+            SchemaPair schemaPair,
+            FieldsMetadata fieldsMetadata,
+            TableDefinition tabDef,
+            JdbcSinkConfig.InsertMode insertMode
+    ) {
+        this.dialect = dialect;
+        this.pkMode = pkMode;
+        this.statement = statement;
+        this.schemaPair = schemaPair;
+        this.fieldsMetadata = fieldsMetadata;
+        this.insertMode = insertMode;
+        this.tabDef = tabDef;
     }
-    statement.addBatch();
-  }
 
-  protected int bindKeyFields(ConnectRecord record, int index) throws SQLException {
-    switch (pkMode) {
-      case NONE:
-        if (!fieldsMetadata.keyFieldNames.isEmpty()) {
-          throw new AssertionError();
+    @Override
+    public void bindRecord(ConnectRecord record) throws SQLException {
+        final boolean isDelete = Objects.isNull(record.getData());
+
+        int index = 1;
+        if (isDelete) {
+            bindKeyFields(record, index);
+        } else {
+            switch (insertMode) {
+                case INSERT:
+                case UPSERT:
+                    index = bindKeyFields(record, index);
+                    bindNonKeyFields(record, index);
+                    break;
+
+                case UPDATE:
+                    index = bindNonKeyFields(record, index);
+                    bindKeyFields(record, index);
+                    break;
+                default:
+                    throw new AssertionError();
+
+            }
         }
-        break;
-      case RECORD_VALUE: {
-        Object[] data=JSONArray.parseArray(JSON.toJSONString(record.getData())).stream().toArray();
-        for (String fieldName : fieldsMetadata.keyFieldNames) {
-          final Field field = schemaPair.schema.getField(fieldName);
-          bindField(index++, field.getSchema(), data[field.getIndex()] , fieldName);
+        statement.addBatch();
+    }
+
+    protected int bindKeyFields(ConnectRecord record, int index) throws SQLException {
+        switch (pkMode) {
+            case NONE:
+                if (!fieldsMetadata.keyFieldNames.isEmpty()) {
+                    throw new AssertionError();
+                }
+                break;
+            case RECORD_VALUE: {
+                Object[] data = JSONArray.parseArray(JSON.toJSONString(record.getData())).stream().toArray();
+                for (String fieldName : fieldsMetadata.keyFieldNames) {
+                    final Field field = schemaPair.schema.getField(fieldName);
+                    bindField(index++, field.getSchema(), data[field.getIndex()], fieldName);
+                }
+            }
+            break;
+            default:
+                throw new ConnectException("Unknown primary key mode: " + pkMode);
         }
-      }
-      break;
-      default:
-        throw new ConnectException("Unknown primary key mode: " + pkMode);
+        return index;
     }
-    return index;
-  }
 
-  protected int bindNonKeyFields(
-          ConnectRecord record,
-          int index
-  ) throws SQLException {
-    for (final String fieldName : fieldsMetadata.nonKeyFieldNames) {
-      final Field field = record.getSchema().getField(fieldName);
-      bindField(index++, field.getSchema(), ((Object[])record.getData())[field.getIndex()] , fieldName);
+    protected int bindNonKeyFields(
+            ConnectRecord record,
+            int index
+    ) throws SQLException {
+        for (final String fieldName : fieldsMetadata.nonKeyFieldNames) {
+            final Field field = record.getSchema().getField(fieldName);
+            bindField(index++, field.getSchema(), ((Object[]) record.getData())[field.getIndex()], fieldName);
+        }
+        return index;
     }
-    return index;
-  }
 
-  protected void bindField(int index, Schema schema, Object value, String fieldName)
-      throws SQLException {
-    ColumnDefinition colDef = tabDef == null ? null : tabDef.definitionForColumn(fieldName);
-    dialect.bindField(statement, index, schema, value, colDef);
-  }
+    protected void bindField(int index, Schema schema, Object value, String fieldName)
+            throws SQLException {
+        ColumnDefinition colDef = tabDef == null ? null : tabDef.definitionForColumn(fieldName);
+        dialect.bindField(statement, index, schema, value, colDef);
+    }
 }

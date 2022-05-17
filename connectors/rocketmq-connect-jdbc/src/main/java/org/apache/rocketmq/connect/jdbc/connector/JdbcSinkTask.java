@@ -51,6 +51,7 @@ public class JdbcSinkTask extends SinkTask {
 
     /**
      * Put the records to the sink
+     *
      * @param records
      */
     @Override
@@ -89,7 +90,7 @@ public class JdbcSinkTask extends SinkTask {
 
     @Override
     public void start(SinkTaskContext context) {
-        this.context=context;
+        this.context = context;
     }
 
     /**
@@ -105,6 +106,7 @@ public class JdbcSinkTask extends SinkTask {
 
     /**
      * Init the component
+     *
      * @param keyValue
      */
     @Override
@@ -141,8 +143,11 @@ public class JdbcSinkTask extends SinkTask {
     }
 
     @Override
-    public void pause() {}
+    public void pause() {
+    }
+
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
 }

@@ -27,79 +27,79 @@ import java.util.Objects;
  */
 public class ColumnId implements ExpressionBuilder.Expressable {
 
-  private final TableId tableId;
-  private final String name;
-  private final String alias;
-  private final int hash;
+    private final TableId tableId;
+    private final String name;
+    private final String alias;
+    private final int hash;
 
-  public ColumnId(
-      TableId tableId,
-      String columnName
-  ) {
-    this(tableId, columnName, null);
-  }
-
-  public ColumnId(
-      TableId tableId,
-      String columnName,
-      String alias
-  ) {
-    assert columnName != null;
-    this.tableId = tableId;
-    this.name = columnName;
-    this.alias = alias != null && !alias.trim().isEmpty() ? alias : name;
-    this.hash = Objects.hash(this.tableId, this.name);
-  }
-
-  public TableId tableId() {
-    return tableId;
-  }
-
-  public String name() {
-    return name;
-  }
-
-  public String aliasOrName() {
-    return alias;
-  }
-
-  @Override
-  public void appendTo(ExpressionBuilder builder, boolean useQuotes) {
-    appendTo(builder, useQuotes ? QuoteMethod.ALWAYS : QuoteMethod.NEVER);
-  }
-
-  @Override
-  public void appendTo(
-      ExpressionBuilder builder,
-      QuoteMethod useQuotes
-  ) {
-    if (tableId != null) {
-      builder.append(tableId);
-      builder.appendIdentifierDelimiter();
+    public ColumnId(
+            TableId tableId,
+            String columnName
+    ) {
+        this(tableId, columnName, null);
     }
-    builder.appendColumnName(this.name, useQuotes);
-  }
 
-  @Override
-  public int hashCode() {
-    return hash;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
-      return true;
+    public ColumnId(
+            TableId tableId,
+            String columnName,
+            String alias
+    ) {
+        assert columnName != null;
+        this.tableId = tableId;
+        this.name = columnName;
+        this.alias = alias != null && !alias.trim().isEmpty() ? alias : name;
+        this.hash = Objects.hash(this.tableId, this.name);
     }
-    if (obj instanceof ColumnId) {
-      ColumnId that = (ColumnId) obj;
-      return Objects.equals(this.name, that.name) && Objects.equals(this.alias, that.alias)
-             && Objects.equals(this.tableId, that.tableId);
-    }
-    return false;
-  }
 
-  @Override
-  public String toString() {
-    return ExpressionBuilder.create().append(this).toString();
-  }
+    public TableId tableId() {
+        return tableId;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public String aliasOrName() {
+        return alias;
+    }
+
+    @Override
+    public void appendTo(ExpressionBuilder builder, boolean useQuotes) {
+        appendTo(builder, useQuotes ? QuoteMethod.ALWAYS : QuoteMethod.NEVER);
+    }
+
+    @Override
+    public void appendTo(
+            ExpressionBuilder builder,
+            QuoteMethod useQuotes
+    ) {
+        if (tableId != null) {
+            builder.append(tableId);
+            builder.appendIdentifierDelimiter();
+        }
+        builder.appendColumnName(this.name, useQuotes);
+    }
+
+    @Override
+    public int hashCode() {
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj instanceof ColumnId) {
+            ColumnId that = (ColumnId) obj;
+            return Objects.equals(this.name, that.name) && Objects.equals(this.alias, that.alias)
+                    && Objects.equals(this.tableId, that.tableId);
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return ExpressionBuilder.create().append(this).toString();
+    }
 }

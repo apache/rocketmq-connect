@@ -31,7 +31,8 @@ import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.apache.rocketmq.connect.jdbc.source.querier.Querier;
-import org.apache.rocketmq.connect.jdbc.util.*;
+import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
+import org.apache.rocketmq.connect.jdbc.util.QuoteMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,82 +56,85 @@ public class SourceOffsetCompute {
 
     private static final Logger log = LoggerFactory.getLogger(SourceOffsetCompute.class);
     public static final String TOPIC = "topic";
+
     /**
      * source partitions
+     *
      * @param tableId
      * @param offsetSuffix
      * @return
      */
-  public static Map<String, String> sourcePartitions(String prefix, TableId tableId, String offsetSuffix) {
-    String fqn = ExpressionBuilder.create().append(tableId, QuoteMethod.NEVER).toString();
-    Map<String, String> partition = new HashMap<>();
-    partition.put(JdbcSourceConfigConstants.TABLE_NAME_KEY(offsetSuffix), fqn);
-    if (StringUtils.isNotEmpty(prefix)){
-        partition.put(TOPIC,prefix.concat(tableId.tableName()));
-    }else {
-        partition.put(TOPIC,tableId.tableName());
+    public static Map<String, String> sourcePartitions(String prefix, TableId tableId, String offsetSuffix) {
+        String fqn = ExpressionBuilder.create().append(tableId, QuoteMethod.NEVER).toString();
+        Map<String, String> partition = new HashMap<>();
+        partition.put(JdbcSourceConfigConstants.TABLE_NAME_KEY(offsetSuffix), fqn);
+        if (StringUtils.isNotEmpty(prefix)) {
+            partition.put(TOPIC, prefix.concat(tableId.tableName()));
+        } else {
+            partition.put(TOPIC, tableId.tableName());
+        }
+        return partition;
     }
-    return partition;
-  }
 
     /**
      * source partitions
+     *
      * @param offsetSuffix
      * @return
      */
     public static Map<String, String> sourceQueryPartitions(String prefix, String offsetSuffix) {
-        Map<String, String> partition=Collections.singletonMap(JdbcSourceConfigConstants.QUERY_NAME_KEY(offsetSuffix),
+        Map<String, String> partition = Collections.singletonMap(JdbcSourceConfigConstants.QUERY_NAME_KEY(offsetSuffix),
                 JdbcSourceConfigConstants.QUERY_NAME_VALUE);
-        partition.put(TOPIC,prefix);
+        partition.put(TOPIC, prefix);
         return partition;
     }
 
 
     /**
-     * 初始化并计算offset
+     *init and compute offset
      * @return
      */
-  public static  Map<String,Map<String, Object>> initOffset(
-          JdbcSourceTaskConfig config,
-          SourceTaskContext context,
-          DatabaseDialect dialect,
-          CachedConnectionProvider cachedConnectionProvider
-  ) {
+    public static Map<String, Map<String, Object>> initOffset(
+            JdbcSourceTaskConfig config,
+            SourceTaskContext context,
+            DatabaseDialect dialect,
+            CachedConnectionProvider cachedConnectionProvider
+    ) {
 
-      List<String> tables = config.getTables();
-      String query = config.getQuery();
-      JdbcSourceConfig.TableLoadMode mode = JdbcSourceConfig.TableLoadMode.findTableLoadModeByName(config.getMode());
-      Querier.QueryMode queryMode = !StringUtils.isEmpty(query)? Querier.QueryMode.QUERY : Querier.QueryMode.TABLE;
+        List<String> tables = config.getTables();
+        String query = config.getQuery();
+        JdbcSourceConfig.TableLoadMode mode = JdbcSourceConfig.TableLoadMode.findTableLoadModeByName(config.getMode());
+        Querier.QueryMode queryMode = !StringUtils.isEmpty(query) ? Querier.QueryMode.QUERY : Querier.QueryMode.TABLE;
 
-      // step 1 -——-- 计算分区
-      Map<String, RecordPartition> partitionsByTableFqn = buildTablePartitions(mode,queryMode,tables,dialect,config.getOffsetSuffix(),config.getTopicPrefix());
-      // step 2 ----- 获取历史存储的offset信息
-      Map<RecordPartition, RecordOffset> offsets = null;
-      if (partitionsByTableFqn!=null){
-          offsets=context.offsetStorageReader().readOffsets(partitionsByTableFqn.values());
-      }
-      // step 3 ----- 计算 offset 初始值信息
-      List<String> tablesOrQuery = queryMode == Querier.QueryMode.QUERY ? Collections.singletonList(query) : tables;
-      return initOffsetValues(
-              cachedConnectionProvider,
-              dialect,queryMode,
-              partitionsByTableFqn,
-              offsets,
-              config,
-              tablesOrQuery
-      );
-  }
+        // step 1 -——-- compute partitions
+        Map<String, RecordPartition> partitionsByTableFqn = buildTablePartitions(mode, queryMode, tables, dialect, config.getOffsetSuffix(), config.getTopicPrefix());
+        // step 2 ----- get last time offset
+        Map<RecordPartition, RecordOffset> offsets = null;
+        if (partitionsByTableFqn != null) {
+            offsets = context.offsetStorageReader().readOffsets(partitionsByTableFqn.values());
+        }
+        // step 3 ----- compute offset init value
+        List<String> tablesOrQuery = queryMode == Querier.QueryMode.QUERY ? Collections.singletonList(query) : tables;
+        return initOffsetValues(
+                cachedConnectionProvider,
+                dialect, queryMode,
+                partitionsByTableFqn,
+                offsets,
+                config,
+                tablesOrQuery
+        );
+    }
 
-    private static  Map<String,Map<String, Object>> initOffsetValues(
+    private static Map<String, Map<String, Object>> initOffsetValues(
             CachedConnectionProvider cachedConnectionProvider,
-                            DatabaseDialect dialect,
-                            Querier.QueryMode queryMode,
-                            Map<String, RecordPartition> partitionsByTableFqn,
-                            Map<RecordPartition, RecordOffset> offsets,
-                            JdbcSourceTaskConfig config,
-                            List<String> tablesOrQuery) {
+            DatabaseDialect dialect,
+            Querier.QueryMode queryMode,
+            Map<String, RecordPartition> partitionsByTableFqn,
+            Map<RecordPartition, RecordOffset> offsets,
+            JdbcSourceTaskConfig config,
+            List<String> tablesOrQuery) {
 
-        Map<String,Map<String, Object>> offsetsValues = Maps.newHashMap();
+        Map<String, Map<String, Object>> offsetsValues = Maps.newHashMap();
 
         String incrementingColumn = config.getIncrementingColumnName();
         List<String> timestampColumns = config.getTimestampColumnNames();
@@ -155,14 +159,14 @@ public class SourceOffsetCompute {
                     tablePartitionsToCheck = partitionsByTableFqn.get(tableOrQuery);
                     break;
                 case QUERY:
-                    partition = sourceQueryPartitions(config.getTopicPrefix(),config.getOffsetSuffix());
-                    tablePartitionsToCheck =new RecordPartition(partition);
+                    partition = sourceQueryPartitions(config.getTopicPrefix(), config.getOffsetSuffix());
+                    tablePartitionsToCheck = new RecordPartition(partition);
                     break;
                 default:
                     throw new ConnectException("Unexpected query mode: " + queryMode);
             }
-            Map<String, Object> offset = null ;
-            if (offsets != null && tablePartitionsToCheck !=null) {
+            Map<String, Object> offset = null;
+            if (offsets != null && tablePartitionsToCheck != null) {
                 offset = (Map<String, Object>) offsets.get(tablePartitionsToCheck).getOffset();
             }
             offset = computeInitialOffset(
@@ -190,7 +194,7 @@ public class SourceOffsetCompute {
     ) {
         try {
             Set<String> lowercaseTsColumns = new HashSet<>();
-            for (String timestampColumn: timestampColumns) {
+            for (String timestampColumn : timestampColumns) {
                 lowercaseTsColumns.add(timestampColumn.toLowerCase(Locale.getDefault()));
             }
             boolean incrementingOptional = false;
@@ -242,9 +246,7 @@ public class SourceOffsetCompute {
             String tableOrQuery,
             Map<String, Object> partitionOffset,
             TimeZone timezone,
-            // 初始时间设置
             Long timestampInitial,
-            // 时间增量字段
             List<String> timestampColumns
     ) {
         if (Objects.nonNull(partitionOffset)) {
@@ -268,13 +270,10 @@ public class SourceOffsetCompute {
                 initialPartitionOffset.put(TimestampIncrementingOffset.TIMESTAMP_FIELD, timestampInitial);
                 log.info("No offsets found for '{}', so using configured timestamp {}", tableOrQuery,
                         timestampInitial);
-            }else{
-                //只有table模式才能查time字段最小值
-                if(queryMode != Querier.QueryMode.TABLE){
+            } else {
+                if (queryMode != Querier.QueryMode.TABLE) {
                     return initialPartitionOffset;
                 }
-                //没有设置timestampInitial的情况，起始ts会从0开始，即最早的时间
-                //这种情况查一下源表中的时间字段的最小值，作为起始时间
                 try {
                     final Connection con = cachedConnectionProvider.getConnection();
                     timestampInitial = dialect.getMinTimestampValue(con, tableOrQuery, timestampColumns);
@@ -291,43 +290,44 @@ public class SourceOffsetCompute {
 
 
     /**
-   * build table partitions
-   * @param tableLoadMode
-   * @param queryMode
-   * @param tables
-   * @param dialect
-   * @return
-   */
-  private  static Map<String, RecordPartition> buildTablePartitions(
-          JdbcSourceConfig.TableLoadMode tableLoadMode,
-          Querier.QueryMode queryMode,
-          List<String> tables,
-          DatabaseDialect dialect,
-          String offsetSuffix,String topicPrefix){
+     * build table partitions
+     *
+     * @param tableLoadMode
+     * @param queryMode
+     * @param tables
+     * @param dialect
+     * @return
+     */
+    private static Map<String, RecordPartition> buildTablePartitions(
+            JdbcSourceConfig.TableLoadMode tableLoadMode,
+            Querier.QueryMode queryMode,
+            List<String> tables,
+            DatabaseDialect dialect,
+            String offsetSuffix, String topicPrefix) {
 
-   Map<String, RecordPartition> partitionsByTableFqn = new HashMap<>();
-   if (tableLoadMode==JdbcSourceConfig.TableLoadMode.MODE_INCREMENTING
-           || tableLoadMode==JdbcSourceConfig.TableLoadMode.MODE_TIMESTAMP
-           || tableLoadMode==JdbcSourceConfig.TableLoadMode.MODE_TIMESTAMP_INCREMENTING) {
-     switch (queryMode) {
-       case TABLE:
-         for (String table : tables) {
-           // Find possible partition maps for different offset protocols
-           // We need to search by all offset protocol partition keys to support compatibility
-           TableId tableId = dialect.parseToTableId(table);
-           RecordPartition tablePartition=new RecordPartition(SourceOffsetCompute.sourcePartitions(topicPrefix,tableId, offsetSuffix));
-           partitionsByTableFqn.put(table, tablePartition);
-         }
-         break;
-       case QUERY:
-         partitionsByTableFqn.put(JdbcSourceConfigConstants.QUERY_NAME_VALUE,
-                 new RecordPartition(sourceQueryPartitions(topicPrefix,offsetSuffix))
-         );
-         break;
-       default:
-         throw new ConnectException("Unknown query mode: " + queryMode);
-     }
-   }
-   return partitionsByTableFqn;
- }
+        Map<String, RecordPartition> partitionsByTableFqn = new HashMap<>();
+        if (tableLoadMode == JdbcSourceConfig.TableLoadMode.MODE_INCREMENTING
+                || tableLoadMode == JdbcSourceConfig.TableLoadMode.MODE_TIMESTAMP
+                || tableLoadMode == JdbcSourceConfig.TableLoadMode.MODE_TIMESTAMP_INCREMENTING) {
+            switch (queryMode) {
+                case TABLE:
+                    for (String table : tables) {
+                        // Find possible partition maps for different offset protocols
+                        // We need to search by all offset protocol partition keys to support compatibility
+                        TableId tableId = dialect.parseToTableId(table);
+                        RecordPartition tablePartition = new RecordPartition(SourceOffsetCompute.sourcePartitions(topicPrefix, tableId, offsetSuffix));
+                        partitionsByTableFqn.put(table, tablePartition);
+                    }
+                    break;
+                case QUERY:
+                    partitionsByTableFqn.put(JdbcSourceConfigConstants.QUERY_NAME_VALUE,
+                            new RecordPartition(sourceQueryPartitions(topicPrefix, offsetSuffix))
+                    );
+                    break;
+                default:
+                    throw new ConnectException("Unknown query mode: " + queryMode);
+            }
+        }
+        return partitionsByTableFqn;
+    }
 }
