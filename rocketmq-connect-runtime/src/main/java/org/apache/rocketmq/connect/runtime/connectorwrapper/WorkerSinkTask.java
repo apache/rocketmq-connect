@@ -233,6 +233,9 @@ public class WorkerSinkTask implements WorkerTask {
                     log.error(" sink task {},pull message MQClientException, Error {} ", this, e.getMessage(), e);
                     connectStatsManager.incSinkRecordPutTotalFailNums();
                     connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                } finally {
+                    // record sink read times
+                    connectStatsManager.incSinkRecordReadTotalTimes();
                 }
             }
 

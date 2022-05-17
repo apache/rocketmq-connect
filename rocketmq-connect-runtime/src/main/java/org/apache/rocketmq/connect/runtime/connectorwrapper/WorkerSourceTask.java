@@ -178,8 +178,11 @@ public class WorkerSourceTask implements WorkerTask {
                     } catch (Exception e) {
                         connectStatsManager.incSourceRecordPollTotalFailNums();
                         connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                        log.error("Source task RetriableException exception", e);
+                        log.error("Source task Exception exception", e);
                         state.set(WorkerTaskState.ERROR);
+                    } finally {
+                        // record source poll times
+                        connectStatsManager.incSourceRecordPollTotalTimes();
                     }
                 }
                 AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
