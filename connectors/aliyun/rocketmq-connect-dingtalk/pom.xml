@@ -18,7 +18,7 @@
         <junit.version>4.13.1</junit.version>
         <assertj.version>3.22.0</assertj.version>
         <mockito.version>4.0.0</mockito.version>
-        <openmessaging-connector.version>0.1.2-SNAPSHOT</openmessaging-connector.version>
+        <openmessaging-connector.version>0.1.2</openmessaging-connector.version>
         <okhttp.version>3.9.1</okhttp.version>
         <fastjson.version>1.2.62</fastjson.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
