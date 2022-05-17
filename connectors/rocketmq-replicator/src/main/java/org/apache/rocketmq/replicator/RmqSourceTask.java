@@ -28,6 +28,7 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -172,10 +173,8 @@ public class RmqSourceTask extends SourceTask {
                             Schema schema = new Schema(SchemaEnum.MESSAGE.name(), FieldType.STRING, fields);
                             schema.getFields().add(new Field(0, FieldName.COMMON_MESSAGE.getKey(), SchemaBuilder.string().build()));
                             for (MessageExt msg : msgs) {
-                                JSONObject jsonObject = new JSONObject();
-                                jsonObject.put(FieldName.COMMON_MESSAGE.getKey(), new String(msg.getBody()));
-                                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig.getTopic(), taskTopicConfig.getBrokerName(), String.valueOf(msg.getQueueId())),
-                                    Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, jsonObject.toJSONString());
+                                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig),
+                                    Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, new String(msg.getBody(), StandardCharsets.UTF_8));
                                 final Map<String, String> properties = msg.getProperties();
                                 final Set<String> keys = properties.keySet();
                                 keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));
@@ -249,8 +248,7 @@ public class RmqSourceTask extends SourceTask {
         OffsetStorageReader offsetStorageReader) {
         Map<TaskTopicInfo, Long> positionMap = new HashMap<>();
         for (TaskTopicInfo tti : taskList) {
-            RecordOffset positionInfo = offsetStorageReader.readOffset(Utils.offsetKey(tti.getTopic(), tti.getBrokerName(),
-                String.valueOf(tti.getQueueId())));
+            RecordOffset positionInfo = offsetStorageReader.readOffset(Utils.offsetKey(tti));
             if (positionInfo != null && null != positionInfo.getOffset()) {
                 Map<String, ?> offset = positionInfo.getOffset();
                 Object lastRecordedOffset = offset.get(RmqConstants.NEXT_POSITION);

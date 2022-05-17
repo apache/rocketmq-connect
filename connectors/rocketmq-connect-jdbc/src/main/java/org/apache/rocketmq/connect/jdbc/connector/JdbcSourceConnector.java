@@ -17,89 +17,97 @@
 
 package org.apache.rocketmq.connect.jdbc.connector;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.rocketmq.connect.jdbc.config.*;
+import com.beust.jcommander.internal.Lists;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.internal.DefaultKeyValue;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.jdbc.util.ConnectorGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
 
 public class JdbcSourceConnector extends SourceConnector {
     private static final Logger log = LoggerFactory.getLogger(JdbcSourceConnector.class);
-    private DbConnectorConfig dbConnectorConfig;
-    private volatile boolean configValid = false;
+    private JdbcSourceConfig jdbcSourceConfig;
+    private KeyValue originalConfig;
 
-    public JdbcSourceConnector() {
-        dbConnectorConfig = new SourceDbConnectorConfig();
+
+    /**
+     * Should invoke before start the connector.
+     *
+     * @param config
+     * @return error message
+     */
+    @Override
+    public void validate(KeyValue config) {
+        jdbcSourceConfig = new JdbcSourceConfig(config);
+        // validate config
     }
 
+    /**
+     * Init the component
+     *
+     * @param config
+     */
     @Override
-    public String verifyAndSetConfig(KeyValue config) {
-
-        log.info("JdbcSourceConnector verifyAndSetConfig enter");
-        for (String requestKey : Config.REQUEST_CONFIG) {
-
-            if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
-            }
+    public void init(KeyValue config) {
+        if (config.containsKey("connect-topicname")){
+            config.put("connect-topicname","");
         }
-        try {
-            this.dbConnectorConfig.validate(config);
-        } catch (IllegalArgumentException e) {
-            return e.getMessage();
-        }
-        this.configValid = true;
-
-        return "";
-    }
-
-    @Override
-    public void start() {
-        log.info("JdbcSourceConnector start");
+        originalConfig = config;
     }
 
     @Override
     public void stop() {
-
     }
 
     @Override
     public void pause() {
-
     }
 
     @Override
     public void resume() {
+    }
 
+    /**
+     * Returns a set of configurations for Tasks based on the current configuration,
+     * producing at most count configurations.
+     *
+     * @param maxTasks maximum number of configurations to generate
+     * @return configurations for Tasks
+     */
+    @Override
+    public List<KeyValue> taskConfigs(int maxTasks) {
+
+        log.info("Connector task config divide["+maxTasks+"]" );
+        List<KeyValue> keyValues=Lists.newArrayList();
+        List<String> tables = Lists.newArrayList();
+        log.info("Connector table white list["+jdbcSourceConfig.getTableWhitelist()+"]" );
+        jdbcSourceConfig.getTableWhitelist().forEach(table->{
+            tables.add(table);
+        });
+        maxTasks = tables.size() > maxTasks ? maxTasks: tables.size();
+
+        List<List<String>> tablesGrouped =
+                ConnectorGroupUtils.groupPartitions(tables, maxTasks);
+        for (List<String> tableGroup:tablesGrouped) {
+            KeyValue keyValue = new DefaultKeyValue();
+            for (String key: originalConfig.keySet()){
+                keyValue.put(key,originalConfig.getString(key));
+            }
+            keyValue.put(JdbcSourceTaskConfig.TABLES_CONFIG,StringUtils.join(tableGroup,","));
+            keyValues.add(keyValue);
+        }
+        return keyValues;
     }
 
     @Override
     public Class<? extends Task> taskClass() {
         return JdbcSourceTask.class;
-    }
-
-    @Override
-    public List<KeyValue> taskConfigs() {
-        log.info("List.start");
-        if (!configValid) {
-            return new ArrayList<KeyValue>();
-        }
-
-        TaskDivideConfig tdc = new TaskDivideConfig(
-                this.dbConnectorConfig.getDbUrl(),
-                this.dbConnectorConfig.getDbPort(),
-                this.dbConnectorConfig.getDbUserName(),
-                this.dbConnectorConfig.getDbPassword(),
-                this.dbConnectorConfig.getConverter(),
-                DataType.COMMON_MESSAGE.ordinal(),
-                this.dbConnectorConfig.getTaskParallelism(),
-                this.dbConnectorConfig.getMode()
-        );
-        return this.dbConnectorConfig.getTaskDivideStrategy().divide(this.dbConnectorConfig, tdc);
     }
 
 }

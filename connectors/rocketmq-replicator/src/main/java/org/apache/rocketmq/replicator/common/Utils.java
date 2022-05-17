@@ -34,6 +34,7 @@ import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -208,16 +209,16 @@ public class Utils {
         return targetMQAdminExt;
     }
 
-    public static RecordPartition offsetKey(String topic, String broker, String queueId) {
-        Map<String, String> map = new HashMap<>();
-        map.put(RmqConstants.TOPIC_NAME, topic);
-        map.put(RmqConstants.BROKER_NAME, broker);
-        map.put(RmqConstants.QUEUE_ID, queueId);
+    public static RecordPartition offsetKey(MessageQueue mq) {
+        Map<String, String> map = new HashMap<>(4);
+        map.put(RmqConstants.TOPIC_NAME, mq.getTopic());
+        map.put(RmqConstants.BROKER_NAME, mq.getBrokerName());
+        map.put(RmqConstants.QUEUE_ID, String.valueOf(mq.getQueueId()));
         return new RecordPartition(map);
     }
 
     public static RecordOffset offsetValue(Long pos) {
-        Map<String, String> map = new HashMap<>();
+        Map<String, String> map = new HashMap<>(2);
         map.put(RmqConstants.NEXT_POSITION, String.valueOf(pos));
         return new RecordOffset(map);
     }
