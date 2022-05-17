@@ -138,7 +138,7 @@ public class MetaSourceTask extends SourceTask {
 
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put(FieldName.OFFSET.getKey(), targetOffset);
-                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(mq.getTopic(), mq.getBrokerName(), String.valueOf(mq.getQueueId())),
+                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(mq),
                     Utils.offsetValue(srcOffset), System.currentTimeMillis(), schema, jsonObject.toJSONString());
                 res.add(connectRecord);
             }
