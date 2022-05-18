@@ -25,38 +25,38 @@ import java.util.Objects;
  * schema pair
  */
 public class SchemaPair {
-  public final Schema schema;
-  public final KeyValue extensions;
+    public final Schema schema;
+    public final KeyValue extensions;
 
-  public SchemaPair(Schema schema) {
-    this.schema = schema;
-    this.extensions = null;
-  }
-
-  public SchemaPair(Schema schema, KeyValue extensions) {
-    this.schema = schema;
-    this.extensions = extensions;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    public SchemaPair(Schema schema) {
+        this.schema = schema;
+        this.extensions = null;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
+
+    public SchemaPair(Schema schema, KeyValue extensions) {
+        this.schema = schema;
+        this.extensions = extensions;
     }
-    SchemaPair that = (SchemaPair) o;
-    return Objects.equals(schema, that.schema);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(schema);
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SchemaPair that = (SchemaPair) o;
+        return Objects.equals(schema, that.schema);
+    }
 
-  @Override
-  public String toString() {
-    return String.format("<SchemaPair: %s>", schema);
-  }
+    @Override
+    public int hashCode() {
+        return Objects.hash(schema);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("<SchemaPair: %s>", schema);
+    }
 }

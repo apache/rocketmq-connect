@@ -23,12 +23,12 @@ import io.openmessaging.connector.api.errors.ConnectException;
  */
 public class TableAlterOrCreateException extends ConnectException {
 
-  public TableAlterOrCreateException(String reason) {
-    super(reason);
-  }
+    public TableAlterOrCreateException(String reason) {
+        super(reason);
+    }
 
-  public TableAlterOrCreateException(String reason, Throwable throwable) {
-    super(reason, throwable);
-  }
+    public TableAlterOrCreateException(String reason, Throwable throwable) {
+        super(reason, throwable);
+    }
 }
 

@@ -40,100 +40,100 @@ import java.util.Map;
  * bulk mode
  */
 public class BulkQuerier extends Querier {
-  private static final Logger log = LoggerFactory.getLogger(BulkQuerier.class);
+    private static final Logger log = LoggerFactory.getLogger(BulkQuerier.class);
 
-  public BulkQuerier(
-      DatabaseDialect dialect,
-      QueryMode mode,
-      String name,
-      String topicPrefix,
-      String suffix,
-      String offsetSuffix
-  ) {
-    super(dialect, mode, name, topicPrefix, suffix, offsetSuffix);
-  }
-
-  @Override
-  protected void createPreparedStatement(Connection db) throws SQLException {
-    ExpressionBuilder builder = dialect.expressionBuilder();
-    switch (mode) {
-      case TABLE:
-        dialect.buildSelectTable(builder, tableId);
-        break;
-      case QUERY:
-        builder.append(query);
-        break;
-      default:
-        throw new ConnectException("Unknown mode: " + mode);
+    public BulkQuerier(
+            DatabaseDialect dialect,
+            QueryMode mode,
+            String name,
+            String topicPrefix,
+            String suffix,
+            String offsetSuffix
+    ) {
+        super(dialect, mode, name, topicPrefix, suffix, offsetSuffix);
     }
 
-    String queryStr = builder.toString();
-    recordQuery(queryStr);
-    log.debug("{} prepared SQL query: {}", this, queryStr);
-    stmt = dialect.createPreparedStatement(db, queryStr);
-  }
+    @Override
+    protected void createPreparedStatement(Connection db) throws SQLException {
+        ExpressionBuilder builder = dialect.expressionBuilder();
+        switch (mode) {
+            case TABLE:
+                dialect.buildSelectTable(builder, tableId);
+                break;
+            case QUERY:
+                builder.append(query);
+                break;
+            default:
+                throw new ConnectException("Unknown mode: " + mode);
+        }
 
-  @Override
-  protected ResultSet executeQuery() throws SQLException {
-    log.info("Bulk executeQuery {}", stmt);
-    long begin = System.currentTimeMillis();
-    ResultSet resultSet = stmt.executeQuery();
-    log.info("Bulk executeQuery  cost time {}", System.currentTimeMillis() - begin);
-    return resultSet;
-  }
-
-  @Override
-  public ConnectRecord extractRecord() throws SQLException {
-    Schema schema = schemaMapping.schema();
-    Object[] payload=new Object[schema.getFields().size()];
-    for (SchemaMapping.FieldSetter setter : schemaMapping.fieldSetters()) {
-      try {
-        setter.setField(payload, resultSet);
-      } catch (IOException e) {
-        log.warn("Error mapping fields into Connect record", e);
-        throw new ConnectException(e);
-      } catch (SQLException e) {
-        log.warn("SQL error mapping fields into Connect record", e);
-        throw new SQLException(e);
-      }
+        String queryStr = builder.toString();
+        recordQuery(queryStr);
+        log.debug("{} prepared SQL query: {}", this, queryStr);
+        stmt = dialect.createPreparedStatement(db, queryStr);
     }
-    // TODO: key from primary key? partition?
-    final String topic;
-    final Map<String, String> partition=new HashMap<>();
-    switch (mode) {
-      case TABLE:
-        // backwards compatible
-        String name = tableId.tableName();
-        topic = topicPrefix + name;
-        partition.put(JdbcSourceConfigConstants.TABLE_NAME_KEY(this.offsetSuffix), name);
-        partition.put("topic",topic);
-        break;
-      case QUERY:
-        partition .put(JdbcSourceConfigConstants.QUERY_NAME_KEY(this.offsetSuffix),
-                JdbcSourceConfigConstants.QUERY_NAME_VALUE);
-        topic = topicPrefix;
-        partition.put("topic",topic);
-        break;
-      default:
-        throw new ConnectException("Unexpected query mode: " + mode);
-    }
-    // build record
-    ConnectRecord record=new ConnectRecord(
-            // offset partition
-            // offset partition
-            new RecordPartition(partition),
-            new RecordOffset(new HashMap<>()),
-            System.currentTimeMillis(),
-            schema,
-            payload
-    );
-    return record;
-  }
 
-  @Override
-  public String toString() {
-    return "BulkTableQuerier{" + "table='" + tableId + '\'' + ", query='" + query + '\''
-           + ", topicPrefix='" + topicPrefix + '\'' + '}';
-  }
+    @Override
+    protected ResultSet executeQuery() throws SQLException {
+        log.info("Bulk executeQuery {}", stmt);
+        long begin = System.currentTimeMillis();
+        ResultSet resultSet = stmt.executeQuery();
+        log.info("Bulk executeQuery  cost time {}", System.currentTimeMillis() - begin);
+        return resultSet;
+    }
+
+    @Override
+    public ConnectRecord extractRecord() throws SQLException {
+        Schema schema = schemaMapping.schema();
+        Object[] payload = new Object[schema.getFields().size()];
+        for (SchemaMapping.FieldSetter setter : schemaMapping.fieldSetters()) {
+            try {
+                setter.setField(payload, resultSet);
+            } catch (IOException e) {
+                log.warn("Error mapping fields into Connect record", e);
+                throw new ConnectException(e);
+            } catch (SQLException e) {
+                log.warn("SQL error mapping fields into Connect record", e);
+                throw new SQLException(e);
+            }
+        }
+        // TODO: key from primary key? partition?
+        final String topic;
+        final Map<String, String> partition = new HashMap<>();
+        switch (mode) {
+            case TABLE:
+                // backwards compatible
+                String name = tableId.tableName();
+                topic = topicPrefix + name;
+                partition.put(JdbcSourceConfigConstants.TABLE_NAME_KEY(this.offsetSuffix), name);
+                partition.put("topic", topic);
+                break;
+            case QUERY:
+                partition.put(JdbcSourceConfigConstants.QUERY_NAME_KEY(this.offsetSuffix),
+                        JdbcSourceConfigConstants.QUERY_NAME_VALUE);
+                topic = topicPrefix;
+                partition.put("topic", topic);
+                break;
+            default:
+                throw new ConnectException("Unexpected query mode: " + mode);
+        }
+        // build record
+        ConnectRecord record = new ConnectRecord(
+                // offset partition
+                // offset partition
+                new RecordPartition(partition),
+                new RecordOffset(new HashMap<>()),
+                System.currentTimeMillis(),
+                schema,
+                payload
+        );
+        return record;
+    }
+
+    @Override
+    public String toString() {
+        return "BulkTableQuerier{" + "table='" + tableId + '\'' + ", query='" + query + '\''
+                + ", topicPrefix='" + topicPrefix + '\'' + '}';
+    }
 
 }

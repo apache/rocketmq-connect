@@ -45,6 +45,7 @@ public class ConfigDef {
     public static final Object NO_DEFAULT_VALUE = new Object();
 
     private final Map<String, ConfigKey> configKeys;
+
     public ConfigDef() {
         configKeys = new LinkedHashMap<>();
     }
@@ -59,7 +60,7 @@ public class ConfigDef {
     }
 
     /**
-     * 不验证
+     * no validate
      * @param name
      * @param type
      * @param defaultValue
@@ -67,12 +68,12 @@ public class ConfigDef {
      * @param documentation
      * @return
      */
-    public ConfigDef define(String name, Type type, Object defaultValue, Validator validator,  String documentation) {
+    public ConfigDef define(String name, Type type, Object defaultValue, Validator validator, String documentation) {
         return define(new ConfigKey(name, type, defaultValue, validator, documentation));
     }
 
     /**
-     * 加验证
+     * validate config
      * @param name
      * @param type
      * @param defaultValue
@@ -86,6 +87,7 @@ public class ConfigDef {
 
     /**
      * Get the configuration keys
+     *
      * @return a map containing all configuration keys
      */
     public Map<String, ConfigKey> configKeys() {
@@ -94,6 +96,7 @@ public class ConfigDef {
 
     /**
      * parse props
+     *
      * @param props
      * @return
      */
@@ -108,6 +111,7 @@ public class ConfigDef {
 
     /**
      * convert + validate
+     *
      * @param key
      * @param value
      * @param isSet
@@ -130,9 +134,9 @@ public class ConfigDef {
     }
 
 
-
     /**
      * Parse a value according to its expected type.
+     *
      * @param name  The config name
      * @param value The config value
      * @param type  The expected type
@@ -260,16 +264,14 @@ public class ConfigDef {
     }
 
 
-
-
-
     /**
      * Validation logic the user may provide to perform single configuration validation.
      */
     public interface Validator {
         /**
          * Perform single configuration validation.
-         * @param name The name of the configuration
+         *
+         * @param name  The name of the configuration
          * @param value The value of the configuration
          * @throws ConfigException if the value is invalid.
          */
@@ -282,17 +284,21 @@ public class ConfigDef {
     public static class Range implements Validator {
         private final Number min;
         private final Number max;
+
         /**
-         *  A numeric range with inclusive upper bound and inclusive lower bound
-         * @param min  the lower bound
-         * @param max  the upper bound
+         * A numeric range with inclusive upper bound and inclusive lower bound
+         *
+         * @param min the lower bound
+         * @param max the upper bound
          */
         private Range(Number min, Number max) {
             this.min = min;
             this.max = max;
         }
+
         /**
          * A numeric range that checks only the lower bound
+         *
          * @param min The minimum acceptable value
          */
         public static Range atLeast(Number min) {
@@ -469,7 +475,7 @@ public class ConfigDef {
 
         @Override
         public void ensureValid(String name, Object value) {
-            for (Validator validator: validators) {
+            for (Validator validator : validators) {
                 validator.ensureValid(name, value);
             }
         }
@@ -480,7 +486,7 @@ public class ConfigDef {
                 return "";
             }
             StringBuilder desc = new StringBuilder();
-            for (Validator v: validators) {
+            for (Validator v : validators) {
                 if (desc.length() > 0) {
                     desc.append(',').append(' ');
                 }
@@ -511,6 +517,7 @@ public class ConfigDef {
         public static NonEmptyStringWithoutControlChars nonEmptyStringWithoutControlChars() {
             return new NonEmptyStringWithoutControlChars();
         }
+
         @Override
         public void ensureValid(String name, Object value) {
             String s = (String) value;

@@ -55,8 +55,8 @@ public class JdbcSourceConnector extends SourceConnector {
      */
     @Override
     public void init(KeyValue config) {
-        if (config.containsKey("connect-topicname")){
-            config.put("connect-topicname","");
+        if (config.containsKey("connect-topicname")) {
+            config.put("connect-topicname", "");
         }
         originalConfig = config;
     }
@@ -83,23 +83,23 @@ public class JdbcSourceConnector extends SourceConnector {
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
 
-        log.info("Connector task config divide["+maxTasks+"]" );
-        List<KeyValue> keyValues=Lists.newArrayList();
+        log.info("Connector task config divide[" + maxTasks + "]");
+        List<KeyValue> keyValues = Lists.newArrayList();
         List<String> tables = Lists.newArrayList();
-        log.info("Connector table white list["+jdbcSourceConfig.getTableWhitelist()+"]" );
-        jdbcSourceConfig.getTableWhitelist().forEach(table->{
+        log.info("Connector table white list[" + jdbcSourceConfig.getTableWhitelist() + "]");
+        jdbcSourceConfig.getTableWhitelist().forEach(table -> {
             tables.add(table);
         });
-        maxTasks = tables.size() > maxTasks ? maxTasks: tables.size();
+        maxTasks = tables.size() > maxTasks ? maxTasks : tables.size();
 
         List<List<String>> tablesGrouped =
                 ConnectorGroupUtils.groupPartitions(tables, maxTasks);
-        for (List<String> tableGroup:tablesGrouped) {
+        for (List<String> tableGroup : tablesGrouped) {
             KeyValue keyValue = new DefaultKeyValue();
-            for (String key: originalConfig.keySet()){
-                keyValue.put(key,originalConfig.getString(key));
+            for (String key : originalConfig.keySet()) {
+                keyValue.put(key, originalConfig.getString(key));
             }
-            keyValue.put(JdbcSourceTaskConfig.TABLES_CONFIG,StringUtils.join(tableGroup,","));
+            keyValue.put(JdbcSourceTaskConfig.TABLES_CONFIG, StringUtils.join(tableGroup, ","));
             keyValues.add(keyValue);
         }
         return keyValues;

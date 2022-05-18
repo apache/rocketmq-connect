@@ -38,11 +38,12 @@ public class JdbcSourceConfig extends AbstractConfig {
     public enum TableLoadMode {
         MODE_BULK("bulk"),
         MODE_TIMESTAMP("timestamp"),
-        MODE_INCREMENTING( "incrementing"),
+        MODE_INCREMENTING("incrementing"),
         MODE_TIMESTAMP_INCREMENTING("timestamp+incrementing");
         private String name;
+
         TableLoadMode(String name) {
-            this.name=name;
+            this.name = name;
         }
 
         public String getName() {
@@ -52,13 +53,14 @@ public class JdbcSourceConfig extends AbstractConfig {
         public void setName(String name) {
             this.name = name;
         }
-        public static TableLoadMode findTableLoadModeByName(String name){
-            for (TableLoadMode mode : TableLoadMode.values()){
-                if (mode.getName().equals(name)){
+
+        public static TableLoadMode findTableLoadModeByName(String name) {
+            for (TableLoadMode mode : TableLoadMode.values()) {
+                if (mode.getName().equals(name)) {
                     return mode;
                 }
             }
-            throw new IllegalArgumentException("Unsupports mode "+ name);
+            throw new IllegalArgumentException("Unsupports mode " + name);
         }
     }
 
@@ -217,30 +219,31 @@ public class JdbcSourceConfig extends AbstractConfig {
     private TimeZone timeZone;
     private String offsetSuffix;
     private String querySuffix;
+
     public JdbcSourceConfig(KeyValue config) {
         super(config);
-        this.pollIntervalMs = config.getInt(POLL_INTERVAL_MS_CONFIG,POLL_INTERVAL_MS_DEFAULT);
-        this.batchMaxRows = config.getInt(BATCH_MAX_ROWS_CONFIG,BATCH_MAX_ROWS_DEFAULT);
-        this.numericPrecisionMapping = getBoolean(config,NUMERIC_PRECISION_MAPPING_CONFIG,NUMERIC_PRECISION_MAPPING_DEFAULT);
-        this.numericMapping = config.getString(NUMERIC_MAPPING_CONFIG,NUMERIC_MAPPING_DEFAULT);
-        this.dialectName = config.getString(DIALECT_NAME_CONFIG, DIALECT_NAME_DEFAULT );
+        this.pollIntervalMs = config.getInt(POLL_INTERVAL_MS_CONFIG, POLL_INTERVAL_MS_DEFAULT);
+        this.batchMaxRows = config.getInt(BATCH_MAX_ROWS_CONFIG, BATCH_MAX_ROWS_DEFAULT);
+        this.numericPrecisionMapping = getBoolean(config, NUMERIC_PRECISION_MAPPING_CONFIG, NUMERIC_PRECISION_MAPPING_DEFAULT);
+        this.numericMapping = config.getString(NUMERIC_MAPPING_CONFIG, NUMERIC_MAPPING_DEFAULT);
+        this.dialectName = config.getString(DIALECT_NAME_CONFIG, DIALECT_NAME_DEFAULT);
         this.mode = config.getString(MODE_CONFIG);
         this.incrementingColumnName = config.getString(INCREMENTING_COLUMN_NAME_CONFIG);
-        this.timestampColumnNames = getList(config,TIMESTAMP_COLUMN_NAME_CONFIG);
-        timestampDelayIntervalMs=config.getLong(TIMESTAMP_DELAY_INTERVAL_MS_CONFIG);
+        this.timestampColumnNames = getList(config, TIMESTAMP_COLUMN_NAME_CONFIG);
+        timestampDelayIntervalMs = config.getLong(TIMESTAMP_DELAY_INTERVAL_MS_CONFIG);
         this.timestampInitial = config.containsKey(TIMESTAMP_INITIAL_CONFIG) ? config.getLong(TIMESTAMP_INITIAL_CONFIG) : TIMESTAMP_INITIAL_DEFAULT;
-        this.tableWhitelist = new HashSet<>(getList(config,TABLE_WHITELIST_CONFIG));
-        this.tableBlacklist = new HashSet<>(getList(config,TABLE_BLACKLIST_CONFIG));
+        this.tableWhitelist = new HashSet<>(getList(config, TABLE_WHITELIST_CONFIG));
+        this.tableBlacklist = new HashSet<>(getList(config, TABLE_BLACKLIST_CONFIG));
         this.schemaPattern = config.getString(SCHEMA_PATTERN_CONFIG);
         this.catalogPattern = config.getString(CATALOG_PATTERN_CONFIG);
         this.query = config.getString(QUERY_CONFIG);
         this.topicPrefix = config.getString(TOPIC_PREFIX_CONFIG);
-        this.validateNonNull = getBoolean(config,VALIDATE_NON_NULL_CONFIG,VALIDATE_NON_NULL_DEFAULT);
-        tableTypes = TableType.parse(getList(config,TABLE_TYPE_CONFIG,TABLE_TYPE_DEFAULT)) ;
-        String dbTimeZone =config.getString(DB_TIMEZONE_CONFIG,DB_TIMEZONE_DEFAULT);
-        this.timeZone=TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
-        this.querySuffix=config.getString(QUERY_SUFFIX_CONFIG,QUERY_SUFFIX_DEFAULT);
-        this.offsetSuffix=config.getString(OFFSET_SUFFIX_CONFIG,OFFSET_SUFFIX_DEFAULT);
+        this.validateNonNull = getBoolean(config, VALIDATE_NON_NULL_CONFIG, VALIDATE_NON_NULL_DEFAULT);
+        tableTypes = TableType.parse(getList(config, TABLE_TYPE_CONFIG, TABLE_TYPE_DEFAULT));
+        String dbTimeZone = config.getString(DB_TIMEZONE_CONFIG, DB_TIMEZONE_DEFAULT);
+        this.timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
+        this.querySuffix = config.getString(QUERY_SUFFIX_CONFIG, QUERY_SUFFIX_DEFAULT);
+        this.offsetSuffix = config.getString(OFFSET_SUFFIX_CONFIG, OFFSET_SUFFIX_DEFAULT);
     }
 
 

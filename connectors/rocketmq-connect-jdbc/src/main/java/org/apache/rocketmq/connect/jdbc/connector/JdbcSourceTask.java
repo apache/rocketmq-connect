@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,7 +20,7 @@ package org.apache.rocketmq.connect.jdbc.connector;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
-import io.openmessaging.connector.api.data.*;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory;
@@ -65,7 +64,6 @@ public class JdbcSourceTask extends SourceTask {
     @Override
     public List<ConnectRecord> poll() {
         log.trace(" Polling for new data");
-        // 连续空的次数
         Map<Querier, Integer> consecutiveEmptyResults = tableQueue.stream().collect(Collectors.toMap(Function.identity(), (q) -> 0));
         while (running.get()) {
             final Querier querier = tableQueue.peek();
@@ -138,9 +136,9 @@ public class JdbcSourceTask extends SourceTask {
     private void resetAndRequeueHead(Querier querier) {
         log.debug("Resetting querier {}", querier.toString());
         tableQueue.poll();
-        if(running.get()){
+        if (running.get()) {
             querier.reset(System.currentTimeMillis());
-        }else{  //不跑了，可能是暂停，也可能是停止
+        } else {
             querier.reset(0);
         }
         tableQueue.add(querier);
@@ -149,21 +147,24 @@ public class JdbcSourceTask extends SourceTask {
 
     /**
      * Should invoke before start the connector.
+     *
      * @param config
      * @return error message
      */
     @Override
-    public void validate(KeyValue config) { }
+    public void validate(KeyValue config) {
+    }
 
     /**
      * start jdbc task
+     *
      * @param context
      */
     @Override
     public void start(SourceTaskContext context) {
         // compute table offset
-        Map<String,Map<String, Object>> offsetValues= SourceOffsetCompute.initOffset(config, context, dialect, cachedConnectionProvider);
-        for (String tableOrQuery: offsetValues.keySet()) {
+        Map<String, Map<String, Object>> offsetValues = SourceOffsetCompute.initOffset(config, context, dialect, cachedConnectionProvider);
+        for (String tableOrQuery : offsetValues.keySet()) {
             this.buildAndAddQuerier(
                     JdbcSourceConfig.TableLoadMode.findTableLoadModeByName(this.config.getMode()),
                     this.config.getQuerySuffix(),
@@ -180,6 +181,7 @@ public class JdbcSourceTask extends SourceTask {
 
     /**
      * build and add querier
+     *
      * @param loadMode
      * @param querySuffix
      * @param incrementingColumn
@@ -193,7 +195,7 @@ public class JdbcSourceTask extends SourceTask {
         String topicPrefix = config.getTopicPrefix();
         Querier.QueryMode queryMode = !StringUtils.isEmpty(config.getQuery()) ? Querier.QueryMode.QUERY : Querier.QueryMode.TABLE;
         Querier querier = null;
-        switch (loadMode){
+        switch (loadMode) {
             case MODE_BULK:
                 querier = new BulkQuerier(
                         dialect,
@@ -222,7 +224,7 @@ public class JdbcSourceTask extends SourceTask {
                 tableQueue.add(querier);
                 break;
             case MODE_TIMESTAMP:
-                 querier = new TimestampIncrementingQuerier(
+                querier = new TimestampIncrementingQuerier(
                         dialect,
                         queryMode,
                         tableOrQuery,
@@ -238,7 +240,7 @@ public class JdbcSourceTask extends SourceTask {
                 tableQueue.add(querier);
                 break;
             case MODE_TIMESTAMP_INCREMENTING:
-                 querier = new TimestampIncrementingQuerier(
+                querier = new TimestampIncrementingQuerier(
                         dialect,
                         queryMode,
                         tableOrQuery,
@@ -249,7 +251,7 @@ public class JdbcSourceTask extends SourceTask {
                         timestampDelayInterval,
                         timeZone,
                         querySuffix,
-                         this.config.getOffsetSuffix()
+                        this.config.getOffsetSuffix()
                 );
                 tableQueue.add(querier);
                 break;
@@ -257,13 +259,14 @@ public class JdbcSourceTask extends SourceTask {
     }
 
     /**
-         * Init the component
-         * @param props
-         */
+     * Init the component
+     *
+     * @param props
+     */
     @Override
     public void init(KeyValue props) {
         try {
-            config=new JdbcSourceTaskConfig(props);
+            config = new JdbcSourceTaskConfig(props);
             final String dialectName = config.getDialectName();
             final String url = config.getConnectionDbUrl();
             if (dialectName != null && !dialectName.trim().isEmpty()) {
@@ -321,11 +324,11 @@ public class JdbcSourceTask extends SourceTask {
 
     @Override
     public void pause() {
-        //TODO do nothing
+        // do nothing
     }
 
     @Override
     public void resume() {
-        //TODO do nothing
+        // do nothing
     }
 }

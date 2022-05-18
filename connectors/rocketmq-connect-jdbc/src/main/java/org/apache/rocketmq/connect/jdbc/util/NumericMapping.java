@@ -29,25 +29,26 @@ public enum NumericMapping {
     BEST_FIT_EAGER_DOUBLE;
 
     private static final Map<String, NumericMapping> reverse = new HashMap<>(values().length);
+
     static {
-      for (NumericMapping val : values()) {
-        reverse.put(val.name().toLowerCase(Locale.ROOT), val);
-      }
+        for (NumericMapping val : values()) {
+            reverse.put(val.name().toLowerCase(Locale.ROOT), val);
+        }
     }
 
     public static NumericMapping get(String prop) {
-      // not adding a check for null value because the recommender/validator should catch those.
-      return reverse.get(prop.toLowerCase(Locale.ROOT));
+        // not adding a check for null value because the recommender/validator should catch those.
+        return reverse.get(prop.toLowerCase(Locale.ROOT));
     }
 
     public static NumericMapping get(JdbcSourceConfig config) {
-      // We use 'null' as default to be able to check the old config if the new one is unset.
-      if (config.getNumericMapping() != null) {
-        return NumericMapping.valueOf(config.getNumericMapping());
-      }
-      if (config.getNumericPrecisionMapping()) {
-        return NumericMapping.PRECISION_ONLY;
-      }
-      return NumericMapping.NONE;
+        // We use 'null' as default to be able to check the old config if the new one is unset.
+        if (config.getNumericMapping() != null) {
+            return NumericMapping.valueOf(config.getNumericMapping());
+        }
+        if (config.getNumericPrecisionMapping()) {
+            return NumericMapping.PRECISION_ONLY;
+        }
+        return NumericMapping.NONE;
     }
-  }
+}

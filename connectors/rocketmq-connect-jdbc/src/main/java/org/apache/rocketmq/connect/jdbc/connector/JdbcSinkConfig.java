@@ -72,7 +72,7 @@ public class JdbcSinkConfig extends AbstractConfig {
     private static final int RETRY_BACKOFF_MS_DEFAULT = 3000;
 
     public static final String BATCH_SIZE = "batch.size";
-    private static final int BATCH_SIZE_DEFAULT = 3000;
+    private static final int BATCH_SIZE_DEFAULT = 100;
 
 
     public static final String DELETE_ENABLED = "delete.enabled";
@@ -184,27 +184,27 @@ public class JdbcSinkConfig extends AbstractConfig {
 
     public JdbcSinkConfig(KeyValue config) {
         super(config);
-        tableNameFormat = config.getString(TABLE_NAME_FORMAT,TABLE_NAME_FORMAT_DEFAULT).trim();
-        tableFromHeader=getBoolean(config,TABLE_NAME_FROM_HEADER,false);
-        batchSize = config.getInt(BATCH_SIZE);
-        deleteEnabled = getBoolean(config,DELETE_ENABLED,DELETE_ENABLED_DEFAULT);
-        maxRetries = config.getInt(MAX_RETRIES,MAX_RETRIES_DEFAULT);
-        retryBackoffMs =config.getInt(RETRY_BACKOFF_MS,RETRY_BACKOFF_MS_DEFAULT);
-        autoCreate = getBoolean(config,AUTO_CREATE,AUTO_CREATE_DEFAULT);
-        autoEvolve = getBoolean(config,AUTO_EVOLVE,AUTO_EVOLVE_DEFAULT);
-        if (Objects.nonNull(config.getString(INSERT_MODE))){
-            insertMode = InsertMode.valueOf(config.getString(INSERT_MODE,INSERT_MODE_DEFAULT).toUpperCase());
+        tableNameFormat = config.getString(TABLE_NAME_FORMAT, TABLE_NAME_FORMAT_DEFAULT).trim();
+        tableFromHeader = getBoolean(config, TABLE_NAME_FROM_HEADER, false);
+        batchSize = config.getInt(BATCH_SIZE, BATCH_SIZE_DEFAULT);
+        deleteEnabled = getBoolean(config, DELETE_ENABLED, DELETE_ENABLED_DEFAULT);
+        maxRetries = config.getInt(MAX_RETRIES, MAX_RETRIES_DEFAULT);
+        retryBackoffMs = config.getInt(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT);
+        autoCreate = getBoolean(config, AUTO_CREATE, AUTO_CREATE_DEFAULT);
+        autoEvolve = getBoolean(config, AUTO_EVOLVE, AUTO_EVOLVE_DEFAULT);
+        if (Objects.nonNull(config.getString(INSERT_MODE))) {
+            insertMode = InsertMode.valueOf(config.getString(INSERT_MODE, INSERT_MODE_DEFAULT).toUpperCase());
         }
 
-        pkMode = PrimaryKeyMode.valueOf(config.getString(PK_MODE,PK_MODE_DEFAULT).toUpperCase());
-        pkFields = getList(config,PK_FIELDS);
+        pkMode = PrimaryKeyMode.valueOf(config.getString(PK_MODE, PK_MODE_DEFAULT).toUpperCase());
+        pkFields = getList(config, PK_FIELDS);
         dialectName = config.getString(DIALECT_NAME_CONFIG);
-        fieldsWhitelist = new HashSet<>(getList(config,FIELDS_WHITELIST));
+        fieldsWhitelist = new HashSet<>(getList(config, FIELDS_WHITELIST));
         // table white list
-        tableWhitelist =new HashSet<>(getList(config,TABLE_WHITE_LIST_CONFIG));
-        String dbTimeZone = config.getString(DB_TIMEZONE_CONFIG,DB_TIMEZONE_DEFAULT);
+        tableWhitelist = new HashSet<>(getList(config, TABLE_WHITE_LIST_CONFIG));
+        String dbTimeZone = config.getString(DB_TIMEZONE_CONFIG, DB_TIMEZONE_DEFAULT);
         timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
-        tableTypes = TableType.parse(getList(config,TABLE_TYPES_CONFIG,TABLE_TYPES_DEFAULT));
+        tableTypes = TableType.parse(getList(config, TABLE_TYPES_CONFIG, TABLE_TYPES_DEFAULT));
 
     }
 
@@ -274,21 +274,22 @@ public class JdbcSinkConfig extends AbstractConfig {
 
     /**
      * filter white table
+     *
      * @param dbDialect
      * @param tableId
      * @return
      */
     public boolean filterWhiteTable(DatabaseDialect dbDialect, TableId tableId) {
         // not filter table
-        if (tableWhitelist.isEmpty()){
+        if (tableWhitelist.isEmpty()) {
             return true;
         }
-        for (String tableName: tableWhitelist){
-            TableId table=dbDialect.parseToTableId(tableName);
-            if(table.catalogName() != null && table.catalogName().equals(tableId.catalogName())){
+        for (String tableName : tableWhitelist) {
+            TableId table = dbDialect.parseToTableId(tableName);
+            if (table.catalogName() != null && table.catalogName().equals(tableId.catalogName())) {
                 return true;
             }
-            if (table.tableName().equals(tableId.tableName())){
+            if (table.tableName().equals(tableId.tableName())) {
                 return true;
             }
         }

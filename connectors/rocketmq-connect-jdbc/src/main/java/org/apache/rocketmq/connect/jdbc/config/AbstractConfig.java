@@ -66,13 +66,13 @@ public abstract class AbstractConfig {
     private Long backoffMs;
     private String quoteSqlIdentifiers;
 
-    public AbstractConfig(KeyValue config){
-        connectionDbUrl=config.getString(CONNECTION_URL_CONFIG);
-        connectionDbUser=config.getString(CONNECTION_USER_CONFIG);
-        connectionDbPassword=config.getString(CONNECTION_PASSWORD_CONFIG);
-        attempts=config.getInt(CONNECTION_ATTEMPTS_CONFIG,CONNECTION_ATTEMPTS_DEFAULT);
-        backoffMs=config.getLong(CONNECTION_BACKOFF_CONFIG,CONNECTION_BACKOFF_DEFAULT);
-        quoteSqlIdentifiers=config.getString(QUOTE_SQL_IDENTIFIERS_CONFIG,QUOTE_SQL_IDENTIFIERS_DEFAULT);
+    public AbstractConfig(KeyValue config) {
+        connectionDbUrl = config.getString(CONNECTION_URL_CONFIG);
+        connectionDbUser = config.getString(CONNECTION_USER_CONFIG);
+        connectionDbPassword = config.getString(CONNECTION_PASSWORD_CONFIG);
+        attempts = config.getInt(CONNECTION_ATTEMPTS_CONFIG, CONNECTION_ATTEMPTS_DEFAULT);
+        backoffMs = config.getLong(CONNECTION_BACKOFF_CONFIG, CONNECTION_BACKOFF_DEFAULT);
+        quoteSqlIdentifiers = config.getString(QUOTE_SQL_IDENTIFIERS_CONFIG, QUOTE_SQL_IDENTIFIERS_DEFAULT);
     }
 
 
@@ -102,12 +102,13 @@ public abstract class AbstractConfig {
 
     /**
      * get list
+     *
      * @param config
      * @param key
      * @return
      */
-    protected List<String> getList(KeyValue config, String key){
-        if (!config.containsKey(key) || Objects.isNull(config.getString(key))){
+    protected List<String> getList(KeyValue config, String key) {
+        if (!config.containsKey(key) || Objects.isNull(config.getString(key))) {
             return Lists.newArrayList();
         }
         return Arrays.asList(COMMA_WITH_WHITESPACE.split(config.getString(key), -1));
@@ -115,18 +116,19 @@ public abstract class AbstractConfig {
 
     /**
      * get list
+     *
      * @param config
      * @param key
      * @return
      */
-    protected List<String> getList(KeyValue config, String key,String defaultValue){
-        if (config.containsKey(key) ||Objects.isNull(config.getString(key))){
+    protected List<String> getList(KeyValue config, String key, String defaultValue) {
+        if (config.containsKey(key) || Objects.isNull(config.getString(key))) {
             return Lists.newArrayList(defaultValue);
         }
         return Arrays.asList(COMMA_WITH_WHITESPACE.split(config.getString(key), -1));
     }
 
-    protected Boolean getBoolean(KeyValue config, String key,Boolean defaultValue){
+    protected Boolean getBoolean(KeyValue config, String key, Boolean defaultValue) {
         return config.containsKey(key) ? Boolean.getBoolean(config.getString(key)) : defaultValue;
     }
 

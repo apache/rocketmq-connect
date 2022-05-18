@@ -19,21 +19,21 @@ package org.apache.rocketmq.connect.jdbc.common;
 import org.apache.commons.lang3.StringUtils;
 
 public class JdbcSourceConfigConstants {
-  private static final String TABLE_NAME_KEY_PREFIX = "table";
-  private static final String QUERY_NAME_KEY_PREFIX = "query";
-  public static final String QUERY_NAME_VALUE = "query";
+    private static final String TABLE_NAME_KEY_PREFIX = "table";
+    private static final String QUERY_NAME_KEY_PREFIX = "query";
+    public static final String QUERY_NAME_VALUE = "query";
 
-  public static String TABLE_NAME_KEY(String suffix){
-    if(StringUtils.isEmpty(suffix)){
-      return TABLE_NAME_KEY_PREFIX;
+    public static String TABLE_NAME_KEY(String suffix) {
+        if (StringUtils.isEmpty(suffix)) {
+            return TABLE_NAME_KEY_PREFIX;
+        }
+        return TABLE_NAME_KEY_PREFIX + "-" + suffix;
     }
-    return TABLE_NAME_KEY_PREFIX + "-" + suffix;
-  }
 
-  public static String QUERY_NAME_KEY(String suffix){
-    if(StringUtils.isEmpty(suffix)){
-      return QUERY_NAME_KEY_PREFIX;
+    public static String QUERY_NAME_KEY(String suffix) {
+        if (StringUtils.isEmpty(suffix)) {
+            return QUERY_NAME_KEY_PREFIX;
+        }
+        return QUERY_NAME_KEY_PREFIX + "-" + suffix;
     }
-    return QUERY_NAME_KEY_PREFIX + "-" + suffix;
-  }
 }

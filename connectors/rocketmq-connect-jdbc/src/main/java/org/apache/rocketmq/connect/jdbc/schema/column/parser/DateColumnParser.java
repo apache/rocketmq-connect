@@ -44,7 +44,7 @@ public class DateColumnParser {
             calendar.setTime(value);
             if (calendar.get(11) == 0 && calendar.get(12) == 0 && calendar.get(13) == 0 && calendar.get(14) == 0) {
                 long unixMillis = calendar.getTimeInMillis();
-                return (int)(unixMillis / 86400000L);
+                return (int) (unixMillis / 86400000L);
             } else {
                 throw new ConnectException("Kafka Connect Date type should not have any time fields set to non-zero values.");
             }
@@ -55,7 +55,7 @@ public class DateColumnParser {
         if (!LOGICAL_NAME.equals(schema.getName())) {
             throw new ConnectException("Requested conversion of Date object but the schema does not match.");
         } else {
-            return new java.util.Date((long)value * 86400000L);
+            return new java.util.Date((long) value * 86400000L);
         }
     }
 }

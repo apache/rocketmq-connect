@@ -17,26 +17,26 @@
 package org.apache.rocketmq.connect.jdbc.util;
 
 public enum QuoteMethod {
-  ALWAYS("always"),
-  NEVER("never");
+    ALWAYS("always"),
+    NEVER("never");
 
-  public static QuoteMethod get(String name) {
-    for (QuoteMethod method : values()) {
-      if (method.toString().equalsIgnoreCase(name)) {
-        return method;
-      }
+    public static QuoteMethod get(String name) {
+        for (QuoteMethod method : values()) {
+            if (method.toString().equalsIgnoreCase(name)) {
+                return method;
+            }
+        }
+        throw new IllegalArgumentException("No matching QuoteMethod found for '" + name + "'");
     }
-    throw new IllegalArgumentException("No matching QuoteMethod found for '" + name + "'");
-  }
 
-  private final String name;
+    private final String name;
 
-  QuoteMethod(String name) {
-    this.name = name;
-  }
+    QuoteMethod(String name) {
+        this.name = name;
+    }
 
-  @Override
-  public String toString() {
-    return name;
-  }
+    @Override
+    public String toString() {
+        return name;
+    }
 }

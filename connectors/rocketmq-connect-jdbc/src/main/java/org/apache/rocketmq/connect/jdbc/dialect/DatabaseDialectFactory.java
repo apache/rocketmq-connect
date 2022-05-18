@@ -40,153 +40,154 @@ import java.util.regex.Pattern;
  */
 public class DatabaseDialectFactory {
 
-  /**
-   * regex jdbc protocol
-   */
-  private static final Pattern PROTOCOL_PATTERN = Pattern.compile("jdbc:([^:]+):(.*)");
-  private static final Logger LOG = LoggerFactory.getLogger(DatabaseDialectFactory.class);
-  private static final ConcurrentMap<String, DatabaseDialectProvider> REGISTRY = new ConcurrentSkipListMap<>();
+    /**
+     * regex jdbc protocol
+     */
+    private static final Pattern PROTOCOL_PATTERN = Pattern.compile("jdbc:([^:]+):(.*)");
+    private static final Logger LOG = LoggerFactory.getLogger(DatabaseDialectFactory.class);
+    private static final ConcurrentMap<String, DatabaseDialectProvider> REGISTRY = new ConcurrentSkipListMap<>();
 
-  static {
-    loadAllDialects();
-  }
+    static {
+        loadAllDialects();
+    }
 
-  /**
-   * load all database dialect
-   */
-  private static void loadAllDialects() {
-    LOG.debug("Searching for and loading all JDBC source dialects on the classpath");
-    final AtomicInteger count = new AtomicInteger();
-    AccessController.doPrivileged(new PrivilegedAction<Void>() {
-      @Override
-      public Void run() {
-        ServiceLoader<DatabaseDialectProvider> loadedDialects =
-                ServiceLoader.load(
-                        DatabaseDialectProvider.class,
-                        this.getClass().getClassLoader()
-                );
-        Iterator<DatabaseDialectProvider> dialectIterator = loadedDialects.iterator();
-        try {
-          while (dialectIterator.hasNext()) {
-            try {
-              DatabaseDialectProvider provider = dialectIterator.next();
-              REGISTRY.put(provider.getClass().getName(), provider);
-              count.incrementAndGet();
-              LOG.debug("Found '{}' provider {}", provider, provider.getClass());
-            } catch (Throwable t) {
-              LOG.debug("Skipping dialect provider after error while loading", t);
+    /**
+     * load all database dialect
+     */
+    private static void loadAllDialects() {
+        LOG.debug("Searching for and loading all JDBC source dialects on the classpath");
+        final AtomicInteger count = new AtomicInteger();
+        AccessController.doPrivileged(new PrivilegedAction<Void>() {
+            @Override
+            public Void run() {
+                ServiceLoader<DatabaseDialectProvider> loadedDialects =
+                        ServiceLoader.load(
+                                DatabaseDialectProvider.class,
+                                this.getClass().getClassLoader()
+                        );
+                Iterator<DatabaseDialectProvider> dialectIterator = loadedDialects.iterator();
+                try {
+                    while (dialectIterator.hasNext()) {
+                        try {
+                            DatabaseDialectProvider provider = dialectIterator.next();
+                            REGISTRY.put(provider.getClass().getName(), provider);
+                            count.incrementAndGet();
+                            LOG.debug("Found '{}' provider {}", provider, provider.getClass());
+                        } catch (Throwable t) {
+                            LOG.debug("Skipping dialect provider after error while loading", t);
+                        }
+                    }
+                } catch (Throwable t) {
+                    LOG.debug("Error loading dialect providers", t);
+                }
+                return null;
             }
-          }
-        } catch (Throwable t) {
-          LOG.debug("Error loading dialect providers", t);
+        });
+        LOG.debug("Registered {} source dialects", count.get());
+    }
+
+
+    /**
+     * find dialect for
+     *
+     * @param jdbcUrl
+     * @param config
+     * @return
+     * @throws ConnectException
+     */
+    public static DatabaseDialect findDialectFor(
+            String jdbcUrl,
+            AbstractConfig config
+    ) throws ConnectException {
+        final JdbcUrlInfo info = extractJdbcUrlInfo(jdbcUrl);
+        LOG.debug("Finding best dialect for {}", info);
+        DatabaseDialectProvider bestMatch = null;
+        for (DatabaseDialectProvider provider : REGISTRY.values()) {
+            if (provider.protocolName().equals(info.subProtocol())) {
+                bestMatch = provider;
+                break;
+            }
         }
-        return null;
-      }
-    });
-    LOG.debug("Registered {} source dialects", count.get());
-  }
-
-
-  /**
-   * find dialect for
-   * @param jdbcUrl
-   * @param config
-   * @return
-   * @throws ConnectException
-   */
-  public static DatabaseDialect findDialectFor(
-          String jdbcUrl,
-          AbstractConfig config
-  ) throws ConnectException {
-    final JdbcUrlInfo info = extractJdbcUrlInfo(jdbcUrl);
-    LOG.debug("Finding best dialect for {}", info);
-    DatabaseDialectProvider bestMatch = null;
-    for (DatabaseDialectProvider provider : REGISTRY.values()) {
-      if (provider.protocolName().equals(info.subProtocol())){
-        bestMatch=provider;
-        break;
-      }
-    }
-    LOG.debug("Using dialect {}  against {}", bestMatch, info);
-    return bestMatch.create(config);
-  }
-
-  /**
-   * create database dialect
-   * @param dialectName
-   * @param config
-   * @return
-   * @throws ConnectException
-   */
-  public static DatabaseDialect create(
-          String dialectName,
-          AbstractConfig config
-  ) throws ConnectException {
-    LOG.debug("Looking for named dialect '{}'", dialectName);
-    Set<String> dialectNames = new HashSet<>();
-    for (DatabaseDialectProvider provider : REGISTRY.values()) {
-      dialectNames.add(provider.dialectName());
-      if (provider.dialectName().equals(dialectName)) {
-        return provider.create(config);
-      }
-    }
-    for (DatabaseDialectProvider provider : REGISTRY.values()) {
-      if (provider.dialectName().equalsIgnoreCase(dialectName)) {
-        return provider.create(config);
-      }
-    }
-    throw new ConnectException(
-        "Unable to find dialect with name '" + dialectName + "' in the available dialects: "
-        + dialectNames
-    );
-  }
-
-  public static JdbcUrlInfo extractJdbcUrlInfo(final String url) {
-    Matcher matcher = PROTOCOL_PATTERN.matcher(url);
-    if (matcher.matches()) {
-      return new JdbcUrlDetails(matcher.group(1), matcher.group(2), url);
-    }
-    throw new ConnectException("Not a valid JDBC URL: " + url);
-  }
-
-
-
-  static class JdbcUrlDetails implements JdbcUrlInfo {
-    final String subprotocol;
-    final String subname;
-    final String url;
-
-    public JdbcUrlDetails(
-        String subprotocol,
-        String subname,
-        String url
-    ) {
-      this.subprotocol = subprotocol;
-      this.subname = subname;
-      this.url = url;
+        LOG.debug("Using dialect {}  against {}", bestMatch, info);
+        return bestMatch.create(config);
     }
 
-    @Override
-    public String subProtocol() {
-      return subprotocol;
+    /**
+     * create database dialect
+     *
+     * @param dialectName
+     * @param config
+     * @return
+     * @throws ConnectException
+     */
+    public static DatabaseDialect create(
+            String dialectName,
+            AbstractConfig config
+    ) throws ConnectException {
+        LOG.debug("Looking for named dialect '{}'", dialectName);
+        Set<String> dialectNames = new HashSet<>();
+        for (DatabaseDialectProvider provider : REGISTRY.values()) {
+            dialectNames.add(provider.dialectName());
+            if (provider.dialectName().equals(dialectName)) {
+                return provider.create(config);
+            }
+        }
+        for (DatabaseDialectProvider provider : REGISTRY.values()) {
+            if (provider.dialectName().equalsIgnoreCase(dialectName)) {
+                return provider.create(config);
+            }
+        }
+        throw new ConnectException(
+                "Unable to find dialect with name '" + dialectName + "' in the available dialects: "
+                        + dialectNames
+        );
     }
 
-    @Override
-    public String subName() {
-      return subname;
+    public static JdbcUrlInfo extractJdbcUrlInfo(final String url) {
+        Matcher matcher = PROTOCOL_PATTERN.matcher(url);
+        if (matcher.matches()) {
+            return new JdbcUrlDetails(matcher.group(1), matcher.group(2), url);
+        }
+        throw new ConnectException("Not a valid JDBC URL: " + url);
     }
 
-    @Override
-    public String url() {
-      return url;
+
+    static class JdbcUrlDetails implements JdbcUrlInfo {
+        final String subprotocol;
+        final String subname;
+        final String url;
+
+        public JdbcUrlDetails(
+                String subprotocol,
+                String subname,
+                String url
+        ) {
+            this.subprotocol = subprotocol;
+            this.subname = subname;
+            this.url = url;
+        }
+
+        @Override
+        public String subProtocol() {
+            return subprotocol;
+        }
+
+        @Override
+        public String subName() {
+            return subname;
+        }
+
+        @Override
+        public String url() {
+            return url;
+        }
+
+        @Override
+        public String toString() {
+            return "JDBC subprotocol '" + subprotocol + "' and source '" + url + "'";
+        }
     }
 
-    @Override
-    public String toString() {
-      return "JDBC subprotocol '" + subprotocol + "' and source '" + url + "'";
+    private DatabaseDialectFactory() {
     }
-  }
-
-  private DatabaseDialectFactory() {
-  }
 }

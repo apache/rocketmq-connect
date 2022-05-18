@@ -26,33 +26,35 @@ import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 public abstract class DatabaseDialectProvider {
 
 
-  private final String name;
-  private final String protocol;
+    private final String name;
+    private final String protocol;
 
-  protected DatabaseDialectProvider(String name,String protocol) {
-    assert name != null;
-    this.name = name;
-    this.protocol = protocol;
-  }
-  /**
-   * create database dialect
-   * @param config
-   * @return
-   */
-  public abstract DatabaseDialect create(AbstractConfig config);
+    protected DatabaseDialectProvider(String name, String protocol) {
+        assert name != null;
+        this.name = name;
+        this.protocol = protocol;
+    }
 
-  public String protocolName() {
-    return protocol;
-  }
+    /**
+     * create database dialect
+     *
+     * @param config
+     * @return
+     */
+    public abstract DatabaseDialect create(AbstractConfig config);
 
-  public String dialectName() {
-    return name;
-  }
+    public String protocolName() {
+        return protocol;
+    }
 
-  @Override
-  public String toString() {
-    return dialectName();
-  }
+    public String dialectName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return dialectName();
+    }
 
 
 }
