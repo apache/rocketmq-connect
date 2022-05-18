@@ -175,6 +175,9 @@ public class RmqSourceTask extends SourceTask {
                             for (MessageExt msg : msgs) {
                                 ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig),
                                     Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, new String(msg.getBody(), StandardCharsets.UTF_8));
+                                final Map<String, String> properties = msg.getProperties();
+                                final Set<String> keys = properties.keySet();
+                                keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));
                                 res.add(connectRecord);
                             }
                             break;
