@@ -20,7 +20,9 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import java.util.Set;
-import org.apache.rocketmq.connect.runtime.ConnectController;
+
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
@@ -32,11 +34,11 @@ public class DefaultConnectorContext implements ConnectorContext {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-    private final ConnectController controller;
+    private final AbstractConnectController controller;
 
     private final String connectorName;
 
-    public DefaultConnectorContext(String connectorName, ConnectController connectController) {
+    public DefaultConnectorContext(String connectorName, AbstractConnectController connectController) {
         this.controller = connectController;
         this.connectorName = connectorName;
     }

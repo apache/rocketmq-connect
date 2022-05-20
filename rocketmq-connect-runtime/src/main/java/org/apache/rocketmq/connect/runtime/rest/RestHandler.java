@@ -25,7 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.rocketmq.connect.runtime.ConnectController;
+
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
@@ -40,13 +42,13 @@ public class RestHandler {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-    private final ConnectController connectController;
+    private final AbstractConnectController connectController;
 
     private static final String CONNECTOR_CONFIGS = "connectorConfigs";
 
     private static final String TASK_CONFIGS = "taskConfigs";
 
-    public RestHandler(ConnectController connectController) {
+    public RestHandler(AbstractConnectController connectController) {
         this.connectController = connectController;
         Javalin app = Javalin.create();
         app.enableCaseSensitiveUrls();

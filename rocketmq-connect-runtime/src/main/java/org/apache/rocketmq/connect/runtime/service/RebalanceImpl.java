@@ -20,7 +20,8 @@ package org.apache.rocketmq.connect.runtime.service;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.connect.runtime.ConnectController;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -58,10 +59,10 @@ public class RebalanceImpl {
      */
     private AllocateConnAndTaskStrategy allocateConnAndTaskStrategy;
 
-    private final ConnectController connectController;
+    private final AbstractConnectController connectController;
 
-    public RebalanceImpl(Worker worker, ConfigManagementService configManagementService,
-        ClusterManagementService clusterManagementService, AllocateConnAndTaskStrategy strategy, ConnectController connectController) {
+    public RebalanceImpl(Worker worker,
+                         ConfigManagementService configManagementService, ClusterManagementService clusterManagementService, AllocateConnAndTaskStrategy strategy, AbstractConnectController connectController) {
 
         this.worker = worker;
         this.configManagementService = configManagementService;

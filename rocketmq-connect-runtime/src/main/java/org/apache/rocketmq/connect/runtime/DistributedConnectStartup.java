@@ -20,15 +20,25 @@ package org.apache.rocketmq.connect.runtime;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConfig;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
+import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.OffsetManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
+import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +46,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Startup class of the runtime worker.
  */
-public class ConnectStartup {
+public class DistributedConnectStartup {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
@@ -50,7 +60,7 @@ public class ConnectStartup {
         start(createConnectController(args));
     }
 
-    private static void start(ConnectController controller) {
+    private static void start(DistributedConnectController controller) {
 
         try {
             controller.start();
@@ -69,7 +79,7 @@ public class ConnectStartup {
      * @param args
      * @return
      */
-    private static ConnectController createConnectController(String[] args) {
+    private static DistributedConnectController createConnectController(String[] args) {
 
         try {
 
@@ -82,7 +92,7 @@ public class ConnectStartup {
             }
 
             // Load configs from command line.
-            ConnectConfig connectConfig = new ConnectConfig();
+            DistributedConfig connectConfig = new DistributedConfig();
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -90,21 +100,36 @@ public class ConnectStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);
-
                     FileAndPropertyUtil.properties2Object(properties, connectConfig);
-
                     in.close();
                 }
             }
 
+            List<String> pluginPaths = new ArrayList<>(16);
+            if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
+                String[] strArr = connectConfig.getPluginPaths().split(",");
+                for (String path : strArr) {
+                    if (StringUtils.isNotEmpty(path)) {
+                        pluginPaths.add(path);
+                    }
+                }
+            }
+            Plugin plugin = new Plugin(pluginPaths);
+            plugin.initPlugin();
+
             // Create controller and initialize.
-            ConnectController controller = new ConnectController(connectConfig);
-            controller.initialize();
+
+            DistributedConnectController controller = new DistributedConnectController(
+                    plugin,
+                    connectConfig,
+                    new ClusterManagementServiceImpl(connectConfig),
+                    new ConfigManagementServiceImpl(connectConfig, plugin),
+                    new PositionManagementServiceImpl(connectConfig),
+                    new OffsetManagementServiceImpl(connectConfig));
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
                 private AtomicInteger shutdownTimes = new AtomicInteger(0);
-
                 @Override
                 public void run() {
                     synchronized (this) {
@@ -133,7 +158,7 @@ public class ConnectStartup {
         Option opt = new Option("c", "configFile", true, "connect config properties file");
         opt.setRequired(false);
         options.addOption(opt);
-
         return options;
+
     }
 }
