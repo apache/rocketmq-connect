@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.service.memory;
 
+import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.errors.ConnectException;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,39 +44,47 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * standalone
+ * memory offset management service impl
  */
-public class MemoryPositionManagementServiceImpl implements PositionManagementService {
+public class FileOffsetManagementServiceImpl implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     protected ExecutorService executor;
+
     /**
-     * Current position info in store.
+     * Current offset info in store.
      */
-    private KeyValueStore<RecordPartition, RecordOffset> positionStore;
+    private KeyValueStore<RecordPartition, RecordOffset> offsetStore;
+
+
+    /**
+     * The updated partition of the task in the current instance.
+     */
+    private Set<RecordPartition> needSyncPartition;
+
     /**
      * Listeners.
      */
-    private PositionUpdateListener positionUpdateListener;
+    private PositionUpdateListener offsetUpdateListener;
 
-
-    public MemoryPositionManagementServiceImpl(ConnectConfig connectConfig) {
-        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
+    public FileOffsetManagementServiceImpl(ConnectConfig connectConfig) {
+        this.offsetStore = new FileBaseKeyValueStore<>(
+                FilePathConfigUtil.getOffsetPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionConverter(),
                 new RecordOffsetConverter());
+        this.needSyncPartition = new ConcurrentSet<>();
     }
-
 
     @Override
     public void start() {
         executor = Executors.newFixedThreadPool(1, ThreadUtils.newThreadFactory(
                 this.getClass().getSimpleName() + "-%d", false));
-        positionStore.load();
+        offsetStore.load();
     }
 
     @Override
     public void stop() {
-        positionStore.persist();
+        offsetStore.persist();
         if (executor != null) {
             executor.shutdown();
             // Best effort wait for any get() and set() tasks (and caller's callbacks) to complete.
@@ -93,36 +103,38 @@ public class MemoryPositionManagementServiceImpl implements PositionManagementSe
 
     @Override
     public void persist() {
-        positionStore.persist();
-    }
-
-    @Override public void load() {
-        positionStore.load();
+        offsetStore.persist();
     }
 
     @Override
-    public void synchronize() { }
+    public void load() {
+        offsetStore.load();
+    }
+
+    @Override
+    public void synchronize() {
+    }
 
     @Override
     public Map<RecordPartition, RecordOffset> getPositionTable() {
-        return positionStore.getKVMap();
+        return offsetStore.getKVMap();
     }
 
     @Override
     public RecordOffset getPosition(RecordPartition partition) {
-        return positionStore.get(partition);
+        return offsetStore.get(partition);
     }
 
     @Override
-    public void putPosition(Map<RecordPartition, RecordOffset> positions) {
-        positionStore.putAll(positions);
+    public void putPosition(Map<RecordPartition, RecordOffset> offsets) {
+        offsetStore.putAll(offsets);
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
             public void onCompletion(Throwable error, Void key, Void result) {
-                if (error != null){
-                    log.error("Failed to persist positions to storage: {}", error);
+                if (error != null) {
+                    log.error("Failed to persist offsets to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist positions to storage: {} ", positions);
+                    log.trace("Successed to persist offsets to storage: {}", offsets);
                 }
             }
         });
@@ -130,34 +142,34 @@ public class MemoryPositionManagementServiceImpl implements PositionManagementSe
 
     @Override
     public void putPosition(RecordPartition partition, RecordOffset position) {
-        positionStore.put(partition, position);
+        offsetStore.put(partition, position);
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
             public void onCompletion(Throwable error, Void key, Void result) {
-                if (error != null){
-                    log.error("Failed to persist positions to storage: {}", error);
+                if (error != null) {
+                    log.error("Failed to persist offsets to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist positions to storage: {} , {} ", partition,position);
+                    log.trace("Successed to persist offsets to storage: {}, {}", partition, position);
                 }
             }
         });
     }
 
     @Override
-    public void removePosition(List<RecordPartition> partitions) {
-        if (null == partitions) {
+    public void removePosition(List<RecordPartition> offsets) {
+        if (null == offsets) {
             return;
         }
-        for (RecordPartition partition : partitions) {
-            positionStore.remove(partition);
+        for (RecordPartition offset : offsets) {
+            offsetStore.remove(offset);
         }
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
             public void onCompletion(Throwable error, Void key, Void result) {
-                if (error != null){
-                    log.error("Failed to persist positions to storage: {}", error);
+                if (error != null) {
+                    log.error("Failed to persist offsets to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist positions to storage: {}", partitions);
+                    log.trace("Successed to persist offsets to storage: {}", offsets);
                 }
             }
         });
@@ -165,12 +177,13 @@ public class MemoryPositionManagementServiceImpl implements PositionManagementSe
 
     @Override
     public void registerListener(PositionUpdateListener listener) {
-        this.positionUpdateListener = listener;
+        this.offsetUpdateListener = listener;
     }
 
-    private Future<Void> triggerListener(DataSynchronizerCallback<Void,Void> callback) {
-        if (this.positionUpdateListener != null ){
-            positionUpdateListener.onPositionUpdate();
+
+    private Future<Void> triggerListener(DataSynchronizerCallback<Void, Void> callback) {
+        if (offsetUpdateListener != null) {
+            offsetUpdateListener.onPositionUpdate();
         }
 
         return executor.submit(new Callable<Void>() {
@@ -181,20 +194,19 @@ public class MemoryPositionManagementServiceImpl implements PositionManagementSe
              * @throws Exception if unable to compute a result
              */
             @Override
-            public Void call()  {
+            public Void call() {
                 try {
-                    positionStore.persist();
+                    offsetStore.persist();
                     if (callback != null) {
-                        callback.onCompletion(null,null,null);
+                        callback.onCompletion(null, null, null);
                     }
-                }catch (Exception error){
-                    callback.onCompletion(error,null,null);
+                } catch (Exception error) {
+                    callback.onCompletion(error, null, null);
                 }
                 return null;
             }
         });
     }
-
 
 }
 

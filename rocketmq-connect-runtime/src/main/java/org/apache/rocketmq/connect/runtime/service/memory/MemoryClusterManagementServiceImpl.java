@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.service.memory;
 
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 
 import java.util.Collections;
@@ -26,7 +28,23 @@ import java.util.List;
  * standalone cluster management service
  */
 public class MemoryClusterManagementServiceImpl implements ClusterManagementService {
-    private final String CURRENT_WORKER_NAME = "standalone-worker";
+
+    private StandaloneConfig config;
+
+    public MemoryClusterManagementServiceImpl(ConnectConfig config) {
+        this.configure(config);
+    }
+
+    /**
+     * Configure class with the given key-value pairs
+     *
+     * @param config can be DistributedConfig or StandaloneConfig
+     */
+    @Override
+    public void configure(ConnectConfig config) {
+        this.config = (StandaloneConfig) config;
+    }
+
     /**
      * Start the cluster manager.
      */
@@ -60,7 +78,7 @@ public class MemoryClusterManagementServiceImpl implements ClusterManagementServ
      */
     @Override
     public List<String> getAllAliveWorkers() {
-        return Collections.singletonList(CURRENT_WORKER_NAME);
+        return Collections.singletonList(this.config.getWorkerId());
     }
 
     /**
@@ -69,10 +87,11 @@ public class MemoryClusterManagementServiceImpl implements ClusterManagementServ
      * @param listener
      */
     @Override
-    public void registerListener(WorkerStatusListener listener) { }
+    public void registerListener(WorkerStatusListener listener) {
+    }
 
     @Override
     public String getCurrentWorker() {
-        return CURRENT_WORKER_NAME;
+        return this.config.getWorkerId();
     }
 }

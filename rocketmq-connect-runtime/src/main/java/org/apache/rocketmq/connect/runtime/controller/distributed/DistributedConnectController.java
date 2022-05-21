@@ -53,7 +53,7 @@ public class DistributedConnectController extends AbstractConnectController {
      */
     private final RebalanceService rebalanceService;
 
-    public DistributedConnectController( Plugin plugin,
+    public DistributedConnectController(Plugin plugin,
                                          DistributedConfig connectConfig,
                                          ClusterManagementService clusterManagementService,
                                          ConfigManagementService configManagementService,
@@ -64,12 +64,11 @@ public class DistributedConnectController extends AbstractConnectController {
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.rebalanceService = new RebalanceService(rebalanceImpl, configManagementService, clusterManagementService);
-        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "ConnectScheduledThread"));
-
     }
 
     @Override
     public void start() {
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "ConnectScheduledThread"));
         super.start();
         rebalanceService.start();
         // Persist configurations of current connectors and tasks.

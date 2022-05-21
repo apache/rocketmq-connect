@@ -20,6 +20,8 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +41,15 @@ public interface PositionManagementService {
     void stop();
 
     /**
+     * Configure class with the given key-value pairs
+     *
+     * @param config can be DistributedConfig or StandaloneConfig
+     */
+    default void configure(ConnectConfig config) {
+
+    }
+
+    /**
      * Persist position info in a persist store.
      */
     void persist();
@@ -50,7 +61,7 @@ public interface PositionManagementService {
 
     /**
      * Synchronize to other nodes.
-     * */
+     */
     void synchronize();
 
     /**

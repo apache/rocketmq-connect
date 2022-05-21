@@ -14,10 +14,8 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package org.apache.rocketmq.connect.runtime.service.memory;
 
-import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.errors.ConnectException;
@@ -36,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,47 +41,39 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * memory offset management service impl
+ * standalone
  */
-public class MemoryOffsetManagementServiceImpl implements PositionManagementService {
+public class FilePositionManagementServiceImpl implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     protected ExecutorService executor;
-
     /**
-     * Current offset info in store.
+     * Current position info in store.
      */
-    private KeyValueStore<RecordPartition, RecordOffset> offsetStore;
-
-
-    /**
-     * The updated partition of the task in the current instance.
-     */
-    private Set<RecordPartition> needSyncPartition;
-
+    private KeyValueStore<RecordPartition, RecordOffset> positionStore;
     /**
      * Listeners.
      */
-    private PositionUpdateListener offsetUpdateListener;
+    private PositionUpdateListener positionUpdateListener;
 
-    public MemoryOffsetManagementServiceImpl(ConnectConfig connectConfig) {
-        this.offsetStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getOffsetPath(connectConfig.getStorePathRootDir()),
+
+    public FilePositionManagementServiceImpl(ConnectConfig connectConfig) {
+        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionConverter(),
                 new RecordOffsetConverter());
-        this.needSyncPartition = new ConcurrentSet<>();
     }
+
 
     @Override
     public void start() {
         executor = Executors.newFixedThreadPool(1, ThreadUtils.newThreadFactory(
                 this.getClass().getSimpleName() + "-%d", false));
-        offsetStore.load();
+        positionStore.load();
     }
 
     @Override
     public void stop() {
-        offsetStore.persist();
+        positionStore.persist();
         if (executor != null) {
             executor.shutdown();
             // Best effort wait for any get() and set() tasks (and caller's callbacks) to complete.
@@ -103,11 +92,12 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
 
     @Override
     public void persist() {
-        offsetStore.persist();
+        positionStore.persist();
     }
 
-    @Override public void load() {
-        offsetStore.load();
+    @Override
+    public void load() {
+        positionStore.load();
     }
 
     @Override
@@ -116,24 +106,24 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
 
     @Override
     public Map<RecordPartition, RecordOffset> getPositionTable() {
-        return offsetStore.getKVMap();
+        return positionStore.getKVMap();
     }
 
     @Override
     public RecordOffset getPosition(RecordPartition partition) {
-        return offsetStore.get(partition);
+        return positionStore.get(partition);
     }
 
     @Override
-    public void putPosition(Map<RecordPartition, RecordOffset> offsets) {
-        offsetStore.putAll(offsets);
+    public void putPosition(Map<RecordPartition, RecordOffset> positions) {
+        positionStore.putAll(positions);
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
             public void onCompletion(Throwable error, Void key, Void result) {
-                if (error != null){
-                    log.error("Failed to persist offsets to storage: {}", error);
+                if (error != null) {
+                    log.error("Failed to persist positions to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist offsets to storage: {}", offsets);
+                    log.trace("Successed to persist positions to storage: {} ", positions);
                 }
             }
         });
@@ -141,34 +131,34 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
 
     @Override
     public void putPosition(RecordPartition partition, RecordOffset position) {
-        offsetStore.put(partition, position);
+        positionStore.put(partition, position);
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
             public void onCompletion(Throwable error, Void key, Void result) {
-                if (error != null){
-                    log.error("Failed to persist offsets to storage: {}", error);
+                if (error != null) {
+                    log.error("Failed to persist positions to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist offsets to storage: {}, {}", partition,position);
+                    log.trace("Successed to persist positions to storage: {} , {} ", partition, position);
                 }
             }
         });
     }
 
     @Override
-    public void removePosition(List<RecordPartition> offsets) {
-        if (null == offsets) {
+    public void removePosition(List<RecordPartition> partitions) {
+        if (null == partitions) {
             return;
         }
-        for (RecordPartition offset : offsets) {
-            offsetStore.remove(offset);
+        for (RecordPartition partition : partitions) {
+            positionStore.remove(partition);
         }
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
             public void onCompletion(Throwable error, Void key, Void result) {
-                if (error != null){
-                    log.error("Failed to persist offsets to storage: {}", error);
+                if (error != null) {
+                    log.error("Failed to persist positions to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist offsets to storage: {}", offsets);
+                    log.trace("Successed to persist positions to storage: {}", partitions);
                 }
             }
         });
@@ -176,13 +166,12 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
 
     @Override
     public void registerListener(PositionUpdateListener listener) {
-        this.offsetUpdateListener = listener;
+        this.positionUpdateListener = listener;
     }
 
-
-    private Future<Void> triggerListener(DataSynchronizerCallback<Void,Void> callback) {
-        if (offsetUpdateListener != null ){
-            offsetUpdateListener.onPositionUpdate();
+    private Future<Void> triggerListener(DataSynchronizerCallback<Void, Void> callback) {
+        if (this.positionUpdateListener != null) {
+            positionUpdateListener.onPositionUpdate();
         }
 
         return executor.submit(new Callable<Void>() {
@@ -193,19 +182,20 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
              * @throws Exception if unable to compute a result
              */
             @Override
-            public Void call()  {
+            public Void call() {
                 try {
-                    offsetStore.persist();
+                    positionStore.persist();
                     if (callback != null) {
-                        callback.onCompletion(null,null,null);
+                        callback.onCompletion(null, null, null);
                     }
-                }catch (Exception error){
-                    callback.onCompletion(error,null,null);
+                } catch (Exception error) {
+                    callback.onCompletion(error, null, null);
                 }
                 return null;
             }
         });
     }
+
 
 }
 

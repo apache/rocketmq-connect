@@ -23,14 +23,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConfig;
-import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
-import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.OffsetManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.FileOffsetManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
@@ -66,7 +64,7 @@ public class StandaloneConnectStartup {
 
         try {
             controller.start();
-            String tip = "The worker [" + controller.getClusterManagementService().getCurrentWorker() + "] boot success.";
+            String tip = "The standalone worker boot success.";
             log.info(tip);
             System.out.printf("%s%n", tip);
         } catch (Throwable e) {
@@ -83,11 +81,10 @@ public class StandaloneConnectStartup {
      */
     private static StandaloneConnectController createConnectController(String[] args) {
         try {
-
             // Build the command line options.
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine = ServerUtil.parseCmdLine("connect", args, buildCommandlineOptions(options),
-                new PosixParser());
+                    new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
             }
@@ -95,7 +92,7 @@ public class StandaloneConnectStartup {
             // Load configs from command line.
             StandaloneConfig connectConfig = new StandaloneConfig();
             if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
+                String file = commandLine.getOptionValue('c').trim();
                 if (file != null) {
                     configFile = file;
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
@@ -105,7 +102,7 @@ public class StandaloneConnectStartup {
                     in.close();
                 }
             }
-            
+
             List<String> pluginPaths = new ArrayList<>(16);
             if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
                 String[] strArr = connectConfig.getPluginPaths().split(",");
@@ -123,14 +120,15 @@ public class StandaloneConnectStartup {
             StandaloneConnectController controller = new StandaloneConnectController(
                     plugin,
                     connectConfig,
-                    new ClusterManagementServiceImpl(connectConfig),
-                    new ConfigManagementServiceImpl(connectConfig, plugin),
-                    new PositionManagementServiceImpl(connectConfig),
-                    new OffsetManagementServiceImpl(connectConfig));
+                    new MemoryClusterManagementServiceImpl(connectConfig),
+                    new MemoryConfigManagementServiceImpl(connectConfig, plugin),
+                    new FilePositionManagementServiceImpl(connectConfig),
+                    new FileOffsetManagementServiceImpl(connectConfig));
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
                 private AtomicInteger shutdownTimes = new AtomicInteger(0);
+
                 @Override
                 public void run() {
                     synchronized (this) {

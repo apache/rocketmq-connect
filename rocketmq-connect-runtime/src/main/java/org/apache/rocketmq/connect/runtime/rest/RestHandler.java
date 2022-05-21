@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
-import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
@@ -76,9 +75,7 @@ public class RestHandler {
 
 
     private void getAllocatedConnectors(Context context) {
-
         Set<WorkerConnector> workerConnectors = connectController.getWorker().getWorkingConnectors();
-        Set<Runnable> workerTasks = connectController.getWorker().getWorkingTasks();
         Map<String, ConnectKeyValue> connectors = new HashMap<>();
         for (WorkerConnector workerConnector : workerConnectors) {
             connectors.put(workerConnector.getConnectorName(), workerConnector.getKeyValue());
