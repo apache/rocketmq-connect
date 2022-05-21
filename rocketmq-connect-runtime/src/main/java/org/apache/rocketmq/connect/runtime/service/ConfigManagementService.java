@@ -21,6 +21,7 @@ import io.openmessaging.connector.api.component.connector.Connector;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 
 /**
@@ -28,6 +29,8 @@ import org.apache.rocketmq.connect.runtime.utils.Plugin;
  * same configs.
  */
 public interface ConfigManagementService {
+
+
 
     /**
      * Start the config manager.
@@ -38,6 +41,14 @@ public interface ConfigManagementService {
      * Stop the config manager.
      */
     void stop();
+
+    /**
+     * Configure class with the given key-value pairs
+     * @param config can be DistributedConfig or StandaloneConfig
+     */
+     default void configure(ConnectConfig config){
+
+     }
 
     /**
      * Get all connector configs from the cluster filter out DELETE set to 1

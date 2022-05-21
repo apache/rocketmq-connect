@@ -3,7 +3,6 @@ package org.apache.rocketmq.connect.runtime.service.memory;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
-import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -16,7 +15,6 @@ import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

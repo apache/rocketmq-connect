@@ -20,36 +20,36 @@ package org.apache.rocketmq.connect.runtime.service.memory;
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import org.apache.rocketmq.common.TopicConfig;
+import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordPositionMapConverter;
-import org.apache.rocketmq.connect.runtime.service.OffsetManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * memory offset management service impl
  */
 public class MemoryOffsetManagementServiceImpl implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+
+    protected ExecutorService executor;
 
     /**
      * Current offset info in store.
@@ -77,12 +77,28 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
 
     @Override
     public void start() {
+        executor = Executors.newFixedThreadPool(1, ThreadUtils.newThreadFactory(
+                this.getClass().getSimpleName() + "-%d", false));
         offsetStore.load();
     }
 
     @Override
     public void stop() {
         offsetStore.persist();
+        if (executor != null) {
+            executor.shutdown();
+            // Best effort wait for any get() and set() tasks (and caller's callbacks) to complete.
+            try {
+                executor.awaitTermination(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            if (!executor.shutdownNow().isEmpty()) {
+                throw new ConnectException("Failed to stop MemoryOffsetManagementServiceImpl. Exiting without cleanly " +
+                        "shutting down pending tasks and/or callbacks.");
+            }
+            executor = null;
+        }
     }
 
     @Override
@@ -111,13 +127,31 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
     @Override
     public void putPosition(Map<RecordPartition, RecordOffset> offsets) {
         offsetStore.putAll(offsets);
-        needSyncPartition.addAll(offsets.keySet());
+        this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
+            @Override
+            public void onCompletion(Throwable error, Void key, Void result) {
+                if (error != null){
+                    log.error("Failed to persist offsets to storage: {}", error);
+                } else {
+                    log.trace("Successed to persist offsets to storage: {}", offsets);
+                }
+            }
+        });
     }
 
     @Override
     public void putPosition(RecordPartition partition, RecordOffset position) {
         offsetStore.put(partition, position);
-        needSyncPartition.add(partition);
+        this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
+            @Override
+            public void onCompletion(Throwable error, Void key, Void result) {
+                if (error != null){
+                    log.error("Failed to persist offsets to storage: {}", error);
+                } else {
+                    log.trace("Successed to persist offsets to storage: {}, {}", partition,position);
+                }
+            }
+        });
     }
 
     @Override
@@ -126,9 +160,18 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
             return;
         }
         for (RecordPartition offset : offsets) {
-            needSyncPartition.remove(offset);
             offsetStore.remove(offset);
         }
+        this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
+            @Override
+            public void onCompletion(Throwable error, Void key, Void result) {
+                if (error != null){
+                    log.error("Failed to persist offsets to storage: {}", error);
+                } else {
+                    log.trace("Successed to persist offsets to storage: {}", offsets);
+                }
+            }
+        });
     }
 
     @Override
@@ -137,8 +180,31 @@ public class MemoryOffsetManagementServiceImpl implements PositionManagementServ
     }
 
 
-    private void triggerListener() {
-        offsetUpdateListener.onPositionUpdate();
+    private Future<Void> triggerListener(DataSynchronizerCallback<Void,Void> callback) {
+        if (offsetUpdateListener != null ){
+            offsetUpdateListener.onPositionUpdate();
+        }
+
+        return executor.submit(new Callable<Void>() {
+            /**
+             * Computes a result, or throws an exception if unable to do so.
+             *
+             * @return computed result
+             * @throws Exception if unable to compute a result
+             */
+            @Override
+            public Void call()  {
+                try {
+                    offsetStore.persist();
+                    if (callback != null) {
+                        callback.onCompletion(null,null,null);
+                    }
+                }catch (Exception error){
+                    callback.onCompletion(error,null,null);
+                }
+                return null;
+            }
+        });
     }
 
 }

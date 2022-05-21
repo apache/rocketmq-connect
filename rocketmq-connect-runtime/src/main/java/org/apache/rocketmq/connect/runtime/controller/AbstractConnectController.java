@@ -13,8 +13,6 @@ import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -61,20 +59,13 @@ public abstract class AbstractConnectController implements ConnectController {
      */
     protected final RestHandler restHandler;
 
-    /**
-     * Thread pool to run schedule task.
-     */
-    protected static ScheduledExecutorService scheduledExecutorService;
+
 
     protected final Plugin plugin;
 
     protected final ConnectStatsManager connectStatsManager;
 
     protected final ConnectStatsService connectStatsService;
-
-    static {
-        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "ConnectScheduledThread"));
-    }
 
     /**
      * init connect controller
@@ -113,36 +104,6 @@ public abstract class AbstractConnectController implements ConnectController {
         offsetManagementService.start();
         worker.start();
         connectStatsService.start();
-
-        // Persist configurations of current connectors and tasks.
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
-            try {
-                this.configManagementService.persist();
-            } catch (Exception e) {
-                log.error("schedule persist config error.", e);
-            }
-        }, 1000, this.connectConfig.getConfigPersistInterval(), TimeUnit.MILLISECONDS);
-
-        // Persist position information of source tasks.
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
-
-            try {
-                this.positionManagementService.persist();
-            } catch (Exception e) {
-                log.error("schedule persist position error.", e);
-            }
-
-        }, 1000, this.connectConfig.getPositionPersistInterval(), TimeUnit.MILLISECONDS);
-
-        // Persist offset information of sink tasks.
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
-            try {
-                this.offsetManagementService.persist();
-            } catch (Exception e) {
-                log.error("schedule persist offset error.", e);
-            }
-        }, 1000, this.connectConfig.getOffsetPersistInterval(), TimeUnit.MILLISECONDS);
-
     }
 
     @Override
@@ -168,12 +129,6 @@ public abstract class AbstractConnectController implements ConnectController {
             clusterManagementService.stop();
         }
 
-        scheduledExecutorService.shutdown();
-        try {
-           scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            log.error("shutdown scheduledExecutorService error.", e);
-        }
     }
 
     public ConnectConfig getConnectConfig() {
