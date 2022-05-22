@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.service.memory;
 
-import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.errors.ConnectException;
@@ -36,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
