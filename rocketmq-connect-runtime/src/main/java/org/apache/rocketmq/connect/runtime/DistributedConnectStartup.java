@@ -57,6 +57,7 @@ public class DistributedConnectStartup {
     public static Properties properties = null;
 
     public static void main(String[] args) {
+        args=new String[]{"-c /Users/sunxiaojian/work/rocketmq/rocketmq-connect/rocketmq-connect-runtime/src/main/resources/connect-distributed-copy.conf"};
         start(createConnectController(args));
     }
 
@@ -94,7 +95,7 @@ public class DistributedConnectStartup {
             // Load configs from command line.
             DistributedConfig connectConfig = new DistributedConfig();
             if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
+                String file = commandLine.getOptionValue('c').trim();
                 if (file != null) {
                     configFile = file;
                     InputStream in = new BufferedInputStream(new FileInputStream(file));

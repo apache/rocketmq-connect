@@ -14,4 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 echo "run rumtime worker"
-cd target/distribution/ && java -cp .:./conf/:./lib/* org.apache.rocketmq.connect.runtime.StandaloneConnectStartup -c conf/standalone-connect.conf
+cd target/distribution/ && java -cp .:./conf/:./lib/* org.apache.rocketmq.connect.runtime.StandaloneConnectStartup -c conf/connect-standalone.conf

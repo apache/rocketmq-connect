@@ -58,11 +58,6 @@ public class FileOffsetManagementServiceImpl implements PositionManagementServic
 
 
     /**
-     * The updated partition of the task in the current instance.
-     */
-    private Set<RecordPartition> needSyncPartition;
-
-    /**
      * Listeners.
      */
     private PositionUpdateListener offsetUpdateListener;
@@ -72,7 +67,6 @@ public class FileOffsetManagementServiceImpl implements PositionManagementServic
                 FilePathConfigUtil.getOffsetPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionConverter(),
                 new RecordOffsetConverter());
-        this.needSyncPartition = new ConcurrentSet<>();
     }
 
     @Override

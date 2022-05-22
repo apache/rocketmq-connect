@@ -57,6 +57,7 @@ public class StandaloneConnectStartup {
     public static Properties properties = null;
 
     public static void main(String[] args) {
+        args=new String[]{"-c /Users/sunxiaojian/work/rocketmq/rocketmq-connect/rocketmq-connect-runtime/src/main/resources/connect-standalone-copy.conf"};
         start(createConnectController(args));
     }
 
