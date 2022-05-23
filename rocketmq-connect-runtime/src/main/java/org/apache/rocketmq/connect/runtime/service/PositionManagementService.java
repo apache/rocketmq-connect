@@ -19,8 +19,8 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 
 import java.util.List;
 import java.util.Map;
@@ -69,23 +69,23 @@ public interface PositionManagementService {
      *
      * @return
      */
-    Map<RecordPartition, RecordOffset> getPositionTable();
+    Map<ExtendRecordPartition, RecordOffset> getPositionTable();
 
-    RecordOffset getPosition(RecordPartition partition);
+    RecordOffset getPosition(ExtendRecordPartition partition);
 
     /**
      * Put a position info.
      */
-    void putPosition(Map<RecordPartition, RecordOffset> positions);
+    void putPosition(Map<ExtendRecordPartition, RecordOffset> positions);
 
-    void putPosition(RecordPartition partition, RecordOffset position);
+    void putPosition(ExtendRecordPartition partition, RecordOffset position);
 
     /**
      * Remove a position info.
      *
      * @param partitions
      */
-    void removePosition(List<RecordPartition> partitions);
+    void removePosition(List<ExtendRecordPartition> partitions);
 
     /**
      * Register a listener.

@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.runtime.service.memory;
 
 import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -26,6 +25,7 @@ import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
@@ -52,7 +52,7 @@ public class FileOffsetManagementServiceImpl implements PositionManagementServic
     /**
      * Current offset info in store.
      */
-    private KeyValueStore<RecordPartition, RecordOffset> offsetStore;
+    private KeyValueStore<ExtendRecordPartition, RecordOffset> offsetStore;
 
 
     /**
@@ -108,17 +108,17 @@ public class FileOffsetManagementServiceImpl implements PositionManagementServic
     }
 
     @Override
-    public Map<RecordPartition, RecordOffset> getPositionTable() {
+    public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
         return offsetStore.getKVMap();
     }
 
     @Override
-    public RecordOffset getPosition(RecordPartition partition) {
+    public RecordOffset getPosition(ExtendRecordPartition partition) {
         return offsetStore.get(partition);
     }
 
     @Override
-    public void putPosition(Map<RecordPartition, RecordOffset> offsets) {
+    public void putPosition(Map<ExtendRecordPartition, RecordOffset> offsets) {
         offsetStore.putAll(offsets);
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
@@ -133,7 +133,7 @@ public class FileOffsetManagementServiceImpl implements PositionManagementServic
     }
 
     @Override
-    public void putPosition(RecordPartition partition, RecordOffset position) {
+    public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
         offsetStore.put(partition, position);
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
             @Override
@@ -148,11 +148,11 @@ public class FileOffsetManagementServiceImpl implements PositionManagementServic
     }
 
     @Override
-    public void removePosition(List<RecordPartition> offsets) {
+    public void removePosition(List<ExtendRecordPartition> offsets) {
         if (null == offsets) {
             return;
         }
-        for (RecordPartition offset : offsets) {
+        for (ExtendRecordPartition offset : offsets) {
             offsetStore.remove(offset);
         }
         this.triggerListener(new DataSynchronizerCallback<Void, Void>() {
