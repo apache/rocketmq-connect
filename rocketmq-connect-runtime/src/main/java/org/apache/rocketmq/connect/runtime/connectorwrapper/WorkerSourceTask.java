@@ -307,6 +307,10 @@ public class WorkerSourceTask implements WorkerTask {
                         log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                         continue;
                     }
+                    String targetTopic = sourceDataEntry.getExtension("topic");
+                    if (targetTopic != null){
+                        sourceMessage.setTopic(targetTopic);
+                    }
                     sourceMessage.setBody(messageBody);
                 }
             } else {

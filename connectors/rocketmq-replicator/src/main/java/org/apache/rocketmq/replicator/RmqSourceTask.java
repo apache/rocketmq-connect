@@ -178,6 +178,7 @@ public class RmqSourceTask extends SourceTask {
                                 final Map<String, String> properties = msg.getProperties();
                                 final Set<String> keys = properties.keySet();
                                 keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));
+                                connectRecord.addExtension("topic",taskTopicConfig.getTargetTopic());
                                 res.add(connectRecord);
                             }
                             break;
