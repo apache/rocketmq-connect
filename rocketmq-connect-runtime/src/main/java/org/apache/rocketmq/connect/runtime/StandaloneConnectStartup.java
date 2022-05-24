@@ -17,26 +17,36 @@
 
 package org.apache.rocketmq.connect.runtime;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
+import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.FileOffsetManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
+import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Startup class of the runtime worker.
  */
-public class ConnectStartup {
+public class StandaloneConnectStartup {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
@@ -50,11 +60,11 @@ public class ConnectStartup {
         start(createConnectController(args));
     }
 
-    private static void start(ConnectController controller) {
+    private static void start(StandaloneConnectController controller) {
 
         try {
             controller.start();
-            String tip = "The worker [" + controller.getClusterManagementService().getCurrentWorker() + "] boot success.";
+            String tip = "The standalone worker boot success.";
             log.info(tip);
             System.out.printf("%s%n", tip);
         } catch (Throwable e) {
@@ -69,37 +79,51 @@ public class ConnectStartup {
      * @param args
      * @return
      */
-    private static ConnectController createConnectController(String[] args) {
-
+    private static StandaloneConnectController createConnectController(String[] args) {
         try {
-
             // Build the command line options.
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine = ServerUtil.parseCmdLine("connect", args, buildCommandlineOptions(options),
-                new PosixParser());
+                    new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
             }
 
             // Load configs from command line.
-            ConnectConfig connectConfig = new ConnectConfig();
+            StandaloneConfig connectConfig = new StandaloneConfig();
             if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
+                String file = commandLine.getOptionValue('c').trim();
                 if (file != null) {
                     configFile = file;
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);
-
                     FileAndPropertyUtil.properties2Object(properties, connectConfig);
-
                     in.close();
                 }
             }
 
+            List<String> pluginPaths = new ArrayList<>(16);
+            if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
+                String[] strArr = connectConfig.getPluginPaths().split(",");
+                for (String path : strArr) {
+                    if (StringUtils.isNotEmpty(path)) {
+                        pluginPaths.add(path);
+                    }
+                }
+            }
+            Plugin plugin = new Plugin(pluginPaths);
+            plugin.initPlugin();
+
             // Create controller and initialize.
-            ConnectController controller = new ConnectController(connectConfig);
-            controller.initialize();
+
+            StandaloneConnectController controller = new StandaloneConnectController(
+                    plugin,
+                    connectConfig,
+                    new MemoryClusterManagementServiceImpl(connectConfig),
+                    new MemoryConfigManagementServiceImpl(connectConfig, plugin),
+                    new FilePositionManagementServiceImpl(connectConfig),
+                    new FileOffsetManagementServiceImpl(connectConfig));
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
@@ -133,7 +157,7 @@ public class ConnectStartup {
         Option opt = new Option("c", "configFile", true, "connect config properties file");
         opt.setRequired(false);
         options.addOption(opt);
-
         return options;
+
     }
 }

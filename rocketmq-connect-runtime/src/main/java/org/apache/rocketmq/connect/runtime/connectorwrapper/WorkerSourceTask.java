@@ -54,6 +54,7 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
+import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,12 +88,17 @@ public class WorkerSourceTask implements WorkerTask {
      */
     private AtomicReference<WorkerTaskState> state;
 
-    private final PositionManagementService positionManagementService;
+
 
     /**
      * Used to read the position of source data source.
      */
     private OffsetStorageReader offsetStorageReader;
+
+    /**
+     * Used to write the position of source data source.
+     */
+    private PositionStorageWriter positionStorageWriter;
 
     /**
      * A RocketMQ producer to send message to dest MQ.
@@ -137,8 +143,8 @@ public class WorkerSourceTask implements WorkerTask {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
-        this.positionManagementService = positionManagementService;
-        this.offsetStorageReader = new PositionStorageReaderImpl(positionManagementService);
+        this.offsetStorageReader = new PositionStorageReaderImpl(connectorName, positionManagementService);
+        this.positionStorageWriter = new PositionStorageWriter(connectorName, positionManagementService);
         this.producer = producer;
         this.recordConverter = recordConverter;
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
@@ -322,7 +328,7 @@ public class WorkerSourceTask implements WorkerTask {
                             if (null != partition && null != position) {
                                 Map<String, String> offsetMap = (Map<String, String>) offset.getOffset();
                                 offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(sourceDataEntry.getTimestamp()));
-                                positionManagementService.putPosition(partition, offset);
+                                positionStorageWriter.putPosition(partition, offset);
                             }
 
                         } catch (Exception e) {

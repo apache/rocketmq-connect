@@ -15,35 +15,49 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.service;
+package org.apache.rocketmq.connect.runtime.service.memory;
 
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
+import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Interface for cluster management.
+ * standalone cluster management service
  */
-public interface ClusterManagementService {
+public class MemoryClusterManagementServiceImpl implements ClusterManagementService {
 
-    Long WORKER_TIME_OUT = 30 * 1000L;
+    private StandaloneConfig config;
 
-    /**
-     * Start the cluster manager.
-     */
-    void start();
-
-    /**
-     * Stop the cluster manager.
-     */
-    void stop();
+    public MemoryClusterManagementServiceImpl(ConnectConfig config) {
+        this.configure(config);
+    }
 
     /**
      * Configure class with the given key-value pairs
      *
      * @param config can be DistributedConfig or StandaloneConfig
      */
-    default void configure(ConnectConfig config) {
+    @Override
+    public void configure(ConnectConfig config) {
+        this.config = (StandaloneConfig) config;
+    }
+
+    /**
+     * Start the cluster manager.
+     */
+    @Override
+    public void start() {
+
+    }
+
+    /**
+     * Stop the cluster manager.
+     */
+    @Override
+    public void stop() {
 
     }
 
@@ -52,30 +66,32 @@ public interface ClusterManagementService {
      *
      * @return true if Cluster Store Topic exists, otherwise return false.
      */
-    boolean hasClusterStoreTopic();
+    @Override
+    public boolean hasClusterStoreTopic() {
+        return false;
+    }
 
     /**
      * Get all alive workers in the cluster.
      *
      * @return
      */
-    List<String> getAllAliveWorkers();
+    @Override
+    public List<String> getAllAliveWorkers() {
+        return Collections.singletonList(this.config.getWorkerId());
+    }
 
     /**
      * Register a worker status listener to listen the change of alive workers.
      *
      * @param listener
      */
-    void registerListener(WorkerStatusListener listener);
+    @Override
+    public void registerListener(WorkerStatusListener listener) {
+    }
 
-    String getCurrentWorker();
-
-    interface WorkerStatusListener {
-
-        /**
-         * If a worker online or offline, this method will be invoked. Can use method {@link
-         * ClusterManagementService#getAllAliveWorkers()} to get the all current alive workers.
-         */
-        void onWorkerChange();
+    @Override
+    public String getCurrentWorker() {
+        return this.config.getWorkerId();
     }
 }

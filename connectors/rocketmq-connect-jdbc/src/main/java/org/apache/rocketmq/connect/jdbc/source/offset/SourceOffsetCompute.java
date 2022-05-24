@@ -166,7 +166,7 @@ public class SourceOffsetCompute {
                     throw new ConnectException("Unexpected query mode: " + queryMode);
             }
             Map<String, Object> offset = null;
-            if (offsets != null && tablePartitionsToCheck != null) {
+            if (offsets != null && tablePartitionsToCheck != null && offsets.containsKey(tablePartitionsToCheck)) {
                 offset = (Map<String, Object>) offsets.get(tablePartitionsToCheck).getOffset();
             }
             offset = computeInitialOffset(
@@ -271,7 +271,7 @@ public class SourceOffsetCompute {
                 log.info("No offsets found for '{}', so using configured timestamp {}", tableOrQuery,
                         timestampInitial);
             } else {
-                if (queryMode != Querier.QueryMode.TABLE) {
+                if (queryMode != Querier.QueryMode.TABLE || timestampColumns == null || timestampColumns.isEmpty()) {
                     return initialPartitionOffset;
                 }
                 try {
