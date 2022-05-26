@@ -246,6 +246,11 @@ public class WorkerSourceTask implements WorkerTask {
     @Override
     public void stop() {
         state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+        try {
+            transformChain.close();
+        } catch (Exception exception) {
+            log.error("Transform close failed，{}", exception);
+        }
         log.warn("Stop a task success.");
     }
 
