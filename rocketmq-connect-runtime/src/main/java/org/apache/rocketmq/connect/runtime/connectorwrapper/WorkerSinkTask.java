@@ -60,6 +60,9 @@ import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -155,6 +158,10 @@ public class WorkerSinkTask implements WorkerTask {
 
     private final TransformChain<ConnectRecord> transformChain;
 
+    private WorkerErrorRecordReporter errorRecordReporter;
+    private RetryWithToleranceOperator retryWithToleranceOperator;
+
+
     public static final String BROKER_NAME = "brokerName";
     public static final String QUEUE_ID = "queueId";
     public static final String TOPIC = "topic";
@@ -180,7 +187,9 @@ public class WorkerSinkTask implements WorkerTask {
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
         ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain) {
+        TransformChain<ConnectRecord> transformChain,
+        RetryWithToleranceOperator retryWithToleranceOperator,
+        WorkerErrorRecordReporter errorRecordReporter) {
         this.connectorName = connectorName;
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
@@ -194,6 +203,9 @@ public class WorkerSinkTask implements WorkerTask {
         this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
         this.transformChain = transformChain;
+        this.errorRecordReporter = errorRecordReporter;
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
+        this.transformChain.retryWithToleranceOperator(retryWithToleranceOperator);
     }
 
     /**
@@ -522,7 +534,9 @@ public class WorkerSinkTask implements WorkerTask {
     private void receiveMessages(List<MessageExt> messages) {
         List<ConnectRecord> sinkDataEntries = new ArrayList<>(32);
         for (MessageExt message : messages) {
-            ConnectRecord sinkDataEntry = convertToSinkDataEntry(message);
+            this.retryWithToleranceOperator.consumerRecord(message);
+            ConnectRecord sinkDataEntry = this.retryWithToleranceOperator.execute(()->convertToSinkDataEntry(message), ErrorReporter.Stage.CONVERTER, WorkerSinkTask.class);
+            if (sinkDataEntry != null && !this.retryWithToleranceOperator.failed())
             sinkDataEntries.add(sinkDataEntry);
             String msgId = message.getMsgId();
             log.info("Received one message success : msgId {}", msgId);
@@ -654,6 +668,13 @@ public class WorkerSinkTask implements WorkerTask {
         this.sinkTaskContext.resetOffset(offsets);
     }
 
+    /**
+     * error record reporter
+     * @return
+     */
+    public WorkerErrorRecordReporter errorRecordReporter() {
+        return errorRecordReporter;
+    }
 }
 
 
