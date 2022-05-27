@@ -28,7 +28,7 @@ mvn clean install -Prelease-all -DskipTest -U
 同步topic和消息
 ````
 http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-replicator-name}
-?config={"connector-class":"org.apache.rocketmq.replicator.RmqSourceReplicator","source-rocketmq":"xxxx:9876","target-rocketmq":"xxxxxxx:9876","replicator-store-topic":"replicatorTopic","taskDivideStrategy":"0","white-list":"TopicTest,TopicTest2","task-parallelism":"2","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+?config={"connector-class":"org.apache.rocketmq.replicator.RmqSourceReplicator","source-rocketmq":"xxxx:9876","target-rocketmq":"xxxxxxx:9876","replicator-store-topic":"replicatorTopic","taskDivideStrategy":"0","white-list":"TopicTest,TopicTest2","task-parallelism":"2","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.RocketMQConverter"}
 ````
 
 
@@ -44,7 +44,7 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-replicator-name}/stop
 注：此功能尚不成熟还需要后续版本优化
 ````
 http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-replicator-name}
-?config={"connector-class":"org.apache.rocketmq.replicator.RmqMetaReplicator","source-rocketmq":"xxxx:9876","target-rocketmq":"xxxxxxx:9876","replicator-store-topic":"replicatorTopic","offset.sync.topic":"syncTopic","taskDivideStrategy":"0","white-list":"TopicTest,TopicTest2","task-parallelism":"2","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+?config={"connector-class":"org.apache.rocketmq.replicator.RmqMetaReplicator","source-rocketmq":"xxxx:9876","target-rocketmq":"xxxxxxx:9876","target-cluster":"test1-rocketmq","source-cluster":"test1-rocketmq","replicator-store-topic":"replicatorTopic","offset.sync.topic":"syncTopic","taskDivideStrategy":"0","white-list":"TestGroup","task-parallelism":"2","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.RocketMQMetaConverter"}
 ````
 
 

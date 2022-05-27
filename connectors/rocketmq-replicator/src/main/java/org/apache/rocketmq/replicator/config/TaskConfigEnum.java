@@ -22,6 +22,8 @@ public enum TaskConfigEnum {
     TASK_SOURCE_GROUP("sourceGroup"),
     TASK_SOURCE_ROCKETMQ("sourceRocketmq"),
     TASK_SOURCE_CLUSTER("sourceCluster"),
+    TASK_TARGET_ROCKETMQ("targetRocketmq"),
+    TASK_TARGET_CLUSTER("targetCluster"),
     TASK_OFFSET_SYNC_TOPIC("offsetSyncTopic"),
     TASK_SOURCE_TOPIC("sourceTopic"),
     TASK_STORE_ROCKETMQ("storeTopic"),

@@ -46,10 +46,12 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.converter.RocketMQMetaConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -270,6 +272,9 @@ public class WorkerSourceTask implements WorkerTask {
      */
     private void sendRecord() throws InterruptedException, RemotingException, MQClientException {
         for (ConnectRecord sourceDataEntry : toSendRecord) {
+            if (recordConverter instanceof RocketMQMetaConverter){
+                return;
+            }
             RecordPosition position = sourceDataEntry.getPosition();
             RecordOffset offset = position.getOffset();
 
@@ -312,7 +317,53 @@ public class WorkerSourceTask implements WorkerTask {
                         log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                         continue;
                     }
+                    String targetTopic = sourceDataEntry.getExtension("topic");
+                    if (targetTopic != null){
+                        sourceMessage.setTopic(targetTopic);
+                    }
                     sourceMessage.setBody(messageBody);
+                    int queueId = sourceDataEntry.getExtensions().getInt("queueId");
+                    String brokerName = sourceDataEntry.getExtension("brokerName");
+                    MessageQueue mq = new MessageQueue(targetTopic,brokerName,queueId);
+                    try {
+                        producer.send(sourceMessage,mq, new SendCallback() {
+                            @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                                log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
+                                connectStatsManager.incSourceRecordWriteTotalNums();
+                                connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                                RecordPartition partition = position.getPartition();
+                                try {
+                                    if (null != partition && null != position) {
+                                        Map<String, String> offsetMap = (Map<String, String>) offset.getOffset();
+                                        offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(sourceDataEntry.getTimestamp()));
+                                        positionStorageWriter.putPosition(partition, offset);
+                                    }
+
+                                } catch (Exception e) {
+                                    log.error("Source task save position info failed. partition {}, offset {}", JSON.toJSONString(partition), JSON.toJSONString(offset), e);
+                                }
+                            }
+
+                            @Override public void onException(Throwable throwable) {
+                                log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
+                                connectStatsManager.incSourceRecordWriteTotalFailNums();
+                                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                            }
+                        });
+                    } catch (MQClientException e) {
+                        log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
+                        connectStatsManager.incSourceRecordWriteTotalFailNums();
+                        connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                    } catch (RemotingException e) {
+                        log.error("Send message RemotingException. message: {}, error info: {}.", sourceMessage, e);
+                        connectStatsManager.incSourceRecordWriteTotalFailNums();
+                        connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                    } catch (InterruptedException e) {
+                        log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
+                        connectStatsManager.incSourceRecordWriteTotalFailNums();
+                        connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                        throw e;
+                    }
                 }
             } else {
                 final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
@@ -321,45 +372,45 @@ public class WorkerSourceTask implements WorkerTask {
                     continue;
                 }
                 sourceMessage.setBody(messageBody);
-            }
-            try {
-                producer.send(sourceMessage, new SendCallback() {
-                    @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
-                        log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
-                        connectStatsManager.incSourceRecordWriteTotalNums();
-                        connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                        RecordPartition partition = position.getPartition();
-                        try {
-                            if (null != partition && null != position) {
-                                Map<String, String> offsetMap = (Map<String, String>) offset.getOffset();
-                                offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(sourceDataEntry.getTimestamp()));
-                                positionStorageWriter.putPosition(partition, offset);
+                try {
+                    producer.send(sourceMessage, new SendCallback() {
+                        @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                            log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
+                            connectStatsManager.incSourceRecordWriteTotalNums();
+                            connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                            RecordPartition partition = position.getPartition();
+                            try {
+                                if (null != partition && null != position) {
+                                    Map<String, String> offsetMap = (Map<String, String>) offset.getOffset();
+                                    offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(sourceDataEntry.getTimestamp()));
+                                    positionStorageWriter.putPosition(partition, offset);
+                                }
+
+                            } catch (Exception e) {
+                                log.error("Source task save position info failed. partition {}, offset {}", JSON.toJSONString(partition), JSON.toJSONString(offset), e);
                             }
-
-                        } catch (Exception e) {
-                            log.error("Source task save position info failed. partition {}, offset {}", JSON.toJSONString(partition), JSON.toJSONString(offset), e);
                         }
-                    }
 
-                    @Override public void onException(Throwable throwable) {
-                        log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
-                        connectStatsManager.incSourceRecordWriteTotalFailNums();
-                        connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                    }
-                });
-            } catch (MQClientException e) {
-                log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
-                connectStatsManager.incSourceRecordWriteTotalFailNums();
-                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-            } catch (RemotingException e) {
-                log.error("Send message RemotingException. message: {}, error info: {}.", sourceMessage, e);
-                connectStatsManager.incSourceRecordWriteTotalFailNums();
-                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-            } catch (InterruptedException e) {
-                log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
-                connectStatsManager.incSourceRecordWriteTotalFailNums();
-                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                throw e;
+                        @Override public void onException(Throwable throwable) {
+                            log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
+                            connectStatsManager.incSourceRecordWriteTotalFailNums();
+                            connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                        }
+                    });
+                } catch (MQClientException e) {
+                    log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
+                    connectStatsManager.incSourceRecordWriteTotalFailNums();
+                    connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                } catch (RemotingException e) {
+                    log.error("Send message RemotingException. message: {}, error info: {}.", sourceMessage, e);
+                    connectStatsManager.incSourceRecordWriteTotalFailNums();
+                    connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                } catch (InterruptedException e) {
+                    log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
+                    connectStatsManager.incSourceRecordWriteTotalFailNums();
+                    connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                    throw e;
+                }
             }
         }
         toSendRecord = null;
