@@ -19,21 +19,21 @@ package org.apache.rocketmq.connect.runtime.converter;
 
 import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.data.Converter;
-import io.openmessaging.connector.api.data.RecordPartition;
 import java.io.UnsupportedEncodingException;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * ByteBuffer converter.
  */
-public class RecordPartitionConverter implements Converter<RecordPartition> {
+public class RecordPartitionConverter implements Converter<ExtendRecordPartition> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     @Override
-    public byte[] objectToByte(RecordPartition recordPartition) {
+    public byte[] objectToByte(ExtendRecordPartition recordPartition) {
         try {
             String json = JSON.toJSONString(recordPartition);
             return json.getBytes("UTF-8");
@@ -44,10 +44,10 @@ public class RecordPartitionConverter implements Converter<RecordPartition> {
     }
 
     @Override
-    public RecordPartition byteToObject(byte[] bytes) {
+    public ExtendRecordPartition byteToObject(byte[] bytes) {
         try {
             String text = new String(bytes, "UTF-8");
-            RecordPartition res = JSON.parseObject(text, RecordPartition.class);
+            ExtendRecordPartition res = JSON.parseObject(text, ExtendRecordPartition.class);
             return res;
         } catch (UnsupportedEncodingException e) {
             log.error("JsonConverter#byteToObject failed", e);

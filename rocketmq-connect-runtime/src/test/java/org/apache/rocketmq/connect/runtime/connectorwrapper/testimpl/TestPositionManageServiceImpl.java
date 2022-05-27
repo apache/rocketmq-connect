@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 
 import java.util.List;
 import java.util.Map;
@@ -50,23 +51,23 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
-    @Override public Map<RecordPartition, RecordOffset> getPositionTable() {
+    @Override public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
         return null;
     }
 
-    @Override public RecordOffset getPosition(RecordPartition partition) {
+    @Override public RecordOffset getPosition(ExtendRecordPartition partition) {
         return null;
     }
 
-    @Override public void putPosition(Map<RecordPartition, RecordOffset> positions) {
+    @Override public void putPosition(Map<ExtendRecordPartition, RecordOffset> positions) {
 
     }
 
-    @Override public void putPosition(RecordPartition partition, RecordOffset position) {
+    @Override public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
 
     }
 
-    @Override public void removePosition(List<RecordPartition> partitions) {
+    @Override public void removePosition(List<ExtendRecordPartition> partitions) {
 
     }
 

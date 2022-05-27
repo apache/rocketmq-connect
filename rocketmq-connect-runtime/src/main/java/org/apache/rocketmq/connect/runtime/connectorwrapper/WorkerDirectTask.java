@@ -39,6 +39,7 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
+import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +79,8 @@ public class WorkerDirectTask implements WorkerTask {
 
     private final OffsetStorageReader positionStorageReader;
 
+    private final PositionStorageWriter positionStorageWriter;
+
     private final AtomicReference<WorkerState> workerState;
 
     public WorkerDirectTask(String connectorName,
@@ -91,7 +94,8 @@ public class WorkerDirectTask implements WorkerTask {
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
         this.positionManagementService = positionManagementService;
-        this.positionStorageReader = new PositionStorageReaderImpl(positionManagementService);
+        this.positionStorageReader = new PositionStorageReaderImpl(connectorName, positionManagementService);
+        this.positionStorageWriter = new PositionStorageWriter(connectorName, positionManagementService);
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
     }
@@ -141,7 +145,7 @@ public class WorkerDirectTask implements WorkerTask {
             sinkTask.put(sinkDataEntries);
             try {
                 if (!MapUtils.isEmpty(map)) {
-                    map.forEach(positionManagementService::putPosition);
+                    map.forEach(positionStorageWriter::putPosition);
                 }
             } catch (Exception e) {
                 log.error("Source task save position info failed.", e);

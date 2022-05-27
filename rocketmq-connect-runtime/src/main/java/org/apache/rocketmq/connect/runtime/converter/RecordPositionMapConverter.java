@@ -20,28 +20,28 @@ package org.apache.rocketmq.connect.runtime.converter;
 import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Byte Map to byte[].
  */
-public class RecordPositionMapConverter implements Converter<Map<RecordPartition, RecordOffset>> {
+public class RecordPositionMapConverter implements Converter<Map<ExtendRecordPartition, RecordOffset>> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     @Override
-    public byte[] objectToByte(Map<RecordPartition, RecordOffset> map) {
+    public byte[] objectToByte(Map<ExtendRecordPartition, RecordOffset> map) {
 
         try {
             Map<String, String> resultMap = new HashMap<>();
 
-            for (Map.Entry<RecordPartition, RecordOffset> entry : map.entrySet()) {
+            for (Map.Entry<ExtendRecordPartition, RecordOffset> entry : map.entrySet()) {
                 String jsonKey = JSON.toJSONString(entry.getKey());
                 jsonKey.getBytes("UTF-8");
                 String jsonValue = JSON.toJSONString(entry.getValue());
@@ -56,14 +56,14 @@ public class RecordPositionMapConverter implements Converter<Map<RecordPartition
     }
 
     @Override
-    public Map<RecordPartition, RecordOffset> byteToObject(byte[] bytes) {
+    public Map<ExtendRecordPartition, RecordOffset> byteToObject(byte[] bytes) {
 
-        Map<RecordPartition, RecordOffset> resultMap = new HashMap<>();
+        Map<ExtendRecordPartition, RecordOffset> resultMap = new HashMap<>();
         try {
             String rawString = new String(bytes, "UTF-8");
             Map<String, String> map = JSON.parseObject(rawString, Map.class);
             for (String key : map.keySet()) {
-                RecordPartition recordPartition = JSON.parseObject(key, RecordPartition.class);
+                ExtendRecordPartition recordPartition = JSON.parseObject(key, ExtendRecordPartition.class);
                 RecordOffset recordOffset = JSON.parseObject(map.get(key), RecordOffset.class);
                 resultMap.put(recordPartition, recordOffset);
             }
