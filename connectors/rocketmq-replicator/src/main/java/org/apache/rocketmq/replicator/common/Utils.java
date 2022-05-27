@@ -145,7 +145,9 @@ public class Utils {
                 assigned++;
             }
             keyValue.put(TaskConfigEnum.TASK_STORE_ROCKETMQ.getKey(), tdc.getStoreTopic());
+            keyValue.put(TaskConfigEnum.TASK_TARGET_ROCKETMQ.getKey(), tdc.getTargetNamesrvs());
             keyValue.put(TaskConfigEnum.TASK_SOURCE_ROCKETMQ.getKey(), tdc.getSrcNamesrvs());
+            keyValue.put(TaskConfigEnum.TASK_TARGET_CLUSTER.getKey(), tdc.getTargetCluster());
             keyValue.put(TaskConfigEnum.TASK_SOURCE_CLUSTER.getKey(), tdc.getSrcCluster());
             keyValue.put(TaskConfigEnum.TASK_OFFSET_SYNC_TOPIC.getKey(), tdc.getOffsetSyncTopic());
             keyValue.put(TaskConfigEnum.TASK_DATA_TYPE.getKey(), DataType.OFFSET.ordinal());
@@ -198,10 +200,26 @@ public class Utils {
         if (taskConfig.isSrcAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(taskConfig.getSrcAccessKey(), taskConfig.getSrcSecretKey()));
         }
+        DefaultMQAdminExt sourceMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        sourceMQAdminExt.setNamesrvAddr(taskConfig.getSourceRocketmq());
+        sourceMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_TASK_ADMIN_GROUP);
+        sourceMQAdminExt.setInstanceName(Utils.createUniqInstanceName(taskConfig.getSourceRocketmq()));
+
+        sourceMQAdminExt.start();
+        log.info("Source: RocketMQ sourceMQAdminExt started.");
+
+        return sourceMQAdminExt;
+    }
+
+    public static DefaultMQAdminExt startTarMQAdminTool(TaskConfig taskConfig) throws MQClientException {
+        RPCHook rpcHook = null;
+        if (taskConfig.isSrcAclEnable()) {
+            rpcHook = new AclClientRPCHook(new SessionCredentials(taskConfig.getSrcAccessKey(), taskConfig.getSrcSecretKey()));
+        }
         DefaultMQAdminExt targetMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        targetMQAdminExt.setNamesrvAddr(taskConfig.getSourceRocketmq());
+        targetMQAdminExt.setNamesrvAddr(taskConfig.getTargetRocketmq());
         targetMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_TASK_ADMIN_GROUP);
-        targetMQAdminExt.setInstanceName(Utils.createUniqInstanceName(taskConfig.getSourceRocketmq()));
+        targetMQAdminExt.setInstanceName(Utils.createUniqInstanceName(taskConfig.getTargetRocketmq()));
 
         targetMQAdminExt.start();
         log.info("TARGET: RocketMQ targetMQAdminExt started.");

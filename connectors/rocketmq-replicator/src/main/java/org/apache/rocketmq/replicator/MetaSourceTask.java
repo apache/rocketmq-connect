@@ -30,11 +30,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.replicator.common.Utils;
 import org.apache.rocketmq.replicator.config.ConfigUtil;
 import org.apache.rocketmq.replicator.config.TaskConfig;
@@ -52,6 +57,7 @@ public class MetaSourceTask extends SourceTask {
     private final String taskId;
     private final TaskConfig config;
     private DefaultMQAdminExt srcMQAdminExt;
+    private DefaultMQAdminExt tarMQAdminExt;
     private volatile boolean started = false;
 
     private OffsetSyncStore store;
@@ -77,6 +83,7 @@ public class MetaSourceTask extends SourceTask {
 
         try {
             this.srcMQAdminExt = Utils.startMQAdminTool(this.config);
+            this.tarMQAdminExt = Utils.startTarMQAdminTool(this.config);
         } catch (MQClientException e) {
             log.error("Replicator task start failed for `startMQAdminTool` exception.", e);
             throw new IllegalStateException("Replicator task start failed for `startMQAdminTool` exception.");
@@ -92,6 +99,7 @@ public class MetaSourceTask extends SourceTask {
             started = false;
         }
         srcMQAdminExt.shutdown();
+        tarMQAdminExt.shutdown();
     }
 
     @Override
@@ -120,27 +128,37 @@ public class MetaSourceTask extends SourceTask {
         List<ConnectRecord> res = new ArrayList<>();
         for (String group : groups) {
             ConsumeStats stats;
+            String brokerAddresMaster="";
+            String brokerName="";
             try {
                 stats = this.srcMQAdminExt.examineConsumeStats(group);
+                ClusterInfo clusterInfo = this.tarMQAdminExt.examineBrokerClusterInfo();
+                HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+                HashMap<String, BrokerData> brokerAddrTable = clusterInfo.getBrokerAddrTable();
+                Set<String> clusterNameSet = clusterAddrTable.get(this.config.getTargetCluster());
+                Iterator<String> it = clusterNameSet.iterator();
+                while (it.hasNext()){
+                   String clusterName = it.next();
+                   BrokerData brokerData = brokerAddrTable.get(clusterName);
+                   HashMap<Long, String> brokerAddrs = brokerData.getBrokerAddrs();
+                   brokerAddresMaster = brokerAddrs.get(new Long(0));
+                   brokerName = brokerData.getBrokerName();
+                    for (Map.Entry<MessageQueue, OffsetWrapper> offsetTable : stats.getOffsetTable().entrySet()) {
+                        MessageQueue mq = offsetTable.getKey();
+                        long srcOffset = offsetTable.getValue().getConsumerOffset();
+                        long targetOffset = this.store.convertTargetOffset(mq, group, srcOffset);
+                        try{
+                           if (brokerName.equals(mq.getBrokerName())){
+                               this.tarMQAdminExt.updateConsumeOffset(brokerAddresMaster,group,mq,targetOffset);
+                           }
+                        }catch (Exception e){
+                            log.error("admin update consumer offset err", e);
+                        }
+                    }
+                }
             } catch (Exception e) {
                 log.error("admin get consumer info failed for consumer groups: " + group, e);
                 continue;
-            }
-
-            for (Map.Entry<MessageQueue, OffsetWrapper> offsetTable : stats.getOffsetTable().entrySet()) {
-                MessageQueue mq = offsetTable.getKey();
-                long srcOffset = offsetTable.getValue().getConsumerOffset();
-                long targetOffset = this.store.convertTargetOffset(mq, group, srcOffset);
-
-                List<Field> fields = new ArrayList<Field>();
-                Schema schema = new Schema(SchemaEnum.OFFSET.name(), FieldType.INT64, fields);
-                schema.getFields().add(new Field(0, FieldName.OFFSET.getKey(), SchemaBuilder.string().build()));
-
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put(FieldName.OFFSET.getKey(), targetOffset);
-                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(mq),
-                    Utils.offsetValue(srcOffset), System.currentTimeMillis(), schema, jsonObject.toJSONString());
-                res.add(connectRecord);
             }
         }
         return res;

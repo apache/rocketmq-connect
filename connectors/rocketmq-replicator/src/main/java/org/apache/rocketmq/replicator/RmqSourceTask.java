@@ -19,6 +19,7 @@ package org.apache.rocketmq.replicator;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
+import io.openmessaging.internal.DefaultKeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -179,6 +180,10 @@ public class RmqSourceTask extends SourceTask {
                                 final Set<String> keys = properties.keySet();
                                 keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));
                                 connectRecord.addExtension("topic",taskTopicConfig.getTargetTopic());
+                                connectRecord.addExtension("brokerName",msg.getBrokerName());
+                                KeyValue kv = new DefaultKeyValue();
+                                kv.put("queueId",msg.getQueueId());
+                                connectRecord.addExtension(kv);
                                 res.add(connectRecord);
                             }
                             break;
