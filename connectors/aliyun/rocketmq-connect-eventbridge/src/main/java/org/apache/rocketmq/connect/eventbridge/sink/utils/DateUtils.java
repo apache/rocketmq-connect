@@ -1,16 +1,29 @@
 package org.apache.rocketmq.connect.eventbridge.sink.utils;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class DateUtils {
+    private static final Logger log = LoggerFactory.getLogger(DateUtils.class);
     public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-    public static Date getDate(String date, String dateFormat) {
-        final LocalDateTime parse = LocalDateTime.parse(date, DateTimeFormatter.ofPattern(dateFormat));
-        return Date.from(parse.atZone(ZoneId.systemDefault()).toInstant());
+    public static synchronized Date getDate(String date, String dateFormat) {
+        try {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+            return simpleDateFormat.parse(date);
+        } catch (Exception e) {
+            log.error("DateUtils | getDate | error => ", e);
+        }
+        return null;
+    }
+
+    public static String getDate() {
+        DateFormat dateFormat = new SimpleDateFormat(DEFAULT_DATE_FORMAT);
+        return dateFormat.format(new Date());
     }
 
 }
