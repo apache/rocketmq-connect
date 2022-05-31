@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.eventbridge.sink.constant.EventBridgeConstant;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class EventBridgeSinkConnector extends SinkConnector {
@@ -23,6 +24,8 @@ public class EventBridgeSinkConnector extends SinkConnector {
     private String eventTime;
 
     private String eventSubject;
+
+    private String eventType;
 
     private String aliyuneventbusname;
 
@@ -53,6 +56,7 @@ public class EventBridgeSinkConnector extends SinkConnector {
         keyValue.put(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME, aliyuneventbusname);
         keyValue.put(EventBridgeConstant.ACCOUNT_ENDPOINT, accountEndpoint);
         keyValue.put(EventBridgeConstant.STS_ENDPOINT, stsEndpoint);
+        keyValue.put(EventBridgeConstant.EVENT_TYPE, eventType);
         keyValueList.add(keyValue);
         return keyValueList;
     }
@@ -82,11 +86,12 @@ public class EventBridgeSinkConnector extends SinkConnector {
         accessKeySecret = config.getString(EventBridgeConstant.ACCESS_KEY_SECRET);
         roleArn = config.getString(EventBridgeConstant.ROLE_ARN);
         roleSessionName = config.getString(EventBridgeConstant.ROLE_SESSION_NAME);
-        eventTime = config.getString(EventBridgeConstant.EVENT_TIME);
+        eventTime = config.getString(EventBridgeConstant.EVENT_TIME, new Date().toString());
         eventSubject = config.getString(EventBridgeConstant.EVENT_SUBJECT);
         aliyuneventbusname = config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME);
         accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
         stsEndpoint = config.getString(EventBridgeConstant.STS_ENDPOINT);
+        eventType = config.getString(EventBridgeConstant.EVENT_TYPE);
     }
 
     @Override
