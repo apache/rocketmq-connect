@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -46,15 +45,11 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
     private org.apache.kafka.connect.source.SourceTask sourceTask;
     private OffsetStorageReader offsetReader;
 
-    /**
-     * poll data from kafka connect source
-     */
-    private Iterator<SourceRecord> currentBatch = null;
 
     /**
      * kafka connect init
      */
-    private ConnectKeyValue configValue;
+    protected ConnectKeyValue configValue;
 
     @Override
     public List<ConnectRecord> poll() throws InterruptedException {
@@ -63,14 +58,22 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
             Thread.sleep(1000);
         }
         List<ConnectRecord> records = new ArrayList<>();
+
         for (SourceRecord sourceRecord : recordList) {
-            ConnectRecord processRecord = processSourceRecord(sourceRecord);
+            SourceRecord transformRecord = transforms(sourceRecord);
+            ConnectRecord processRecord = processSourceRecord(transformRecord);
             if (processRecord != null) {
                 records.add(processRecord);
             }
         }
         return records;
     }
+
+    /**
+     * convert transform
+     * @param sourceRecord
+     */
+    protected abstract SourceRecord transforms(SourceRecord sourceRecord);
 
     /**
      * process source record

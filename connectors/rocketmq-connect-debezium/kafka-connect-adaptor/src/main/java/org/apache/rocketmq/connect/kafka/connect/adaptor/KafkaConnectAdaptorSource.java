@@ -33,6 +33,17 @@ import java.util.Iterator;
  */
 public class KafkaConnectAdaptorSource extends AbstractKafkaConnectSource {
 
+
+    /**
+     * convert transform
+     *
+     * @param sourceRecord
+     */
+    @Override
+    protected SourceRecord transforms(SourceRecord sourceRecord) {
+        return sourceRecord;
+    }
+
     /**
      * process source record
      *
