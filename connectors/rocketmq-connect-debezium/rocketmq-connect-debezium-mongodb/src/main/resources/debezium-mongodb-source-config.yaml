@@ -16,17 +16,3 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-name: "debezium-mongodb-source"
-topicName: "debezium-mongodb-topic"
-
-parallelism: 1
-
-configs:
-  ## config for pg, docker image: debezium/example-mongodb:0.8
-  mongodb.hosts: "rs0/mongodb:27017"
-  mongodb.name: "dbserver1"
-  mongodb.user: "debezium"
-  mongodb.password: "dbz"
-  mongodb.task.id: "1"
-  database.whitelist: "inventory"

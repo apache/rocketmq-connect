@@ -17,23 +17,3 @@
 # under the License.
 #
 
-name: "debezium-mysql-source"
-topicName: "debezium-mysql-topic"
-
-parallelism: 1
-
-configs:
-  ## config for mysql, docker image: debezium/example-mysql:0.8
-  database.hostname: "localhost"
-  database.port: "3306"
-  database.user: "debezium"
-  database.password: "dbz"
-  database.server.id: "184054"
-  database.server.name: "dbserver1"
-  database.whitelist: "inventory"
-
-  database.history.pulsar.topic: "mysql-history-topic"
-  database.history.pulsar.service.url: "pulsar://127.0.0.1:6650"
-  offset.storage.topic: "mysql-offset-topic"
-
-

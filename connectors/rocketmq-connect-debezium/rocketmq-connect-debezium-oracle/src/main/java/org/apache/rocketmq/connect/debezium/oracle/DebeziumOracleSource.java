@@ -15,18 +15,18 @@
  *  limitations under the License.
  */
 
-package org.apache.pulsar.io.debezium.mongodb;
+package org.apache.rocketmq.connect.debezium.oracle;
+
 
 import io.openmessaging.KeyValue;
 import org.apache.kafka.connect.runtime.TaskConfig;
 import org.apache.rocketmq.connect.debezium.DebeziumSource;
 
-
 /**
- * A rocketmq connect source that runs debezium mongodb source
+ * A rocketmq connect source that runs debezium oracle source.
  */
-public class DebeziumMongoDBSource extends DebeziumSource {
-    private static final String DEFAULT_TASK = "io.debezium.connector.mongodb.MongoDbConnectorTask";
+public class DebeziumOracleSource extends DebeziumSource {
+    private static final String DEFAULT_TASK = "io.debezium.connector.oracle.OracleConnectorTask";
 
     /**
      * set source task class

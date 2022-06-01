@@ -16,23 +16,3 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-tenant: "public"
-namespace: "default"
-name: "debezium-postgres-source"
-topicName: "debezium-postgres-topic"
-archive: "connectors/pulsar-io-debezium-postgres-2.4.0-SNAPSHOT.nar"
-
-parallelism: 1
-
-configs:
-  ## config for pg, docker image: debezium/example-postgress:0.8
-  database.hostname: "localhost"
-  database.port: "5432"
-  database.user: "postgres"
-  database.password: "postgres"
-  database.dbname: "postgres"
-  database.server.name: "dbserver1"
-  schema.whitelist: "inventory"
-
-  database.history.pulsar.service.url: "pulsar://127.0.0.1:6650"

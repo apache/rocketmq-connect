@@ -121,7 +121,7 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
         this.topicName = config.getString(TOPIC);
 
         this.dbHistoryName = config.getString(DatabaseHistory.NAME, UUID.randomUUID().toString());
-        log.info("Configure to store the debezium database history {} to pulsar topic {}",
+        log.info("Configure to store the debezium database history {} to rocketmq topic {}",
                 dbHistoryName, topicName);
         // init config
         connectConfig = new RocketMqConnectConfig(config, dbHistoryName);

@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.apache.pulsar.io.debezium.mongodb;
+package org.apache.rocketmq.connect.debezium.mongodb;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
