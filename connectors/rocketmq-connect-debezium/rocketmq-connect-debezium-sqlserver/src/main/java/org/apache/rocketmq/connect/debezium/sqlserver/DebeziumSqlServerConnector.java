@@ -17,15 +17,17 @@
 
 package org.apache.rocketmq.connect.debezium.sqlserver;
 
-import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import org.apache.rocketmq.connect.debezium.DebeziumConnector;
 
 
 /**
- * debezium postgresql connector
+ * debezium sqlserver connector
  */
 public class DebeziumSqlServerConnector extends DebeziumConnector {
+
+    private static final String DEFAULT_CONNECTOR = "io.debezium.connector.sqlserver.SqlServerConnector";
+
 
     /**
      * Return the current connector class
@@ -37,12 +39,12 @@ public class DebeziumSqlServerConnector extends DebeziumConnector {
     }
 
     /**
-     * Should invoke before start the connector.
-     * @param config component config
+     * debezium connector class
+     * @return
      */
     @Override
-    public void validate(KeyValue config) {
-        // do nothing
+    public String debeziumConnectorClass() {
+        return DEFAULT_CONNECTOR;
     }
 
 }

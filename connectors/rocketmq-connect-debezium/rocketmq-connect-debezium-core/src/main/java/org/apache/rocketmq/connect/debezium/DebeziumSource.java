@@ -26,9 +26,6 @@ import org.apache.rocketmq.connect.kafka.connect.adaptor.KafkaConnectAdaptorSour
  */
 public abstract class DebeziumSource extends KafkaConnectAdaptorSource {
     private static final String DEFAULT_HISTORY = "org.apache.rocketmq.connect.debezium.RocketMqDatabaseHistory";
-    private static final String DEFAULT_OFFSET_TOPIC = "debezium-offset-topic";
-    private static final String DEFAULT_HISTORY_TOPIC = "debezium-history-topic";
-
 
     /**
      * set source task class

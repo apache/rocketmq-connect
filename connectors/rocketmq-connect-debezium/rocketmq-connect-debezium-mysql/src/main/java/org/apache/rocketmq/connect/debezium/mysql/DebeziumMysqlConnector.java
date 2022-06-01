@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.debezium.mysql;
 
-import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import org.apache.rocketmq.connect.debezium.DebeziumConnector;
 
@@ -27,6 +26,7 @@ import org.apache.rocketmq.connect.debezium.DebeziumConnector;
  * debezium mysql connector
  */
 public class DebeziumMysqlConnector extends DebeziumConnector {
+    private static final String DEFAULT_CONNECTOR = "io.debezium.connector.mysql.MySqlConnector";
 
     /**
      * Return the current connector class
@@ -38,12 +38,11 @@ public class DebeziumMysqlConnector extends DebeziumConnector {
     }
 
     /**
-     * Should invoke before start the connector.
-     *
-     * @param config component config
+     * debezium connector class
+     * @return
      */
     @Override
-    public void validate(KeyValue config) {
-        // do nothing
+    public String debeziumConnectorClass() {
+        return DEFAULT_CONNECTOR;
     }
 }

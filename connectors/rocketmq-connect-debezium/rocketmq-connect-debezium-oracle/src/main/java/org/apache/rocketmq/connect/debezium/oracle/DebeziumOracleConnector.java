@@ -26,6 +26,7 @@ import org.apache.rocketmq.connect.debezium.DebeziumConnector;
  * debezium oracle connector
  */
 public class DebeziumOracleConnector extends DebeziumConnector {
+    private static final String DEFAULT_CONNECTOR = "io.debezium.connector.oracle.OracleConnector";
 
     /**
      * Return the current connector class
@@ -37,12 +38,11 @@ public class DebeziumOracleConnector extends DebeziumConnector {
     }
 
     /**
-     * Should invoke before start the connector.
-     *
-     * @param config component config
+     * debezium connector class
+     * @return
      */
     @Override
-    public void validate(KeyValue config) {
-        // do nothing
+    public String debeziumConnectorClass() {
+        return DEFAULT_CONNECTOR;
     }
 }

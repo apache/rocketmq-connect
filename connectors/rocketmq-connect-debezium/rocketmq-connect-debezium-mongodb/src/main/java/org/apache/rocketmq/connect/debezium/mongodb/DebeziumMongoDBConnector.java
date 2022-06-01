@@ -17,36 +17,21 @@
 
 package org.apache.rocketmq.connect.debezium.mongodb;
 
-import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
-import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import org.apache.rocketmq.connect.debezium.DebeziumConnector;
 
-import java.util.Collections;
-import java.util.List;
+
 
 
 /**
  * debezium mongodb connector
  */
-public class DebeziumMongoDBConnector extends SinkConnector {
+public class DebeziumMongoDBConnector extends DebeziumConnector {
 
-    private KeyValue config;
-
-    /**
-     * Returns a set of configurations for Tasks based on the current configuration,
-     * producing at most count configurations.
-     *
-     * @param maxTasks maximum number of configurations to generate
-     * @return configurations for Tasks
-     */
-    @Override
-    public List<KeyValue> taskConfigs(int maxTasks) {
-        return Collections.singletonList(config);
-    }
+    private static final String DEFAULT_CONNECTOR = "io.debezium.connector.mongodb.MongoDbConnector";
 
     /**
      * Return the current connector class
-     *
      * @return task implement class
      */
     @Override
@@ -55,46 +40,21 @@ public class DebeziumMongoDBConnector extends SinkConnector {
     }
 
     /**
-     * Should invoke before start the connector.
-     *
-     * @param config component config
+     * debezium connector class
+     * @return
      */
     @Override
-    public void validate(KeyValue config) {
-        // do nothing
+    public String debeziumConnectorClass() {
+        return DEFAULT_CONNECTOR;
     }
 
-    /**
-     * Init the component
-     *
-     * @param config component config
-     */
-    @Override
-    public void init(KeyValue config) {
-        this.config = config;
-    }
 
     /**
      * Stop the component.
      */
     @Override
     public void stop() {
-
+        super.stop();
     }
 
-    /**
-     * Pause the connector.
-     */
-    @Override
-    public void pause() {
-
-    }
-
-    /**
-     * Resume the connector.
-     */
-    @Override
-    public void resume() {
-
-    }
 }
