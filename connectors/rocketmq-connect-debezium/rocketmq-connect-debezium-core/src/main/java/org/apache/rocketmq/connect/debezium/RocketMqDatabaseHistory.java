@@ -136,7 +136,7 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
     }
 
     @Override
-    public synchronized void start() {
+    public void start() {
         super.start();
         try {
             // init consumer
