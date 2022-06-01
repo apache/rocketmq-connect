@@ -23,7 +23,7 @@ public class ConfigDefine {
 
     public static final String CONN_SOURCE_RMQ = "source-rocketmq";
     public static final String CONN_SOURCE_CLUSTER = "source-cluster";
-    public static final String CONN_SOURCE_ACL_ENBALE = "source-acl-enable";
+    public static final String CONN_SOURCE_ACL_ENABLE = "source-acl-enable";
     public static final String CONN_SOURCE_ACCESS_KEY = "source-access-key";
     public static final String CONN_SOURCE_SECRET_KEY = "source-secret-key";
 
@@ -31,7 +31,7 @@ public class ConfigDefine {
 
     public static final String CONN_TARGET_RMQ = "target-rocketmq";
     public static final String CONN_TARGET_CLUSTER = "target-cluster";
-    public static final String CONN_TARGET_ACL_ENBALE = "target-acl-enable";
+    public static final String CONN_TARGET_ACL_ENABLE = "target-acl-enable";
     public static final String CONN_TARGET_ACCESS_KEY = "target-access-key";
     public static final String CONN_TARGET_SECRET_KEY = "target-secret-key";
 
@@ -44,8 +44,6 @@ public class ConfigDefine {
     public static final String CONN_WHITE_LIST = "white-list";
 
     public static final String CONN_SOURCE_RECORD_CONVERTER = "source-record-converter";
-
-    public static final String CONN_TASK_PARALLELISM = "task-parallelism";
 
     public static final String CONN_TOPIC_RENAME_FMT = "topic.rename.format";
 

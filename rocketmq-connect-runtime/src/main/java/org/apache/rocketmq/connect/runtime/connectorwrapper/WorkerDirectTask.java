@@ -33,11 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
+import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +79,8 @@ public class WorkerDirectTask implements WorkerTask {
 
     private final OffsetStorageReader positionStorageReader;
 
+    private final PositionStorageWriter positionStorageWriter;
+
     private final AtomicReference<WorkerState> workerState;
 
     public WorkerDirectTask(String connectorName,
@@ -90,7 +94,8 @@ public class WorkerDirectTask implements WorkerTask {
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
         this.positionManagementService = positionManagementService;
-        this.positionStorageReader = new PositionStorageReaderImpl(positionManagementService);
+        this.positionStorageReader = new PositionStorageReaderImpl(connectorName, positionManagementService);
+        this.positionStorageWriter = new PositionStorageWriter(connectorName, positionManagementService);
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
     }
@@ -127,19 +132,20 @@ public class WorkerDirectTask implements WorkerTask {
 
     private void sendRecord(Collection<ConnectRecord> sourceDataEntries) {
         List<ConnectRecord> sinkDataEntries = new ArrayList<>(sourceDataEntries.size());
-        RecordPartition partition = null;
-        RecordOffset offset = null;
+        Map<RecordPartition, RecordOffset> map = new HashMap<>();
         for (ConnectRecord sourceDataEntry : sourceDataEntries) {
             sinkDataEntries.add(sourceDataEntry);
-            partition = sourceDataEntry.getPosition().getPartition();
-            offset = sourceDataEntry.getPosition().getOffset();
+            RecordPartition recordPartition = sourceDataEntry.getPosition().getPartition();
+            RecordOffset recordOffset = sourceDataEntry.getPosition().getOffset();
+            if (null != recordPartition && null != recordOffset) {
+                map.put(recordPartition, recordOffset);
+            }
         }
-
         try {
             sinkTask.put(sinkDataEntries);
             try {
-                if (null != partition && null != offset) {
-                    positionManagementService.putPosition(partition, offset);
+                if (!MapUtils.isEmpty(map)) {
+                    map.forEach(positionStorageWriter::putPosition);
                 }
             } catch (Exception e) {
                 log.error("Source task save position info failed.", e);

@@ -19,17 +19,21 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordPositionMapConverter;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -37,24 +41,27 @@ import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OffsetManagementServiceImpl implements PositionManagementService {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     /**
      * Current offset info in store.
      */
-    private KeyValueStore<RecordPartition, RecordOffset> offsetStore;
+    private KeyValueStore<ExtendRecordPartition, RecordOffset> offsetStore;
 
 
     /**
      * The updated partition of the task in the current instance.
      */
-    private Set<RecordPartition> needSyncPartition;
+    private Set<ExtendRecordPartition> needSyncPartition;
 
     /**
      * Synchronize data with other workers.
      */
-    private DataSynchronizer<String, Map<RecordPartition, RecordOffset>> dataSynchronizer;
+    private DataSynchronizer<String, Map<ExtendRecordPartition, RecordOffset>> dataSynchronizer;
 
     private final String offsetManagePrefix = "OffsetManage";
 
@@ -66,16 +73,31 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
     public OffsetManagementServiceImpl(ConnectConfig connectConfig) {
 
         this.offsetStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getOffsetPath(connectConfig.getStorePathRootDir()),
-            new RecordPartitionConverter(),
-            new RecordOffsetConverter());
+                new RecordPartitionConverter(),
+                new RecordOffsetConverter());
         this.dataSynchronizer = new BrokerBasedLog(connectConfig,
-            connectConfig.getOffsetStoreTopic(),
-            ConnectUtil.createGroupName(offsetManagePrefix, connectConfig.getWorkerId()),
-            new OffsetChangeCallback(),
-            new JsonConverter(),
-            new RecordPositionMapConverter());
+                connectConfig.getOffsetStoreTopic(),
+                ConnectUtil.createGroupName(offsetManagePrefix, connectConfig.getWorkerId()),
+                new OffsetChangeCallback(),
+                new JsonConverter(),
+                new RecordPositionMapConverter());
         this.offsetUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
+        this.prepare(connectConfig);
+    }
+
+    /**
+     * Preparation before startup
+     *
+     * @param connectConfig
+     */
+    private void prepare(ConnectConfig connectConfig) {
+        String offsetStoreTopic = connectConfig.getOffsetStoreTopic();
+        if (!ConnectUtil.isTopicExist(connectConfig, offsetStoreTopic)) {
+            log.info("try to create offset store topic: {}!", offsetStoreTopic);
+            TopicConfig topicConfig = new TopicConfig(offsetStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
+        }
     }
 
     @Override
@@ -100,7 +122,8 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
         offsetStore.persist();
     }
 
-    @Override public void load() {
+    @Override
+    public void load() {
         offsetStore.load();
     }
 
@@ -111,38 +134,38 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
     }
 
     @Override
-    public Map<RecordPartition, RecordOffset> getPositionTable() {
+    public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
 
         return offsetStore.getKVMap();
     }
 
     @Override
-    public RecordOffset getPosition(RecordPartition partition) {
+    public RecordOffset getPosition(ExtendRecordPartition partition) {
 
         return offsetStore.get(partition);
     }
 
     @Override
-    public void putPosition(Map<RecordPartition, RecordOffset> offsets) {
+    public void putPosition(Map<ExtendRecordPartition, RecordOffset> offsets) {
 
         offsetStore.putAll(offsets);
         needSyncPartition.addAll(offsets.keySet());
     }
 
     @Override
-    public void putPosition(RecordPartition partition, RecordOffset position) {
+    public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
 
         offsetStore.put(partition, position);
         needSyncPartition.add(partition);
     }
 
     @Override
-    public void removePosition(List<RecordPartition> offsets) {
+    public void removePosition(List<ExtendRecordPartition> offsets) {
 
         if (null == offsets) {
             return;
         }
-        for (RecordPartition offset : offsets) {
+        for (ExtendRecordPartition offset : offsets) {
             needSyncPartition.remove(offset);
             offsetStore.remove(offset);
         }
@@ -162,11 +185,11 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
 
     private void sendNeedSynchronizeOffset() {
 
-        Set<RecordPartition> needSyncPartitionTmp = needSyncPartition;
+        Set<ExtendRecordPartition> needSyncPartitionTmp = needSyncPartition;
         needSyncPartition = new ConcurrentSet<>();
-        Map<RecordPartition, RecordOffset> needSyncOffset = offsetStore.getKVMap().entrySet().stream()
-            .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
-            .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+        Map<ExtendRecordPartition, RecordOffset> needSyncOffset = offsetStore.getKVMap().entrySet().stream()
+                .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
         dataSynchronizer.send(OffsetChangeEnum.OFFSET_CHANG_KEY.name(), needSyncOffset);
     }
@@ -176,10 +199,10 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
         dataSynchronizer.send(OffsetChangeEnum.OFFSET_CHANG_KEY.name(), offsetStore.getKVMap());
     }
 
-    private class OffsetChangeCallback implements DataSynchronizerCallback<String, Map<RecordPartition, RecordOffset>> {
+    private class OffsetChangeCallback implements DataSynchronizerCallback<String, Map<ExtendRecordPartition, RecordOffset>> {
 
         @Override
-        public void onCompletion(Throwable error, String key, Map<RecordPartition, RecordOffset> result) {
+        public void onCompletion(Throwable error, String key, Map<ExtendRecordPartition, RecordOffset> result) {
 
             boolean changed = false;
             switch (OffsetChangeEnum.valueOf(key)) {
@@ -212,16 +235,16 @@ public class OffsetManagementServiceImpl implements PositionManagementService {
      * @param result
      * @return
      */
-    private boolean mergeOffsetInfo(Map<RecordPartition, RecordOffset> result) {
+    private boolean mergeOffsetInfo(Map<ExtendRecordPartition, RecordOffset> result) {
 
         boolean changed = false;
         if (null == result || 0 == result.size()) {
             return changed;
         }
 
-        for (Map.Entry<RecordPartition, RecordOffset> newEntry : result.entrySet()) {
+        for (Map.Entry<ExtendRecordPartition, RecordOffset> newEntry : result.entrySet()) {
             boolean find = false;
-            for (Map.Entry<RecordPartition, RecordOffset> existedEntry : offsetStore.getKVMap().entrySet()) {
+            for (Map.Entry<ExtendRecordPartition, RecordOffset> existedEntry : offsetStore.getKVMap().entrySet()) {
                 if (newEntry.getKey().equals(existedEntry.getKey())) {
                     find = true;
                     if (!newEntry.getValue().equals(existedEntry.getValue())) {

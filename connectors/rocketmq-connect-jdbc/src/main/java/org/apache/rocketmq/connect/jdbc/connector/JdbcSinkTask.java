@@ -18,134 +18,136 @@
 package org.apache.rocketmq.connect.jdbc.connector;
 
 
-import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.common.QueueMetaData;
-import io.openmessaging.connector.api.data.EntryType;
-import io.openmessaging.connector.api.data.Field;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SinkDataEntry;
-import io.openmessaging.connector.api.sink.SinkTask;
-import org.apache.rocketmq.connect.jdbc.config.Config;
-import org.apache.rocketmq.connect.jdbc.common.DBUtils;
-import org.apache.rocketmq.connect.jdbc.config.ConfigUtil;
+import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.errors.ConnectException;
+import io.openmessaging.connector.api.errors.RetriableException;
+import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory;
+import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
 import org.apache.rocketmq.connect.jdbc.sink.Updater;
+import org.apache.rocketmq.connect.jdbc.exception.TableAlterOrCreateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.util.Collection;
-import java.util.HashMap;
+import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * jdbc sink task
+ */
 public class JdbcSinkTask extends SinkTask {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcSinkTask.class);
-
-    private Config config;
-    private DataSource dataSource;
-    private Connection connection;
+    private SinkTaskContext context;
+    private KeyValue originalConfig;
+    private JdbcSinkConfig config;
+    private DatabaseDialect dialect;
+    int remainingRetries;
     private Updater updater;
-    private BlockingQueue<Updater> tableQueue = new LinkedBlockingQueue<Updater>();
 
-    public JdbcSinkTask() {
-        this.config = new Config();
-    }
 
+    /**
+     * Put the records to the sink
+     *
+     * @param records
+     */
     @Override
-    public void put(Collection<SinkDataEntry> sinkDataEntries) {
+    public void put(List<ConnectRecord> records) throws ConnectException {
+        if (records.isEmpty()) {
+            return;
+        }
+        final int recordsCount = records.size();
+        log.debug("Received {} records.", recordsCount);
         try {
-            if (tableQueue.size() > 1) {
-                updater = tableQueue.poll(1000, TimeUnit.MILLISECONDS);
-            } else {
-                updater = tableQueue.peek();
+            updater.write(records);
+        } catch (TableAlterOrCreateException tace) {
+            throw tace;
+        } catch (SQLException sqle) {
+            SQLException sqlAllMessagesException = getAllMessagesException(sqle);
+            if (remainingRetries > 0) {
+                updater.closeQuietly();
+                init(originalConfig);
+                remainingRetries--;
+                throw new RetriableException(sqlAllMessagesException);
             }
-
-            for (SinkDataEntry record : sinkDataEntries) {
-                Map<Field, Object[]> fieldMap = new HashMap<>();
-                Object[] payloads = record.getPayload();
-                Schema schema = record.getSchema();
-                EntryType entryType = record.getEntryType();
-                String tableName = schema.getName();
-                String dbName = schema.getDataSource();
-                List<Field> fields = schema.getFields();
-                Boolean parseError = false;
-                if (!fields.isEmpty()) {
-                    for (Field field : fields) {
-                        Object fieldValue = payloads[field.getIndex()];
-                        Object[] value = JSONObject.parseArray((String)fieldValue).toArray();
-                        if (value.length == 2) {
-                            fieldMap.put(field, value);
-                        } else {
-                            log.error("parseArray error, fieldValue:{}", fieldValue);
-                            parseError = true;
-                        }
-                    }
-                }
-                if (!parseError) {
-                    Boolean isSuccess = updater.push(dbName, tableName, fieldMap, entryType);
-                    if (!isSuccess) {
-                        log.error("push data error, dbName:{}, tableName:{}, entryType:{}, fieldMap:{}", dbName, tableName, fieldMap, entryType);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error("put sinkDataEntries error, {}", e);
         }
+        remainingRetries = config.getMaxRetries();
     }
 
-    @Override
-    public void commit(Map<QueueMetaData, Long> map) {
-
+    private SQLException getAllMessagesException(SQLException sqle) {
+        String sqleAllMessages = "Exception chain:" + System.lineSeparator();
+        for (Throwable e : sqle) {
+            sqleAllMessages += e + System.lineSeparator();
+        }
+        SQLException sqlAllMessagesException = new SQLException(sqleAllMessages);
+        sqlAllMessagesException.setNextException(sqle);
+        return sqlAllMessagesException;
     }
 
+
     @Override
-    public void start(KeyValue props) {
-        try {
-            ConfigUtil.load(props, this.config);
-            dataSource = DBUtils.initDataSource(config);
-            connection = dataSource.getConnection();
-            log.info("init data source success");
-        } catch (Exception e) {
-            log.error("Cannot start Jdbc Sink Task because of configuration error{}", e);
+    public void start(SinkTaskContext context) {
+        this.context = context;
+    }
+
+    /**
+     * Should invoke before start the connector.
+     *
+     * @param config
+     * @return error message
+     */
+    @Override
+    public void validate(KeyValue config) {
+        // to do nothing
+    }
+
+    /**
+     * Init the component
+     *
+     * @param keyValue
+     */
+    @Override
+    public void init(KeyValue keyValue) {
+        originalConfig = keyValue;
+        config = new JdbcSinkConfig(keyValue);
+        remainingRetries = config.getMaxRetries();
+        if (config.getDialectName() != null && !config.getDialectName().trim().isEmpty()) {
+            dialect = DatabaseDialectFactory.create(config.getDialectName(), config);
+        } else {
+            dialect = DatabaseDialectFactory.findDialectFor(config.getConnectionDbUrl(), config);
         }
-        String mode = config.getMode();
-        if (mode.equals("bulk")) {
-            Updater updater = new Updater(config, connection);
-            try {
-                updater.start();
-                tableQueue.add(updater);
-            } catch (Exception e) {
-                log.error("fail to start updater{}", e);
-            }
-        }
+        final DbStructure dbStructure = new DbStructure(dialect);
+        log.info("Initializing writer using SQL dialect: {}", dialect.getClass().getSimpleName());
+        this.updater = new Updater(config, dialect, dbStructure);
     }
 
     @Override
     public void stop() {
+        log.info("Stopping task");
         try {
-            if (connection != null){
-                connection.close();
-                log.info("jdbc sink task connection is closed.");
+            updater.closeQuietly();
+        } finally {
+            try {
+                if (dialect != null) {
+                    dialect.close();
+                }
+            } catch (Throwable t) {
+                log.warn("Error while closing the {} dialect: ", dialect.name(), t);
+            } finally {
+                dialect = null;
             }
-        } catch (Throwable e) {
-            log.warn("sink task stop error while closing connection to {}", "jdbc", e);
         }
     }
 
     @Override
     public void pause() {
-
     }
 
     @Override
     public void resume() {
-
     }
 
 }

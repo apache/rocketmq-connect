@@ -18,10 +18,14 @@ package org.apache.rocketmq.replicator.common;
 
 import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -30,10 +34,12 @@ import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.replicator.RmqConstants;
 import org.apache.rocketmq.replicator.config.DataType;
 import org.apache.rocketmq.replicator.config.RmqConnectorConfig;
 import org.apache.rocketmq.replicator.config.TaskConfig;
@@ -70,7 +76,7 @@ public class Utils {
         return String.valueOf(namesrvList.toString().hashCode());
     }
 
-    public static String createUniqIntanceName(String prefix) {
+    public static String createUniqInstanceName(String prefix) {
         return new StringBuilder(prefix).append("-").append(UUID.randomUUID().toString()).toString();
     }
 
@@ -117,10 +123,12 @@ public class Utils {
         }
     }
 
-    public static List<KeyValue> groupPartitions(List<String> elements, int numGroups, RmqConnectorConfig tdc) {
-        if (numGroups <= 0)
+    public static List<KeyValue> groupPartitions(List<String> elements, RmqConnectorConfig tdc,
+        int maxTasks) {
+        if (maxTasks <= 0)
             throw new IllegalArgumentException("Number of groups must be positive.");
 
+        int numGroups = Math.min(elements.size(), maxTasks);
         List<KeyValue> result = new ArrayList<>(numGroups);
 
         // Each group has either n+1 or n raw partitions
@@ -160,7 +168,7 @@ public class Utils {
         DefaultMQAdminExt srcMQAdminExt = new DefaultMQAdminExt(rpcHook);
         srcMQAdminExt.setNamesrvAddr(replicatorConfig.getSrcNamesrvs());
         srcMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_ADMIN_GROUP);
-        srcMQAdminExt.setInstanceName(Utils.createUniqIntanceName(replicatorConfig.getSrcNamesrvs()));
+        srcMQAdminExt.setInstanceName(Utils.createUniqInstanceName(replicatorConfig.getSrcNamesrvs()));
 
         srcMQAdminExt.start();
         log.info("SOURCE: RocketMQ srcMQAdminExt started");
@@ -177,7 +185,7 @@ public class Utils {
         DefaultMQAdminExt targetMQAdminExt = new DefaultMQAdminExt(rpcHook);
         targetMQAdminExt.setNamesrvAddr(replicatorConfig.getTargetNamesrvs());
         targetMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_ADMIN_GROUP);
-        targetMQAdminExt.setInstanceName(Utils.createUniqIntanceName(replicatorConfig.getTargetNamesrvs()));
+        targetMQAdminExt.setInstanceName(Utils.createUniqInstanceName(replicatorConfig.getTargetNamesrvs()));
 
         targetMQAdminExt.start();
         log.info("TARGET: RocketMQ targetMQAdminExt started.");
@@ -193,11 +201,25 @@ public class Utils {
         DefaultMQAdminExt targetMQAdminExt = new DefaultMQAdminExt(rpcHook);
         targetMQAdminExt.setNamesrvAddr(taskConfig.getSourceRocketmq());
         targetMQAdminExt.setAdminExtGroup(ConstDefine.REPLICATOR_TASK_ADMIN_GROUP);
-        targetMQAdminExt.setInstanceName(Utils.createUniqIntanceName(taskConfig.getSourceRocketmq()));
+        targetMQAdminExt.setInstanceName(Utils.createUniqInstanceName(taskConfig.getSourceRocketmq()));
 
         targetMQAdminExt.start();
         log.info("TARGET: RocketMQ targetMQAdminExt started.");
 
         return targetMQAdminExt;
+    }
+
+    public static RecordPartition offsetKey(MessageQueue mq) {
+        Map<String, String> map = new HashMap<>(4);
+        map.put(RmqConstants.TOPIC_NAME, mq.getTopic());
+        map.put(RmqConstants.BROKER_NAME, mq.getBrokerName());
+        map.put(RmqConstants.QUEUE_ID, String.valueOf(mq.getQueueId()));
+        return new RecordPartition(map);
+    }
+
+    public static RecordOffset offsetValue(Long pos) {
+        Map<String, String> map = new HashMap<>(2);
+        map.put(RmqConstants.NEXT_POSITION, String.valueOf(pos));
+        return new RecordOffset(map);
     }
 }

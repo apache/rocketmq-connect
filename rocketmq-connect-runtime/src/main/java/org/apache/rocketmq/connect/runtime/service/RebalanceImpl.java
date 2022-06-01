@@ -19,12 +19,17 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.ConnectController;
+
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,10 +60,10 @@ public class RebalanceImpl {
      */
     private AllocateConnAndTaskStrategy allocateConnAndTaskStrategy;
 
-    private final ConnectController connectController;
+    private final AbstractConnectController connectController;
 
-    public RebalanceImpl(Worker worker, ConfigManagementService configManagementService,
-        ClusterManagementService clusterManagementService, AllocateConnAndTaskStrategy strategy, ConnectController connectController) {
+    public RebalanceImpl(Worker worker,
+                         ConfigManagementService configManagementService, ClusterManagementService clusterManagementService, AllocateConnAndTaskStrategy strategy, AbstractConnectController connectController) {
 
         this.worker = worker;
         this.configManagementService = configManagementService;
@@ -69,7 +74,11 @@ public class RebalanceImpl {
 
     public void checkClusterStoreTopic() {
         if (!clusterManagementService.hasClusterStoreTopic()) {
-            log.error("cluster store topic not exist, apply first please!");
+            ConnectConfig connectConfig = this.connectController.getConnectConfig();
+            String clusterStoreTopic = this.connectController.getConnectConfig().getClusterStoreTopic();
+            log.info("cluster store topic not exist, try to create it!");
+            TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
         }
     }
 
@@ -78,7 +87,15 @@ public class RebalanceImpl {
      */
     public void doRebalance() {
         List<String> curAliveWorkers = clusterManagementService.getAllAliveWorkers();
-        log.info("Current Alive workers : " + curAliveWorkers.size());
+        if (curAliveWorkers != null) {
+            if (clusterManagementService instanceof ClusterManagementServiceImpl) {
+                log.info("Current Alive workers : " + curAliveWorkers.size());
+            } else if (clusterManagementService instanceof MemoryClusterManagementServiceImpl) {
+                log.info("Current alive worker : " + curAliveWorkers.iterator().next());
+            }
+        }
+
+
         Map<String, ConnectKeyValue> curConnectorConfigs = configManagementService.getConnectorConfigs();
         log.info("Current ConnectorConfigs : " + curConnectorConfigs);
         Map<String, List<ConnectKeyValue>> curTaskConfigs = configManagementService.getTaskConfigs();

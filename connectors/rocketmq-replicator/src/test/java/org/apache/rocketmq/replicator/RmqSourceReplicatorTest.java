@@ -56,7 +56,7 @@ public class RmqSourceReplicatorTest {
         RmqConnectorConfig config = new RmqConnectorConfig();
         KeyValue kv = new DefaultKeyValue();
         kv.put(ConfigDefine.CONN_TOPIC_RENAME_FMT, "${topic}.replica");
-        config.validate(kv);
+        config.init(kv);
 
         Field field = RmqSourceReplicator.class.getDeclaredField("replicatorConfig");
         FieldSetter.setField(rmqSourceReplicator, field, config);

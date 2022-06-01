@@ -233,6 +233,9 @@ public class WorkerSinkTask implements WorkerTask {
                     log.error(" sink task {},pull message MQClientException, Error {} ", this, e.getMessage(), e);
                     connectStatsManager.incSinkRecordPutTotalFailNums();
                     connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                } finally {
+                    // record sink read times
+                    connectStatsManager.incSinkRecordReadTotalTimes();
                 }
             }
 
@@ -421,7 +424,7 @@ public class WorkerSinkTask implements WorkerTask {
             if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.FOUND)) {
                 this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
                 messages = pullResult.getMsgFoundList();
-                connectStatsManager.incSinkRecordReadTotalNums();
+                connectStatsManager.incSinkRecordReadTotalNums(messages.size());
                 connectStatsManager.incSinkRecordReadNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), messages.size());
                 long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
                 connectStatsManager.incSinkRecordReadTotalRT(pullRT);
@@ -499,6 +502,11 @@ public class WorkerSinkTask implements WorkerTask {
     @Override
     public void stop() {
         state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+        try {
+            transformChain.close();
+        } catch (Exception exception) {
+            log.error("Transform close failed，{}", exception);
+        }
     }
 
     @Override

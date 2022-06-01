@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,166 +17,318 @@
 
 package org.apache.rocketmq.connect.jdbc.connector;
 
-import io.openmessaging.connector.api.source.SourceTask;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.rocketmq.connect.jdbc.common.ConstDefine;
-import org.apache.rocketmq.connect.jdbc.config.Config;
-import org.apache.rocketmq.connect.jdbc.common.DBUtils;
-import org.apache.rocketmq.connect.jdbc.config.ConfigUtil;
-import org.apache.rocketmq.connect.jdbc.schema.Table;
-import org.apache.rocketmq.connect.jdbc.source.Querier;
-import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingQuerier;
-import org.apache.rocketmq.connect.jdbc.schema.column.*;
+import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory;
+import org.apache.rocketmq.connect.jdbc.dialect.provider.CachedConnectionProvider;
+import org.apache.rocketmq.connect.jdbc.source.offset.SourceOffsetCompute;
+import org.apache.rocketmq.connect.jdbc.source.querier.BulkQuerier;
+import org.apache.rocketmq.connect.jdbc.source.querier.Querier;
+import org.apache.rocketmq.connect.jdbc.source.querier.TimestampIncrementingQuerier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.fastjson.JSON;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.EntryType;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-
-import com.alibaba.fastjson.JSONObject;
-import io.openmessaging.connector.api.data.DataEntryBuilder;
-import io.openmessaging.connector.api.data.Field;
-
-import javax.sql.DataSource;
-
+/**
+ * jdbc source task
+ */
 public class JdbcSourceTask extends SourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcSourceTask.class);
+    private static final int CONSECUTIVE_EMPTY_RESULTS_BEFORE_RETURN = 3;
 
-    private Config config;
-
-    private DataSource dataSource;
-
-    private Connection connection;
+    private JdbcSourceTaskConfig config;
+    private DatabaseDialect dialect;
+    private CachedConnectionProvider cachedConnectionProvider;
 
     BlockingQueue<Querier> tableQueue = new LinkedBlockingQueue<Querier>();
-    static final String INCREMENTING_FIELD = "incrementing";
-    static final String TIMESTAMP_FIELD = "timestamp";
-    private Querier querier;
-
-    public JdbcSourceTask() {
-        this.config = new Config();
-    }
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     @Override
-    public Collection<SourceDataEntry> poll() {
-        List<SourceDataEntry> res = new ArrayList<>();
-        try {
-            if (tableQueue.size() > 1)
-                querier = tableQueue.poll(1000, TimeUnit.MILLISECONDS);
-            else
-                querier = tableQueue.peek();
-            Timer timer = new Timer();
+    public List<ConnectRecord> poll() {
+        log.trace(" Polling for new data");
+        Map<Querier, Integer> consecutiveEmptyResults = tableQueue.stream().collect(Collectors.toMap(Function.identity(), (q) -> 0));
+        while (running.get()) {
+            final Querier querier = tableQueue.peek();
+            if (!querier.querying()) {
+                // If not in the middle of an update, wait for next update time
+                final long nextUpdate = querier.getLastUpdate() + config.getPollIntervalMs();
+                final long now = System.currentTimeMillis();
+                final long sleepMs = Math.min(nextUpdate - now, 100);
+                if (sleepMs > 0) {
+                    log.trace("Waiting {} ms to poll {} next", nextUpdate - now, querier.toString());
+                    try {
+                        Thread.sleep(sleepMs);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    continue;
+                }
+            }
+
+            // poll data
+            final List<ConnectRecord> results = new ArrayList<>();
             try {
-                Thread.currentThread();
-                Thread.sleep(1000);//毫秒
-            } catch (Exception e) {
-                throw e;
-            }
-            querier.poll();
-            for (Table dataRow : querier.getList()) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("nextQuery", "database");
-                jsonObject.put("nextPosition", "table");
-                Schema schema = new Schema();
-                schema.setDataSource(dataRow.getDatabase());
-                schema.setName(dataRow.getName());
-                schema.setFields(new ArrayList<>());
-                for (int i = 0; i < dataRow.getColList().size(); i++) {
-                    String columnName = dataRow.getColList().get(i);
-                    String rawDataType = dataRow.getRawDataTypeList().get(i);
-                    Field field = new Field(i, columnName, ColumnParser.mapConnectorFieldType(rawDataType));
-                    schema.getFields().add(field);
+                log.debug("Checking for next block of results from {}", querier);
+                querier.maybeStartQuery(cachedConnectionProvider);
+                int batchMaxRows = config.getBatchMaxRows();
+                boolean hasNext = true;
+                while (results.size() < batchMaxRows && (hasNext = querier.hasNext())) {
+                    results.add(querier.extractRecord());
                 }
-                DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema);
-                dataEntryBuilder.timestamp(System.currentTimeMillis()).queue(dataRow.getName())
-                        .entryType(EntryType.UPDATE);
-                for (int i = 0; i < dataRow.getColList().size(); i++) {
-                    Object[] value = new Object[2];
-                    value[0] = value[1] = dataRow.getParserList().get(i).getValue(dataRow.getDataList().get(i));
-                    dataEntryBuilder.putFiled(dataRow.getColList().get(i), JSONObject.toJSONString(value));
+                if (!hasNext) {
+                    // the querier to the tail of the queue
+                    resetAndRequeueHead(querier);
                 }
 
-                SourceDataEntry sourceDataEntry = dataEntryBuilder.buildSourceDataEntry(
-                        ByteBuffer.wrap((ConstDefine.PREFIX + config.getDbUrl() + config.getDbPort()).getBytes(StandardCharsets.UTF_8)),
-                        ByteBuffer.wrap(jsonObject.toJSONString().getBytes(StandardCharsets.UTF_8)));
-                res.add(sourceDataEntry);
-                log.debug("sourceDataEntry : {}", JSONObject.toJSONString(sourceDataEntry));
+                if (results.isEmpty()) {
+                    consecutiveEmptyResults.compute(querier, (k, v) -> v + 1);
+                    log.trace("No updates for {}", querier);
+                    if (Collections.min(consecutiveEmptyResults.values()) >= CONSECUTIVE_EMPTY_RESULTS_BEFORE_RETURN) {
+                        log.warn("More than " + CONSECUTIVE_EMPTY_RESULTS_BEFORE_RETURN + " consecutive empty results for all queriers, returning");
+                        return null;
+                    } else {
+                        continue;
+                    }
+                } else {
+                    consecutiveEmptyResults.put(querier, 0);
+                }
+
+                log.debug("Returning {} records for {}", results.size(), querier.toString());
+                return results;
+            } catch (SQLException sqle) {
+                log.error("Failed to run query for table {}: {}", querier.toString(), sqle);
+                resetAndRequeueHead(querier);
+                throw new RuntimeException(sqle);
+            } catch (Throwable t) {
+                resetAndRequeueHead(querier);
+                // This task has failed, so close any resources (may be reopened if needed) before throwing
+                closeResources();
+                throw t;
             }
-        } catch (Exception e) {
-            log.error("JDBC task poll error, current config:" + JSON.toJSONString(config), e);
         }
-        log.debug("dataEntry poll successfully,{}", JSONObject.toJSONString(res));
-        return res;
+        // Only in case of shutdown
+        final Querier querier = tableQueue.peek();
+        if (querier != null) {
+            resetAndRequeueHead(querier);
+        }
+        closeResources();
+        return null;
     }
 
+    private void resetAndRequeueHead(Querier querier) {
+        log.debug("Resetting querier {}", querier.toString());
+        tableQueue.poll();
+        if (running.get()) {
+            querier.reset(System.currentTimeMillis());
+        } else {
+            querier.reset(0);
+        }
+        tableQueue.add(querier);
+    }
+
+
+    /**
+     * Should invoke before start the connector.
+     *
+     * @param config
+     * @return error message
+     */
     @Override
-    public void start(KeyValue props) {
+    public void validate(KeyValue config) {
+    }
+
+    /**
+     * start jdbc task
+     *
+     * @param context
+     */
+    @Override
+    public void start(SourceTaskContext context) {
+        // compute table offset
+        Map<String, Map<String, Object>> offsetValues = SourceOffsetCompute.initOffset(config, context, dialect, cachedConnectionProvider);
+        for (String tableOrQuery : offsetValues.keySet()) {
+            this.buildAndAddQuerier(
+                    JdbcSourceConfig.TableLoadMode.findTableLoadModeByName(this.config.getMode()),
+                    this.config.getQuerySuffix(),
+                    this.config.getIncrementingColumnName(),
+                    this.config.getTimestampColumnNames(),
+                    this.config.getTimestampDelayIntervalMs(),
+                    this.config.getTimeZone(), tableOrQuery,
+                    offsetValues.get(tableOrQuery)
+            );
+        }
+        running.set(true);
+        log.info("Started JDBC source task");
+    }
+
+    /**
+     * build and add querier
+     *
+     * @param loadMode
+     * @param querySuffix
+     * @param incrementingColumn
+     * @param timestampColumns
+     * @param timestampDelayInterval
+     * @param timeZone
+     * @param tableOrQuery
+     * @param offset
+     */
+    private void buildAndAddQuerier(JdbcSourceConfig.TableLoadMode loadMode, String querySuffix, String incrementingColumn, List<String> timestampColumns, Long timestampDelayInterval, TimeZone timeZone, String tableOrQuery, Map<String, Object> offset) {
+        String topicPrefix = config.getTopicPrefix();
+        Querier.QueryMode queryMode = !StringUtils.isEmpty(config.getQuery()) ? Querier.QueryMode.QUERY : Querier.QueryMode.TABLE;
+        Querier querier = null;
+        switch (loadMode) {
+            case MODE_BULK:
+                querier = new BulkQuerier(
+                        dialect,
+                        queryMode,
+                        tableOrQuery,
+                        topicPrefix,
+                        querySuffix,
+                        this.config.getOffsetSuffix()
+                );
+                tableQueue.add(querier);
+                break;
+            case MODE_INCREMENTING:
+                querier = new TimestampIncrementingQuerier(
+                        dialect,
+                        queryMode,
+                        tableOrQuery,
+                        topicPrefix,
+                        null,
+                        incrementingColumn,
+                        offset,
+                        timestampDelayInterval,
+                        timeZone,
+                        querySuffix,
+                        this.config.getOffsetSuffix()
+                );
+                tableQueue.add(querier);
+                break;
+            case MODE_TIMESTAMP:
+                querier = new TimestampIncrementingQuerier(
+                        dialect,
+                        queryMode,
+                        tableOrQuery,
+                        topicPrefix,
+                        timestampColumns,
+                        null,
+                        offset,
+                        timestampDelayInterval,
+                        timeZone,
+                        querySuffix,
+                        this.config.getOffsetSuffix()
+                );
+                tableQueue.add(querier);
+                break;
+            case MODE_TIMESTAMP_INCREMENTING:
+                querier = new TimestampIncrementingQuerier(
+                        dialect,
+                        queryMode,
+                        tableOrQuery,
+                        topicPrefix,
+                        timestampColumns,
+                        incrementingColumn,
+                        offset,
+                        timestampDelayInterval,
+                        timeZone,
+                        querySuffix,
+                        this.config.getOffsetSuffix()
+                );
+                tableQueue.add(querier);
+                break;
+        }
+    }
+
+    /**
+     * Init the component
+     *
+     * @param props
+     */
+    @Override
+    public void init(KeyValue props) {
         try {
-            ConfigUtil.load(props, this.config);
-            dataSource = DBUtils.initDataSource(config);
-            connection = dataSource.getConnection();
-            log.info("init data source success");
+            config = new JdbcSourceTaskConfig(props);
+            final String dialectName = config.getDialectName();
+            final String url = config.getConnectionDbUrl();
+            if (dialectName != null && !dialectName.trim().isEmpty()) {
+                dialect = DatabaseDialectFactory.create(dialectName, config);
+            } else {
+                dialect = DatabaseDialectFactory.findDialectFor(url, config);
+            }
+            final int maxConnAttempts = config.getAttempts();
+            final long retryBackoff = config.getBackoffMs();
+            cachedConnectionProvider = connectionProvider(maxConnAttempts, retryBackoff);
+            log.info("Using JDBC dialect {}", dialect.name());
         } catch (Exception e) {
             log.error("Cannot start Jdbc Source Task because of configuration error{}", e);
         }
-        Map<Map<String, String>, Map<String, Object>> offsets = null;
-        String mode = config.getMode();
-        if (mode.equals("bulk")) {
-            Querier querier = new Querier(config, connection);
-            try {
-                querier.start();
-                tableQueue.add(querier);
-            } catch (Exception e) {
-                log.error("start querier failed in bulk mode{}", e);
-            }
-        } else {
-            TimestampIncrementingQuerier querier = new TimestampIncrementingQuerier();
-            try {
-                querier.setConfig(config);
-                querier.start();
-                tableQueue.add(querier);
-            } catch (Exception e) {
-                log.error("fail to start querier{}", e);
-            }
-
-        }
-
     }
+
+    protected CachedConnectionProvider connectionProvider(int maxConnAttempts, long retryBackoff) {
+        return new CachedConnectionProvider(dialect, maxConnAttempts, retryBackoff) {
+            @Override
+            protected void onConnect(final Connection connection) throws SQLException {
+                super.onConnect(connection);
+                connection.setAutoCommit(false);
+            }
+        };
+    }
+
 
     @Override
     public void stop() {
+        running.set(true);
+    }
+
+
+    protected void closeResources() {
+        log.info("Closing resources for JDBC source task");
         try {
-            if (connection != null) {
-                connection.close();
-                log.info("jdbc source task connection is closed.");
+            if (cachedConnectionProvider != null) {
+                cachedConnectionProvider.close();
             }
-        } catch (Throwable e) {
-            log.warn("source task stop error while closing connection to {}", "jdbc", e);
+        } catch (Throwable t) {
+            log.warn("Error while closing the connections", t);
+        } finally {
+            cachedConnectionProvider = null;
+            try {
+                if (dialect != null) {
+                    dialect.close();
+                }
+            } catch (Throwable t) {
+                log.warn("Error while closing the {} dialect: ", dialect.name(), t);
+            } finally {
+                dialect = null;
+            }
         }
     }
 
     @Override
     public void pause() {
-
+        // do nothing
     }
 
     @Override
     public void resume() {
-
+        // do nothing
     }
 }

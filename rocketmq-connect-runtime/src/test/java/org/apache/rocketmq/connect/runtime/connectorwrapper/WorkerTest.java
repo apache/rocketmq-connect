@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.connect.runtime.ConnectController;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
@@ -79,7 +79,7 @@ public class WorkerTest {
     private ConnectorContext connectorContext;
 
     @Mock
-    private ConnectController connectController;
+    private DistributedConnectController connectController;
 
     @Mock
     private ConnectStatsManager connectStatsManager;

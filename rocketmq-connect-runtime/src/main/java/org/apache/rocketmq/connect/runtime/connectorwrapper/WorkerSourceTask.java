@@ -32,6 +32,7 @@ import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
@@ -52,6 +54,7 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
+import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,12 +88,17 @@ public class WorkerSourceTask implements WorkerTask {
      */
     private AtomicReference<WorkerTaskState> state;
 
-    private final PositionManagementService positionManagementService;
+
 
     /**
      * Used to read the position of source data source.
      */
     private OffsetStorageReader offsetStorageReader;
+
+    /**
+     * Used to write the position of source data source.
+     */
+    private PositionStorageWriter positionStorageWriter;
 
     /**
      * A RocketMQ producer to send message to dest MQ.
@@ -112,6 +120,16 @@ public class WorkerSourceTask implements WorkerTask {
 
     private TransformChain<ConnectRecord> transformChain;
 
+    /**
+     * The property of message in WHITE_KEY_SET don't need add a connect prefix
+     */
+    private static final Set<String> WHITE_KEY_SET = new HashSet<>();
+
+    static {
+        WHITE_KEY_SET.add(MessageConst.PROPERTY_KEYS);
+        WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
+    }
+
     public WorkerSourceTask(String connectorName,
         SourceTask sourceTask,
         ConnectKeyValue taskConfig,
@@ -125,8 +143,8 @@ public class WorkerSourceTask implements WorkerTask {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
-        this.positionManagementService = positionManagementService;
-        this.offsetStorageReader = new PositionStorageReaderImpl(positionManagementService);
+        this.offsetStorageReader = new PositionStorageReaderImpl(connectorName, positionManagementService);
+        this.positionStorageWriter = new PositionStorageWriter(connectorName, positionManagementService);
         this.producer = producer;
         this.recordConverter = recordConverter;
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
@@ -167,8 +185,8 @@ public class WorkerSourceTask implements WorkerTask {
                     try {
                         toSendRecord = poll();
                         if (null != toSendRecord && toSendRecord.size() > 0) {
-                            connectStatsManager.incSourceRecordPollTotalNums();
-                            connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                            connectStatsManager.incSourceRecordPollTotalNums(toSendRecord.size());
+                            connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), toSendRecord.size());
                             sendRecord();
                         }
                     } catch (RetriableException e) {
@@ -178,8 +196,11 @@ public class WorkerSourceTask implements WorkerTask {
                     } catch (Exception e) {
                         connectStatsManager.incSourceRecordPollTotalFailNums();
                         connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                        log.error("Source task RetriableException exception", e);
+                        log.error("Source task Exception exception", e);
                         state.set(WorkerTaskState.ERROR);
+                    } finally {
+                        // record source poll times
+                        connectStatsManager.incSourceRecordPollTotalTimes();
                     }
                 }
                 AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
@@ -225,6 +246,11 @@ public class WorkerSourceTask implements WorkerTask {
     @Override
     public void stop() {
         state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+        try {
+            transformChain.close();
+        } catch (Exception exception) {
+            log.error("Transform close failed，{}", exception);
+        }
         log.warn("Stop a task success.");
     }
 
@@ -307,7 +333,7 @@ public class WorkerSourceTask implements WorkerTask {
                             if (null != partition && null != position) {
                                 Map<String, String> offsetMap = (Map<String, String>) offset.getOffset();
                                 offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(sourceDataEntry.getTimestamp()));
-                                positionManagementService.putPosition(partition, offset);
+                                positionStorageWriter.putPosition(partition, offset);
                             }
 
                         } catch (Exception e) {
@@ -351,7 +377,11 @@ public class WorkerSourceTask implements WorkerTask {
             return;
         }
         for (String key : keySet) {
-            MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
+            if (WHITE_KEY_SET.contains(key)) {
+                MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
+            } else {
+                MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
+            }
         }
     }
 

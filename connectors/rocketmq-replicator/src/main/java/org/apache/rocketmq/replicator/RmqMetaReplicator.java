@@ -17,8 +17,9 @@
 package org.apache.rocketmq.replicator;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
@@ -44,6 +46,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.replicator.common.Utils;
+import org.apache.rocketmq.replicator.config.ConfigDefine;
 import org.apache.rocketmq.replicator.config.RmqConnectorConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -54,6 +57,7 @@ public class RmqMetaReplicator extends SourceConnector {
     private static final Logger log = LoggerFactory.getLogger(RmqSourceReplicator.class);
 
     private static final Set<String> INNER_CONSUMER_GROUPS = new HashSet<>();
+    private static final Set<String> SYS_CONSUMER_PREFIX = new HashSet<>();
 
     private RmqConnectorConfig replicatorConfig;
 
@@ -66,18 +70,23 @@ public class RmqMetaReplicator extends SourceConnector {
     private List<Pattern> whiteListPatterns;
 
     static {
-        INNER_CONSUMER_GROUPS.add("TOOLS_CONSUMER");
-        INNER_CONSUMER_GROUPS.add("FILTERSRV_CONSUMER");
-        INNER_CONSUMER_GROUPS.add("__MONITOR_CONSUMER");
-        INNER_CONSUMER_GROUPS.add("CLIENT_INNER_PRODUCER");
-        INNER_CONSUMER_GROUPS.add("SELF_TEST_P_GROUP");
-        INNER_CONSUMER_GROUPS.add("SELF_TEST_C_GROUP");
-        INNER_CONSUMER_GROUPS.add("SELF_TEST_TOPIC");
-        INNER_CONSUMER_GROUPS.add("OFFSET_MOVED_EVENT");
-        INNER_CONSUMER_GROUPS.add("CID_ONS-HTTP-PROXY");
-        INNER_CONSUMER_GROUPS.add("CID_ONSAPI_PERMISSION");
-        INNER_CONSUMER_GROUPS.add("CID_ONSAPI_OWNER");
-        INNER_CONSUMER_GROUPS.add("CID_ONSAPI_PULL");
+        INNER_CONSUMER_GROUPS.add(MixAll.TOOLS_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.FILTERSRV_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.MONITOR_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.SELF_TEST_PRODUCER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.SELF_TEST_CONSUMER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CID_ONSAPI_PERMISSION_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.ONS_HTTP_PROXY_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CID_ONSAPI_OWNER_GROUP);
+        INNER_CONSUMER_GROUPS.add(MixAll.CID_ONSAPI_PULL_GROUP);
+
+        SYS_CONSUMER_PREFIX.add(MixAll.CID_RMQ_SYS_PREFIX);
+        SYS_CONSUMER_PREFIX.add("PositionManage");
+        SYS_CONSUMER_PREFIX.add("ConfigManage");
+        SYS_CONSUMER_PREFIX.add("OffsetManage");
+        SYS_CONSUMER_PREFIX.add("DefaultConnectCluster");
+        SYS_CONSUMER_PREFIX.add("RebalanceService");
     }
 
     public RmqMetaReplicator() {
@@ -87,20 +96,32 @@ public class RmqMetaReplicator extends SourceConnector {
         executor = Executors.newSingleThreadScheduledExecutor(new BasicThreadFactory.Builder().namingPattern("RmqMetaReplicator-SourceWatcher-%d").daemon(true).build());
     }
 
-    @Override public String verifyAndSetConfig(KeyValue config) {
-        log.info("verifyAndSetConfig...");
-        try {
-            replicatorConfig.validate(config);
-        } catch (IllegalArgumentException e) {
-            return e.getMessage();
+    @Override
+    public void validate(KeyValue config) {
+        // Check they need key.
+        for (String requestKey : ConfigDefine.REQUEST_CONFIG) {
+            if (!config.containsKey(requestKey)) {
+                log.error("RmqMetaReplicator check need key error , request config key: " + requestKey);
+                throw new RuntimeException("RmqMetaReplicator check need key error.");
+            }
         }
-        this.prepare();
-        this.configValid = true;
-        return "";
     }
 
     @Override
-    public void start() {
+    public void init(KeyValue config) {
+        try {
+            replicatorConfig.init(config);
+        } catch (IllegalArgumentException e) {
+            log.error("RmqMetaReplicator validate config error.", e);
+            throw new IllegalArgumentException("RmqMetaReplicator validate config error.");
+        }
+        this.configValid = true;
+        this.prepare();
+    }
+
+    @Override
+    public void start(ConnectorContext componentContext) {
+        super.start(componentContext);
         log.info("starting...");
         executor.scheduleAtFixedRate(this::refreshConsumerGroups, replicatorConfig.getRefreshInterval(), replicatorConfig.getRefreshInterval(), TimeUnit.SECONDS);
         executor.scheduleAtFixedRate(this::syncSubConfig, replicatorConfig.getRefreshInterval(), replicatorConfig.getRefreshInterval(), TimeUnit.SECONDS);
@@ -126,7 +147,7 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     @Override
-    public List<KeyValue> taskConfigs() {
+    public List<KeyValue> taskConfigs(int maxTasks) {
         log.debug("preparing taskConfig...");
         if (!configValid) {
             return new ArrayList<>();
@@ -139,7 +160,7 @@ public class RmqMetaReplicator extends SourceConnector {
             e.printStackTrace();
         }
 
-        return Utils.groupPartitions(new ArrayList<>(this.knownGroups), this.replicatorConfig.getTaskParallelism(), replicatorConfig);
+        return Utils.groupPartitions(new ArrayList<>(this.knownGroups), replicatorConfig, maxTasks);
     }
 
     private void prepare() {
@@ -167,7 +188,7 @@ public class RmqMetaReplicator extends SourceConnector {
 
     private void refreshConsumerGroups() {
         try {
-            log.debug("refreshConsuemrGroups...");
+            log.debug("refreshConsumerGroups...");
             Set<String> groups = fetchConsumerGroups();
             Set<String> newGroups = new HashSet<>(groups);
             Set<String> deadGroups = new HashSet<>(knownGroups);
@@ -176,7 +197,7 @@ public class RmqMetaReplicator extends SourceConnector {
             if (!newGroups.isEmpty() || !deadGroups.isEmpty()) {
                 log.info("reconfig consumer groups, new Groups: {} , dead groups: {}, previous groups: {}", newGroups, deadGroups, knownGroups);
                 knownGroups = groups;
-                context.requestTaskReconfiguration();
+                connectorContext.requestTaskReconfiguration();
             }
         } catch (Exception e) {
             log.error("refresh consumer groups failed.", e);
@@ -206,7 +227,7 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     private void ensureSubConfig(Collection<String> targetBrokers,
-            SubscriptionGroupConfig subConfig) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
+        SubscriptionGroupConfig subConfig) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         for (String addr : targetBrokers) {
             this.targetMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subConfig);
         }
@@ -228,11 +249,10 @@ public class RmqMetaReplicator extends SourceConnector {
     }
 
     private boolean skipInnerGroup(String group) {
-        if (INNER_CONSUMER_GROUPS.contains(group) || group.startsWith("CID_RMQ_SYS_") || group.startsWith("PositionManage") ||
-            group.startsWith("ConfigManage") || group.startsWith("OffsetManage") || group.startsWith("DefaultConnectCluster") || group.startsWith("RebalanceService")) {
+        if (INNER_CONSUMER_GROUPS.contains(group)) {
             return false;
         }
-        return true;
+        return !SYS_CONSUMER_PREFIX.stream().anyMatch(prefix -> group.startsWith(prefix));
     }
 
     private boolean skipNotInWhiteList(String group) {
