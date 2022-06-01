@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class TransformationWrapper {
 
-    private static final String DEFAULT_TRANSFORM = "debezium.transforms";
+    private static final String DEFAULT_TRANSFORM = "kafka.transforms";
     private Map<String, String> props;
 
     public TransformationWrapper(Map<String, String> props) {
