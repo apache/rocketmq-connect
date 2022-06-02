@@ -16,8 +16,8 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.eventbridge.sink.constant.EventBridgeConstant;
+import org.apache.rocketmq.connect.eventbridge.sink.utils.CheckUtils;
 import org.apache.rocketmq.connect.eventbridge.sink.utils.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +45,8 @@ public class EventBridgeSinkTask extends SinkTask {
 
     private String eventType;
 
+    private String eventSource;
+
     private String aliyuneventbusname;
 
     private String accountEndpoint;
@@ -57,8 +59,8 @@ public class EventBridgeSinkTask extends SinkTask {
         try {
             sinkRecords.forEach(connectRecord -> cloudEventList.add(EventBuilder.builder()
                     .withId(connectRecord.getExtension(EventBridgeConstant.EVENT_ID))
-                    .withSource(URI.create(connectRecord.getExtension(EventBridgeConstant.EVENT_SOURCE)))
-                    .withType(StringUtils.isBlank(eventType) ? connectRecord.getExtension(EventBridgeConstant.EVENT_TYPE) : eventType)
+                    .withSource(CheckUtils.checkNull(eventSource) ? URI.create(connectRecord.getExtension(EventBridgeConstant.EVENT_SOURCE)) : URI.create(eventSource))
+                    .withType(CheckUtils.checkNull(eventType) ? connectRecord.getExtension(EventBridgeConstant.EVENT_TYPE) : eventType)
                     .withSubject(eventSubject)
                     .withTime(DateUtils.getDate(eventTime, DateUtils.DEFAULT_DATE_FORMAT))
                     .withJsonStringData(connectRecord.getData().toString())
@@ -99,6 +101,7 @@ public class EventBridgeSinkTask extends SinkTask {
         accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
         stsEndpoint = config.getString(EventBridgeConstant.STS_ENDPOINT);
         eventType = config.getString(EventBridgeConstant.EVENT_TYPE);
+        eventSource = config.getString(EventBridgeConstant.EVENT_SOURCE);
     }
 
     @Override
@@ -106,7 +109,7 @@ public class EventBridgeSinkTask extends SinkTask {
         super.start(sinkTaskContext);
         try {
             Config authConfig = new Config();
-            if (StringUtils.isNotBlank(roleArn) && StringUtils.isNotBlank(roleSessionName)) {
+            if (CheckUtils.checkNotNull(roleArn) && CheckUtils.checkNotNull(roleSessionName)) {
                 DefaultProfile.addEndpoint("", "", "Sts", stsEndpoint);
                 DefaultProfile profile = DefaultProfile.getProfile("", accessKeyId, accessKeySecret);
                 IAcsClient client = new DefaultAcsClient(profile);
