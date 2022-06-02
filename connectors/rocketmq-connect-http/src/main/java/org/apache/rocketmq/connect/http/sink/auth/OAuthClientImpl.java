@@ -21,7 +21,7 @@ import java.util.Map;
 public class OAuthClientImpl implements Auth {
     private static final Logger log = LoggerFactory.getLogger(OAuthClientImpl.class);
     private static final AbstractHttpClient HTTP_CLIENT = new ApacheHttpClientImpl();
-    private static final Map<OAuthEntity, Map<String, String>> OAUTH_MAP = Maps.newConcurrentMap();
+    public static final Map<OAuthEntity, TokenEntity> OAUTH_MAP = Maps.newConcurrentMap();
 
     @Override
     public Map<String, String> auth(ClientConfig config) {
@@ -30,15 +30,27 @@ public class OAuthClientImpl implements Auth {
             String resultToken = "";
             if (StringUtils.isNotBlank(config.getOauth2ClientId()) && StringUtils.isNotBlank(config.getOauth2ClientSecret())
                     && StringUtils.isNotBlank(config.getOauth2HttpMethod())) {
+                OAuthEntity oAuthEntity = new OAuthEntity();
+                oAuthEntity.setOauth2ClientId(config.getOauth2ClientId());
+                oAuthEntity.setOauth2ClientSecret(config.getOauth2ClientSecret());
+                oAuthEntity.setOauth2Endpoint(config.getOauth2Endpoint());
+                oAuthEntity.setOauth2HttpMethod(config.getOauth2HttpMethod());
+                oAuthEntity.setTimeout(config.getTimeout());
+                final TokenEntity tokenEntity = OAUTH_MAP.get(oAuthEntity);
+                if (tokenEntity != null) {
+                    headMap.put(HttpConstant.AUTHORIZATION, "Bearer " + tokenEntity.getAccessToken());
+                    return headMap;
+                }
                 HttpRequest httpRequest = new HttpRequest();
-                resultToken = getResultToken(config, headMap, resultToken, httpRequest);
-                // TODO 获取过期时间
+                resultToken = getResultToken(oAuthEntity, headMap, resultToken, httpRequest);
                 if (StringUtils.isNotBlank(resultToken)) {
-                    final TokenEntity tokenEntity = JSONObject.parseObject(resultToken, TokenEntity.class);
-                    if (StringUtils.isNotBlank(tokenEntity.getAccessToken())) {
-                        headMap.put(HttpConstant.AUTHORIZATION, "Bearer " + tokenEntity.getAccessToken());
-                        OAuthEntity oAuthEntity = new OAuthEntity();
-                        oAuthEntity.setOauth2ClientId(config.getOauth2ClientId());
+                    final TokenEntity token = JSONObject.parseObject(resultToken, TokenEntity.class);
+                    if (StringUtils.isNotBlank(token.getAccessToken())) {
+                        headMap.put(HttpConstant.AUTHORIZATION, "Bearer " + token.getAccessToken());
+                        token.setTokenTimestamp(Long.toString(System.currentTimeMillis()));
+                        OAUTH_MAP.putIfAbsent(oAuthEntity, token);
+                    } else {
+                        throw new RuntimeException(token.getError());
                     }
                 }
             }
@@ -48,7 +60,7 @@ public class OAuthClientImpl implements Auth {
         return headMap;
     }
 
-    private static String getResultToken(ClientConfig config, Map<String, String> headMap, String resultToken, HttpRequest httpRequest) throws IOException {
+    public static String getResultToken(OAuthEntity config, Map<String, String> headMap, String resultToken, HttpRequest httpRequest) throws IOException {
         if (HttpConstant.GET_METHOD.equals(config.getOauth2HttpMethod())) {
             String url = config.getOauth2Endpoint() + "/grant_type=client_credentials&client_id=" + config.getOauth2ClientId() + "&client_secret=" + config.getOauth2ClientSecret();
             httpRequest.setUrl(url);

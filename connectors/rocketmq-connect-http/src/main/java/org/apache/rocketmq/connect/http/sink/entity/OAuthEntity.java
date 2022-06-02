@@ -9,6 +9,15 @@ public class OAuthEntity {
     private String oauth2ClientId;
     private String oauth2ClientSecret;
     private String oauth2HttpMethod;
+    private String timeout;
+
+    public String getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(String timeout) {
+        this.timeout = timeout;
+    }
 
     public String getOauth2Endpoint() {
         return oauth2Endpoint;

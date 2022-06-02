@@ -6,13 +6,14 @@ public class TokenEntity {
 
     private String accessToken;
     private String tokenType;
-    private String expiresIn;
+    private Integer expiresIn;
     private String exampleParameter;
     private String timestamp;
     private String status;
     private String error;
     private String message;
     private String path;
+    private String tokenTimestamp;
 
     public String getAccessToken() {
         return accessToken;
@@ -30,12 +31,20 @@ public class TokenEntity {
         this.tokenType = tokenType;
     }
 
-    public String getExpiresIn() {
+    public Integer getExpiresIn() {
         return expiresIn;
     }
 
-    public void setExpiresIn(String expiresIn) {
+    public void setExpiresIn(Integer expiresIn) {
         this.expiresIn = expiresIn;
+    }
+
+    public String getTokenTimestamp() {
+        return tokenTimestamp;
+    }
+
+    public void setTokenTimestamp(String tokenTimestamp) {
+        this.tokenTimestamp = tokenTimestamp;
     }
 
     public String getExampleParameter() {

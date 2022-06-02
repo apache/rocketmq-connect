@@ -34,4 +34,6 @@ public class HttpConstant {
     public static final String OPTIONS_METHOD = "OPTIONS";
     public static final String AUTHORIZATION = "Authorization";
     public static final String SUCCESS = "Success";
+    public static final String API_KEY_NAME = "apiKeyName";
+    public static final String API_KEY_VALUE = "apiKeyValue";
 }

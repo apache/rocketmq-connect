@@ -17,25 +17,26 @@ import java.util.stream.Collectors;
 
 public class HttpSinkConnector extends SinkConnector {
 
-    private String urlPattern;
-    private String method;
-    private String queryStringParameters;
-    private String headerParameters;
-    private String bodys;
-    private String authType;
-    private String basicUser;
-    private String basicPassword;
-    private String oauth2Endpoint;
-    private String oauth2ClientId;
-    private String oauth2ClientSecret;
-    private String oauth2HttpMethod;
-    private String proxyType;
-    private String proxyHost;
-    private String proxyPort;
-    private String proxyUser;
-    private String proxyPassword;
-    private String timeout;
-
+    protected String urlPattern;
+    protected String method;
+    protected String queryStringParameters;
+    protected String headerParameters;
+    protected String bodys;
+    protected String authType;
+    protected String basicUser;
+    protected String basicPassword;
+    protected String oauth2Endpoint;
+    protected String oauth2ClientId;
+    protected String oauth2ClientSecret;
+    protected String oauth2HttpMethod;
+    protected String proxyType;
+    protected String proxyHost;
+    protected String proxyPort;
+    protected String proxyUser;
+    protected String proxyPassword;
+    protected String timeout;
+    protected String apiKeyName;
+    protected String apiKeyValue;
 
     @Override
     public void pause() {
@@ -119,6 +120,8 @@ public class HttpSinkConnector extends SinkConnector {
         proxyUser = config.getString(HttpConstant.PROXY_USER_CONSTANT);
         proxyPassword = config.getString(HttpConstant.PROXY_PASSWORD_CONSTANT);
         timeout = config.getString(HttpConstant.TIMEOUT_CONSTANT);
+        apiKeyName = config.getString(HttpConstant.API_KEY_NAME);
+        apiKeyValue = config.getString(HttpConstant.API_KEY_VALUE);
     }
 
     @Override

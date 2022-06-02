@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.http.sink.auth.AuthFactory;
 import org.apache.rocketmq.connect.http.sink.client.AbstractHttpClient;
 import org.apache.rocketmq.connect.http.sink.client.ApacheHttpClientImpl;
+import org.apache.rocketmq.connect.http.sink.thread.OAuthTokenRunnable;
 import org.apache.rocketmq.connect.http.sink.common.ClientConfig;
 import org.apache.rocketmq.connect.http.sink.constant.HttpConstant;
 import org.apache.rocketmq.connect.http.sink.entity.HttpRequest;
@@ -20,12 +21,16 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class HttpSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(HttpSinkTask.class);
+    private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
-    private String urlPattern;
+    protected String urlPattern;
     private String method;
     private String queryStringParameters;
     private String headerParameters;
@@ -42,6 +47,8 @@ public class HttpSinkTask extends SinkTask {
     private String proxyPort;
     private String proxyUser;
     private String proxyPassword;
+    private String apiKeyName;
+    private String apiKeyValue;
     private String timeout;
     private AbstractHttpClient httpClient;
 
@@ -69,6 +76,8 @@ public class HttpSinkTask extends SinkTask {
                 clientConfig.setOauth2Endpoint(oauth2Endpoint);
                 clientConfig.setBasicUser(basicUser);
                 clientConfig.setBasicPassword(basicPassword);
+                clientConfig.setApiKeyName(apiKeyName);
+                clientConfig.setApiKeyValue(apiKeyValue);
                 final Map<String, String> headerMap = AuthFactory.auth(clientConfig);
                 HttpRequest httpRequest = new HttpRequest();
                 httpRequest.setBody(clientConfig.getBodys());
@@ -130,6 +139,8 @@ public class HttpSinkTask extends SinkTask {
         proxyUser = config.getString(HttpConstant.PROXY_USER_CONSTANT);
         proxyPassword = config.getString(HttpConstant.PROXY_PASSWORD_CONSTANT);
         timeout = config.getString(HttpConstant.TIMEOUT_CONSTANT);
+        apiKeyName = config.getString(HttpConstant.API_KEY_NAME);
+        apiKeyValue = config.getString(HttpConstant.API_KEY_VALUE);
     }
 
     @Override
@@ -144,6 +155,7 @@ public class HttpSinkTask extends SinkTask {
             config.setProxyUser(proxyUser);
             config.setProxyPassword(proxyPassword);
             httpClient.init(config);
+            scheduledExecutorService.scheduleAtFixedRate(new OAuthTokenRunnable(), 1, 1, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.error("HttpSinkTask | start | error => ", e);
         }

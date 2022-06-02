@@ -3,62 +3,43 @@ package org.apache.rocketmq.connect.http.sink.entity;
 
 public class NetworkParameters {
 
-    private String authorizationEndpoint;
-    private ClientParameters clientParameters;
-    private String httpMethod;
-    private OAuthHttpParameters oauthHttpParameters;
+    private String networkType;
 
-    public String getAuthorizationEndpoint() {
-        return authorizationEndpoint;
+    private String vpcId;
+
+    private String vswitcheId;
+
+    private String securityGroupId;
+
+    public String getNetworkType() {
+        return networkType;
     }
 
-    public void setAuthorizationEndpoint(String authorizationEndpoint) {
-        this.authorizationEndpoint = authorizationEndpoint;
+    public void setNetworkType(String networkType) {
+        this.networkType = networkType;
     }
 
-    public ClientParameters getClientParameters() {
-        return clientParameters;
+    public String getVpcId() {
+        return vpcId;
     }
 
-    public void setClientParameters(ClientParameters clientParameters) {
-        this.clientParameters = clientParameters;
+    public void setVpcId(String vpcId) {
+        this.vpcId = vpcId;
     }
 
-    public String getHttpMethod() {
-        return httpMethod;
+    public String getVswitcheId() {
+        return vswitcheId;
     }
 
-    public void setHttpMethod(String httpMethod) {
-        this.httpMethod = httpMethod;
+    public void setVswitcheId(String vswitcheId) {
+        this.vswitcheId = vswitcheId;
     }
 
-    public OAuthHttpParameters getOauthHttpParameters() {
-        return oauthHttpParameters;
+    public String getSecurityGroupId() {
+        return securityGroupId;
     }
 
-    public void setOauthHttpParameters(OAuthHttpParameters oauthHttpParameters) {
-        this.oauthHttpParameters = oauthHttpParameters;
-    }
-
-    static class ClientParameters {
-        private String clientID;
-
-        private String clientSecret;
-
-        public String getClientID() {
-            return clientID;
-        }
-
-        public void setClientID(String clientID) {
-            this.clientID = clientID;
-        }
-
-        public String getClientSecret() {
-            return clientSecret;
-        }
-
-        public void setClientSecret(String clientSecret) {
-            this.clientSecret = clientSecret;
-        }
+    public void setSecurityGroupId(String securityGroupId) {
+        this.securityGroupId = securityGroupId;
     }
 }
