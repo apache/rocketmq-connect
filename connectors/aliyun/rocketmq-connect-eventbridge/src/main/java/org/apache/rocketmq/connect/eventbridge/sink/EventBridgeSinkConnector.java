@@ -71,10 +71,9 @@ public class EventBridgeSinkConnector extends SinkConnector {
         if (StringUtils.isBlank(config.getString(EventBridgeConstant.ACCESS_KEY_ID))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ACCESS_KEY_SECRET))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT))
-                || StringUtils.isBlank(config.getString(EventBridgeConstant.ROLE_ARN))
-                || StringUtils.isBlank(config.getString(EventBridgeConstant.ROLE_SESSION_NAME))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME))
-                || StringUtils.isBlank(config.getString(EventBridgeConstant.STS_ENDPOINT))) {
+                || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_SUBJECT))
+                || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_TYPE))) {
             throw new RuntimeException("EventBridge required parameter is null !");
         }
     }
