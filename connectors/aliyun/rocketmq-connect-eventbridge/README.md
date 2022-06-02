@@ -39,11 +39,12 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-eventbridge-connector
 
 |         KEY            |  TYPE   | Must be filled | Description                      | Example
 |------------------------|---------|----------------|----------------------------------|--|
-|stsEndpoint             | String  | YES             | STS endpoint                       | xxxx|
+|stsEndpoint             | String  | NO              | STS endpoint                       | xxxx|
+|accountEndpoint         | String  | YES              | 阿里云授信账号 endpoint                       | xxxx|
 |accessKeyId             | String  | YES             | 阿里云授信账号的AK                    | xxxx |
 |accessKeySecret         | String  | YES             | 阿里云授信账号的SK                     | xxx |
-|roleArn                 | String  | YES             | 要扮演的RAM角色ARN。 该角色是可信实体为阿里云账号类型的RAM角色                     | xxxx |
-|roleSessionName         | String  | YES             | 角色会话名称。 该参数为用户自定义参数。通常设置为调用该API的用户身份                  | 用户名 |
+|roleArn                 | String  | NO             | 要扮演的RAM角色ARN。 该角色是可信实体为阿里云账号类型的RAM角色                     | xxxx |
+|roleSessionName         | String  | NO             | 角色会话名称。 该参数为用户自定义参数。通常设置为调用该API的用户身份                  | 用户名 |
 |eventTime               | String  | NO              | 事件产生的时间                          | xxxx |
 |eventSubject            | String  | YES             | 事件主题                          | xxxx |
 |eventType               | String  | YES             | 事件类型                          | xxxx |
