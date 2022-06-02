@@ -23,6 +23,8 @@ public class EventBridgeSinkConnector extends SinkConnector {
 
     private String eventTime;
 
+    private String eventSource;
+
     private String eventSubject;
 
     private String eventType;
@@ -57,6 +59,7 @@ public class EventBridgeSinkConnector extends SinkConnector {
         keyValue.put(EventBridgeConstant.ACCOUNT_ENDPOINT, accountEndpoint);
         keyValue.put(EventBridgeConstant.STS_ENDPOINT, stsEndpoint);
         keyValue.put(EventBridgeConstant.EVENT_TYPE, eventType);
+        keyValue.put(EventBridgeConstant.EVENT_SOURCE, eventSource);
         keyValueList.add(keyValue);
         return keyValueList;
     }
@@ -73,7 +76,8 @@ public class EventBridgeSinkConnector extends SinkConnector {
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME))
                 || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_SUBJECT))
-                || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_TYPE))) {
+                || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_TYPE))
+                || StringUtils.isBlank(config.getString(EventBridgeConstant.EVENT_SOURCE))) {
             throw new RuntimeException("EventBridge required parameter is null !");
         }
     }
@@ -90,6 +94,7 @@ public class EventBridgeSinkConnector extends SinkConnector {
         accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
         stsEndpoint = config.getString(EventBridgeConstant.STS_ENDPOINT);
         eventType = config.getString(EventBridgeConstant.EVENT_TYPE);
+        eventSource = config.getString(EventBridgeConstant.EVENT_SOURCE);
     }
 
     @Override
