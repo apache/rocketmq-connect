@@ -131,14 +131,9 @@ public class ApiDestinationSinkConnector extends HttpSinkConnector implements Ru
                         final List<BodyParameter> bodyParameters = authParameters.getInvocationHttpParameters().getBodyParameters();
                         final List<HeaderParameter> headerParameters = authParameters.getInvocationHttpParameters().getHeaderParameters();
                         final List<QueryStringParameter> queryStringParameters = authParameters.getInvocationHttpParameters().getQueryStringParameters();
-                        StringBuilder queryParameter = new StringBuilder();
-                        queryStringParameters.forEach(queryStringParameter -> {
-                            queryParameter.append("&")
-                                    .append(queryStringParameter.getKey())
-                                    .append("=")
-                                    .append(queryStringParameter.getValue());
-                        });
-                        super.queryStringParameters = queryParameter.toString();
+                        Map<String, String> queryParameterMap = Maps.newHashMap();
+                        queryStringParameters.forEach(queryStringParameter -> queryParameterMap.put(queryStringParameter.getKey(), queryStringParameter.getValue()));
+                        super.queryStringParameters = queryParameterMap.toString();
                         Map<String, String> bodyMap = Maps.newHashMap();
                         bodyParameters.forEach(bodyParameter -> bodyMap.put(bodyParameter.getKey(), bodyParameter.getValue()));
                         super.bodys = bodyMap.toString();
