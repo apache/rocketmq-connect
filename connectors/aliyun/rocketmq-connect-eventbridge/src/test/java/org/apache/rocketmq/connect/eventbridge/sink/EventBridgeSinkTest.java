@@ -35,7 +35,6 @@ public class EventBridgeSinkTest {
         keyValue.put(EventBridgeConstant.ACCESS_KEY_SECRET, "xxxx");
         keyValue.put(EventBridgeConstant.ROLE_ARN, "xxxx");
         keyValue.put(EventBridgeConstant.ROLE_SESSION_NAME, "xxxx");
-        keyValue.put(EventBridgeConstant.EVENT_TIME, "2022-04-24 16:12:00");
         keyValue.put(EventBridgeConstant.EVENT_SUBJECT, "xxxx");
         keyValue.put(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME, "xxxx");
         eventBridgeSinkTask.init(keyValue);
@@ -47,6 +46,7 @@ public class EventBridgeSinkTest {
         connectRecord.addExtension(EventBridgeConstant.EVENT_ID, UUID.randomUUID().toString());
         connectRecord.addExtension(EventBridgeConstant.EVENT_SOURCE, "xxxx");
         connectRecord.addExtension(EventBridgeConstant.EVENT_TYPE, "xxxx");
+        connectRecord.addExtension(EventBridgeConstant.EVENT_TIME, "2022-04-24 16:12:00");
         connectRecordList.add(connectRecord);
         eventBridgeSinkTask.start(new SinkTaskContext() {
             @Override
