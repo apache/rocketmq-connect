@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class EventBridgeSinkTask extends SinkTask {
@@ -39,13 +40,7 @@ public class EventBridgeSinkTask extends SinkTask {
 
     private String roleSessionName;
 
-    private String eventTime;
-
     private String eventSubject;
-
-    private String eventType;
-
-    private String eventSource;
 
     private String aliyuneventbusname;
 
@@ -59,10 +54,10 @@ public class EventBridgeSinkTask extends SinkTask {
         try {
             sinkRecords.forEach(connectRecord -> cloudEventList.add(EventBuilder.builder()
                     .withId(connectRecord.getExtension(EventBridgeConstant.EVENT_ID))
-                    .withSource(CheckUtils.checkNull(eventSource) ? URI.create(connectRecord.getExtension(EventBridgeConstant.EVENT_SOURCE)) : URI.create(eventSource))
-                    .withType(CheckUtils.checkNull(eventType) ? connectRecord.getExtension(EventBridgeConstant.EVENT_TYPE) : eventType)
+                    .withSource(URI.create(connectRecord.getExtension(EventBridgeConstant.EVENT_SOURCE)))
+                    .withType(connectRecord.getExtension(EventBridgeConstant.EVENT_TYPE))
                     .withSubject(eventSubject)
-                    .withTime(DateUtils.getDate(eventTime, DateUtils.DEFAULT_DATE_FORMAT))
+                    .withTime(CheckUtils.checkNull(connectRecord.getExtension(EventBridgeConstant.EVENT_TIME)) ? new Date() : DateUtils.getDate(connectRecord.getExtension(EventBridgeConstant.EVENT_TIME), DateUtils.DEFAULT_DATE_FORMAT))
                     .withJsonStringData(connectRecord.getData().toString())
                     .withAliyunEventBus(aliyuneventbusname)
                     .build()));
@@ -95,13 +90,10 @@ public class EventBridgeSinkTask extends SinkTask {
         accessKeySecret = config.getString(EventBridgeConstant.ACCESS_KEY_SECRET);
         roleArn = config.getString(EventBridgeConstant.ROLE_ARN);
         roleSessionName = config.getString(EventBridgeConstant.ROLE_SESSION_NAME);
-        eventTime = config.getString(EventBridgeConstant.EVENT_TIME, DateUtils.getDate());
         eventSubject = config.getString(EventBridgeConstant.EVENT_SUBJECT);
         aliyuneventbusname = config.getString(EventBridgeConstant.ALIYUN_EVENT_BUS_NAME);
         accountEndpoint = config.getString(EventBridgeConstant.ACCOUNT_ENDPOINT);
         stsEndpoint = config.getString(EventBridgeConstant.STS_ENDPOINT);
-        eventType = config.getString(EventBridgeConstant.EVENT_TYPE);
-        eventSource = config.getString(EventBridgeConstant.EVENT_SOURCE);
     }
 
     @Override

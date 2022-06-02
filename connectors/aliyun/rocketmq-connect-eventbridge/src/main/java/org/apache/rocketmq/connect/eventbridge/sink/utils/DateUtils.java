@@ -3,7 +3,6 @@ package org.apache.rocketmq.connect.eventbridge.sink.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -19,11 +18,6 @@ public class DateUtils {
             log.error("DateUtils | getDate | error => ", e);
         }
         return null;
-    }
-
-    public static String getDate() {
-        DateFormat dateFormat = new SimpleDateFormat(DEFAULT_DATE_FORMAT);
-        return dateFormat.format(new Date());
     }
 
 }
