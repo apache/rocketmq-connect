@@ -1,5 +1,6 @@
 package org.apache.rocketmq.connect.kafka.connect.adaptor;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
@@ -13,6 +14,7 @@ import org.apache.rocketmq.connect.kafka.connect.adaptor.schema.ValueConverter;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -192,5 +194,8 @@ public class SourceRecordConverterTest {
                 connectRecord.addExtension(header.key(), (String) header.value());
             }
         }
+        final byte[] messageBody = JSON.toJSONString(connectRecord).getBytes();
+        String bodyStr = new String(messageBody, StandardCharsets.UTF_8);
+        ConnectRecord newConnectRecord= JSON.parseObject(bodyStr, ConnectRecord.class);
     }
 }

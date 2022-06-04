@@ -79,7 +79,7 @@ public class ValueConverter {
                 List<Object> array = (List<Object>) originalValue;
                 List<Object> newArray = new ArrayList<>();
                 array.forEach(item -> {
-                    newArray.add(convertKafkaValue(targetSchema.valueSchema(), item));
+                    newArray.add(convertKafkaValue(targetSchema.getValueSchema(), item));
                 });
                 return newArray;
             case MAP:
@@ -87,8 +87,8 @@ public class ValueConverter {
                 Map newMapData = new ConcurrentHashMap();
                 mapData.forEach((k, v) -> {
                     newMapData.put(
-                            convertKafkaValue(targetSchema.keySchema(), k),
-                            convertKafkaValue(targetSchema.valueSchema(), v)
+                            convertKafkaValue(targetSchema.getKeySchema(), k),
+                            convertKafkaValue(targetSchema.getValueSchema(), v)
                     );
                 });
                 return newMapData;
