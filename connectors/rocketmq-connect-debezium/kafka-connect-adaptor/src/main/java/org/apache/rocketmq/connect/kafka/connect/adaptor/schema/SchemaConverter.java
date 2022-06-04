@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.kafka.connect.adaptor.schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,34 +45,34 @@ public class SchemaConverter {
     private SchemaBuilder convertKafkaSchema(org.apache.kafka.connect.data.Schema originalSchema) {
         switch (originalSchema.type()) {
             case INT8:
-                return SchemaBuilder.int8().optional().name(originalSchema.name());
+                return SchemaBuilder.int8().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case INT16:
-                return SchemaBuilder.int16().optional().name(originalSchema.name());
+                return SchemaBuilder.int16().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case INT32:
-                return SchemaBuilder.int32().optional().name(originalSchema.name());
+                return SchemaBuilder.int32().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case INT64:
-                return SchemaBuilder.int64().optional().name(originalSchema.name());
+                return SchemaBuilder.int64().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case FLOAT32:
-                return SchemaBuilder.float32().optional().name(originalSchema.name());
+                return SchemaBuilder.float32().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case FLOAT64:
-                return SchemaBuilder.float64().optional().name(originalSchema.name());
+                return SchemaBuilder.float64().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case BOOLEAN:
-                return SchemaBuilder.bool().optional().name(originalSchema.name());
+                return SchemaBuilder.bool().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case STRING:
-                return SchemaBuilder.string().optional().name(originalSchema.name());
+                return SchemaBuilder.string().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case BYTES:
-                return SchemaBuilder.bytes().optional().name(originalSchema.name());
+                return SchemaBuilder.bytes().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case STRUCT:
-                SchemaBuilder schemaBuilder = SchemaBuilder.struct().optional().optional().name(originalSchema.name());
+                SchemaBuilder schemaBuilder = SchemaBuilder.struct().optional().optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
                 convertStructSchema(schemaBuilder, originalSchema);
                 return schemaBuilder;
             case ARRAY:
-                return SchemaBuilder.array(convertKafkaSchema(originalSchema.valueSchema()).build()).optional().name(originalSchema.name());
+                return SchemaBuilder.array(convertKafkaSchema(originalSchema.valueSchema()).build()).optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             case MAP:
                 return SchemaBuilder.map(
                         convertKafkaSchema(originalSchema.keySchema()).build(),
                         convertKafkaSchema(originalSchema.valueSchema()).build()
-                ).optional().name(originalSchema.name());
+                ).optional().name(originalSchema.name()).doc(originalSchema.doc()).defaultValue(originalSchema.defaultValue());
             default:
                 throw new RuntimeException(" Type not supported: {}" + originalSchema.type());
 
@@ -88,35 +89,36 @@ public class SchemaConverter {
     private void convertStructSchema(io.openmessaging.connector.api.data.SchemaBuilder schemaBuilder, org.apache.kafka.connect.data.Schema originalSchema) {
         for (Field field : originalSchema.fields()) {
             try {
-                org.apache.kafka.connect.data.Schema.Type type = field.schema().type();
+                Schema schema = field.schema();
+                org.apache.kafka.connect.data.Schema.Type type = schema.type();
                 String schemaName =  field.schema().name();
                 switch (type) {
                     case INT8:
-                        schemaBuilder.field(field.name(), SchemaBuilder.int8().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.int8().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case INT16:
-                        schemaBuilder.field(field.name(), SchemaBuilder.int16().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.int16().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case INT32:
-                        schemaBuilder.field(field.name(), SchemaBuilder.int32().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.int32().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case INT64:
-                        schemaBuilder.field(field.name(), SchemaBuilder.int64().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.int64().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case FLOAT32:
-                        schemaBuilder.field(field.name(), SchemaBuilder.float32().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.float32().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case FLOAT64:
-                        schemaBuilder.field(field.name(), SchemaBuilder.float64().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.float64().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case BOOLEAN:
-                        schemaBuilder.field(field.name(), SchemaBuilder.bool().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.bool().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case STRING:
-                        schemaBuilder.field(field.name(), SchemaBuilder.string().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.string().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case BYTES:
-                        schemaBuilder.field(field.name(), SchemaBuilder.bytes().name(schemaName).optional().build());
+                        schemaBuilder.field(field.name(), SchemaBuilder.bytes().name(schemaName).doc(schema.doc()).defaultValue(schema.defaultValue()).optional().build());
                         break;
                     case STRUCT:
                     case ARRAY:
