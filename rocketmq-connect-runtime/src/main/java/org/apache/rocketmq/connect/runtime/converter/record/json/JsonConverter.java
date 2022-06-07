@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -405,35 +406,35 @@ public class JsonConverter implements RecordConverter {
             if (schema == null) {
                 return null;
             }
-            final JSONObject jsonSchema;
+            JSONObject jsonSchema;
             // convert field type name
             switch (schema.getFieldType()) {
                 case BOOLEAN:
-                    jsonSchema = JsonSchema.BOOLEAN_SCHEMA;
+                    jsonSchema = JsonSchema.BOOLEAN_SCHEMA();
                     break;
                 case BYTES:
-                    jsonSchema = JsonSchema.BYTES_SCHEMA;
+                    jsonSchema = JsonSchema.BYTES_SCHEMA();
                     break;
                 case FLOAT64:
-                    jsonSchema = JsonSchema.DOUBLE_SCHEMA;
+                    jsonSchema = JsonSchema.DOUBLE_SCHEMA();
                     break;
                 case FLOAT32:
-                    jsonSchema = JsonSchema.FLOAT_SCHEMA;
+                    jsonSchema = JsonSchema.FLOAT_SCHEMA();
                     break;
                 case INT8:
-                    jsonSchema = JsonSchema.INT8_SCHEMA;
+                    jsonSchema = JsonSchema.INT8_SCHEMA();
                     break;
                 case INT16:
-                    jsonSchema = JsonSchema.INT16_SCHEMA;
+                    jsonSchema = JsonSchema.INT16_SCHEMA();
                     break;
                 case INT32:
-                    jsonSchema = JsonSchema.INT32_SCHEMA;
+                    jsonSchema = JsonSchema.INT32_SCHEMA();
                     break;
                 case INT64:
-                    jsonSchema = JsonSchema.INT64_SCHEMA;
+                    jsonSchema = JsonSchema.INT64_SCHEMA();
                     break;
                 case STRING:
-                    jsonSchema = JsonSchema.STRING_SCHEMA;
+                    jsonSchema = JsonSchema.STRING_SCHEMA();
                     break;
                 case ARRAY:
                     jsonSchema = new JSONObject();
@@ -447,13 +448,14 @@ public class JsonConverter implements RecordConverter {
                     jsonSchema.put(JsonSchema.MAP_VALUE_FIELD_NAME, asJsonSchema(schema.getValueSchema()));
                     break;
                 case STRUCT:
-                    jsonSchema = new JSONObject();
+                    jsonSchema = new JSONObject(new ConcurrentHashMap<>());
                     jsonSchema.put(JsonSchema.SCHEMA_TYPE_FIELD_NAME, JsonSchema.STRUCT_TYPE_NAME);
                     // field list
-                    List<JSONObject> fields = Lists.newArrayList();
+                    JSONArray fields = new JSONArray();
                     for (Field field : schema.getFields()) {
+                        String fieldName = field.getName();
                         JSONObject fieldJsonSchema = asJsonSchema(field.getSchema());
-                        fieldJsonSchema.put(JsonSchema.STRUCT_FIELD_NAME_FIELD_NAME, field.getName());
+                        fieldJsonSchema.put(JsonSchema.STRUCT_FIELD_NAME_FIELD_NAME, fieldName);
                         fields.add(fieldJsonSchema);
                     }
                     jsonSchema.put(JsonSchema.STRUCT_FIELDS_FIELD_NAME, fields);
@@ -491,8 +493,6 @@ public class JsonConverter implements RecordConverter {
             // default value
             if (schema.getDefaultValue() != null) {
                 jsonSchema.put(JsonSchema.SCHEMA_DEFAULT_FIELD_NAME, convertToJson(schema, schema.getDefaultValue()));
-            } else {
-                jsonSchema.put(JsonSchema.SCHEMA_DEFAULT_FIELD_NAME, null);
             }
             return jsonSchema;
         }

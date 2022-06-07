@@ -18,6 +18,8 @@ package org.apache.rocketmq.connect.runtime.converter.record.json;
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * json schema
  */
@@ -38,30 +40,50 @@ public class JsonSchema {
     public static final String STRUCT_FIELDS_FIELD_NAME = "fields";
     public static final String STRUCT_FIELD_NAME_FIELD_NAME = "field";
     public static final String BOOLEAN_TYPE_NAME = "boolean";
-    public static final JSONObject BOOLEAN_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, BOOLEAN_TYPE_NAME);
+    public static JSONObject BOOLEAN_SCHEMA(){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, BOOLEAN_TYPE_NAME);
+    }
     public static final String INT8_TYPE_NAME = "int8";
-    public static final JSONObject INT8_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT8_TYPE_NAME);
+    public static JSONObject INT8_SCHEMA (){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT8_TYPE_NAME);
+    }
     public static final String INT16_TYPE_NAME = "int16";
-    public static final JSONObject INT16_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT16_TYPE_NAME);
+    public static JSONObject INT16_SCHEMA (){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT16_TYPE_NAME);
+    }
+
     public static final String INT32_TYPE_NAME = "int32";
-    public static final JSONObject INT32_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT32_TYPE_NAME);
+    public static JSONObject INT32_SCHEMA(){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT32_TYPE_NAME);
+    }
     public static final String INT64_TYPE_NAME = "int64";
-    public static final JSONObject INT64_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT64_TYPE_NAME);
+    public static JSONObject INT64_SCHEMA (){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, INT64_TYPE_NAME);
+    }
     public static final String FLOAT_TYPE_NAME = "float";
-    public static final JSONObject FLOAT_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, FLOAT_TYPE_NAME);
+    public static JSONObject FLOAT_SCHEMA(){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, FLOAT_TYPE_NAME);
+    }
     public static final String DOUBLE_TYPE_NAME = "double";
-    public static final JSONObject DOUBLE_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, DOUBLE_TYPE_NAME);
+
+    public static JSONObject DOUBLE_SCHEMA (){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, DOUBLE_TYPE_NAME);
+    }
     public static final String BYTES_TYPE_NAME = "bytes";
-    public static final JSONObject BYTES_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, BYTES_TYPE_NAME);
+    public static JSONObject BYTES_SCHEMA(){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, BYTES_TYPE_NAME);
+    }
     public static final String STRING_TYPE_NAME = "string";
-    public static final JSONObject STRING_SCHEMA = newJSONObject(SCHEMA_TYPE_FIELD_NAME, STRING_TYPE_NAME);
+    public static JSONObject STRING_SCHEMA(){
+        return newJSONObject(SCHEMA_TYPE_FIELD_NAME, STRING_TYPE_NAME);
+    }
     public static final String ARRAY_TYPE_NAME = "array";
     public static final String MAP_TYPE_NAME = "map";
     public static final String STRUCT_TYPE_NAME = "struct";
 
 
     private static JSONObject newJSONObject(String key, Object value) {
-        JSONObject object = new JSONObject();
+        JSONObject object = new JSONObject(new ConcurrentHashMap<>());
         object.put(key, value);
         return object;
     }
