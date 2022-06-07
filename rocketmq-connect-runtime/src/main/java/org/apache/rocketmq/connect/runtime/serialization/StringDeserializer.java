@@ -27,12 +27,8 @@ public class StringDeserializer implements Deserializer<String> {
     private String encoding = "UTF8";
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        String propertyName = isKey ? "key.deserializer.encoding" : "value.deserializer.encoding";
-        Object encodingValue = configs.get(propertyName);
-        if (encodingValue == null) {
-            encodingValue = configs.get("deserializer.encoding");
-        }
+    public void configure(Map<String, ?> configs) {
+        Object encodingValue = configs.get("deserializer.encoding");
         if (encodingValue instanceof String) {
             encoding = (String) encodingValue;
         }

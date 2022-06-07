@@ -49,6 +49,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
+import org.apache.rocketmq.connect.runtime.converter.record.RecordConverter;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
@@ -94,7 +95,7 @@ public class RestHandlerTest {
     private SourceTask sourceTask;
 
     @Mock
-    private Converter converter;
+    private RecordConverter converter;
 
     @Mock
     private PositionManagementServiceImpl positionManagementServiceImpl;

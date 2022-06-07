@@ -23,7 +23,6 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.RecordPosition;
@@ -49,7 +48,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.converter.record.RecordConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -108,7 +107,7 @@ public class WorkerSourceTask implements WorkerTask {
     /**
      * A converter to parse source data entry to byte[].
      */
-    private Converter recordConverter;
+    private RecordConverter recordConverter;
 
     private final AtomicReference<WorkerState> workerState;
 
@@ -134,7 +133,7 @@ public class WorkerSourceTask implements WorkerTask {
         SourceTask sourceTask,
         ConnectKeyValue taskConfig,
         PositionManagementService positionManagementService,
-        Converter recordConverter,
+        RecordConverter recordConverter,
         DefaultMQProducer producer,
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
@@ -303,25 +302,25 @@ public class WorkerSourceTask implements WorkerTask {
                 throw new ConnectException("source connect lack of topic config");
             }
             sourceMessage.setTopic(topic);
-            if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
-                putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
-                Object payload = sourceDataEntry.getData();
-                if (null != payload) {
-                    final byte[] messageBody = (String.valueOf(payload)).getBytes();
-                    if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-                        log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
-                        continue;
-                    }
-                    sourceMessage.setBody(messageBody);
-                }
-            } else {
+
+            // converter
+            if (recordConverter == null){
                 final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                     continue;
                 }
                 sourceMessage.setBody(messageBody);
+            } else {
+                putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
+                byte[] messageBody = recordConverter.fromConnectData(topic,sourceDataEntry.getSchema(),sourceDataEntry.getData());
+                if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
+                    log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
+                    continue;
+                }
+                sourceMessage.setBody(messageBody);
             }
+
             try {
                 producer.send(sourceMessage, new SendCallback() {
                     @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {

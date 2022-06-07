@@ -15,29 +15,22 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.store;
+package org.apache.rocketmq.connect.runtime.converter;
 
-import java.util.HashMap;
+import io.openmessaging.connector.api.data.Converter;
+import java.nio.ByteBuffer;
 
-import org.apache.rocketmq.connect.runtime.converter.ByteConverter;
-import org.junit.Test;
+/**
+ * ByteBuffer converter.
+ */
+public class ByteBufferConverter implements Converter<ByteBuffer> {
 
-import static org.assertj.core.api.Assertions.assertThat;
+    @Override
+    public byte[] objectToByte(ByteBuffer object) {
+        return object.array();
+    }
 
-public class FileBaseKeyValueStoreTest {
-
-    @Test
-    public void testFileBaseKeyValueStore() {
-        FileBaseKeyValueStore<byte[], byte[]> fbkvs = new FileBaseKeyValueStore<>(
-            "target/unit_test_store/testFileBaseKeyValueStore/000",
-            new ByteConverter(),
-            new ByteConverter()
-        );
-
-        fbkvs.data = new HashMap<>();
-        fbkvs.data.put("test_key".getBytes(), "test_value".getBytes());
-        fbkvs.persist();
-        boolean flag = fbkvs.load();
-        assertThat(flag).isEqualTo(true);
+    @Override public ByteBuffer byteToObject(byte[] bytes) {
+        return ByteBuffer.wrap(bytes);
     }
 }

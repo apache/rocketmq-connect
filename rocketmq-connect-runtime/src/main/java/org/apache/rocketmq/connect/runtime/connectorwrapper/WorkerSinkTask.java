@@ -25,6 +25,7 @@ import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
@@ -60,6 +61,7 @@ import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.converter.record.RecordConverter;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -118,7 +120,7 @@ public class WorkerSinkTask implements WorkerTask {
     /**
      * A converter to parse sink data entry to object.
      */
-    private Converter recordConverter;
+    private RecordConverter recordConverter;
 
     private final ConcurrentHashMap<MessageQueue, Long> messageQueuesOffsetMap;
 
@@ -175,7 +177,7 @@ public class WorkerSinkTask implements WorkerTask {
     public WorkerSinkTask(String connectorName,
         SinkTask sinkTask,
         ConnectKeyValue taskConfig,
-        Converter recordConverter,
+        RecordConverter recordConverter,
         DefaultMQPullConsumer consumer,
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
@@ -558,40 +560,46 @@ public class WorkerSinkTask implements WorkerTask {
 
     private ConnectRecord convertToSinkDataEntry(MessageExt message) {
         Map<String, String> properties = message.getProperties();
-        Schema schema;
-        Long timestamp;
-        ConnectRecord sinkDataEntry = null;
-        if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
-            String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
-            timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
-            String connectSchema = properties.get(RuntimeConfigDefine.CONNECT_SCHEMA);
-            schema = StringUtils.isNotEmpty(connectSchema) ? JSON.parseObject(connectSchema, Schema.class) : null;
-            byte[] body = message.getBody();
-            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
-
-            RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
-
-            String bodyStr = new String(body, StandardCharsets.UTF_8);
-            sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schema, bodyStr);
-            KeyValue keyValue = new DefaultKeyValue();
-            if (MapUtils.isNotEmpty(properties)) {
-                for (Map.Entry<String, String> entry : properties.entrySet()) {
-                    if (MQ_SYS_KEYS.contains(entry.getKey())) {
-                        keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
-                    } else if (entry.getKey().startsWith("connect-ext-")) {
-                        keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
-                    } else {
-                        keyValue.put(entry.getKey(), entry.getValue());
-                    }
-                }
-            }
-            sinkDataEntry.addExtension(keyValue);
-        } else {
+        ConnectRecord sinkDataEntry;
+        
+        // start convert
+        if (null == recordConverter ) {
             final byte[] messageBody = message.getBody();
             String s = new String(messageBody);
             sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
+        } else {
+            // timestamp
+            String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
+            Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
+
+            // partition and offset
+            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
+            RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
+
+            // convert
+            SchemaAndValue schemaAndValue = recordConverter.toConnectData(message.getTopic(), message.getBody());
+            sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
+
+            // add extension
+            addExtension(properties, sinkDataEntry);
         }
         return sinkDataEntry;
+    }
+
+    private void addExtension(Map<String, String> properties, ConnectRecord sinkDataEntry) {
+        KeyValue keyValue = new DefaultKeyValue();
+        if (MapUtils.isNotEmpty(properties)) {
+            for (Map.Entry<String, String> entry : properties.entrySet()) {
+                if (MQ_SYS_KEYS.contains(entry.getKey())) {
+                    keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
+                } else if (entry.getKey().startsWith("connect-ext-")) {
+                    keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
+                } else {
+                    keyValue.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        sinkDataEntry.addExtension(keyValue);
     }
 
     @Override

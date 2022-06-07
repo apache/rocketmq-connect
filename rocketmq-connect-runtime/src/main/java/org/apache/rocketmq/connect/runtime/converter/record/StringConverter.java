@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.converter.record;
 
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.serialization.StringDeserializer;
@@ -36,6 +37,7 @@ public class StringConverter implements RecordConverter {
 
     /**
      * Configure this class.
+     *
      * @param configs configs in key/value pairs
      */
     @Override

@@ -17,15 +17,16 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.connector.api.errors.ConnectException;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
  * json serializer
  */
-public class JsonSerializer implements Serializer<JSONObject> {
+public class JsonSerializer implements Serializer<Object> {
 
 
     /**
@@ -36,12 +37,12 @@ public class JsonSerializer implements Serializer<JSONObject> {
      * @return serialized bytes
      */
     @Override
-    public byte[] serialize(String topic, JSONObject data) {
+    public byte[] serialize(String topic, Object data) {
         if (Objects.isNull(data)) {
             return null;
         }
         try {
-            return JSON.toJSONBytes(data);
+            return JSON.toJSONString(data, SerializerFeature.DisableCircularReferenceDetect).getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new ConnectException("Error serializing JSON message", e);
         }

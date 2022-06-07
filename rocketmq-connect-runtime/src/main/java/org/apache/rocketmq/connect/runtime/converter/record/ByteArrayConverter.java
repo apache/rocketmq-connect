@@ -18,6 +18,7 @@ package org.apache.rocketmq.connect.runtime.converter.record;
 
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.errors.ConnectException;
 
@@ -31,11 +32,12 @@ public class ByteArrayConverter implements RecordConverter {
 
     /**
      * Configure this class.
+     *
      * @param configs configs in key/value pairs
      */
     @Override
     public void configure(Map configs) {
-
+        // config
     }
 
     @Override
@@ -43,11 +45,9 @@ public class ByteArrayConverter implements RecordConverter {
         if (schema != null && schema.getFieldType() != FieldType.BYTES) {
             throw new ConnectException("Invalid schema type for ByteArrayConverter: " + schema.getFieldType().toString());
         }
-
         if (value != null && !(value instanceof byte[])) {
             throw new ConnectException("ByteArrayConverter is not compatible with objects of type " + value.getClass());
         }
-
         return (byte[]) value;
     }
 

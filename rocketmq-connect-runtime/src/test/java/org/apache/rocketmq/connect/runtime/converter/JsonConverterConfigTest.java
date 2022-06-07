@@ -14,30 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.serialization;
+package org.apache.rocketmq.connect.runtime.converter;
 
-import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.rocketmq.connect.runtime.converter.record.json.DecimalFormat;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverterConfig;
+import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * json deserializer
- */
-public class JsonDeserializer implements Deserializer<Object> {
+import static org.junit.Assert.assertEquals;
 
-    @Override
-    public Object deserialize(String topic, byte[] bytes) {
-        if (Objects.isNull(bytes)) {
-            return null;
-        }
-        Object data;
-        try {
-            data = JSON.parse(new String(bytes, StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new ConnectException(e);
-        }
-        return data;
+public class JsonConverterConfigTest {
+
+    @Test
+    public void shouldBeCaseInsensitiveForDecimalFormatConfig() {
+        final Map<String, Object> configValues = new HashMap<>();
+        configValues.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, "NuMeRiC");
+        final JsonConverterConfig config = new JsonConverterConfig(configValues);
+        assertEquals(config.decimalFormat(), DecimalFormat.NUMERIC);
     }
+
 }

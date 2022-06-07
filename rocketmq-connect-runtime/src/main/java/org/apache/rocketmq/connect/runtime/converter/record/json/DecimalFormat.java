@@ -14,30 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.serialization;
-
-import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.errors.ConnectException;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+package org.apache.rocketmq.connect.runtime.converter.record.json;
 
 /**
- * json deserializer
+ * Represents the valid {@link org.apache.kafka.connect.data.Decimal} serialization formats
+ * in a {@link JsonConverter}.
  */
-public class JsonDeserializer implements Deserializer<Object> {
+public enum DecimalFormat {
 
-    @Override
-    public Object deserialize(String topic, byte[] bytes) {
-        if (Objects.isNull(bytes)) {
-            return null;
-        }
-        Object data;
-        try {
-            data = JSON.parse(new String(bytes, StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new ConnectException(e);
-        }
-        return data;
-    }
+    /**
+     * Serializes the JSON Decimal as a base-64 string. For example, serializing the value
+     * `10.2345` with the BASE64 setting will result in `"D3J5"`.
+     */
+    BASE64,
+
+    /**
+     * Serializes the JSON Decimal as a JSON number. For example, serializing the value
+     * `10.2345` with the NUMERIC setting will result in `10.2345`.
+     */
+    NUMERIC
 }

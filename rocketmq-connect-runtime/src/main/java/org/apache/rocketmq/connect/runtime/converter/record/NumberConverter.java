@@ -17,6 +17,7 @@
 package org.apache.rocketmq.connect.runtime.converter.record;
 
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.serialization.Deserializer;
 import org.apache.rocketmq.connect.runtime.serialization.Serializer;
@@ -26,6 +27,7 @@ import java.util.Map;
 
 /**
  * number converter
+ *
  * @param <T>
  */
 abstract class NumberConverter<T extends Number> implements RecordConverter {
@@ -38,9 +40,9 @@ abstract class NumberConverter<T extends Number> implements RecordConverter {
     /**
      * Create the converter.
      *
-     * @param typeName the displayable name of the type; may not be null
-     * @param schema the optional schema to be used for all deserialized forms; may not be null
-     * @param serializer the serializer; may not be null
+     * @param typeName     the displayable name of the type; may not be null
+     * @param schema       the optional schema to be used for all deserialized forms; may not be null
+     * @param serializer   the serializer; may not be null
      * @param deserializer the deserializer; may not be null
      */
     protected NumberConverter(String typeName, Schema schema, Serializer<T> serializer, Deserializer<T> deserializer) {
