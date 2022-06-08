@@ -23,8 +23,6 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
-
-import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -127,6 +125,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     /**
      * close transforms
+     *
      * @throws Exception if this resource cannot be closed
      */
     @Override
