@@ -87,8 +87,6 @@ public class WorkerSourceTask implements WorkerTask {
      */
     private AtomicReference<WorkerTaskState> state;
 
-
-
     /**
      * Used to read the position of source data source.
      */
@@ -165,15 +163,18 @@ public class WorkerSourceTask implements WorkerTask {
             sourceTask.init(taskConfig);
             sourceTask.start(new SourceTaskContext() {
 
-                @Override public OffsetStorageReader offsetStorageReader() {
+                @Override
+                public OffsetStorageReader offsetStorageReader() {
                     return offsetStorageReader;
                 }
 
-                @Override public String getConnectorName() {
+                @Override
+                public String getConnectorName() {
                     return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
                 }
 
-                @Override public String getTaskName() {
+                @Override
+                public String getTaskName() {
                     return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
                 }
             });
@@ -211,7 +212,7 @@ public class WorkerSourceTask implements WorkerTask {
             state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
             log.info("Source task stop, config:{}", JSON.toJSONString(taskConfig));
         } catch (Exception e) {
-            log.error("Run task failed., task config: " +  JSON.toJSONString(taskConfig), e);
+            log.error("Run task failed., task config: " + JSON.toJSONString(taskConfig), e);
             state.set(WorkerTaskState.ERROR);
         } finally {
             if (producer != null) {
@@ -248,7 +249,7 @@ public class WorkerSourceTask implements WorkerTask {
         try {
             transformChain.close();
         } catch (Exception exception) {
-            log.error("Transform close failed，{}", exception);
+            log.error("Transform close failed, {}", exception);
         }
         log.warn("Stop a task success.");
     }
@@ -323,7 +324,8 @@ public class WorkerSourceTask implements WorkerTask {
 
             try {
                 producer.send(sourceMessage, new SendCallback() {
-                    @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                    @Override
+                    public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
                         connectStatsManager.incSourceRecordWriteTotalNums();
                         connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
@@ -340,7 +342,8 @@ public class WorkerSourceTask implements WorkerTask {
                         }
                     }
 
-                    @Override public void onException(Throwable throwable) {
+                    @Override
+                    public void onException(Throwable throwable) {
                         log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
                         connectStatsManager.incSourceRecordWriteTotalFailNums();
                         connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));

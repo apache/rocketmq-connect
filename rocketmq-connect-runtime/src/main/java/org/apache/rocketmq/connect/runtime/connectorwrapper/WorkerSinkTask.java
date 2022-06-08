@@ -82,9 +82,9 @@ public class WorkerSinkTask implements WorkerTask {
     public static final String QUEUENAMES_CONFIG = "topicNames";
 
     /**
-     * The configuration key that provide the list of topicQueues that are inputs for this SinkTask;
-     * The config value format is topicName1,brokerName1,queueId1;topicName2,brokerName2,queueId2,
-     * use topicName1, brokerName1, queueId1 can construct {@link MessageQueue}
+     * The configuration key that provide the list of topicQueues that are inputs for this SinkTask; The config value
+     * format is topicName1,brokerName1,queueId1;topicName2,brokerName2,queueId2, use topicName1, brokerName1, queueId1
+     * can construct {@link MessageQueue}
      */
     public static final String TOPIC_QUEUES_CONFIG = "topicQueues";
 
@@ -507,7 +507,7 @@ public class WorkerSinkTask implements WorkerTask {
         try {
             transformChain.close();
         } catch (Exception exception) {
-            log.error("Transform close failed，{}", exception);
+            log.error("Transform close failed, {}", exception);
         }
     }
 

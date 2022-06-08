@@ -27,9 +27,9 @@ mvn clean install -Dmaven.test.skip=true
 
 ## 3.配置
 
-cd rocketmq-connect/rocketmq-connect-runtime/target/distribution/conf
+cd rocketmq-connect-runtime/target/distribution/conf
 
-1. 修改配置文件connect.conf
+1. 修改配置文件 connect-distributed.conf
 
 ```
 #current cluster node uniquely identifies
