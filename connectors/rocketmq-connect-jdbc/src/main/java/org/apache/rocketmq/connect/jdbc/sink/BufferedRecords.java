@@ -22,12 +22,11 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.impl.GenericDatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.dialect.impl.OpenMLDBDatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
+import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
-import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
-import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,7 +180,7 @@ public class BufferedRecords {
         );
         if (totalUpdateCount.filter(total -> total != expectedCount).isPresent()
                 && config.getInsertMode() == JdbcSinkConfig.InsertMode.INSERT) {
-            if (dbDialect.name().equals(GenericDatabaseDialect.DialectName.generateDialectName(OpenMLDBDatabaseDialect.class)) && totalUpdateCount.get() == 0) {
+            if (dbDialect.name().equals(GenericDatabaseDialect.DialectName.generateDialectName(dbDialect.getDialectClass())) && totalUpdateCount.get() == 0) {
                 // openMLDB execute success result 0; do nothing
             } else {
                 throw new ConnectException(

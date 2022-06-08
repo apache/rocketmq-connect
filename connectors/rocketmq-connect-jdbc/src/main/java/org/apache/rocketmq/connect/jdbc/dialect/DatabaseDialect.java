@@ -18,17 +18,18 @@ package org.apache.rocketmq.connect.jdbc.dialect;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.dialect.provider.ConnectionProvider;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
-import org.apache.rocketmq.connect.jdbc.source.metadata.ColumnMapping;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
-import org.apache.rocketmq.connect.jdbc.dialect.provider.ConnectionProvider;
 import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingCriteria;
+import org.apache.rocketmq.connect.jdbc.source.metadata.ColumnMapping;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.apache.rocketmq.connect.jdbc.util.IdentifierRules;
 
@@ -55,6 +56,15 @@ public interface DatabaseDialect extends ConnectionProvider {
      * @return
      */
     String name();
+
+    /**
+     * get dialect class
+     *
+     * @return
+     */
+    default Class getDialectClass() {
+        return this.getClass();
+    }
 
     /**
      * create jdbc prepared statement
@@ -153,7 +163,7 @@ public interface DatabaseDialect extends ConnectionProvider {
      * @param index
      * @return
      */
-    String addFieldToSchema(ColumnDefinition column, Schema schema, int index);
+    String addFieldToSchema(ColumnDefinition column, SchemaBuilder schemaBuilder);
 
     /**
      * Apply the supplied DDL statements using the given connection. This gives the dialect the
