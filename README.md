@@ -98,9 +98,10 @@ connector-position-topic source数据处理进度
 
 ## 7.启动source connector
 
+提前创建测试文件~/test/test-source-file.txt，随意写一些内容在里面
 
 ```
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","filename":"/Users/duheng/test/file-test.txt","connect-topicname":"fileTopic"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","filename":"~/test/test-source-file.txt","connect-topicname":"fileTopic"}'
 ```
 
    看到一下日志说明file source connector启动成功了
