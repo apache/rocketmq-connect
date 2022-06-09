@@ -1,6 +1,8 @@
 package org.apache.rocketmq.connect.http.sink.entity;
 
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 public class AuthParameters {
 
     private String authorizationType;
@@ -51,5 +53,16 @@ public class AuthParameters {
 
     public void setOauthParameters(OAuthParameters oauthParameters) {
         this.oauthParameters = oauthParameters;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("authorizationType", authorizationType)
+                .append("apiKeyAuthParameters", apiKeyAuthParameters)
+                .append("basicAuthParameters", basicAuthParameters)
+                .append("invocationHttpParameters", invocationHttpParameters)
+                .append("oauthParameters", oauthParameters)
+                .toString();
     }
 }

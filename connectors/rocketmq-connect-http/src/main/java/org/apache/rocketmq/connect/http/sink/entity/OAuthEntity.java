@@ -9,6 +9,10 @@ public class OAuthEntity {
     private String oauth2ClientId;
     private String oauth2ClientSecret;
     private String oauth2HttpMethod;
+    private String oauth2BasicKey;
+    private String oauth2BasicValue;
+    private String queryStringParameters;
+    private String headerParamsters;
     private String timeout;
 
     public String getTimeout() {
@@ -51,6 +55,38 @@ public class OAuthEntity {
         this.oauth2HttpMethod = oauth2HttpMethod;
     }
 
+    public String getOauth2BasicKey() {
+        return oauth2BasicKey;
+    }
+
+    public void setOauth2BasicKey(String oauth2BasicKey) {
+        this.oauth2BasicKey = oauth2BasicKey;
+    }
+
+    public String getOauth2BasicValue() {
+        return oauth2BasicValue;
+    }
+
+    public void setOauth2BasicValue(String oauth2BasicValue) {
+        this.oauth2BasicValue = oauth2BasicValue;
+    }
+
+    public String getQueryStringParameters() {
+        return queryStringParameters;
+    }
+
+    public void setQueryStringParameters(String queryStringParameters) {
+        this.queryStringParameters = queryStringParameters;
+    }
+
+    public String getHeaderParamsters() {
+        return headerParamsters;
+    }
+
+    public void setHeaderParamsters(String headerParamsters) {
+        this.headerParamsters = headerParamsters;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -59,12 +95,12 @@ public class OAuthEntity {
 
         OAuthEntity that = (OAuthEntity) o;
 
-        return new EqualsBuilder().append(oauth2Endpoint, that.oauth2Endpoint).append(oauth2ClientId, that.oauth2ClientId).append(oauth2ClientSecret, that.oauth2ClientSecret).append(oauth2HttpMethod, that.oauth2HttpMethod).isEquals();
+        return new EqualsBuilder().append(oauth2Endpoint, that.oauth2Endpoint).append(oauth2ClientId, that.oauth2ClientId).append(oauth2ClientSecret, that.oauth2ClientSecret).append(oauth2HttpMethod, that.oauth2HttpMethod).append(oauth2BasicKey, that.oauth2BasicKey).append(oauth2BasicValue, that.oauth2BasicValue).isEquals();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37).append(oauth2Endpoint).append(oauth2ClientId).append(oauth2ClientSecret).append(oauth2HttpMethod).toHashCode();
+        return new HashCodeBuilder(17, 37).append(oauth2Endpoint).append(oauth2ClientId).append(oauth2ClientSecret).append(oauth2HttpMethod).append(oauth2BasicKey).append(oauth2BasicValue).toHashCode();
     }
 
     @Override
@@ -74,6 +110,9 @@ public class OAuthEntity {
                 .append("oauth2ClientId", oauth2ClientId)
                 .append("oauth2ClientSecret", oauth2ClientSecret)
                 .append("oauth2HttpMethod", oauth2HttpMethod)
+                .append("oauth2BasicKey", oauth2BasicKey)
+                .append("oauth2BasicValue", oauth2BasicValue)
+                .append("timeout", timeout)
                 .toString();
     }
 }

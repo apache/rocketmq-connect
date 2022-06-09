@@ -1,6 +1,8 @@
 package org.apache.rocketmq.connect.http.sink.entity;
 
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 public class NetworkParameters {
 
     private String networkType;
@@ -41,5 +43,15 @@ public class NetworkParameters {
 
     public void setSecurityGroupId(String securityGroupId) {
         this.securityGroupId = securityGroupId;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("networkType", networkType)
+                .append("vpcId", vpcId)
+                .append("vswitcheId", vswitcheId)
+                .append("securityGroupId", securityGroupId)
+                .toString();
     }
 }

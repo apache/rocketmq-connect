@@ -16,10 +16,13 @@ public class OAuthTokenRunnable implements Runnable {
 
     @Override
     public void run() {
+        log.info("OAuthTokenRunnable | run");
         OAuthClientImpl.OAUTH_MAP.forEach((oAuthEntity1, tokenEntity) -> {
             String resultToken = "";
             long tokenTimestamp = Long.parseLong(tokenEntity.getTokenTimestamp()) + (tokenEntity.getExpiresIn() * 1000);
+            log.info("OAuthTokenRunnable | run | tokenTimestamp : {} | system.currentTimeMillis : {} | boolean : {}", tokenTimestamp, System.currentTimeMillis(), System.currentTimeMillis() > tokenTimestamp);
             if (System.currentTimeMillis() > tokenTimestamp) {
+                log.info("OAuthTokenRunnable | run | update token");
                 HttpRequest httpRequest = new HttpRequest();
                 try {
                     resultToken = OAuthClientImpl.getResultToken(oAuthEntity1, new HashMap<>(16), resultToken, httpRequest);

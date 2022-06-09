@@ -1,19 +1,21 @@
 package org.apache.rocketmq.connect.http.sink;
 
+import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.http.sink.auth.AuthFactory;
 import org.apache.rocketmq.connect.http.sink.client.AbstractHttpClient;
 import org.apache.rocketmq.connect.http.sink.client.ApacheHttpClientImpl;
-import org.apache.rocketmq.connect.http.sink.thread.OAuthTokenRunnable;
 import org.apache.rocketmq.connect.http.sink.common.ClientConfig;
 import org.apache.rocketmq.connect.http.sink.constant.HttpConstant;
 import org.apache.rocketmq.connect.http.sink.entity.HttpRequest;
 import org.apache.rocketmq.connect.http.sink.enums.AuthTypeEnum;
+import org.apache.rocketmq.connect.http.sink.thread.OAuthTokenRunnable;
+import org.apache.rocketmq.connect.http.sink.utils.CheckUtils;
+import org.apache.rocketmq.connect.http.sink.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,25 +33,25 @@ public class HttpSinkTask extends SinkTask {
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     protected String urlPattern;
-    private String method;
-    private String queryStringParameters;
-    private String headerParameters;
-    private String bodys;
-    private String authType;
-    private String basicUser;
-    private String basicPassword;
-    private String oauth2Endpoint;
-    private String oauth2ClientId;
-    private String oauth2ClientSecret;
-    private String oauth2HttpMethod;
-    private String proxyType;
-    private String proxyHost;
-    private String proxyPort;
-    private String proxyUser;
-    private String proxyPassword;
-    private String apiKeyName;
-    private String apiKeyValue;
-    private String timeout;
+    protected String method;
+    protected String queryStringParameters;
+    protected String headerParameters;
+    protected String bodys;
+    protected String authType;
+    protected String basicUser;
+    protected String basicPassword;
+    protected String oauth2Endpoint;
+    protected String oauth2ClientId;
+    protected String oauth2ClientSecret;
+    protected String oauth2HttpMethod;
+    protected String proxyType;
+    protected String proxyHost;
+    protected String proxyPort;
+    protected String proxyUser;
+    protected String proxyPassword;
+    protected String apiKeyName;
+    protected String apiKeyValue;
+    protected String timeout;
     private AbstractHttpClient httpClient;
 
     @Override
@@ -58,12 +60,12 @@ public class HttpSinkTask extends SinkTask {
             sinkRecords.forEach(connectRecord -> {
                 ClientConfig clientConfig = new ClientConfig();
                 clientConfig.setUrlPattern(urlPattern);
-                clientConfig.setMethod(StringUtils.isBlank(method) ? connectRecord.getExtension(HttpConstant.HTTP_METHOD) : method);
+                clientConfig.setMethod(CheckUtils.checkNull(method) ? connectRecord.getExtension(HttpConstant.HTTP_METHOD) : method);
                 clientConfig.setAuthType(authType);
                 clientConfig.setHttpPathValue(connectRecord.getExtension(HttpConstant.HTTP_PATH_VALUE));
-                clientConfig.setQueryStringParameters(StringUtils.isBlank(queryStringParameters) ? connectRecord.getExtension(HttpConstant.HTTP_QUERY_VALUE) : queryStringParameters);
-                clientConfig.setHeaderParameters(StringUtils.isBlank(headerParameters) ? connectRecord.getExtension(HttpConstant.HTTP_HEADER) : headerParameters);
-                clientConfig.setBodys(StringUtils.isBlank(bodys) ? connectRecord.getData().toString() : bodys);
+                clientConfig.setQueryStringParameters(JsonUtils.mergeJson(JSONObject.parseObject(connectRecord.getExtension(HttpConstant.HTTP_QUERY_VALUE)), JSONObject.parseObject(queryStringParameters)) == null ? null : JsonUtils.mergeJson(JSONObject.parseObject(connectRecord.getExtension(HttpConstant.HTTP_QUERY_VALUE)), JSONObject.parseObject(queryStringParameters)).toJSONString());
+                clientConfig.setHeaderParameters(JsonUtils.mergeJson(JSONObject.parseObject(connectRecord.getExtension(HttpConstant.HTTP_HEADER)), JSONObject.parseObject(headerParameters)) == null ? null : JsonUtils.mergeJson(JSONObject.parseObject(connectRecord.getExtension(HttpConstant.HTTP_HEADER)), JSONObject.parseObject(headerParameters)).toJSONString());
+                clientConfig.setBodys(JsonUtils.mergeJson(JSONObject.parseObject(connectRecord.getData().toString()), JSONObject.parseObject(bodys)).toJSONString());
                 clientConfig.setProxyUser(proxyUser);
                 clientConfig.setProxyPassword(proxyPassword);
                 clientConfig.setProxyType(proxyType);
@@ -84,7 +86,7 @@ public class HttpSinkTask extends SinkTask {
                 httpRequest.setHeaderMap(headerMap);
                 httpRequest.setMethod(clientConfig.getMethod());
                 httpRequest.setTimeout(clientConfig.getTimeout());
-                httpRequest.setUrl(clientConfig.getUrlPattern());
+                httpRequest.setUrl(JsonUtils.queryStringAndPathValue(clientConfig.getUrlPattern(), clientConfig.getQueryStringParameters(), connectRecord.getExtension(HttpConstant.HTTP_PATH_VALUE)));
                 try {
                     httpClient.execute(httpRequest);
                 } catch (IOException e) {
@@ -108,9 +110,9 @@ public class HttpSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(HttpConstant.URL_PATTERN_CONSTANT))
-                || StringUtils.isBlank(config.getString(HttpConstant.AUTH_TYPE_CONSTANT))
-                || StringUtils.isBlank(config.getString(HttpConstant.BODYS_CONSTANT))) {
+        if (CheckUtils.checkNull(config.getString(HttpConstant.URL_PATTERN_CONSTANT))
+                || CheckUtils.checkNull(config.getString(HttpConstant.AUTH_TYPE_CONSTANT))
+                || CheckUtils.checkNull(config.getString(HttpConstant.BODYS_CONSTANT))) {
             throw new RuntimeException("http required parameter is null !");
         }
         final List<AuthTypeEnum> collect = Arrays.stream(AuthTypeEnum.values()).filter(authTypeEnum -> authTypeEnum.getAuthType().equals(config.getString(HttpConstant.AUTH_TYPE_CONSTANT))).collect(Collectors.toList());
@@ -121,26 +123,26 @@ public class HttpSinkTask extends SinkTask {
 
     @Override
     public void init(KeyValue config) {
-        urlPattern = config.getString(HttpConstant.URL_PATTERN_CONSTANT);
-        method = config.getString(HttpConstant.METHOD_CONSTANT);
-        queryStringParameters = config.getString(HttpConstant.QUERY_STRING_PARAMETERS_CONSTANT);
-        headerParameters = config.getString(HttpConstant.HEADER_PARAMETERS_CONSTANT);
-        bodys = config.getString(HttpConstant.BODYS_CONSTANT);
-        authType = config.getString(HttpConstant.AUTH_TYPE_CONSTANT);
-        basicUser = config.getString(HttpConstant.BASIC_USER_CONSTANT);
-        basicPassword = config.getString(HttpConstant.BASIC_PASSWORD_CONSTANT);
-        oauth2Endpoint = config.getString(HttpConstant.OAUTH2_ENDPOINT_CONSTANT);
-        oauth2ClientId = config.getString(HttpConstant.OAUTH2_CLIENTID_CONSTANT);
-        oauth2ClientSecret = config.getString(HttpConstant.OAUTH2_CLIENTSECRET_CONSTANT);
-        oauth2HttpMethod = config.getString(HttpConstant.OAUTH2_HTTP_METHOD_CONSTANT);
-        proxyType = config.getString(HttpConstant.PROXY_TYPE_CONSTANT);
-        proxyHost = config.getString(HttpConstant.PROXY_HOST_CONSTANT);
-        proxyPort = config.getString(HttpConstant.PROXY_PORT_CONSTANT);
-        proxyUser = config.getString(HttpConstant.PROXY_USER_CONSTANT);
-        proxyPassword = config.getString(HttpConstant.PROXY_PASSWORD_CONSTANT);
-        timeout = config.getString(HttpConstant.TIMEOUT_CONSTANT);
-        apiKeyName = config.getString(HttpConstant.API_KEY_NAME);
-        apiKeyValue = config.getString(HttpConstant.API_KEY_VALUE);
+        urlPattern = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.URL_PATTERN_CONSTANT));
+        method = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.METHOD_CONSTANT));
+        queryStringParameters = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.QUERY_STRING_PARAMETERS_CONSTANT));
+        headerParameters = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.HEADER_PARAMETERS_CONSTANT));
+        bodys = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.BODYS_CONSTANT));
+        authType = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.AUTH_TYPE_CONSTANT));
+        basicUser = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.BASIC_USER_CONSTANT));
+        basicPassword = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.BASIC_PASSWORD_CONSTANT));
+        oauth2Endpoint = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.OAUTH2_ENDPOINT_CONSTANT));
+        oauth2ClientId = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.OAUTH2_CLIENTID_CONSTANT));
+        oauth2ClientSecret = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.OAUTH2_CLIENTSECRET_CONSTANT));
+        oauth2HttpMethod = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.OAUTH2_HTTP_METHOD_CONSTANT));
+        proxyType = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.PROXY_TYPE_CONSTANT));
+        proxyHost = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.PROXY_HOST_CONSTANT));
+        proxyPort = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.PROXY_PORT_CONSTANT));
+        proxyUser = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.PROXY_USER_CONSTANT));
+        proxyPassword = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.PROXY_PASSWORD_CONSTANT));
+        timeout = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.TIMEOUT_CONSTANT));
+        apiKeyName = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.API_KEY_NAME));
+        apiKeyValue = CheckUtils.checkNullReturnDefault(config.getString(HttpConstant.API_KEY_VALUE));
     }
 
     @Override

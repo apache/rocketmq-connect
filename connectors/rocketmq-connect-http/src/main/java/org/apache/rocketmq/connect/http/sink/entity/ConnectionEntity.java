@@ -1,6 +1,8 @@
 package org.apache.rocketmq.connect.http.sink.entity;
 
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 public class ConnectionEntity {
 
     private String code;
@@ -55,5 +57,17 @@ public class ConnectionEntity {
 
     public void setAuthParameters(AuthParameters authParameters) {
         this.authParameters = authParameters;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("code", code)
+                .append("message", message)
+                .append("apiDestinationName", apiDestinationName)
+                .append("connectionName", connectionName)
+                .append("networkParameters", networkParameters)
+                .append("authParameters", authParameters)
+                .toString();
     }
 }

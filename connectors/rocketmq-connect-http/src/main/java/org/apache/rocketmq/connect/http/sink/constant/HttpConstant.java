@@ -36,4 +36,16 @@ public class HttpConstant {
     public static final String SUCCESS = "Success";
     public static final String API_KEY_NAME = "apiKeyName";
     public static final String API_KEY_VALUE = "apiKeyValue";
+    public static final String OAUTH_BASIC_KEY = "oauthBasicKey";
+    public static final String OAUTH_BASIC_VALUE = "oauthBasicValue";
+    public static final String API_DESTINATION_NAME = "apiDestinationName";
+    public static final String REGION_ID = "regionId";
+    public static final String ACCESSKEY_ID = "accessKeyId";
+    public static final String ACCESS_KEY_SECRET = "accessKeySecret";
+    public static final String ACCOUNT_ID = "accountId";
+    public static final String ENDPOINT = "endpoint";
+    public static final String PUSH_CERT_PRIVATE_KEY = "pushCertPrivateKey";
+    public static final String PUSH_CERT_SIGN_METHOD = "pushCertSignMethod";
+    public static final String PUSH_CERT_SIGN_VERSION = "pushCertSignVersion";
+    public static final String PUSH_CERT_PUBLIC_KEY_URL = "pushCertPublicKeyUrl";
 }

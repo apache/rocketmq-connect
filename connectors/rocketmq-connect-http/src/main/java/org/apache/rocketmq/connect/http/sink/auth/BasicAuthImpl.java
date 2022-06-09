@@ -21,7 +21,7 @@ public class BasicAuthImpl implements Auth {
         try {
             if (StringUtils.isNotBlank(config.getBasicUser()) && StringUtils.isNotBlank(config.getBasicPassword())) {
                 String authorizationValue = config.getBasicUser() + ":" + config.getBasicPassword();
-                headMap.put(HttpConstant.AUTHORIZATION, Base64.encode(authorizationValue.getBytes(StandardCharsets.UTF_8)));
+                headMap.put(HttpConstant.AUTHORIZATION, "Basic " + Base64.encode(authorizationValue.getBytes(StandardCharsets.UTF_8)));
             }
         } catch (Exception e) {
             log.error("BasicAuthImpl | auth | error => ", e);

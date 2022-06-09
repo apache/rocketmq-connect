@@ -1,6 +1,8 @@
 package org.apache.rocketmq.connect.http.sink.entity;
 
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 public class BaseParameter {
 
     private String isValueSecret;
@@ -31,5 +33,14 @@ public class BaseParameter {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("isValueSecret", isValueSecret)
+                .append("key", key)
+                .append("value", value)
+                .toString();
     }
 }

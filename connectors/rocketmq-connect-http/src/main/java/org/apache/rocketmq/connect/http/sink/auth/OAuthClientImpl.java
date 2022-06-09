@@ -11,6 +11,7 @@ import org.apache.rocketmq.connect.http.sink.constant.HttpConstant;
 import org.apache.rocketmq.connect.http.sink.entity.HttpRequest;
 import org.apache.rocketmq.connect.http.sink.entity.OAuthEntity;
 import org.apache.rocketmq.connect.http.sink.entity.TokenEntity;
+import org.apache.rocketmq.connect.http.sink.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,22 +21,28 @@ import java.util.Map;
 
 public class OAuthClientImpl implements Auth {
     private static final Logger log = LoggerFactory.getLogger(OAuthClientImpl.class);
-    private static final AbstractHttpClient HTTP_CLIENT = new ApacheHttpClientImpl();
+    private static AbstractHttpClient httpClient = null;
     public static final Map<OAuthEntity, TokenEntity> OAUTH_MAP = Maps.newConcurrentMap();
 
     @Override
     public Map<String, String> auth(ClientConfig config) {
         Map<String, String> headMap = Maps.newHashMap();
         try {
+            init(config);
             String resultToken = "";
-            if (StringUtils.isNotBlank(config.getOauth2ClientId()) && StringUtils.isNotBlank(config.getOauth2ClientSecret())
+            if (StringUtils.isNotBlank(config.getOauth2Endpoint())
                     && StringUtils.isNotBlank(config.getOauth2HttpMethod())) {
                 OAuthEntity oAuthEntity = new OAuthEntity();
                 oAuthEntity.setOauth2ClientId(config.getOauth2ClientId());
                 oAuthEntity.setOauth2ClientSecret(config.getOauth2ClientSecret());
                 oAuthEntity.setOauth2Endpoint(config.getOauth2Endpoint());
                 oAuthEntity.setOauth2HttpMethod(config.getOauth2HttpMethod());
+                oAuthEntity.setHeaderParamsters(config.getHeaderParameters());
+                oAuthEntity.setQueryStringParameters(config.getQueryStringParameters());
                 oAuthEntity.setTimeout(config.getTimeout());
+                final JSONObject jsonObject = JSONObject.parseObject(config.getHeaderParameters());
+                oAuthEntity.setOauth2BasicKey((String) jsonObject.get(HttpConstant.OAUTH_BASIC_KEY));
+                oAuthEntity.setOauth2BasicValue((String) jsonObject.get(HttpConstant.OAUTH_BASIC_VALUE));
                 final TokenEntity tokenEntity = OAUTH_MAP.get(oAuthEntity);
                 if (tokenEntity != null) {
                     headMap.put(HttpConstant.AUTHORIZATION, "Bearer " + tokenEntity.getAccessToken());
@@ -61,27 +68,30 @@ public class OAuthClientImpl implements Auth {
     }
 
     public static String getResultToken(OAuthEntity config, Map<String, String> headMap, String resultToken, HttpRequest httpRequest) throws IOException {
+        headMap.put("Content-Type", "application/x-www-form-urlencoded");
         if (HttpConstant.GET_METHOD.equals(config.getOauth2HttpMethod())) {
-            String url = config.getOauth2Endpoint() + "/grant_type=client_credentials&client_id=" + config.getOauth2ClientId() + "&client_secret=" + config.getOauth2ClientSecret();
-            httpRequest.setUrl(url);
+            httpRequest.setUrl(JsonUtils.queryStringAndPathValue(config.getOauth2Endpoint(), config.getQueryStringParameters(), null));
             httpRequest.setTimeout(config.getTimeout());
             httpRequest.setMethod(config.getOauth2HttpMethod());
             httpRequest.setHeaderMap(headMap);
             httpRequest.setBody(StringUtils.EMPTY);
-            resultToken = HTTP_CLIENT.execute(httpRequest);
+            resultToken = httpClient.execute(httpRequest);
         }
         if (HttpConstant.POST_METHOD.equals(config.getOauth2HttpMethod())) {
-            String basic = config.getOauth2ClientId() + ":" + config.getOauth2ClientSecret();
+            String basic = config.getOauth2BasicKey() + ":" + config.getOauth2BasicValue();
             headMap.put(HttpConstant.AUTHORIZATION, "Basic " + Base64.encode(basic.getBytes(StandardCharsets.UTF_8)));
-            headMap.put("grant_type", "client_credentials");
-            headMap.put("Content-Type", "application/x-www-form-urlencoded");
             httpRequest.setBody(StringUtils.EMPTY);
-            httpRequest.setUrl(config.getOauth2Endpoint());
+            httpRequest.setUrl(JsonUtils.queryStringAndPathValue(config.getOauth2Endpoint(), config.getQueryStringParameters(), null));
             httpRequest.setMethod(config.getOauth2HttpMethod());
             httpRequest.setTimeout(config.getTimeout());
             httpRequest.setHeaderMap(headMap);
-            resultToken = HTTP_CLIENT.execute(httpRequest);
+            resultToken = httpClient.execute(httpRequest);
         }
         return resultToken;
+    }
+
+    private void init(ClientConfig config) {
+        httpClient = new ApacheHttpClientImpl();
+        httpClient.init(config);
     }
 }

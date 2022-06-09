@@ -31,7 +31,6 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
 import org.apache.rocketmq.connect.http.sink.common.ClientConfig;
 import org.apache.rocketmq.connect.http.sink.common.ThreadLocalProxyAuthenticator;
@@ -49,8 +48,6 @@ import java.net.Proxy;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.util.Map;
 
@@ -64,12 +61,7 @@ public class ApacheHttpClientImpl implements AbstractHttpClient {
     @Override
     public void init(ClientConfig config) {
         try {
-            SSLContextBuilder sslContextBuilder = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
-                @Override
-                public boolean isTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-                    return true;
-                }
-            });
+            SSLContextBuilder sslContextBuilder = new SSLContextBuilder().loadTrustMaterial(null, (x509Certificates, s) -> true);
             Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create().register("http",
                             new SocksPlainConnectionSocketFactory())
                     .register("https", new SocksSSLConnectionSocketFactory(sslContextBuilder.build()))
@@ -81,7 +73,7 @@ public class ApacheHttpClientImpl implements AbstractHttpClient {
                     .build();
             clientContext = HttpClientContext.create();
 
-            if (!StringUtils.isNotBlank(config.getProxyHost())) {
+            if (StringUtils.isNotBlank(config.getProxyHost())) {
                 InetSocketAddress dreadlocks = new InetSocketAddress(config.getProxyPort(),
                         Integer.parseInt(config.getProxyHost()));
                 clientContext.setAttribute(SOCKS_ADDRESS_KEY, dreadlocks);
