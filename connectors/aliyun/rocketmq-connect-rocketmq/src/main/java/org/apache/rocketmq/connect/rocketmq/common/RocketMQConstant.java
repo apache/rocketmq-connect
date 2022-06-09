@@ -14,4 +14,8 @@ public class RocketMQConstant {
 
     public static final String CONSUMER_GROUP = "consumerGroup";
 
+    public static final String KEY = "KEYS";
+
+    public static final String TAG = "TAGS";
+
 }

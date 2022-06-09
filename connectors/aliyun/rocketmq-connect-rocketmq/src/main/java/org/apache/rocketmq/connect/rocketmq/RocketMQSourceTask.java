@@ -1,17 +1,11 @@
 package org.apache.rocketmq.connect.rocketmq;
 
-import com.aliyun.ons20190214.Client;
-import com.aliyun.ons20190214.models.OnsGroupListRequest;
-import com.aliyun.ons20190214.models.OnsGroupListResponse;
-import com.aliyun.ons20190214.models.OnsTopicListRequest;
-import com.aliyun.ons20190214.models.OnsTopicListResponse;
 import com.aliyun.openservices.ons.api.Action;
 import com.aliyun.openservices.ons.api.Consumer;
 import com.aliyun.openservices.ons.api.ONSFactory;
 import com.aliyun.openservices.ons.api.PropertyKeyConst;
 import com.aliyun.openservices.shade.com.google.common.collect.Maps;
 import com.aliyun.openservices.shade.org.apache.commons.lang3.StringUtils;
-import com.aliyun.teaopenapi.models.Config;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -19,7 +13,6 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.connect.rocketmq.common.RocketMQConstant;
-import org.apache.rocketmq.connect.rocketmq.utils.OnsUtils;
 import org.assertj.core.util.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +49,6 @@ public class RocketMQSourceTask extends SourceTask {
 
     @Override
     public List<ConnectRecord> poll() throws InterruptedException {
-        if (consumer == null) {
-            initConsumer();
-        }
         List<ConnectRecord> connectRecords = Lists.newArrayList();
         blockingQueue.drainTo(connectRecords, BATCH_POLL_SIZE);
         return connectRecords;
@@ -76,38 +66,6 @@ public class RocketMQSourceTask extends SourceTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(RocketMQConstant.ACCESS_KEY_ID))
-                || StringUtils.isBlank(config.getString(RocketMQConstant.ACCESS_KEY_SECRET))
-                || StringUtils.isBlank(config.getString(RocketMQConstant.NAMESRV_ADDR))
-                || StringUtils.isBlank(config.getString(RocketMQConstant.TOPIC))
-                || StringUtils.isBlank(config.getString(RocketMQConstant.CONSUMER_GROUP))) {
-            throw new RuntimeException("rocketmq required parameter is null !");
-        }
-        // 检查topic和consumer group是否存在
-        try {
-            Config onsConfig = new Config()
-                    .setAccessKeyId(config.getString(RocketMQConstant.ACCESS_KEY_ID))
-                    .setAccessKeySecret(config.getString(RocketMQConstant.ACCESS_KEY_SECRET));
-            onsConfig.endpoint = OnsUtils.parseEndpoint(config.getString(RocketMQConstant.NAMESRV_ADDR));
-            final Client client = new Client(onsConfig);
-            OnsTopicListRequest onsTopicListRequest = new OnsTopicListRequest()
-                    .setTopic(config.getString(RocketMQConstant.TOPIC))
-                    .setInstanceId(config.getString(RocketMQConstant.INSTANCE_ID));
-            final OnsTopicListResponse onsTopicListResponse = client.onsTopicList(onsTopicListRequest);
-            if (onsTopicListResponse.getBody().getData().getPublishInfoDo().isEmpty()) {
-                throw new RuntimeException("rocketmq required parameter topic does not exist !");
-            }
-            OnsGroupListRequest onsGroupListRequest = new OnsGroupListRequest()
-                    .setInstanceId(config.getString(RocketMQConstant.INSTANCE_ID))
-                    .setGroupId(config.getString(RocketMQConstant.CONSUMER_GROUP));
-            final OnsGroupListResponse onsGroupListResponse = client.onsGroupList(onsGroupListRequest);
-            if (onsGroupListResponse.getBody().getData().getSubscribeInfoDo().isEmpty()) {
-                throw new RuntimeException("rocketmq required parameter consumerGroup does not exist !");
-            }
-        } catch (Exception e) {
-            log.error("RocketMQSinkTask | validate | error => ", e);
-            throw new RuntimeException(e.getMessage());
-        }
     }
 
     @Override
@@ -122,17 +80,10 @@ public class RocketMQSourceTask extends SourceTask {
 
     @Override
     public void start(SourceTaskContext sourceTaskContext) {
-        try {
-            super.start(sourceTaskContext);
-            initConsumer();
-            consumer.start();
-        } catch (Exception e) {
-            log.error("RocketMQSourceTask | start | error => ", e);
-            throw e;
-        }
+        super.start(sourceTaskContext);
     }
 
-    private void initConsumer() {
+    private void initConsumer(String tag) {
         try {
             Properties properties = new Properties();
             properties.put(PropertyKeyConst.GROUP_ID, consumerGroup);
@@ -143,9 +94,9 @@ public class RocketMQSourceTask extends SourceTask {
                 properties.put(PropertyKeyConst.INSTANCE_ID, instanceId);
             }
             consumer = ONSFactory.createConsumer(properties);
-            // TODO TAG先忽略
-            consumer.subscribe(topic, "*", (message, consumeContext) -> {
+            consumer.subscribe(topic, tag, (message, consumeContext) -> {
                 try {
+                    log.info("RocketMQSourceTask | commit | initConsumer | message  : {}", message);
                     Map<String, String> sourceRecordPartition = Maps.newHashMap();
                     sourceRecordPartition.put("topic", message.getTopic());
                     sourceRecordPartition.put("brokerName", message.getBornHost());
@@ -170,6 +121,19 @@ public class RocketMQSourceTask extends SourceTask {
             });
         } catch (Exception e) {
             log.error("RocketMQSourceTask | initConsumer | error => ", e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void commit(List<ConnectRecord> connectRecords) throws InterruptedException {
+        try {
+            if (connectRecords.isEmpty()) return;
+            final ConnectRecord connectRecord = connectRecords.get(0);
+            initConsumer(connectRecord.getExtension(RocketMQConstant.TAG));
+            consumer.start();
+        } catch (Exception e) {
+            log.error("RocketMQSourceTask | commit | error => ", e);
             throw e;
         }
     }
