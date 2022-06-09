@@ -13,49 +13,69 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
+package org.apache.rocketmq.connect.jdbc.connector;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestConnector extends Connector {
 
-    private KeyValue config;
+/**
+ * jdbc sink connector
+ */
+public class JdbcSinkConnector extends SinkConnector{
+    private static final Logger log = LoggerFactory.getLogger(JdbcSinkConnector.class);
+    private KeyValue connectConfig;
 
-    @Override public void validate(KeyValue config) {
-
+    @Override
+    public void start(KeyValue config) {
+        this.connectConfig = config;
     }
 
     /**
-     * Start the component
+     * Should invoke before start the connector.
      *
-     * @param config component context
+     * @param config
+     * @return error message
      */
     @Override
-    public void start(KeyValue config) {
-        this.config = config;
+    public void validate(KeyValue config) {
+        // do validate config
     }
 
     @Override
     public void stop() {
-
+        this.connectConfig = null;
     }
 
-    @Override public List<KeyValue> taskConfigs(int maxTasks) {
+    /**
+     * Returns a set of configurations for Tasks based on the current configuration,
+     * producing at most count configurations.
+     *
+     * @param maxTasks maximum number of configurations to generate
+     * @return configurations for Tasks
+     */
+    @Override
+    public List<KeyValue> taskConfigs(int maxTasks) {
+        log.info("Starting task config !!! ");
         List<KeyValue> configs = new ArrayList<>();
-        configs.add(this.config);
+        for (int i = 0; i < maxTasks; i++) {
+            configs.add(this.connectConfig);
+        }
         return configs;
     }
 
     @Override
     public Class<? extends Task> taskClass() {
-        return TestTask.class;
+        return JdbcSinkTask.class;
     }
 }
