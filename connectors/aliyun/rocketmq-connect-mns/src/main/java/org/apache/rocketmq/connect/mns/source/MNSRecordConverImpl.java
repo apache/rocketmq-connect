@@ -33,8 +33,8 @@ public class MNSRecordConverImpl extends AbstractMNSRecordConvert {
         mnsDataMap.put("requestId", popMsg.getRequestId());
         mnsDataMap.put("messageId", popMsg.getMessageId());
         mnsDataMap.put("messageBody", messageBody);
-        connectRecord.setData(new Gson().toJson(mnsDataMap).getBytes(StandardCharsets.UTF_8));
-        connectRecord.setSchema(SchemaBuilder.bytes().build());
+        connectRecord.setData(new Gson().toJson(mnsDataMap));
+        connectRecord.setSchema(SchemaBuilder.string().build());
     }
 
     private JsonElement parseToJsonElement(String messageBodyValue) {

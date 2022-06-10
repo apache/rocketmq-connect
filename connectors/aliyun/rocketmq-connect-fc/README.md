@@ -15,13 +15,13 @@ mvn clean install -Dmaven.test.skip=true
 
 ```
 http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-fc-sink-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.fc.sink.FcSinkConnector",“region”:"${region}",accessKey”:"${accessKey}",accessSecretKey”:"${accessSecretKey}",accountId”:"${accountId}","serviceName":"${serviceName}","functionName":"${functionName}","invocationType":"${invocationType}", "qualifier":"${qualifier}"}
+?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.fc.sink.FcSinkConnector","connect-topicname" : "${connect-topicname}",“region”:"${region}",accessKey”:"${accessKey}",accessSecretKey”:"${accessSecretKey}",accountId”:"${accountId}","serviceName":"${serviceName}","functionName":"${functionName}","invocationType":"${invocationType}", "qualifier":"${qualifier}"}
 ```
 
 例子 
 ```
 http://localhost:8081/connectors/fcConnectorSink?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"org.apache.rocketmq.connect.fc.sink.FcSinkConnector",“region”:"cn-hangzhou",accessKey”:"xxxx",accessSecretKey”:"xxxx",accountId”:"xxxx","serviceName":"xxxx","functionName":"xxxx","invocationType":"", "qualifier":"LATEST"}
+"connector-class":"org.apache.rocketmq.connect.fc.sink.FcSinkConnector","connect-topicname" : "fc-topic",“region”:"cn-hangzhou",accessKey”:"xxxx",accessSecretKey”:"xxxx",accountId”:"xxxx","serviceName":"xxxx","functionName":"xxxx","invocationType":"", "qualifier":"LATEST"}
 ```
 
 >**注：** `rocketmq-fc-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的所有`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
@@ -45,4 +45,5 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-fc-connector-name}/st
 |functionName            | String  | YES            | 函数名称 | xxxx |
 |invocationType          | String | NO             | 同步或者异步                           | null |
 |qualifier               | String | NO             | 服务版本和别名                          | LATEST |
+|connect-topicname       | String  | YES            | sink需要处理数据消息topic                     | xxxx |
 
