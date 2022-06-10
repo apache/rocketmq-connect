@@ -18,9 +18,11 @@ package org.apache.rocketmq.connect.jdbc.dialect;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
@@ -115,9 +117,12 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
             ConnectRecord record,
             int index
     ) throws SQLException {
+        String jsonData = JSON.toJSONString(record.getData(), SerializerFeature.DisableCircularReferenceDetect);
+        Struct struct = JSON.parseObject(jsonData, Struct.class);
+        struct.setValues(JSON.parseObject(jsonData).getJSONArray("values").toArray());
         for (final String fieldName : fieldsMetadata.nonKeyFieldNames) {
             final Field field = record.getSchema().getField(fieldName);
-            bindField(index++, field.getSchema(), ((Object[]) record.getData())[field.getIndex()], fieldName);
+            bindField(index++, field.getSchema(), struct.get(fieldName), fieldName);
         }
         return index;
     }

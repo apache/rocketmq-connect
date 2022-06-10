@@ -20,15 +20,16 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.CachedConnectionProvider;
-import org.apache.rocketmq.connect.jdbc.source.offset.SourceOffsetCompute;
-import org.apache.rocketmq.connect.jdbc.source.metadata.SchemaMapping;
-import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingCriteria;
-import org.apache.rocketmq.connect.jdbc.source.offset.TimestampIncrementingOffset;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
+import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingCriteria;
+import org.apache.rocketmq.connect.jdbc.source.metadata.SchemaMapping;
+import org.apache.rocketmq.connect.jdbc.source.offset.SourceOffsetCompute;
+import org.apache.rocketmq.connect.jdbc.source.offset.TimestampIncrementingOffset;
 import org.apache.rocketmq.connect.jdbc.util.DateTimeUtils;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.slf4j.Logger;
@@ -184,7 +185,7 @@ public class TimestampIncrementingQuerier extends Querier implements TimestampIn
     @Override
     public ConnectRecord extractRecord() throws SQLException {
         Schema schema = schemaMapping.schema();
-        Object[] payload = new Object[schema.getFields().size()];
+        Struct payload = new Struct(schema);
         for (SchemaMapping.FieldSetter setter : schemaMapping.fieldSetters()) {
             try {
                 setter.setField(payload, resultSet);

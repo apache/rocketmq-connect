@@ -23,6 +23,7 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkTask;
 import org.junit.After;
@@ -73,7 +74,7 @@ public class OpenMLDBJdbcSinkTest {
         }
         assertNotNull(connection);
         KeyValue config = buildConfig(jdbcUrlDB);
-        openJDBCSinkTask.init(config);
+        openJDBCSinkTask.start(config);
     }
 
     @After
@@ -95,6 +96,7 @@ public class OpenMLDBJdbcSinkTest {
         config.put("insert.mode", "INSERT");
         config.put("db.timezone", "UTC");
         config.put("table.types", "TABLE");
+        config.put("auto.create", "true");
         config.put("source-record-converter", "org.apache.rocketmq.connect.runtime.converter.JsonConverter");
         return config;
     }
@@ -106,16 +108,17 @@ public class OpenMLDBJdbcSinkTest {
     public void testOpenMLDBJdbcSinkWriterTest() throws SQLException {
         List<ConnectRecord> records = new ArrayList<>();
         // build schema
-        Schema schema = SchemaBuilder.struct().name(
-                tableName
-        ).build();
-        schema.addField(new Field(0, "c1", SchemaBuilder.int32().build()));
-        schema.addField(new Field(1, "c2", SchemaBuilder.string().build()));
+        Schema schema = SchemaBuilder.struct()
+                .name(tableName)
+                .field("c1",SchemaBuilder.int32().build())
+                .field("c2", SchemaBuilder.string().build())
+                .build();
         // build record
-        Object[] payload = new Object[2];
         int param0 = 1001;
-        payload[0] = param0;
-        payload[1] = String.format("test-data-%s", param0);
+        Struct struct= new Struct(schema);
+        struct.put("c1",param0);
+        struct.put("c2",String.format("test-data-%s", param0));
+
         ConnectRecord record = new ConnectRecord(
                 // offset partition
                 // offset partition"
@@ -123,7 +126,7 @@ public class OpenMLDBJdbcSinkTest {
                 new RecordOffset(new HashMap<>()),
                 System.currentTimeMillis(),
                 schema,
-                payload
+                struct
         );
         records.add(record);
         openJDBCSinkTask.put(records);

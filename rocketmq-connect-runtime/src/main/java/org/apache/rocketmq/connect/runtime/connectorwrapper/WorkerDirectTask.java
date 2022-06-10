@@ -156,37 +156,42 @@ public class WorkerDirectTask implements WorkerTask {
     }
 
     private void starkSinkTask() {
-        sinkTask.init(taskConfig);
-        sinkTask.start(new SinkTaskContext() {
+        sinkTask.init(new SinkTaskContext() {
 
-            @Override public String getConnectorName() {
+            @Override
+            public String getConnectorName() {
                 return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
             }
 
-            @Override public String getTaskName() {
+            @Override
+            public String getTaskName() {
                 return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
 
-            @Override public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
+            @Override
+            public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
+
+            }
+            @Override
+            public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
 
             }
 
-            @Override public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
+            @Override
+            public void pause(List<RecordPartition> partitions) {
 
             }
 
-            @Override public void pause(List<RecordPartition> partitions) {
+            @Override
+            public void resume(List<RecordPartition> partitions) {
 
             }
-
-            @Override public void resume(List<RecordPartition> partitions) {
-
-            }
-
-            @Override public Set<RecordPartition> assignment() {
+            @Override
+            public Set<RecordPartition> assignment() {
                 return null;
             }
         });
+        sinkTask.start(taskConfig);
         log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
     }
 
@@ -197,8 +202,7 @@ public class WorkerDirectTask implements WorkerTask {
 
     private void startSourceTask() {
         state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-        sourceTask.init(taskConfig);
-        sourceTask.start(new SourceTaskContext() {
+        sourceTask.init(new SourceTaskContext() {
             @Override public OffsetStorageReader offsetStorageReader() {
                 return positionStorageReader;
             }
@@ -211,6 +215,7 @@ public class WorkerDirectTask implements WorkerTask {
                 return null;
             }
         });
+        sourceTask.start(taskConfig);
         state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
         log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
     }
