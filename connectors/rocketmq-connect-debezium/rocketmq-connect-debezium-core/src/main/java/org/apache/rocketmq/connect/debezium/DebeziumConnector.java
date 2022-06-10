@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class DebeziumConnector extends SourceConnector {
 
     protected KeyValue config;
-
     protected Map<String, String> props;
 
     /**
@@ -51,14 +50,14 @@ public abstract class DebeziumConnector extends SourceConnector {
     }
 
     /**
-     * Init the component
-     * @param config component config
+     * Start the component
+     *
+     * @param config component context
      */
     @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
         this.config = config;
     }
-
 
     /**
      * Should invoke before start the connector.
@@ -66,6 +65,7 @@ public abstract class DebeziumConnector extends SourceConnector {
      */
     @Override
     public void validate(KeyValue config) {
+
         // get the source connector class name from config and create source connector from reflection
         this.props = new ConcurrentHashMap<>();
         config.keySet().forEach(key-> {
@@ -95,21 +95,5 @@ public abstract class DebeziumConnector extends SourceConnector {
     public void stop() {
         this.config = null;
         props = null;
-    }
-
-    /**
-     * Pause the connector.
-     */
-    @Override
-    public void pause() {
-
-    }
-
-    /**
-     * Resume the connector.
-     */
-    @Override
-    public void resume() {
-
     }
 }
