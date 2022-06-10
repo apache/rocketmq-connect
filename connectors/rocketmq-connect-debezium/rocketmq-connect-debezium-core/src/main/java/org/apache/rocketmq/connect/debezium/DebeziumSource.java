@@ -56,7 +56,7 @@ public abstract class DebeziumSource extends KafkaConnectAdaptorSource {
         Iterator transformationIterator = transformations.iterator();
         while (transformationIterator.hasNext()) {
             Transformation<SourceRecord> transformation = (Transformation) transformationIterator.next();
-            log.trace("Applying transformation {} to {}", transformation.getClass().getName(), record);
+            log.trace("applying transformation {} to {}", transformation.getClass().getName(), record);
             record = transformation.apply(record);
             if (record == null) {
                 break;
@@ -66,12 +66,12 @@ public abstract class DebeziumSource extends KafkaConnectAdaptorSource {
     }
 
     @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
         setSourceTask(config);
         // database.history : implementation class for database history.
         config.put(HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY.name(), DEFAULT_HISTORY);
         // history config detail
-        super.init(config);
+        super.start(config);
 
         transformationWrapper = new TransformationWrapper(super.configValue.config());
     }

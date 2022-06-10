@@ -60,6 +60,7 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
         List<ConnectRecord> records = new ArrayList<>();
 
         for (SourceRecord sourceRecord : recordList) {
+            // transforms
             SourceRecord transformRecord = transforms(sourceRecord);
             ConnectRecord processRecord = processSourceRecord(transformRecord);
             if (processRecord != null) {
@@ -89,16 +90,12 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
     }
 
     @Override
-    public void init(KeyValue keyValue) {
+    public void start(KeyValue keyValue) {
         this.configValue = new ConnectKeyValue();
         keyValue.keySet().forEach(key -> {
             this.configValue.put(key, keyValue.getString(key));
         });
-    }
 
-    @Override
-    public void start(io.openmessaging.connector.api.component.task.source.SourceTaskContext context) {
-        super.start(context);
         Map<String, String> taskConfig = new HashMap<>(configValue.config());
 
         // get the source class name from config and create source task from reflection
@@ -112,7 +109,7 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
         }
 
         offsetReader = new KafkaOffsetStorageReader(
-                context
+               sourceTaskContext
         );
 
         kafkaSourceTaskContext = new RocketMqSourceTaskContext(offsetReader, taskConfig);
@@ -127,15 +124,5 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
             sourceTask.stop();
             sourceTask = null;
         }
-    }
-
-    @Override
-    public void pause() {
-        // do nothing
-    }
-
-    @Override
-    public void resume() {
-        // do nothing
     }
 }

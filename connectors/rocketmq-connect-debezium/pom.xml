@@ -43,7 +43,6 @@
         <url>https://issues.apache.org/jira/browse/RocketMQ</url>
     </issueManagement>
 
-
     <build>
         <resources>
             <resource>
