@@ -100,10 +100,12 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
                 }
                 break;
             case RECORD_VALUE: {
-                Object[] data = JSONArray.parseArray(JSON.toJSONString(record.getData())).stream().toArray();
+                String jsonData = JSON.toJSONString(record.getData(), SerializerFeature.DisableCircularReferenceDetect);
+                Struct struct = JSON.parseObject(jsonData, Struct.class);
+                struct.setValues(JSON.parseObject(jsonData).getJSONArray("values").toArray());
                 for (String fieldName : fieldsMetadata.keyFieldNames) {
                     final Field field = schemaPair.schema.getField(fieldName);
-                    bindField(index++, field.getSchema(), data[field.getIndex()], fieldName);
+                    bindField(index++, field.getSchema(), struct.get(fieldName), fieldName);
                 }
             }
             break;
