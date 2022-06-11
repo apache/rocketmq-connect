@@ -18,8 +18,6 @@
 package org.apache.rocketmq.connect.debezium.oracle;
 
 
-import io.openmessaging.KeyValue;
-import org.apache.kafka.connect.runtime.TaskConfig;
 import org.apache.rocketmq.connect.debezium.DebeziumSource;
 
 /**
@@ -28,14 +26,12 @@ import org.apache.rocketmq.connect.debezium.DebeziumSource;
 public class DebeziumOracleSource extends DebeziumSource {
     private static final String DEFAULT_TASK = "io.debezium.connector.oracle.OracleConnectorTask";
 
+
     /**
-     * set source task class
-     *
-     * @param config
-     * @throws Exception
+     * get task class
      */
     @Override
-    public void setSourceTask(KeyValue config) {
-        config.put(TaskConfig.TASK_CLASS_CONFIG, DEFAULT_TASK);
+    public String getTaskClass() {
+        return DEFAULT_TASK;
     }
 }

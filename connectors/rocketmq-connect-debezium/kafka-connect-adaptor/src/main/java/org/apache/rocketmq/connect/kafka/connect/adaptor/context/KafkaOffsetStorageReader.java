@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.kafka.connect.adaptor;
+package org.apache.rocketmq.connect.kafka.connect.adaptor.context;
 
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.RecordOffset;

@@ -14,139 +14,141 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package org.apache.rocketmq.connect.kafka.connect.adaptor.schema;
 
-import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Field;
+import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.logical.Timestamp;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Decimal;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Time;
-import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
- * schema  converter
+ * convert rocketmq connect record data to kafka sink record data
  */
-public class SchemaConverter {
-    private static Logger logger = LoggerFactory.getLogger(SchemaConverter.class);
+public class KafkaSinkSchemaConverter {
+    private static Logger logger = LoggerFactory.getLogger(KafkaSinkSchemaConverter.class);
     private static Map<String, String> logicalMapping = new HashMap<>();
     static {
-        logicalMapping.put(Decimal.LOGICAL_NAME, io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME);
-        logicalMapping.put(Date.LOGICAL_NAME, io.openmessaging.connector.api.data.logical.Date.LOGICAL_NAME);
-        logicalMapping.put(Time.LOGICAL_NAME, io.openmessaging.connector.api.data.logical.Time.LOGICAL_NAME);
-        logicalMapping.put(Timestamp.LOGICAL_NAME, io.openmessaging.connector.api.data.logical.Timestamp.LOGICAL_NAME);
+        logicalMapping.put(io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME,Decimal.LOGICAL_NAME);
+        logicalMapping.put(io.openmessaging.connector.api.data.logical.Date.LOGICAL_NAME, Date.LOGICAL_NAME);
+        logicalMapping.put(io.openmessaging.connector.api.data.logical.Time.LOGICAL_NAME, Time.LOGICAL_NAME);
+        logicalMapping.put(io.openmessaging.connector.api.data.logical.Timestamp.LOGICAL_NAME, Timestamp.LOGICAL_NAME);
     }
 
     private SchemaBuilder builder;
-
-    public SchemaConverter(SourceRecord record) {
-        builder = convertKafkaSchema(record.valueSchema());
+    public KafkaSinkSchemaConverter(Schema schema) {
+        builder = convertKafkaSchema(schema);
     }
 
-    public SchemaBuilder schemaBuilder() {
-        return builder;
+    public org.apache.kafka.connect.data.Schema schema() {
+        return builder.build();
     }
 
-    private SchemaBuilder convertKafkaSchema(org.apache.kafka.connect.data.Schema originalSchema) {
-        String schemaName = convertSchemaName(originalSchema.name());
-        switch (originalSchema.type()) {
+    /**
+     * convert kafka schema
+     * @param originalSchema
+     * @return
+     */
+    private SchemaBuilder convertKafkaSchema(io.openmessaging.connector.api.data.Schema originalSchema) {
+        String schemaName = convertSchemaName(originalSchema.getName());
+        switch (originalSchema.getFieldType()) {
             case INT8:
                 return SchemaBuilder
                         .int8()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case INT16:
                 return SchemaBuilder
                         .int16()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case INT32:
                 return SchemaBuilder
                         .int32()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case INT64:
                 return SchemaBuilder
                         .int64()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case FLOAT32:
                 return SchemaBuilder
                         .float32()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case FLOAT64:
                 return SchemaBuilder
                         .float64()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case BOOLEAN:
                 return SchemaBuilder
                         .bool()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case STRING:
                 return SchemaBuilder.
                         string()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case BYTES:
                 return SchemaBuilder
                         .bytes()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case STRUCT:
                 SchemaBuilder schemaBuilder = SchemaBuilder
                         .struct()
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
                 convertStructSchema(schemaBuilder, originalSchema);
                 return schemaBuilder;
             case ARRAY:
-                return SchemaBuilder.array(convertKafkaSchema(originalSchema.valueSchema()).build())
+                return SchemaBuilder.array(convertKafkaSchema(originalSchema.getValueSchema()).build())
                         .optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             case MAP:
                 return SchemaBuilder.map(
-                        convertKafkaSchema(originalSchema.keySchema()).build(),
-                        convertKafkaSchema(originalSchema.valueSchema()).build()
+                        convertKafkaSchema(originalSchema.getKeySchema()).build(),
+                        convertKafkaSchema(originalSchema.getValueSchema()).build()
                 ).optional()
                         .name(schemaName)
-                        .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .doc(originalSchema.getDoc())
+                        .defaultValue(originalSchema.getDefaultValue());
             default:
-                throw new RuntimeException(" Type not supported: {}" + originalSchema.type());
+                throw new RuntimeException(" Type not supported: {}" + originalSchema.getFieldType());
 
         }
 
@@ -158,117 +160,124 @@ public class SchemaConverter {
      * @param schemaBuilder
      * @param originalSchema
      */
-    private void convertStructSchema(io.openmessaging.connector.api.data.SchemaBuilder schemaBuilder, org.apache.kafka.connect.data.Schema originalSchema) {
-        for (Field field : originalSchema.fields()) {
+    private void convertStructSchema(org.apache.kafka.connect.data.SchemaBuilder schemaBuilder, io.openmessaging.connector.api.data.Schema originalSchema) {
+        for (Field field : originalSchema.getFields()) {
             try {
-                Schema schema = field.schema();
-                org.apache.kafka.connect.data.Schema.Type type = schema.type();
-                String schemaName =  convertSchemaName(field.schema().name());
+
+                // schema
+                Schema schema = field.getSchema();
+                String schemaName =  convertSchemaName(field.getSchema().getName());
+
+                // field name
+                String fieldName =  field.getName();
+                FieldType type = schema.getFieldType();
+
+
                 switch (type) {
                     case INT8:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .int8()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case INT16:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .int16()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case INT32:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .int32()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case INT64:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .int64()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case FLOAT32:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .float32()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case FLOAT64:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .float64()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case BOOLEAN:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .bool()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case STRING:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .string()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
                         break;
                     case BYTES:
                         schemaBuilder.field(
-                                field.name(),
+                                fieldName,
                                 SchemaBuilder
                                         .bytes()
                                         .name(schemaName)
-                                        .doc(schema.doc())
-                                        .defaultValue(schema.defaultValue())
+                                        .doc(schema.getDoc())
+                                        .defaultValue(schema.getDefaultValue())
                                         .optional()
                                         .build()
                         );
@@ -277,8 +286,8 @@ public class SchemaConverter {
                     case ARRAY:
                     case MAP:
                         schemaBuilder.field(
-                                field.name(),
-                                convertKafkaSchema(field.schema()).build()
+                                fieldName,
+                                convertKafkaSchema(field.getSchema()).build()
                         );
                         break;
                     default:

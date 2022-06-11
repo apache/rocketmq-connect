@@ -15,19 +15,19 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.kafka.connect.adaptor;
+package org.apache.rocketmq.connect.kafka.connect.adaptor.context;
 
 import org.apache.kafka.connect.source.SourceTaskContext;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 import java.util.Map;
 
-class RocketMqSourceTaskContext implements SourceTaskContext {
+public class RocketMQKafkaSourceTaskContext implements SourceTaskContext {
 
     private final OffsetStorageReader reader;
     private final Map<String, String> taskConfig;
 
-    RocketMqSourceTaskContext(OffsetStorageReader reader, Map<String, String> taskConfig) {
+    public RocketMQKafkaSourceTaskContext(OffsetStorageReader reader, Map<String, String> taskConfig) {
         this.reader = reader;
         this.taskConfig = taskConfig;
     }

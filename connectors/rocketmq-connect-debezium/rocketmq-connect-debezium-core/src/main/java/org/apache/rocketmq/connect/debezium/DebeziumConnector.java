@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.debezium;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.connector.KafkaSourceAdaptorConnector;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,70 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * debezium connector
  */
-public abstract class DebeziumConnector extends SourceConnector {
-
-    protected KeyValue config;
-    protected Map<String, String> props;
-
-    /**
-     * Returns a set of configurations for Tasks based on the current configuration,
-     * producing at most count configurations.
-     * @param maxTasks maximum number of configurations to generate
-     * @return configurations for Tasks
-     */
-    @Override
-    public List<KeyValue> taskConfigs(int maxTasks) {
-        if (maxTasks > 1) {
-            throw new IllegalArgumentException("Only a single connector task may be started");
-        }
-        return Collections.singletonList(config);
-    }
-
-    /**
-     * Start the component
-     *
-     * @param config component context
-     */
-    @Override
-    public void start(KeyValue config) {
-        this.config = config;
-    }
-
-    /**
-     * Should invoke before start the connector.
-     * @param config component config
-     */
-    @Override
-    public void validate(KeyValue config) {
-
-        // get the source connector class name from config and create source connector from reflection
-        this.props = new ConcurrentHashMap<>();
-        config.keySet().forEach(key-> {
-            this.props.put(key, config.getString(key));
-        });
-        try {
-            org.apache.kafka.connect.source.SourceConnector sourceConnector = Class.forName(this.debeziumConnectorClass())
-                    .asSubclass(org.apache.kafka.connect.source.SourceConnector.class)
-                    .getDeclaredConstructor()
-                    .newInstance();
-            sourceConnector.validate(props);
-        } catch (Exception e) {
-            throw new ConnectException("Validate config failed !!", e);
-        }
-    }
-
-    /**
-     * debezium connector class
-     * @return
-     */
-    public abstract String debeziumConnectorClass();
-
-    /**
-     * Stop the component.
-     */
-    @Override
-    public void stop() {
-        this.config = null;
-        props = null;
-    }
+public abstract class DebeziumConnector extends KafkaSourceAdaptorConnector {
+    
 }

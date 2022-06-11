@@ -28,7 +28,6 @@ public class DebeziumSqlServerConnector extends DebeziumConnector {
 
     private static final String DEFAULT_CONNECTOR = "io.debezium.connector.sqlserver.SqlServerConnector";
 
-
     /**
      * Return the current connector class
      * @return task implement class
@@ -39,12 +38,10 @@ public class DebeziumSqlServerConnector extends DebeziumConnector {
     }
 
     /**
-     * debezium connector class
-     * @return
+     * get connector class
      */
     @Override
-    public String debeziumConnectorClass() {
+    public String getConnectorClass() {
         return DEFAULT_CONNECTOR;
     }
-
 }

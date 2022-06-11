@@ -9,8 +9,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.header.Header;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.apache.rocketmq.connect.kafka.connect.adaptor.schema.SchemaConverter;
-import org.apache.rocketmq.connect.kafka.connect.adaptor.schema.ValueConverter;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.schema.RocketMQSourceSchemaConverter;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.schema.RocketMQSourceValueConverter;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -179,14 +179,16 @@ public class SourceRecordConverterTest {
     @Test
     public void testConverter() {
         // sourceRecord convert connect Record
-        SchemaConverter schemaConverter = new SchemaConverter(originalRecord);
-        ValueConverter valueConverter = new ValueConverter(originalRecord);
+        RocketMQSourceSchemaConverter rocketMQSourceSchemaConverter = new RocketMQSourceSchemaConverter(originalRecord.valueSchema());
+
+        io.openmessaging.connector.api.data.Schema schema =rocketMQSourceSchemaConverter.schema();
+        RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
         ConnectRecord connectRecord = new ConnectRecord(
                 new RecordPartition(originalRecord.sourcePartition()),
                 new RecordOffset(originalRecord.sourceOffset()),
                 originalRecord.timestamp(),
-                schemaConverter.schemaBuilder().build(),
-                valueConverter.value());
+                rocketMQSourceSchemaConverter.schema(),
+                rocketMQSourceValueConverter.value(schema, originalRecord.value()));
         Iterator<Header> headers = originalRecord.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();

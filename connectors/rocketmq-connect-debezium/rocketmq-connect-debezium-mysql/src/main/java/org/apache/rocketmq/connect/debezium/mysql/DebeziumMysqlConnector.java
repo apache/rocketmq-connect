@@ -38,11 +38,10 @@ public class DebeziumMysqlConnector extends DebeziumConnector {
     }
 
     /**
-     * debezium connector class
-     * @return
+     * get connector class
      */
     @Override
-    public String debeziumConnectorClass() {
+    public String getConnectorClass() {
         return DEFAULT_CONNECTOR;
     }
 }

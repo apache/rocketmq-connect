@@ -22,6 +22,7 @@ import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.logical.Date;
 import io.openmessaging.connector.api.data.logical.Decimal;
 import io.openmessaging.connector.api.data.logical.Time;
+import org.apache.rocketmq.connect.jdbc.common.DebeziumTimeTypes;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConfig;
@@ -1604,6 +1605,19 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                     }
                     statement.setTimestamp(
                             index, timestamp,
+                            DateTimeUtils.getTimeZoneCalendar(timeZone)
+                    );
+                    return true;
+
+                case DebeziumTimeTypes.DATE:
+                    statement.setDate(index,
+                            new java.sql.Date((long)DebeziumTimeTypes.toMillsTimestamp(DebeziumTimeTypes.DATE, value)),
+                            DateTimeUtils.getTimeZoneCalendar(timeZone)
+                    );
+                    return true;
+                case DebeziumTimeTypes.TIMESTAMP:
+                    statement.setTimestamp(index,
+                            new java.sql.Timestamp((long)DebeziumTimeTypes.toMillsTimestamp(DebeziumTimeTypes.TIMESTAMP, value)),
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;

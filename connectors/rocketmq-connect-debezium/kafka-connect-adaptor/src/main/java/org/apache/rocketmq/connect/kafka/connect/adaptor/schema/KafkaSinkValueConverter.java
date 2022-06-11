@@ -14,15 +14,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package org.apache.rocketmq.connect.kafka.connect.adaptor.schema;
 
-import io.openmessaging.connector.api.data.Field;
-import io.openmessaging.connector.api.data.FieldType;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.kafka.connect.source.SourceRecord;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,34 +28,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 /**
- * value converter
+ * convert rocketmq connect record to kafka sink record
  */
-public class ValueConverter {
-    private static Logger logger = LoggerFactory.getLogger(ValueConverter.class);
+public class KafkaSinkValueConverter {
 
-    private Object value;
+    private static Logger logger = LoggerFactory.getLogger(KafkaSinkValueConverter.class);
 
-    public ValueConverter(SourceRecord record) {
-        SchemaConverter schemaConverter = new SchemaConverter(record);
-        Schema schema = schemaConverter.schemaBuilder().build();
-        value = convertKafkaValue(schema, record.value());
-    }
-
-    public Object value() {
-        return value;
+    public Object value(Schema schema,Object data) {
+        return convertKafkaValue(schema, data);
     }
 
     /**
      * convert value
-     *
      * @param targetSchema
      * @param originalValue
      * @return
      */
     private Object convertKafkaValue(Schema targetSchema, Object originalValue) {
-        switch (targetSchema.getFieldType()) {
+        switch (targetSchema.type()) {
             case INT8:
             case INT16:
             case INT32:
@@ -79,7 +67,7 @@ public class ValueConverter {
                 List<Object> array = (List<Object>) originalValue;
                 List<Object> newArray = new ArrayList<>();
                 array.forEach(item -> {
-                    newArray.add(convertKafkaValue(targetSchema.getValueSchema(), item));
+                    newArray.add(convertKafkaValue(targetSchema.valueSchema(), item));
                 });
                 return newArray;
             case MAP:
@@ -87,13 +75,13 @@ public class ValueConverter {
                 Map newMapData = new ConcurrentHashMap();
                 mapData.forEach((k, v) -> {
                     newMapData.put(
-                            convertKafkaValue(targetSchema.getKeySchema(), k),
-                            convertKafkaValue(targetSchema.getValueSchema(), v)
+                            convertKafkaValue(targetSchema.keySchema(), k),
+                            convertKafkaValue(targetSchema.valueSchema(), v)
                     );
                 });
                 return newMapData;
             default:
-                throw new RuntimeException(" Type not supported: {}" + targetSchema.getFieldType());
+                throw new RuntimeException(" Type not supported: {}" + targetSchema.type());
 
         }
 
@@ -107,10 +95,10 @@ public class ValueConverter {
      */
     private void convertStructValue(Struct toStruct, org.apache.kafka.connect.data.Struct originalStruct) {
 
-        for (Field field : toStruct.schema().getFields()) {
+        for (Field field : toStruct.schema().fields()) {
             try {
-                FieldType type = field.getSchema().getFieldType();
-                Object value = originalStruct.get(field.getName());
+                Schema.Type type = field.schema().type();
+                Object value = originalStruct.get(field.name());
                 switch (type) {
                     case INT8:
                     case INT16:
@@ -121,25 +109,24 @@ public class ValueConverter {
                     case BOOLEAN:
                     case STRING:
                     case BYTES:
-                        toStruct.put(field.getName(), value);
+                        toStruct.put(field.name(), value);
                         break;
                     case STRUCT:
                     case ARRAY:
                     case MAP:
                         toStruct.put(
-                                field.getName(),
+                                field.name(),
                                 convertKafkaValue(
-                                        toStruct.schema().getField(field.getName()).getSchema(),
+                                        toStruct.schema().field(field.name()).schema(),
                                         value
                                 )
                         );
                         break;
                 }
             } catch (Exception ex) {
-                logger.error("Convert schema failure! ex {}", ex);
+                logger.error("Convert to kafka schema failure, {}", ex);
                 throw new ConnectException(ex);
             }
         }
     }
-
 }

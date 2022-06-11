@@ -37,7 +37,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.connect.kafka.connect.adaptor.AbstractKafkaConnectSource;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.task.AbstractKafkaConnectSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

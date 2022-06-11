@@ -15,9 +15,10 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.debezium;
+package org.apache.rocketmq.connect.kafka.connect.adaptor.transforms;
 
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.transforms.Transformation;
@@ -42,12 +43,12 @@ public class TransformationWrapper {
         this.props = props;
     }
 
-    public List<Transformation<SourceRecord>> transformations() {
+    public List<Transformation> transformations() {
         if (!props.containsKey(DEFAULT_TRANSFORM)) {
             return Collections.emptyList();
         }
-        List<String> transformAliases = Arrays.asList(props.get("debezium.transforms").split(","));
-        List<Transformation<SourceRecord>> transformations = new ArrayList(transformAliases.size());
+        List<String> transformAliases = Arrays.asList(props.get(DEFAULT_TRANSFORM).split(","));
+        List<Transformation> transformations = new ArrayList(transformAliases.size());
         Iterator transformIterator = transformAliases.iterator();
         while (transformIterator.hasNext()) {
             String alias = (String) transformIterator.next();

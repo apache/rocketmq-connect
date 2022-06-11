@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.connect.debezium.postgres;
 
-import io.openmessaging.KeyValue;
-import org.apache.kafka.connect.runtime.TaskConfig;
 import org.apache.rocketmq.connect.debezium.DebeziumSource;
 
 /**
@@ -29,13 +27,10 @@ public class DebeziumPostgresSource extends DebeziumSource {
 
 
     /**
-     * set source task class
-     *
-     * @param config
-     * @throws Exception
+     * get task class
      */
     @Override
-    public void setSourceTask(KeyValue config) {
-        config.put(TaskConfig.TASK_CLASS_CONFIG, DEFAULT_TASK);
+    public String getTaskClass() {
+        return DEFAULT_TASK;
     }
 }

@@ -40,21 +40,10 @@ public class DebeziumMongoDBConnector extends DebeziumConnector {
     }
 
     /**
-     * debezium connector class
-     * @return
+     * get connector class
      */
     @Override
-    public String debeziumConnectorClass() {
+    public String getConnectorClass() {
         return DEFAULT_CONNECTOR;
     }
-
-
-    /**
-     * Stop the component.
-     */
-    @Override
-    public void stop() {
-        super.stop();
-    }
-
 }

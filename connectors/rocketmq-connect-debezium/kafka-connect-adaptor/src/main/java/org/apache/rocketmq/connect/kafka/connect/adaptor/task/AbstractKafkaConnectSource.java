@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.apache.rocketmq.connect.kafka.connect.adaptor;
+package org.apache.rocketmq.connect.kafka.connect.adaptor.task;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
@@ -25,6 +25,10 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTaskContext;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.apache.rocketmq.connect.kafka.connect.adaptor.config.ConnectKeyValue;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.context.KafkaOffsetStorageReader;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.context.RocketMQKafkaSourceTaskContext;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.schema.Converters;
+import org.apache.rocketmq.connect.kafka.connect.adaptor.transforms.TransformationWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +40,14 @@ import java.util.Map;
 /**
  * abstract kafka connect
  */
-public abstract class AbstractKafkaConnectSource extends SourceTask {
+public abstract class AbstractKafkaConnectSource extends SourceTask implements TaskClassSetter{
 
     private static final Logger log = LoggerFactory.getLogger(AbstractKafkaConnectSource.class);
 
-
+    protected TransformationWrapper transformationWrapper;
     private SourceTaskContext kafkaSourceTaskContext;
     private org.apache.kafka.connect.source.SourceTask sourceTask;
     private OffsetStorageReader offsetReader;
-
 
     /**
      * kafka connect init
@@ -58,11 +61,10 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
             Thread.sleep(1000);
         }
         List<ConnectRecord> records = new ArrayList<>();
-
         for (SourceRecord sourceRecord : recordList) {
             // transforms
             SourceRecord transformRecord = transforms(sourceRecord);
-            ConnectRecord processRecord = processSourceRecord(transformRecord);
+            ConnectRecord processRecord = Converters.fromSourceRecord(transformRecord);
             if (processRecord != null) {
                 records.add(processRecord);
             }
@@ -96,6 +98,7 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
             this.configValue.put(key, keyValue.getString(key));
         });
 
+        setTaskClass(configValue);
         Map<String, String> taskConfig = new HashMap<>(configValue.config());
 
         // get the source class name from config and create source task from reflection
@@ -112,9 +115,10 @@ public abstract class AbstractKafkaConnectSource extends SourceTask {
                sourceTaskContext
         );
 
-        kafkaSourceTaskContext = new RocketMqSourceTaskContext(offsetReader, taskConfig);
+        kafkaSourceTaskContext = new RocketMQKafkaSourceTaskContext(offsetReader, taskConfig);
         sourceTask.initialize(kafkaSourceTaskContext);
         sourceTask.start(taskConfig);
+        transformationWrapper = new TransformationWrapper(taskConfig);
     }
 
 
