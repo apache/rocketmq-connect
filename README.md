@@ -5,7 +5,7 @@
 
 [快速开始](https://rocketmq-1.gitbook.io/rocketmq-connector/quick-start/qian-qi-zhun-bei)
 
-[Runtime](https://rocketmq-1.gitbook.io/rocketmq-connector/rocketmq-connect-1/rocketmq-runtime)
+[Runtime](https://rocketmq-1.gitbook.io/rocketmq-connector/quick-start/runtime-qs)
 
 # 快速开始
 
