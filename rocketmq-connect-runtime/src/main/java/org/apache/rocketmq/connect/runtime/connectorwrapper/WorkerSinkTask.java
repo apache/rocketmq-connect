@@ -83,9 +83,9 @@ public class WorkerSinkTask implements WorkerTask {
     public static final String QUEUENAMES_CONFIG = "topicNames";
 
     /**
-     * The configuration key that provide the list of topicQueues that are inputs for this SinkTask;
-     * The config value format is topicName1,brokerName1,queueId1;topicName2,brokerName2,queueId2,
-     * use topicName1, brokerName1, queueId1 can construct {@link MessageQueue}
+     * The configuration key that provide the list of topicQueues that are inputs for this SinkTask; The config value
+     * format is topicName1,brokerName1,queueId1;topicName2,brokerName2,queueId2, use topicName1, brokerName1, queueId1
+     * can construct {@link MessageQueue}
      */
     public static final String TOPIC_QUEUES_CONFIG = "topicQueues";
 
@@ -218,9 +218,9 @@ public class WorkerSinkTask implements WorkerTask {
             consumer.start();
             log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
             state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sinkTask.init(taskConfig);
             this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
-            sinkTask.start(sinkTaskContext);
+            sinkTask.init(sinkTaskContext);
+            sinkTask.start(taskConfig);
             // we assume executed here means we are safe
             log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
@@ -514,6 +514,11 @@ public class WorkerSinkTask implements WorkerTask {
     @Override
     public void stop() {
         state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+        try {
+            transformChain.close();
+        } catch (Exception exception) {
+            log.error("Transform close failed, {}", exception);
+        }
     }
 
     @Override

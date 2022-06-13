@@ -21,6 +21,7 @@
         <fastjson.version>1.2.62</fastjson.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <aliyun-java-sdk-fc.version>1.8.25</aliyun-java-sdk-fc.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>

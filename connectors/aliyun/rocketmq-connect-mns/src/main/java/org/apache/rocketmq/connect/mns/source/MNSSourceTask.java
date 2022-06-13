@@ -13,7 +13,6 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,13 +85,6 @@ public class MNSSourceTask extends SourceTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(ACCESS_KEY_ID))
-                || StringUtils.isBlank(config.getString(ACCESS_KEY_SECRET))
-                || StringUtils.isBlank(config.getString(ACCOUNT_ENDPOINT))
-                || StringUtils.isBlank(config.getString(QUEUE_NAME))
-                || StringUtils.isBlank(config.getString(ACCOUNT_ID))) {
-            throw new RuntimeException("mns required parameter is null !");
-        }
         // 检测队列名称是否存在
         PagingListResult<QueueMeta> queueMetaPagingListResult = mnsClient.listQueue(queueName, null, 1);
         List<QueueMeta> result = queueMetaPagingListResult.getResult();

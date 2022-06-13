@@ -53,12 +53,12 @@ public class WorkerConnector {
     }
 
     public void initialize() {
-        connector.init(keyValue);
+        connector.init(context);
     }
 
     public void start() {
         connector.validate(keyValue);
-        connector.start(context);
+        connector.start(keyValue);
     }
 
     public void stop() {

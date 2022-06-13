@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
 
-import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
-import lombok.SneakyThrows;
+import io.openmessaging.connector.api.data.logical.Date;
+import io.openmessaging.connector.api.data.logical.Decimal;
+import io.openmessaging.connector.api.data.logical.Time;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConfig;
@@ -28,21 +29,18 @@ import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory;
 import org.apache.rocketmq.connect.jdbc.dialect.DropOptions;
 import org.apache.rocketmq.connect.jdbc.dialect.PreparedStatementBinder;
+import org.apache.rocketmq.connect.jdbc.dialect.provider.DatabaseDialectProvider;
+import org.apache.rocketmq.connect.jdbc.dialect.provider.JdbcUrlInfo;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefAdjuster;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
-import org.apache.rocketmq.connect.jdbc.source.metadata.ColumnMapping;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
-import org.apache.rocketmq.connect.jdbc.dialect.provider.DatabaseDialectProvider;
-import org.apache.rocketmq.connect.jdbc.dialect.provider.JdbcUrlInfo;
-import org.apache.rocketmq.connect.jdbc.schema.column.parser.DateColumnParser;
-import org.apache.rocketmq.connect.jdbc.schema.column.parser.TimeColumnParser;
-import org.apache.rocketmq.connect.jdbc.schema.column.parser.TimestampColumnParser;
 import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingCriteria;
+import org.apache.rocketmq.connect.jdbc.source.metadata.ColumnMapping;
 import org.apache.rocketmq.connect.jdbc.util.DateTimeUtils;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.apache.rocketmq.connect.jdbc.util.IdentifierRules;
@@ -125,7 +123,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     private static final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
-//    @Deprecated
+    //    @Deprecated
 //    protected final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
     protected AbstractConfig config;
     /**
@@ -190,7 +188,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
      * @return
      * @throws SQLException
      */
-    @SneakyThrows
     @Override
     public Connection getConnection() throws SQLException {
         // These config names are the same for both source and sink configs ...
@@ -922,10 +919,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     @Override
     public String addFieldToSchema(
             ColumnDefinition columnDefn,
-            Schema schema,
-            int index
+            SchemaBuilder schemaBuilder
     ) {
-        return addFieldToSchema(columnDefn, schema, fieldNameFor(columnDefn), index, columnDefn.type(),
+        return addFieldToSchema(columnDefn, schemaBuilder, fieldNameFor(columnDefn), columnDefn.type(),
                 columnDefn.isOptional()
         );
     }
@@ -936,7 +932,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
      * @param columnDefn
      * @param builder
      * @param fieldName
-     * @param index
      * @param sqlType
      * @param optional
      * @return
@@ -944,9 +939,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     @SuppressWarnings("fallthrough")
     protected String addFieldToSchema(
             final ColumnDefinition columnDefn,
-            final Schema builder,
+            final SchemaBuilder builder,
             final String fieldName,
-            final int index,
             final int sqlType,
             final boolean optional
     ) {
@@ -958,50 +952,50 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                 return null;
             }
             case Types.BOOLEAN: {
-                builder.addField(new Field(index, fieldName, SchemaBuilder.bool().build()));
+                builder.field(fieldName, SchemaBuilder.bool().build());
                 break;
             }
 
             // ints <= 8 bits
             case Types.BIT: {
-                builder.addField(new Field(index, fieldName, SchemaBuilder.int8().build()));
+                builder.field(fieldName, SchemaBuilder.int8().build());
                 break;
             }
 
             case Types.TINYINT: {
                 if (columnDefn.isSignedNumber()) {
-                    builder.addField(new Field(index, fieldName, SchemaBuilder.int8().build()));
+                    builder.field(fieldName, SchemaBuilder.int8().build());
                 } else {
-                    builder.addField(new Field(index, fieldName, SchemaBuilder.int32().build()));
+                    builder.field(fieldName, SchemaBuilder.int32().build());
                 }
                 break;
             }
 
             // 16 bit ints
             case Types.SMALLINT: {
-                builder.addField(new Field(index, fieldName, SchemaBuilder.int32().build()));
+                builder.field(fieldName, SchemaBuilder.int32().build());
                 break;
             }
 
             // 32 bit ints
             case Types.INTEGER: {
                 if (columnDefn.isSignedNumber()) {
-                    builder.addField(new Field(index, fieldName, SchemaBuilder.int32().build()));
+                    builder.field(fieldName, SchemaBuilder.int32().build());
                 } else {
-                    builder.addField(new Field(index, fieldName, SchemaBuilder.int64().build()));
+                    builder.field(fieldName, SchemaBuilder.int64().build());
                 }
                 break;
             }
 
             // 64 bit ints
             case Types.BIGINT: {
-                builder.addField(new Field(index, fieldName, SchemaBuilder.int64().build()));
+                builder.field(fieldName, SchemaBuilder.int64().build());
                 break;
             }
 
             // REAL is a single precision floating point value, i.e. a Java float
             case Types.REAL: {
-                builder.addField(new Field(index, fieldName, SchemaBuilder.float32().build()));
+                builder.field(fieldName, SchemaBuilder.float32().build());
                 break;
             }
 
@@ -1009,8 +1003,15 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             // for single precision
             case Types.FLOAT:
             case Types.DOUBLE:
+                builder.field(fieldName, SchemaBuilder.float64().build());
+                break;
             case Types.DECIMAL:
-                builder.addField(new Field(index, fieldName, SchemaBuilder.float64().build()));
+                scale = decimalScale(columnDefn);
+                SchemaBuilder fieldBuilder = Decimal.builder(scale);
+                if (optional) {
+                    fieldBuilder.optional();
+                }
+                builder.field(fieldName, fieldBuilder.build());
                 break;
 
             /**
@@ -1020,17 +1021,17 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                 if (mapNumerics == NumericMapping.PRECISION_ONLY) {
                     log.debug("NUMERIC with precision: '{}' and scale: '{}'", precision, scale);
                     if (scale == 0 && precision <= MAX_INTEGER_TYPE_PRECISION) { // integer
-                        builder.addField(new Field(index, fieldName, integerSchema(optional, precision)));
+                        builder.field(fieldName, integerSchema(optional, precision));
                         break;
                     }
                 } else if (mapNumerics == NumericMapping.BEST_FIT) {
                     log.debug("NUMERIC with precision: '{}' and scale: '{}'", precision, scale);
                     if (precision <= MAX_INTEGER_TYPE_PRECISION) { // fits in primitive data types.
                         if (scale < 1 && scale >= NUMERIC_TYPE_SCALE_LOW) { // integer
-                            builder.addField(new Field(index, fieldName, integerSchema(optional, precision)));
+                            builder.field(fieldName, integerSchema(optional, precision));
                             break;
                         } else if (scale > 0) { // floating point - use double in all cases
-                            builder.addField(new Field(index, fieldName, SchemaBuilder.float64().build()));
+                            builder.field(fieldName, SchemaBuilder.float64().build());
                             break;
                         }
                     }
@@ -1038,11 +1039,11 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                     log.debug("NUMERIC with precision: '{}' and scale: '{}'", precision, scale);
                     if (scale < 1 && scale >= NUMERIC_TYPE_SCALE_LOW) { // integer
                         if (precision <= MAX_INTEGER_TYPE_PRECISION) { // fits in primitive data types.
-                            builder.addField(new Field(index, fieldName, integerSchema(optional, precision)));
+                            builder.field(fieldName, integerSchema(optional, precision));
                             break;
                         }
                     } else if (scale > 0) { // floating point - use double in all cases
-                        builder.addField(new Field(index, fieldName, SchemaBuilder.float64().build()));
+                        builder.field(fieldName, SchemaBuilder.float64().build());
                         break;
                     }
                 }
@@ -1059,7 +1060,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             case Types.SQLXML: {
                 // Some of these types will have fixed size, but we drop this from the schema conversion
                 // since only fixed byte arrays can have a fixed size
-                builder.addField(new Field(index, fieldName, SchemaBuilder.string().build()));
+                builder.field(fieldName, SchemaBuilder.string().build());
                 break;
             }
 
@@ -1069,28 +1070,28 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             case Types.BLOB:
             case Types.VARBINARY:
             case Types.LONGVARBINARY: {
-                builder.addField(new Field(index, fieldName, SchemaBuilder.bytes().build()));
+                builder.field(fieldName, SchemaBuilder.bytes().build());
                 break;
             }
 
             // Date is day + moth + year
             case Types.DATE: {
-                SchemaBuilder dateSchemaBuilder = DateColumnParser.builder();
-                builder.addField(new Field(index, fieldName, dateSchemaBuilder.build()));
+                SchemaBuilder dateSchemaBuilder = Date.builder();
+                builder.field(fieldName, dateSchemaBuilder.build());
                 break;
             }
 
             // Time is a time of day -- hour, minute, seconds, nanoseconds
             case Types.TIME: {
-                SchemaBuilder timeSchemaBuilder = TimestampColumnParser.builder();
-                builder.addField(new Field(index, fieldName, timeSchemaBuilder.build()));
+                SchemaBuilder timeSchemaBuilder = Time.builder();
+                builder.field(fieldName, timeSchemaBuilder.build());
                 break;
             }
 
             // Timestamp is a date + time
             case Types.TIMESTAMP: {
-                SchemaBuilder tsSchemaBuilder = TimestampColumnParser.builder();
-                builder.addField(new Field(index, fieldName, tsSchemaBuilder.build()));
+                SchemaBuilder tsSchemaBuilder = io.openmessaging.connector.api.data.logical.Timestamp.builder();
+                builder.field(fieldName, tsSchemaBuilder.build());
                 break;
             }
 
@@ -1486,7 +1487,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
 
     @Override
-    public final String buildDeleteStatement(
+    public String buildDeleteStatement(
             TableId table,
             Collection<ColumnId> keyColumns
     ) {
@@ -1552,7 +1553,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                 statement.setObject(index, null);
             }
         } else {
-            boolean bound = maybeBindLogical(statement, index, schema, value, null);
+            boolean bound = maybeBindLogical(statement, index, schema, value);
             if (!bound) {
                 bound = maybeBindPrimitive(statement, index, schema, value);
             }
@@ -1566,12 +1567,11 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             PreparedStatement statement,
             int index,
             Schema schema,
-            Object value,
-            ColumnDefinition colDef
+            Object value
     ) throws SQLException {
         if (schema.getName() != null) {
             switch (schema.getName()) {
-                case DateColumnParser.LOGICAL_NAME:
+                case Date.LOGICAL_NAME:
                     java.sql.Date date;
                     if (value instanceof java.util.Date) {
                         date = new java.sql.Date(((java.util.Date) value).getTime());
@@ -1583,7 +1583,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
-                case TimeColumnParser.LOGICAL_NAME:
+                case Time.LOGICAL_NAME:
                     java.sql.Time time;
                     if (value instanceof java.util.Date) {
                         time = new java.sql.Time(((java.util.Date) value).getTime());
@@ -1595,12 +1595,12 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
-                case TimestampColumnParser.LOGICAL_NAME:
-                    java.sql.Timestamp timestamp;
+                case io.openmessaging.connector.api.data.logical.Timestamp.LOGICAL_NAME:
+                    Timestamp timestamp;
                     if (value instanceof java.util.Date) {
-                        timestamp = new java.sql.Timestamp(((java.util.Date) value).getTime());
+                        timestamp = new Timestamp(((java.util.Date) value).getTime());
                     } else {
-                        timestamp = new java.sql.Timestamp((long) value);
+                        timestamp = new Timestamp((long) value);
                     }
                     statement.setTimestamp(
                             index, timestamp,
@@ -1674,22 +1674,22 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     ) throws SQLException {
         switch (schema.getFieldType()) {
             case INT8:
-                statement.setByte(index, (Byte) value);
+                statement.setByte(index, Byte.parseByte(value.toString()));
                 break;
             case INT32:
-                statement.setInt(index, (Integer) value);
+                statement.setInt(index, Integer.parseInt(value.toString()));
                 break;
             case INT64:
-                statement.setLong(index, (Long) value);
+                statement.setLong(index, Long.parseLong(value.toString()));
                 break;
             case FLOAT32:
-                statement.setFloat(index, (Float) value);
+                statement.setFloat(index, Float.parseFloat(value.toString()));
                 break;
             case FLOAT64:
-                statement.setDouble(index, (Double) value);
+                statement.setDouble(index, Double.parseDouble(value.toString()));
                 break;
             case BOOLEAN:
-                statement.setBoolean(index, (Boolean) value);
+                statement.setBoolean(index, Boolean.parseBoolean(value.toString()));
                 break;
             case STRING:
                 statement.setString(index, (String) value);

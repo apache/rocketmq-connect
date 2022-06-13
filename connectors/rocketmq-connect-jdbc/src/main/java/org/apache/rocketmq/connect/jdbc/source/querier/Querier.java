@@ -19,8 +19,8 @@ package org.apache.rocketmq.connect.jdbc.source.querier;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.CachedConnectionProvider;
-import org.apache.rocketmq.connect.jdbc.source.metadata.SchemaMapping;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.source.metadata.SchemaMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

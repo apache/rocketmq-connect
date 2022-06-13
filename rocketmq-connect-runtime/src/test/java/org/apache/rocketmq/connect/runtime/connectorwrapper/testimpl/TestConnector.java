@@ -33,27 +33,18 @@ public class TestConnector extends Connector {
 
     }
 
-    @Override public void init(KeyValue config) {
+    /**
+     * Start the component
+     *
+     * @param config component context
+     */
+    @Override
+    public void start(KeyValue config) {
         this.config = config;
-    }
-
-    @Override public void start(ConnectorContext componentContext) {
-
     }
 
     @Override
     public void stop() {
-
-    }
-
-
-    @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
 
     }
 

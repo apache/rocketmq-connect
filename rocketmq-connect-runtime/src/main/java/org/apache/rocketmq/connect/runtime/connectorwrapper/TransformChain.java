@@ -39,7 +39,7 @@ import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TransformChain<R extends ConnectRecord> {
+public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
@@ -93,8 +93,7 @@ public class TransformChain<R extends ConnectRecord> {
                         transformConfig.put(originKey, config.getString(key));
                     }
                 }
-                transform.validate(transformConfig);
-                transform.init(transformConfig);
+                transform.config(transformConfig);
                 this.transformList.add(transform);
             } catch (Exception e) {
                 log.error("transform new instance error", e);
@@ -141,5 +140,17 @@ public class TransformChain<R extends ConnectRecord> {
 
         Plugin.compareAndSwapLoaders(currentThreadLoader);
         return transform;
+    }
+
+    /**
+     * close transforms
+     *
+     * @throws Exception if this resource cannot be closed
+     */
+    @Override
+    public void close() throws Exception {
+        for (Transform transform : transformList) {
+            transform.close();
+        }
     }
 }

@@ -71,7 +71,7 @@ public class JdbcSinkTask extends SinkTask {
             SQLException sqlAllMessagesException = getAllMessagesException(sqle);
             if (remainingRetries > 0) {
                 updater.closeQuietly();
-                init(originalConfig);
+                start(originalConfig);
                 remainingRetries--;
                 throw new RetriableException(sqlAllMessagesException);
             }
@@ -89,32 +89,14 @@ public class JdbcSinkTask extends SinkTask {
         sqlAllMessagesException.setNextException(sqle);
         return sqlAllMessagesException;
     }
-
-
-    @Override
-    public void start(SinkTaskContext context) {
-        this.context = context;
-        this.errorRecordReporter = context.errorRecordReporter();
-    }
-
+    
     /**
-     * Should invoke before start the connector.
-     *
-     * @param config
-     * @return error message
-     */
-    @Override
-    public void validate(KeyValue config) {
-        // to do nothing
-    }
-
-    /**
-     * Init the component
+     * Start the component
      *
      * @param keyValue
      */
     @Override
-    public void init(KeyValue keyValue) {
+    public void start(KeyValue keyValue) {
         originalConfig = keyValue;
         config = new JdbcSinkConfig(keyValue);
         remainingRetries = config.getMaxRetries();
@@ -146,12 +128,5 @@ public class JdbcSinkTask extends SinkTask {
         }
     }
 
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
 
 }

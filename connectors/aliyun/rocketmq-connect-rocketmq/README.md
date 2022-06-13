@@ -11,14 +11,14 @@ mvn clean install -Dmaven.test.skip=true
 
 ```
 http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-rocketmq-source-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSourceConnector",“accessKeyId”:"${accessKeyId}",accessKeySecret”:"${accessKeySecret}",namesrvAddr”:"${namesrvAddr}","topic":"${topic}","instanceId":"${instanceId}","consumerGroup":"${consumerGroup}"}
+?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSourceConnector","connect-topicname" : "${connect-topicname}",“accessKeyId”:"${accessKeyId}",accessKeySecret”:"${accessKeySecret}",namesrvAddr”:"${namesrvAddr}","topic":"${topic}","instanceId":"${instanceId}","consumerGroup":"${consumerGroup}"}
 ```
 
 例子
 
 ```
 http://localhost:8081/connectors/rocketmqConnectorSource?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSourceConnector","accessKeyId":"xxxx","accessKeySecret":"xxxx","namesrvAddr":"http://127.0.0.1:9876","topic":"topic",
+"connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSourceConnector","connect-topicname" : "rocketmq-source-topic","accessKeyId":"xxxx","accessKeySecret":"xxxx","namesrvAddr":"http://127.0.0.1:9876","topic":"topic",
 "instanceId":"xxxx", "consumerGroup":"xxxx"}
 ```
 
@@ -26,13 +26,13 @@ http://localhost:8081/connectors/rocketmqConnectorSource?config={"source-rocketm
 
 ```
 http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-rocketmq-sink-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSinkConnector",“accessKeyId”:"${accessKeyId}",accessKeySecret”:"${accessKeySecret}",namesrvAddr”:"${namesrvAddr}","topic":"${topic}","instanceId":"${instanceId}"}
+?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSinkConnector","connect-topicname" : "${connect-topicname}", "accessKeyId":"${accessKeyId}", "accessKeySecret":"${accessKeySecret}",namesrvAddr”:"${namesrvAddr}","topic":"${topic}","instanceId":"${instanceId}"}
 ```
 
 例子 
 ```
 http://localhost:8081/connectors/rocketmqConnectorSink?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSinkConnector","accessKeyId":"xxxx","accessKeySecret":"xxxx","namesrvAddr":"http://127.0.0.1:9876","topic":"topic",
+"connector-class":"org.apache.rocketmq.connect.rocketmq.RocketMQSinkConnector","connect-topicname" : "rocketmq-sink-topic","accessKeyId":"xxxx","accessKeySecret":"xxxx","namesrvAddr":"http://127.0.0.1:9876","topic":"topic",
 "instanceId":"xxxx"}
 ```
 
@@ -47,14 +47,15 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-rocketmq-connector-na
 ## rocketmq-connect-rocketmq 参数说明
 * **rocketmq-source-connector 参数说明**
 
-|         KEY            |  TYPE   | Must be filled | Description| Example
-|------------------------|---------|----------------|------------|---|
-| accessKeyId           | String  | YES            | AccessKey ID阿里云身份验证，在阿里云服务器管理控制台创建 | xxxx    |
-| accessKeySecret       | String  | YES            | AccessKey Secret阿里云身份验证，在阿里云服务器管理控制台创建 | xxxx    |
+|         KEY            |  TYPE   | Must be filled | Description                                | Example
+|------------------------|---------|----------------|--------------------------------------------|---|
+| accessKeyId           | String  | YES            | AccessKey ID阿里云身份验证，在阿里云服务器管理控制台创建         | xxxx    |
+| accessKeySecret       | String  | YES            | AccessKey Secret阿里云身份验证，在阿里云服务器管理控制台创建     | xxxx    |
 | namesrvAddr           | String  | YES            | 设置TCP接入域名，进入消息队列RocketMQ版控制台实例详情页面的接入点区域查看 | xxxx    |
-| topic                 | String  | YES            | 消息主题          | xxxx    |
-| instanceId            | String  | NO             | 阿里云MQ控制台的实例Id | xxxx    |
-| consumerGroup            | String  | YES            | 消息订阅者 | xxxx    |
+| topic                 | String  | YES            | 消息主题                                       | xxxx    |
+| instanceId            | String  | NO             | 阿里云MQ控制台的实例Id                              | xxxx    |
+| consumerGroup            | String  | YES            | 消息订阅者                                      | xxxx    |
+|connect-topicname       | String  | YES            | source需要处理数据消息topic                        | xxxx |
 
 ```  
 注：1. source/sink配置文件说明是以rocketmq-connect-rocketmq为demo，不同source/sink connector配置有差异，请以具体sourc/sink connector为准
@@ -68,4 +69,5 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-rocketmq-connector-na
 | namesrvAddr           | String  | YES            | 设置TCP接入域名，进入消息队列RocketMQ版控制台实例详情页面的接入点区域查看 | xxxx    |
 | topic                 | String  | YES            | 消息主题          | xxxx    |
 | instanceId            | String  | NO             | 阿里云MQ控制台的实例Id | xxxx    |
+|connect-topicname       | String  | YES            | sink需要处理数据消息topic                     | xxxx |
 
