@@ -22,7 +22,6 @@ import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.net.URI;
 import java.nio.ByteBuffer;
