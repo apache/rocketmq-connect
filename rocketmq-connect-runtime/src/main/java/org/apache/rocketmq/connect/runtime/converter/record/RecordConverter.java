@@ -23,6 +23,7 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import java.util.Map;
 
 /**
+ * The topic parameter is mainly a compatible schema registry
  * abstract converter
  */
 public interface RecordConverter {
