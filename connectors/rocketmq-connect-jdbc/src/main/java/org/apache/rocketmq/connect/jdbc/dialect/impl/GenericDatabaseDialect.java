@@ -52,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.sql.Blob;
@@ -1571,6 +1572,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     ) throws SQLException {
         if (schema.getName() != null) {
             switch (schema.getName()) {
+                case Decimal.LOGICAL_NAME:
+                    statement.setBigDecimal(index, (BigDecimal) value);
+                    return true;
                 case Date.LOGICAL_NAME:
                     java.sql.Date date;
                     if (value instanceof java.util.Date) {
