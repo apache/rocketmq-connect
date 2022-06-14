@@ -29,6 +29,13 @@ public class JsonConverterConfig {
     private static final String SCHEMAS_ENABLE_DOC = "Include schemas within each of the serialized values and keys.";
     private static final String SCHEMAS_ENABLE_DISPLAY = "Enable Schemas";
 
+
+    public static final String SCHEMAS_CACHE_SIZE_CONFIG = "schemas.cache.size";
+    public static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
+    private static final String SCHEMAS_CACHE_SIZE_DOC = "The maximum number of schemas that can be cached in this converter instance.";
+    private static final String SCHEMAS_CACHE_SIZE_DISPLAY = "Schema Cache Size";
+
+
     public static final String DECIMAL_FORMAT_CONFIG = "decimal.format";
     public static final String DECIMAL_FORMAT_DEFAULT = DecimalFormat.BASE64.name();
     private static final String DECIMAL_FORMAT_DOC = "Controls which format this converter will serialize decimals in."
@@ -38,6 +45,7 @@ public class JsonConverterConfig {
     // cached config values
     private final boolean schemasEnabled;
     private final DecimalFormat decimalFormat;
+    private final int cacheSize;
 
     public JsonConverterConfig(Map<String, ?> props) {
         // schema.enabled
@@ -52,6 +60,16 @@ public class JsonConverterConfig {
         } else {
             decimalFormat = DecimalFormat.valueOf(DECIMAL_FORMAT_DEFAULT);
         }
+        this.cacheSize = props.containsKey(SCHEMAS_CACHE_SIZE_CONFIG) ? (Integer) props.get(SCHEMAS_CACHE_SIZE_CONFIG) : SCHEMAS_CACHE_SIZE_DEFAULT;
+
+    }
+
+    /**
+     * return cache size
+     * @return
+     */
+    public int cacheSize(){
+        return cacheSize;
     }
 
     /**

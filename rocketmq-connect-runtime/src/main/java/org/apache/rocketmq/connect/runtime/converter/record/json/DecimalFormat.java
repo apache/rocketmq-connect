@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.connect.runtime.converter.record.json;
 
+
 /**
- * Represents the valid {@link org.apache.kafka.connect.data.Decimal} serialization formats
- * in a {@link JsonConverter}.
+ * decimal format
  */
 public enum DecimalFormat {
 

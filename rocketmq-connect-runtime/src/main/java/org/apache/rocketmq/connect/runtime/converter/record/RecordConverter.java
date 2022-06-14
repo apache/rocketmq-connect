@@ -28,35 +28,39 @@ import java.util.Map;
  */
 public interface RecordConverter {
 
+
     /**
-     * Configure this class.
-     *
-     * @param configs configs in key/value pairs
+     * Config is used for parameter passing in the conversion process
+     * @param configs
      */
     default void configure(Map<String, ?> configs) {
 
     }
 
     /**
-     * Convert a rocketmq Connect data object to a native object for serialization.
-     *
+     * Convert ConnectRecord  to byte[]
      * @param topic  the topic associated with the data
-     * @param schema the schema for the value
-     * @param value  the value to convert
-     * @return the serialized value
+     * @param schema record schema
+     * @param value  record value
+     * @return
      */
     byte[] fromConnectData(String topic, Schema schema, Object value);
 
+
     /**
-     * Convert a Rocketmq Connect data object to a native object for serialization,
-     * potentially using the supplied topic and extensions in the record as necessary.
+     * The provided subject and extension may be used in the record as needed.
+     * @param topic the topic associated with the data
+     * @param extensions
+     * @param schema  rocketmq connect record schema
+     * @param value rocketmq connect record value
+     * @return
      */
     default byte[] fromConnectData(String topic, KeyValue extensions, Schema schema, Object value) {
         return fromConnectData(topic, schema, value);
     }
 
     /**
-     * Convert a native object to a Rocketmq Connect data object.
+     * Convert a byte[] object to a Rocketmq Connect data object.
      *
      * @param topic the topic associated with the data
      * @param value the value to convert
@@ -66,8 +70,11 @@ public interface RecordConverter {
 
 
     /**
-     * Convert a native object to a Rocketmq Connect data object,
-     * potentially using the supplied topic and extensions in the record as necessary.
+     * The provided subject and extension may be used in the record as needed.
+     * @param topic  the topic associated with the data
+     * @param extensions transform property
+     * @param value
+     * @return
      */
     default SchemaAndValue toConnectData(String topic, KeyValue extensions, byte[] value) {
         return toConnectData(topic, value);
