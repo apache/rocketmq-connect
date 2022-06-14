@@ -159,8 +159,6 @@ public interface DatabaseDialect extends ConnectionProvider {
      * add field to schema
      *
      * @param column
-     * @param schema
-     * @param index
      * @return
      */
     String addFieldToSchema(ColumnDefinition column, SchemaBuilder schemaBuilder);

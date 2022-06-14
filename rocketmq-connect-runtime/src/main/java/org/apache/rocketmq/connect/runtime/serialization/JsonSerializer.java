@@ -42,7 +42,7 @@ public class JsonSerializer implements Serializer<Object> {
             return null;
         }
         try {
-            return JSON.toJSONString(data, SerializerFeature.DisableCircularReferenceDetect).getBytes(StandardCharsets.UTF_8);
+            return JSON.toJSONString(data, SerializerFeature.DisableCircularReferenceDetect,  SerializerFeature.WriteMapNullValue).getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new ConnectException("Error serializing JSON message", e);
         }

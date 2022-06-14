@@ -208,9 +208,9 @@ public class WorkerSinkTask implements WorkerTask {
             consumer.start();
             log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
             state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sinkTask.init(taskConfig);
             this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
-            sinkTask.start(sinkTaskContext);
+            sinkTask.init(sinkTaskContext);
+            sinkTask.start(taskConfig);
             // we assume executed here means we are safe
             log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);

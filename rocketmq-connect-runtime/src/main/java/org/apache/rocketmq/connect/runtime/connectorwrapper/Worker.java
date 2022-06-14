@@ -531,8 +531,9 @@ public class Worker {
                 }
             } catch (ExecutionException e) {
                 Throwable t = e.getCause();
+                log.error("Execution exception , {}", e);
             } catch (CancellationException | TimeoutException | InterruptedException e) {
-
+                log.error("error, {}", e);
             } finally {
                 future.cancel(true);
                 workerTask.cleanup();

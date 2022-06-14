@@ -129,7 +129,7 @@ public abstract class AbstractConfig {
     }
 
     protected Boolean getBoolean(KeyValue config, String key, Boolean defaultValue) {
-        return config.containsKey(key) ? Boolean.getBoolean(config.getString(key)) : defaultValue;
+        return config.containsKey(key) ? Boolean.parseBoolean(config.getString(key)) : defaultValue;
     }
 
 }

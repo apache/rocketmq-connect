@@ -21,6 +21,7 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,14 +32,13 @@ import java.util.List;
 /**
  * jdbc sink connector
  */
-public class JdbcSinkConnector extends SinkConnector {
+public class JdbcSinkConnector extends SinkConnector{
     private static final Logger log = LoggerFactory.getLogger(JdbcSinkConnector.class);
     private KeyValue connectConfig;
-    private ConnectorContext context;
 
     @Override
-    public void start(ConnectorContext context) {
-        this.context = context;
+    public void start(KeyValue config) {
+        this.connectConfig = config;
     }
 
     /**
@@ -52,26 +52,9 @@ public class JdbcSinkConnector extends SinkConnector {
         // do validate config
     }
 
-    /**
-     * Init the component
-     *
-     * @param config
-     */
-    @Override
-    public void init(KeyValue config) {
-        this.connectConfig = config;
-    }
-
     @Override
     public void stop() {
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
+        this.connectConfig = null;
     }
 
     /**
@@ -95,5 +78,4 @@ public class JdbcSinkConnector extends SinkConnector {
     public Class<? extends Task> taskClass() {
         return JdbcSinkTask.class;
     }
-
 }

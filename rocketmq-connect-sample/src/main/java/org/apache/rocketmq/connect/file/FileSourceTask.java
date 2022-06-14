@@ -202,8 +202,11 @@ public class FileSourceTask extends SourceTask {
         }
     }
 
-    @Override public void start(SourceTaskContext sourceTaskContext) {
-        this.sourceTaskContext = sourceTaskContext;
+
+    @Override public void validate(KeyValue config) { }
+
+    @Override public void start(KeyValue config) {
+        this.config = config;
         fileConfig = new FileConfig();
         fileConfig.load(config);
         log.info("fileName is:{}", fileConfig.getFilename());
@@ -212,14 +215,6 @@ public class FileSourceTask extends SourceTask {
             streamOffset = null;
             reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
         }
-    }
-
-    @Override public void validate(KeyValue config) {
-
-    }
-
-    @Override public void init(KeyValue config) {
-        this.config = config;
     }
 
     @Override public void stop() {
@@ -235,14 +230,6 @@ public class FileSourceTask extends SourceTask {
             }
             this.notify();
         }
-    }
-
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
     }
 
     private String logFilename() {

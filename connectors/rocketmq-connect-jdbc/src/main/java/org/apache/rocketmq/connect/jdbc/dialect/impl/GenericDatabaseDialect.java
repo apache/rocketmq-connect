@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
 
-import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
@@ -124,7 +123,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     private static final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
-//    @Deprecated
+    //    @Deprecated
 //    protected final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
     protected AbstractConfig config;
     /**
@@ -1488,7 +1487,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
 
     @Override
-    public final String buildDeleteStatement(
+    public String buildDeleteStatement(
             TableId table,
             Collection<ColumnId> keyColumns
     ) {
@@ -1554,7 +1553,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                 statement.setObject(index, null);
             }
         } else {
-            boolean bound = maybeBindLogical(statement, index, schema, value, null);
+            boolean bound = maybeBindLogical(statement, index, schema, value);
             if (!bound) {
                 bound = maybeBindPrimitive(statement, index, schema, value);
             }
@@ -1568,8 +1567,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             PreparedStatement statement,
             int index,
             Schema schema,
-            Object value,
-            ColumnDefinition colDef
+            Object value
     ) throws SQLException {
         if (schema.getName() != null) {
             switch (schema.getName()) {
@@ -1676,22 +1674,22 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     ) throws SQLException {
         switch (schema.getFieldType()) {
             case INT8:
-                statement.setByte(index, (Byte) value);
+                statement.setByte(index, Byte.parseByte(value.toString()));
                 break;
             case INT32:
-                statement.setInt(index, (Integer) value);
+                statement.setInt(index, Integer.parseInt(value.toString()));
                 break;
             case INT64:
-                statement.setLong(index, (Long) value);
+                statement.setLong(index, Long.parseLong(value.toString()));
                 break;
             case FLOAT32:
-                statement.setFloat(index, (Float) value);
+                statement.setFloat(index, Float.parseFloat(value.toString()));
                 break;
             case FLOAT64:
-                statement.setDouble(index, (Double) value);
+                statement.setDouble(index, Double.parseDouble(value.toString()));
                 break;
             case BOOLEAN:
-                statement.setBoolean(index, (Boolean) value);
+                statement.setBoolean(index, Boolean.parseBoolean(value.toString()));
                 break;
             case STRING:
                 statement.setString(index, (String) value);

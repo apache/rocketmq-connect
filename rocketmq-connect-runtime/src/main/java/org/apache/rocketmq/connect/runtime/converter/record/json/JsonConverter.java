@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.util.TypeUtils;
-import com.google.common.collect.Lists;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
@@ -65,31 +64,31 @@ public class JsonConverter implements RecordConverter {
         TO_CONNECT_CONVERTERS.put(FieldType.BOOLEAN, new JsonToConnectTypeConverter<Boolean>() {
             @Override
             public Boolean convert(Schema schema, Object value) {
-                return (Boolean) value;
+                return Boolean.valueOf(value.toString());
             }
         });
         TO_CONNECT_CONVERTERS.put(FieldType.INT8, new JsonToConnectTypeConverter<Byte>() {
             @Override
             public Byte convert(Schema schema, Object value) {
-                return (Byte) value;
+                return Byte.valueOf(value.toString());
             }
         });
         TO_CONNECT_CONVERTERS.put(FieldType.INT16, new JsonToConnectTypeConverter<Short>() {
             @Override
             public Short convert(Schema schema, Object value) {
-                return (Short) value;
+                return Short.valueOf(value.toString());
             }
         });
         TO_CONNECT_CONVERTERS.put(FieldType.INT32, new JsonToConnectTypeConverter<Integer>() {
             @Override
             public Integer convert(Schema schema, Object value) {
-                return (Integer) value;
+                return Integer.valueOf(value.toString());
             }
         });
         TO_CONNECT_CONVERTERS.put(FieldType.INT64, new JsonToConnectTypeConverter<Long>() {
             @Override
             public Long convert(Schema schema, Object value) {
-                return (Long) value;
+                return Long.valueOf(value.toString());
             }
         });
         TO_CONNECT_CONVERTERS.put(FieldType.FLOAT32, new JsonToConnectTypeConverter<Float>() {
@@ -119,7 +118,7 @@ public class JsonConverter implements RecordConverter {
         TO_CONNECT_CONVERTERS.put(FieldType.STRING, new JsonToConnectTypeConverter<String>() {
             @Override
             public String convert(Schema schema, Object value) {
-                return (String) value;
+                return String.valueOf(value);
             }
         });
         TO_CONNECT_CONVERTERS.put(FieldType.ARRAY, new JsonToConnectTypeConverter<List<Object>>() {
@@ -271,10 +270,10 @@ public class JsonConverter implements RecordConverter {
 
             @Override
             public Object toConnect(final Schema schema, final Object value) {
-                if (!(value instanceof Number)) {
-                    throw new ConnectException("Invalid type for Timestamp, underlying representation should be integral but was " + value);
+                if (value instanceof Number) {
+                    return Timestamp.toLogical(schema, Long.valueOf(value.toString()));
                 }
-                return Timestamp.toLogical(schema, (Long) value);
+                throw new ConnectException("Invalid type for Timestamp, underlying representation should be integral but was " + value);
             }
         });
     }
@@ -510,8 +509,8 @@ public class JsonConverter implements RecordConverter {
                 if (schema.getDefaultValue() != null) {
                     return convertToJson(schema, schema.getDefaultValue());
                 }
-                if (schema.isOptional()) {
-                    return new JSONObject();
+                if (schema.isOptional()){
+                    return null;
                 }
                 throw new ConnectException("Conversion error: null value for field that is required and has no default value");
             }
@@ -519,8 +518,11 @@ public class JsonConverter implements RecordConverter {
             if (schema != null && schema.getName() != null) {
                 LogicalTypeConverter logicalConverter = LOGICAL_CONVERTERS.get(schema.getName());
                 if (logicalConverter != null) {
-                    return logicalConverter.toJson(schema, value, converterConfig);
-
+                    if (value == null){
+                        return null;
+                    } else {
+                        return logicalConverter.toJson(schema, value, converterConfig);
+                    }
                 }
             }
 

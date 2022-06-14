@@ -19,6 +19,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -160,8 +161,7 @@ public class WorkerSourceTask implements WorkerTask {
             producer.start();
             log.info("Source task producer start.");
             state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sourceTask.init(taskConfig);
-            sourceTask.start(new SourceTaskContext() {
+            sourceTask.init(new SourceTaskContext() {
 
                 @Override
                 public OffsetStorageReader offsetStorageReader() {
@@ -178,6 +178,7 @@ public class WorkerSourceTask implements WorkerTask {
                     return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
                 }
             });
+            sourceTask.start(taskConfig);
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
             log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
             while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
