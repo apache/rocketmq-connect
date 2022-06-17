@@ -323,5 +323,39 @@ A1: source数据到sink中经过rocketmq中转，如果需要顺序消息，需�
 
 
 
+##开发指南
+如何在IDE中启动Connect Worker ?
+
+###单机模式启动Connect Worker
+
+Main Class配置
+org.apache.rocketmq.connect.runtime.StandaloneConnectStartup
+
+![img_2.png](img_2.png)
+
+Program arguments配置
+
+-c  ${user path}/rocketmq-connect/distribution/conf/connect-standalone.conf
+
+Environment variables配置
+
+CONNECT_HOME=${user path}/rocketmq-connect/distribution
+
+###集群模式启动Connect Worker
+
+Main Class配置
+org.apache.rocketmq.connect.runtime.DistributedConnectStartup
+
+
+Program arguments配置
+
+-c  ${user path}/rocketmq-connect/distribution/conf/connect-distributed.conf
+
+Environment variables配置
+
+CONNECT_HOME=${user path}/rocketmq-connect/distribution
+
+
+
 
 
