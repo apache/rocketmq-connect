@@ -60,7 +60,7 @@ echo "Hello \r\nRocketMQ\r\n Connect" > test-source-file.txt
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","filename":"test-source-file.txt","connect-topicname":"fileTopic"}'
 ```
 
-看到一下日志说明file source connector启动成功了
+看到以下日志说明file source connector启动成功了
 
 2019-07-16 11:18:39 INFO pool-7-thread-1 - Source task start, config:{"properties":{"source-record-...
 ```  
@@ -84,7 +84,7 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 
 cat test-sink-file.txt
 ```  
-看到一下日志说明file sink connector启动成功了
+看到以下日志说明file sink connector启动成功了
 
 2019-07-16 11:24:58 INFO pool-7-thread-2 - Sink task start, config:{"properties":{"source-record-...
 
@@ -114,7 +114,7 @@ test-sink-file.txt文件即内容
     curl     http://127.0.0.1:8082/connectors/fileSourceConnector/stop
     
 ```  
-看到一下日志说明connector停止成功了
+看到以下日志说明connector停止成功了
 
 Source task stop, config:{"properties":{"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter","filename":"/home/zhoubo/IdeaProjects/my-new3-rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","task-class":"org.apache.rocketmq.connect.file.FileSourceTask","topic":"fileTopic","connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","update-timestamp":"1564765189322"}}
 
