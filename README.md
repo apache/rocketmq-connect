@@ -22,7 +22,7 @@ rocketmq-connect-sample的主要作用是从文件中读取数据发送到Rocket
 ## 2.构建Connect
 
 ```
-git clone git@github.com:apache/rocketmq-connect.git
+git clone https://github.com/apache/rocketmq-connect.git
 
 cd  rocketmq-connect
 
