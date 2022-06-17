@@ -67,7 +67,7 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
     注：创建topic：fileTopic
     
     创建命令
-    sh  ${MQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+    sh  ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
 
 ```
 
