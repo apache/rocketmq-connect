@@ -18,6 +18,9 @@ rocketmq-connect-sample的主要作用是从文件中读取数据发送到Rocket
 
 3. 启动RocketMQ， [RocketMQ](https://rocketmq.apache.org/docs/quick-start/);
 
+4. 创建测试Topic
+sh  ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+
 
 ## 2.构建Connect
 
@@ -62,14 +65,9 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 
 看到以下日志说明file source connector启动成功了
 
-2019-07-16 11:18:39 INFO pool-7-thread-1 - Source task start, config:{"properties":{"source-record-...
-```  
-    注：创建topic：fileTopic
-    
-    创建命令
-    sh  ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+tail -100f ~/logs/rocketmqconnect/connect_runtime.log
 
-```
+2019-07-16 11:18:39 INFO pool-7-thread-1 - Source task start, config:{"properties":{"source-record-...
 
 #### source connector配置说明
 
@@ -88,6 +86,9 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 
 cat test-sink-file.txt
 ```  
+
+tail -100f ~/logs/rocketmqconnect/connect_runtime.log
+
 看到以下日志说明file sink connector启动成功了
 
 2019-07-16 11:24:58 INFO pool-7-thread-2 - Sink task start, config:{"properties":{"source-record-...
@@ -151,7 +152,7 @@ sh bin/connectshutdown.sh
 workerId=DEFAULT_WORKER_1
 
 # Http prot for user to access REST API
-httpPort=8081
+httpPort=8082
 
 # Local file dir for config store
 storePathRootDir=/home/connect/storeRoot
