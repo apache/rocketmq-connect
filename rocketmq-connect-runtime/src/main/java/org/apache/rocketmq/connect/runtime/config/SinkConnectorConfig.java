@@ -19,11 +19,10 @@
 package org.apache.rocketmq.connect.runtime.config;
 
 import com.google.common.base.Splitter;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 
@@ -31,13 +30,19 @@ public class SinkConnectorConfig extends ConnectConfig {
 
 
 
-    public static Set<String> parseTopicList(ConnectKeyValue taskConfig) {
-        String messageQueueStr = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
-        if (StringUtils.isBlank(messageQueueStr)) {
-            return null;
+    public static Map<String, String> parseTopicList(ConnectKeyValue taskConfig) {
+        String topicNameAndTagss = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
+        List<String> topicTagList = Splitter.on(COMMA).omitEmptyStrings().trimResults().splitToList(topicNameAndTagss);
+        Map<String, String> topicNameAndTagssMap = new HashMap<>(8);
+        for (String topicTagPair : topicTagList) {
+            List<String> topicAndTag = Splitter.on(SEMICOLON).omitEmptyStrings().trimResults().splitToList(topicTagPair);
+            if (topicAndTag.size() == 1) {
+                topicNameAndTagssMap.put(topicAndTag.get(0), "*");
+            } else {
+                topicNameAndTagssMap.put(topicAndTag.get(0), topicAndTag.get(1));
+            }
         }
-        List<String> topicList = Splitter.on(SEMICOLON).omitEmptyStrings().trimResults().splitToList(messageQueueStr);
-        return new HashSet<>(topicList);
+        return topicNameAndTagssMap;
     }
 
     public static MessageQueue parseMessageQueueList(String messageQueueStr) {

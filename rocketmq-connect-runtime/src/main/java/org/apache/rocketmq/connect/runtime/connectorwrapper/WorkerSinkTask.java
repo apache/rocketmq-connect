@@ -153,6 +153,8 @@ public class WorkerSinkTask implements WorkerTask {
 
     private WorkerSinkTaskContext sinkTaskContext;
 
+    private Map<String, String> topicTagMap;
+
     private final TransformChain<ConnectRecord> transformChain;
 
     public static final String BROKER_NAME = "brokerName";
@@ -273,7 +275,8 @@ public class WorkerSinkTask implements WorkerTask {
     }
 
     private void registTopics() {
-        Set<String> topics = SinkConnectorConfig.parseTopicList(taskConfig);
+        topicTagMap = SinkConnectorConfig.parseTopicList(taskConfig);
+        Set<String> topics = topicTagMap.keySet();
         if (org.apache.commons.collections4.CollectionUtils.isEmpty(topics)) {
             throw new ConnectException("sink connector topics config can be null, please check sink connector config info");
         }
@@ -372,7 +375,7 @@ public class WorkerSinkTask implements WorkerTask {
             final long beginPullMsgTimestamp = System.currentTimeMillis();
             try {
                 shouldStopPullMsg();
-                pullResult = consumer.pullBlockIfNotFound(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
+                pullResult = consumer.pullBlockIfNotFound(entry.getKey(), topicTagMap.get(entry.getKey().getTopic()), entry.getValue(), MAX_MESSAGE_NUM);
                 pullMsgErrorCount = 0;
             } catch (MQClientException e) {
                 pullMsgErrorCount++;
