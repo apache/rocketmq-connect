@@ -65,6 +65,10 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 2019-07-16 11:18:39 INFO pool-7-thread-1 - Source task start, config:{"properties":{"source-record-...
 ```  
     注：创建topic：fileTopic
+    
+    创建命令
+    sh  ${MQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+
 ```
 
 #### source connector配置说明
@@ -88,8 +92,8 @@ cat test-sink-file.txt
 
 2019-07-16 11:24:58 INFO pool-7-thread-2 - Sink task start, config:{"properties":{"source-record-...
 
-test-sink-file.txt文件即内容
-如果test-sink-file.txt生成并且与source-file.txt内容一样，说明整个流程正常运行
+如果test-sink-file.txt生成并且与source-file.txt内容一样，说明整个流程正常运行。
+文件内容可能顺序不一样，这主要是因为RocketMQ发到不同queue时，接收不同queue消息顺序可能也不一致导致的，是正常的。
 
 #### sink connector配置说明
 
@@ -313,14 +317,6 @@ private static class MD5Hash implements HashFunction {
         }
     }
 ```
-
-## FAQ
-
-Q1：sink-file.txt文件中每行的文本顺序source-file.txt不一致？
-
-A1: source数据到sink中经过rocketmq中转，如果需要顺序消息，需要有序消息发送到同一个queue。
-实现有序消息有2中方式：1、一个topic创建一个queue（rocketmq-connect-runtime目前只能使用这种方式）2、rocketmq-connect-runtime支持顺序消息，通过消息中指定字段处理发送到rocketmq的同一queue（后续支持）
-
 
 
 ##开发指南
