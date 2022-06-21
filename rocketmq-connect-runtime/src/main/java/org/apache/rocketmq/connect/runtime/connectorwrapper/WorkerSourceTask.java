@@ -177,6 +177,16 @@ public class WorkerSourceTask implements WorkerTask {
                 public String getTaskName() {
                     return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
                 }
+
+                /**
+                 * Get the configurations of current task.
+                 *
+                 * @return the configuration of current task.
+                 */
+                @Override
+                public KeyValue configs() {
+                    return taskConfig;
+                }
             });
             sourceTask.start(taskConfig);
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
