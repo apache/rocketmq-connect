@@ -19,6 +19,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
@@ -181,6 +182,16 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
 
     @Override public String getTaskName() {
         return taskConfig.getString("taskId");
+    }
+
+    /**
+     * Get the configurations of current task.
+     *
+     * @return the configuration of current task.
+     */
+    @Override
+    public KeyValue configs() {
+        return taskConfig;
     }
 
     public Map<MessageQueue, Long> queuesOffsets() {
