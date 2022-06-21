@@ -93,7 +93,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
                         transformConfig.put(originKey, config.getString(key));
                     }
                 }
-                transform.config(transformConfig);
+                transform.start(transformConfig);
                 this.transformList.add(transform);
             } catch (Exception e) {
                 log.error("transform new instance error", e);
@@ -150,7 +150,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
     @Override
     public void close() throws Exception {
         for (Transform transform : transformList) {
-            transform.close();
+            transform.stop();
         }
     }
 }

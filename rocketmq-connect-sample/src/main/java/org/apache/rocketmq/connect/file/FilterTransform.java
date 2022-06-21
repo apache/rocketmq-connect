@@ -39,17 +39,23 @@ public class FilterTransform implements Transform<ConnectRecord> {
         return record;
     }
 
-    @Override public void config(KeyValue config) {
+
+    /**
+     * Start the component
+     *
+     * @param config component context
+     */
+    @Override
+    public void start(KeyValue config) {
         this.keyValue = config;
         log.info("transform config {}", this.keyValue);
     }
 
-
     /**
-     * close
+     * Stop the component.
      */
     @Override
-    public void close() {
+    public void stop() {
 
     }
 }
