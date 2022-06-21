@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.config;
 
 import java.io.File;
+import org.apache.rocketmq.common.MixAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,10 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
  */
 public class ConnectConfig {
 
+    public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
+
+    public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
+
     private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
 
     public static final String COMMA = ",";
@@ -37,14 +42,16 @@ public class ConnectConfig {
     /**
      * The unique ID of each worker instance in the cluster
      */
-    private String workerId;
+    private String workerId = "DefaultWorker";
 
     /**
      * Storage directory for file store.
      */
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "connectorStore";
 
-    private String namesrvAddr;
+    private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
+
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
     private String rmqProducerGroup = "connector-producer-group";
 
@@ -354,10 +361,19 @@ public class ConnectConfig {
         this.adminExtGroup = adminExtGroup;
     }
 
+    public String getConnectHome() {
+        return connectHome;
+    }
+
+    public void setConnectHome(String connectHome) {
+        this.connectHome = connectHome;
+    }
+
     @Override public String toString() {
         return "ConnectConfig{" +
             "workerId='" + workerId + '\'' +
             ", storePathRootDir='" + storePathRootDir + '\'' +
+            ", connectHome='" + connectHome + '\'' +
             ", namesrvAddr='" + namesrvAddr + '\'' +
             ", rmqProducerGroup='" + rmqProducerGroup + '\'' +
             ", maxMessageSize=" + maxMessageSize +
