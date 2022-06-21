@@ -26,19 +26,11 @@ import io.openmessaging.connector.api.data.ConnectRecord;
  * extract field
  * @param <>
  */
-public abstract class  ExtractField<R extends ConnectRecord> extends BaseTransformation<R> {
-    /**
-     * set config
-     * @param config
-     */
-    @Override
-    public void configure(KeyValue config) {
-
-    }
+public abstract class ExtractField<R extends ConnectRecord> extends BaseTransformation<R> {
 
     @Override
-    public void start(ComponentContext componentContext) {
-
+    public R doTransform(R r) {
+        return null;
     }
 
     @Override
@@ -46,8 +38,4 @@ public abstract class  ExtractField<R extends ConnectRecord> extends BaseTransfo
 
     }
 
-    @Override
-    public R doTransform(R r) {
-        return null;
-    }
 }

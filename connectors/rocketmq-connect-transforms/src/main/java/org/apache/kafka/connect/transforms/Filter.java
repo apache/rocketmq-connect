@@ -26,13 +26,10 @@ import io.openmessaging.connector.api.data.ConnectRecord;
  * This is intended to be used conditionally to filter out records matching (or not matching)
  */
 public abstract class  Filter<R extends ConnectRecord> extends BaseTransformation<R> {
-    /**
-     * set config
-     *
-     * @param config
-     */
+
+
     @Override
-    public void configure(KeyValue config) {
+    public void stop() {
 
     }
 
@@ -41,13 +38,4 @@ public abstract class  Filter<R extends ConnectRecord> extends BaseTransformatio
         return null;
     }
 
-    @Override
-    public void start(ComponentContext componentContext) {
-
-    }
-
-    @Override
-    public void stop() {
-
-    }
 }

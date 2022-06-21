@@ -10,6 +10,7 @@ import io.openmessaging.connector.api.data.ConnectRecord;
  */
 public abstract class BaseTransformation<R extends ConnectRecord> implements Transform<R> {
 
+    protected KeyValue config;
     /**
      * validate config
      * @param config
@@ -24,14 +25,9 @@ public abstract class BaseTransformation<R extends ConnectRecord> implements Tra
      * @param config
      */
     @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
+        this.config = config;
         this.validate(config);
-        this.configure(config);
     }
 
-    /**
-     * set config
-     * @param config
-     */
-    public abstract void configure(KeyValue config);
 }

@@ -26,25 +26,12 @@ import io.openmessaging.connector.api.data.ConnectRecord;
  * @param <R>
  */
 public abstract class Flatten<R extends ConnectRecord> extends  BaseTransformation<R> {
-    /**
-     * set config
-     *
-     * @param config
-     */
-    @Override
-    public void configure(KeyValue config) {
-
-    }
 
     @Override
     public R doTransform(R r) {
         return null;
     }
 
-    @Override
-    public void start(ComponentContext componentContext) {
-
-    }
 
     @Override
     public void stop() {

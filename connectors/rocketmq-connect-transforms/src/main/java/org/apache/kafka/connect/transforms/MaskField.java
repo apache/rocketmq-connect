@@ -25,24 +25,11 @@ import io.openmessaging.connector.api.data.ConnectRecord;
  * @param <R>
  */
 public abstract class  MaskField<R extends ConnectRecord> extends BaseTransformation<R> {
-    /**
-     * set config
-     *
-     * @param config
-     */
-    @Override
-    public void configure(KeyValue config) {
 
-    }
 
     @Override
     public R doTransform(R r) {
         return null;
-    }
-
-    @Override
-    public void start(ComponentContext componentContext) {
-
     }
 
     @Override
