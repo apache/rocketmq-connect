@@ -142,7 +142,10 @@ public class WorkerSinkTask implements WorkerTask {
 
     private long pullMsgErrorCount = 0;
 
+    private long pullNotFountMsgCount = 0;
+
     private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 10;
+    private static final long PULL_NO_MSG_BACKOFF_MS = 1000 * 3;
 
     private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
@@ -384,7 +387,7 @@ public class WorkerSinkTask implements WorkerTask {
             final long beginPullMsgTimestamp = System.currentTimeMillis();
             try {
                 shouldStopPullMsg();
-                pullResult = consumer.pullBlockIfNotFound(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
+                pullResult = consumer.pull(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
                 pullMsgErrorCount = 0;
             } catch (MQClientException e) {
                 pullMsgErrorCount++;
@@ -434,6 +437,7 @@ public class WorkerSinkTask implements WorkerTask {
             List<MessageExt> messages = null;
             log.info("INSIDE pullMessageFromQueues, time elapsed : {}", currentTime - startTimeStamp);
             if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.FOUND)) {
+                pullNotFountMsgCount = 0;
                 this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
                 messages = pullResult.getMsgFoundList();
                 connectStatsManager.incSinkRecordReadTotalNums(messages.size());
@@ -456,12 +460,14 @@ public class WorkerSinkTask implements WorkerTask {
                 log.warn("offset illegal, reset offset, message queue {}, pull offset {}, nextBeginOffset {}", JSON.toJSONString(entry.getKey()), entry.getValue(), pullResult.getNextBeginOffset());
                 this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
             } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.NO_NEW_MSG)) {
+                pullNotFountMsgCount++;
                 log.info("no new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
             } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.NO_MATCHED_MSG)) {
                 log.info("no matched msg, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
                 this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
             } else {
-                log.info("no new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+                pullNotFountMsgCount++;
+                log.info("unknow pull msg state, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
             }
 
             AtomicLong atomicLong = connectStatsService.singleSinkTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
@@ -476,6 +482,11 @@ public class WorkerSinkTask implements WorkerTask {
             log.error("Accumulative error {} times, stop pull msg for {} ms", pullMsgErrorCount, PULL_MSG_ERROR_BACKOFF_MS);
             stopPullMsgLatch.await(PULL_MSG_ERROR_BACKOFF_MS, TimeUnit.MILLISECONDS);
             pullMsgErrorCount = 0;
+        }
+        if (pullNotFountMsgCount >= PULL_MSG_ERROR_THRESHOLD) {
+            log.error("pull not found msg {} times, stop pull msg for {} ms", pullNotFountMsgCount, PULL_NO_MSG_BACKOFF_MS);
+            stopPullMsgLatch.await(PULL_NO_MSG_BACKOFF_MS, TimeUnit.MILLISECONDS);
+            pullNotFountMsgCount = 0;
         }
     }
 
