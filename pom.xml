@@ -26,6 +26,7 @@
         <module>rocketmq-connect-sample</module>
         <module>rocketmq-connect-runtime</module>
         <module>rocketmq-connect-cli</module>
+        <module>distribution</module>
     </modules>
     <name>RocketMQ Connect</name>
 
@@ -43,7 +44,7 @@
         <mockito.version>3.2.4</mockito.version>
         <httpclient.version>4.5.13</httpclient.version>
         <openmessaging.connector.version>0.1.3-SNAPSHOT</openmessaging.connector.version>
-        <fastjson.version>1.2.80</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <javalin.version>2.8.0</javalin.version>
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.2.9</logback.version>
@@ -131,6 +132,21 @@
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-connect-cli</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-connect-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-connect-sample</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -179,6 +195,15 @@
                 </executions>
             </plugin>
         </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.0.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
 </project>
