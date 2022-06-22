@@ -3,7 +3,6 @@ package org.apache.rocketmq.connect.runtime.common;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.util.TypeUtils;
-import com.sun.org.apache.xpath.internal.operations.String;
 
 import java.nio.charset.StandardCharsets;
 
