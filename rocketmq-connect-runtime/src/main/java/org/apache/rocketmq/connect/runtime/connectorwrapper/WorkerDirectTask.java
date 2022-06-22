@@ -168,7 +168,7 @@ public class WorkerDirectTask implements WorkerTask {
             public String getTaskName() {
                 return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
-
+          
             /**
              * Get the configurations of current task.
              *
@@ -225,7 +225,6 @@ public class WorkerDirectTask implements WorkerTask {
             @Override public String getTaskName() {
                 return null;
             }
-
             /**
              * Get the configurations of current task.
              *
