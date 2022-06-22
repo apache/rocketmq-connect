@@ -594,7 +594,8 @@ public class WorkerSinkTask implements WorkerTask {
             RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
 
             // convert
-            SchemaAndValue schemaAndValue = recordConverter.toConnectData(message.getTopic(), message.getBody());
+            SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> recordConverter.toConnectData(message.getTopic(), message.getBody()),
+                            ErrorReporter.Stage.CONVERTER, recordConverter.getClass());
             sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
 
         } else {
