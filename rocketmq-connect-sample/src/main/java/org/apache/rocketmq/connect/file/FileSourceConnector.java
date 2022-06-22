@@ -37,21 +37,14 @@ public class FileSourceConnector extends SourceConnector {
         }
     }
 
-    @Override public void init(KeyValue config) {
+    @Override public void start(KeyValue config) {
         this.config = config;
     }
 
     @Override public void stop() {
-
+        this.config = null;
     }
 
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
-    }
 
     @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> config = new ArrayList<>();

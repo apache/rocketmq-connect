@@ -19,7 +19,6 @@ package org.apache.rocketmq.connect.jdbc.connector;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
-import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
@@ -157,13 +156,25 @@ public class JdbcSourceTask extends SourceTask {
 
     /**
      * start jdbc task
-     *
-     * @param context
      */
     @Override
-    public void start(SourceTaskContext context) {
+    public void start(KeyValue props) {
+        // init config
+        config = new JdbcSourceTaskConfig(props);
+        final String dialectName = config.getDialectName();
+        final String url = config.getConnectionDbUrl();
+        if (dialectName != null && !dialectName.trim().isEmpty()) {
+            dialect = DatabaseDialectFactory.create(dialectName, config);
+        } else {
+            dialect = DatabaseDialectFactory.findDialectFor(url, config);
+        }
+        final int maxConnAttempts = config.getAttempts();
+        final long retryBackoff = config.getBackoffMs();
+        cachedConnectionProvider = connectionProvider(maxConnAttempts, retryBackoff);
+        log.info("Using JDBC dialect {}", dialect.name());
+
         // compute table offset
-        Map<String, Map<String, Object>> offsetValues = SourceOffsetCompute.initOffset(config, context, dialect, cachedConnectionProvider);
+        Map<String, Map<String, Object>> offsetValues = SourceOffsetCompute.initOffset(config, sourceTaskContext, dialect, cachedConnectionProvider);
         for (String tableOrQuery : offsetValues.keySet()) {
             this.buildAndAddQuerier(
                     JdbcSourceConfig.TableLoadMode.findTableLoadModeByName(this.config.getMode()),
@@ -258,30 +269,6 @@ public class JdbcSourceTask extends SourceTask {
         }
     }
 
-    /**
-     * Init the component
-     *
-     * @param props
-     */
-    @Override
-    public void init(KeyValue props) {
-        try {
-            config = new JdbcSourceTaskConfig(props);
-            final String dialectName = config.getDialectName();
-            final String url = config.getConnectionDbUrl();
-            if (dialectName != null && !dialectName.trim().isEmpty()) {
-                dialect = DatabaseDialectFactory.create(dialectName, config);
-            } else {
-                dialect = DatabaseDialectFactory.findDialectFor(url, config);
-            }
-            final int maxConnAttempts = config.getAttempts();
-            final long retryBackoff = config.getBackoffMs();
-            cachedConnectionProvider = connectionProvider(maxConnAttempts, retryBackoff);
-            log.info("Using JDBC dialect {}", dialect.name());
-        } catch (Exception e) {
-            log.error("Cannot start Jdbc Source Task because of configuration error{}", e);
-        }
-    }
 
     protected CachedConnectionProvider connectionProvider(int maxConnAttempts, long retryBackoff) {
         return new CachedConnectionProvider(dialect, maxConnAttempts, retryBackoff) {
@@ -320,15 +307,5 @@ public class JdbcSourceTask extends SourceTask {
                 dialect = null;
             }
         }
-    }
-
-    @Override
-    public void pause() {
-        // do nothing
-    }
-
-    @Override
-    public void resume() {
-        // do nothing
     }
 }

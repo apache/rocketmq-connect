@@ -20,6 +20,7 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.common.JdbcSourceConfigConstants;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
@@ -85,7 +86,7 @@ public class BulkQuerier extends Querier {
     @Override
     public ConnectRecord extractRecord() throws SQLException {
         Schema schema = schemaMapping.schema();
-        Object[] payload = new Object[schema.getFields().size()];
+        Struct payload = new Struct(schema);
         for (SchemaMapping.FieldSetter setter : schemaMapping.fieldSetters()) {
             try {
                 setter.setField(payload, resultSet);

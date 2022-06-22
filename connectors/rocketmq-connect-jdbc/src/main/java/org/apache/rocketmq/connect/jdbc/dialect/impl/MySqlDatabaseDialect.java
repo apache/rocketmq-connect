@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
 
-import lombok.SneakyThrows;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.DatabaseDialectProvider;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
+import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.apache.rocketmq.connect.jdbc.util.IdentifierRules;
-import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,14 +37,13 @@ import java.util.Collection;
  */
 public class MySqlDatabaseDialect extends GenericDatabaseDialect {
 
-    private final Logger log = LoggerFactory.getLogger(MySqlDatabaseDialect.class);
+    private final static Logger log = LoggerFactory.getLogger(MySqlDatabaseDialect.class);
 
     /**
      * The provider for {@link MySqlDatabaseDialect}.
      */
     public static class Provider extends DatabaseDialectProvider {
-        @SneakyThrows
-        public Provider() {
+        public Provider() throws ClassNotFoundException {
             super(MySqlDatabaseDialect.class.getSimpleName(), "mysql");
             Class.forName("com.mysql.cj.jdbc.Driver");
         }

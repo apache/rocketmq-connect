@@ -18,9 +18,10 @@ package org.apache.rocketmq.connect.jdbc.source;
 
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.rocketmq.connect.jdbc.source.offset.TimestampIncrementingOffset;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
+import org.apache.rocketmq.connect.jdbc.source.offset.TimestampIncrementingOffset;
 import org.apache.rocketmq.connect.jdbc.util.DateTimeUtils;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.slf4j.Logger;
@@ -180,7 +181,7 @@ public class TimestampIncrementingCriteria {
      */
     public TimestampIncrementingOffset extractValues(
             Schema schema,
-            Object[] record,
+            Struct record,
             TimestampIncrementingOffset previousOffset
     ) {
         Timestamp extractedTimestamp = null;
@@ -211,11 +212,11 @@ public class TimestampIncrementingCriteria {
      */
     protected Timestamp extractOffsetTimestamp(
             Schema schema,
-            Object[] record
+            Struct record
     ) {
         for (ColumnId timestampColumn : timestampColumns) {
             Field field = schema.getField(timestampColumn.name());
-            Timestamp ts = (Timestamp) record[field.getIndex()];
+            Timestamp ts = (Timestamp) record.get(field);
             if (ts != null) {
                 return ts;
             }
@@ -232,7 +233,7 @@ public class TimestampIncrementingCriteria {
      */
     protected Long extractOffsetIncrementedId(
             Schema schema,
-            Object[] record
+            Struct record
     ) {
         final Long extractedId;
         final Field field = schema.getField(incrementingColumn.name());
@@ -242,7 +243,7 @@ public class TimestampIncrementingCriteria {
         }
 
         final Schema incrementingColumnSchema = field.getSchema();
-        final Object incrementingColumnValue = record[field.getIndex()];
+        final Object incrementingColumnValue = record.get(field);
         if (incrementingColumnValue == null) {
             throw new ConnectException(
                     "Null value for incrementing column of type: " + incrementingColumnSchema.getFieldType());

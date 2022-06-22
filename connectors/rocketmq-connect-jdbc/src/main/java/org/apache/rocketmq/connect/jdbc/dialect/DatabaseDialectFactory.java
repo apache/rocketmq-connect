@@ -137,6 +137,7 @@ public class DatabaseDialectFactory {
                 return provider.create(config);
             }
         }
+
         throw new ConnectException(
                 "Unable to find dialect with name '" + dialectName + "' in the available dialects: "
                         + dialectNames

@@ -23,6 +23,8 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+
 public class FilterTransform implements Transform<ConnectRecord> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILE_CONNECTOR);
@@ -37,20 +39,23 @@ public class FilterTransform implements Transform<ConnectRecord> {
         return record;
     }
 
-    @Override public void validate(KeyValue config) {
 
-    }
-
-    @Override public void init(KeyValue config) {
+    /**
+     * Start the component
+     *
+     * @param config component context
+     */
+    @Override
+    public void start(KeyValue config) {
         this.keyValue = config;
         log.info("transform config {}", this.keyValue);
     }
 
-    @Override public void start(ComponentContext componentContext) {
-
-    }
-
-    @Override public void stop() {
+    /**
+     * Stop the component.
+     */
+    @Override
+    public void stop() {
 
     }
 }

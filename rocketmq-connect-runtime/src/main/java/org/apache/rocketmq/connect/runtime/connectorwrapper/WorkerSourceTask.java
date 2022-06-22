@@ -19,6 +19,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -161,8 +162,7 @@ public class WorkerSourceTask implements WorkerTask {
             producer.start();
             log.info("Source task producer start.");
             state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sourceTask.init(taskConfig);
-            sourceTask.start(new SourceTaskContext() {
+            sourceTask.init(new SourceTaskContext() {
 
                 @Override
                 public OffsetStorageReader offsetStorageReader() {
@@ -178,7 +178,18 @@ public class WorkerSourceTask implements WorkerTask {
                 public String getTaskName() {
                     return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
                 }
+
+                /**
+                 * Get the configurations of current task.
+                 *
+                 * @return the configuration of current task.
+                 */
+                @Override
+                public KeyValue configs() {
+                    return taskConfig;
+                }
             });
+            sourceTask.start(taskConfig);
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
             log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
             while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
@@ -316,7 +327,7 @@ public class WorkerSourceTask implements WorkerTask {
                     sourceMessage.setBody(messageBody);
                 }
             } else {
-                final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
+                final byte[] messageBody = JSON.toJSONString(sourceDataEntry, SerializerFeature.DisableCircularReferenceDetect).getBytes();
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                     continue;
