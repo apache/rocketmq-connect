@@ -320,7 +320,6 @@ public class WorkerSourceTask implements WorkerTask {
                 throw new ConnectException("source connect lack of topic config");
             }
             sourceMessage.setTopic(topic);
-
             // converter
             if (recordConverter instanceof RecordConverter) {
                 byte[] messageBody = recordConverter.fromConnectData(topic, sourceDataEntry.getSchema(), sourceDataEntry.getData());
