@@ -59,7 +59,6 @@ public class StandaloneConnectStartup {
     public static Properties properties = null;
 
     public static void main(String[] args) {
-        args = new String[]{"-c /Users/sunxiaojian/Desktop/test-config/connect-standalone-copy.conf"};
         start(createConnectController(args));
     }
 
