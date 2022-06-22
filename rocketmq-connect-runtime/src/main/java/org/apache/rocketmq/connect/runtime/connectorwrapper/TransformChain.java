@@ -111,7 +111,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
                 connectRecord = transform.doTransform(currentRecord);
             } else {
                 connectRecord = this.retryWithToleranceOperator.execute(
-                        () -> transform.doTransform(currentRecord), ErrorReporter.Stage.TRANSFORMATION, transform.getClass()
+                    () -> transform.doTransform(currentRecord), ErrorReporter.Stage.TRANSFORMATION, transform.getClass()
                 );
             }
 
