@@ -29,7 +29,6 @@ public interface Serializer<T> extends Closeable {
     /**
      * Configure this class.
      * @param configs configs in key/value pairs
-     * @param isKey whether is for key or value
      */
     default void configure(Map<String, ?> configs) {
         // intentionally left blank
