@@ -49,11 +49,7 @@ public class TestSourceTask extends SourceTask {
 
     }
 
-    @Override public void init(KeyValue config) {
-
-    }
-
-    @Override public void start(SourceTaskContext sourceTaskContext) {
+    @Override public void start(KeyValue config) {
 
     }
 
@@ -62,13 +58,4 @@ public class TestSourceTask extends SourceTask {
 
     }
 
-    @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
 }

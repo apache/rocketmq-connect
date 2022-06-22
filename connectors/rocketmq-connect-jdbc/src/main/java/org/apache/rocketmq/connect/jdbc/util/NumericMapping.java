@@ -28,17 +28,17 @@ public enum NumericMapping {
     BEST_FIT,
     BEST_FIT_EAGER_DOUBLE;
 
-    private static final Map<String, NumericMapping> reverse = new HashMap<>(values().length);
+    private static final Map<String, NumericMapping> REVERSE = new HashMap<>(values().length);
 
     static {
         for (NumericMapping val : values()) {
-            reverse.put(val.name().toLowerCase(Locale.ROOT), val);
+            REVERSE.put(val.name().toLowerCase(Locale.ROOT), val);
         }
     }
 
     public static NumericMapping get(String prop) {
         // not adding a check for null value because the recommender/validator should catch those.
-        return reverse.get(prop.toLowerCase(Locale.ROOT));
+        return REVERSE.get(prop.toLowerCase(Locale.ROOT));
     }
 
     public static NumericMapping get(JdbcSourceConfig config) {

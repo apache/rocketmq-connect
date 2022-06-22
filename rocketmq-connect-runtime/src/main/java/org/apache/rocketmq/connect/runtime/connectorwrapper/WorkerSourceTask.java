@@ -19,6 +19,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -50,11 +51,13 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +121,7 @@ public class WorkerSourceTask implements WorkerTask {
 
     private TransformChain<ConnectRecord> transformChain;
 
+    private RetryWithToleranceOperator retryWithToleranceOperator;
     /**
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
@@ -137,7 +141,8 @@ public class WorkerSourceTask implements WorkerTask {
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
         ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain) {
+        TransformChain<ConnectRecord> transformChain,
+        RetryWithToleranceOperator retryWithToleranceOperator) {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -150,6 +155,8 @@ public class WorkerSourceTask implements WorkerTask {
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.transformChain = transformChain;
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
+        this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
     }
 
     /**
@@ -161,8 +168,7 @@ public class WorkerSourceTask implements WorkerTask {
             producer.start();
             log.info("Source task producer start.");
             state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sourceTask.init(taskConfig);
-            sourceTask.start(new SourceTaskContext() {
+            sourceTask.init(new SourceTaskContext() {
 
                 @Override
                 public OffsetStorageReader offsetStorageReader() {
@@ -178,7 +184,18 @@ public class WorkerSourceTask implements WorkerTask {
                 public String getTaskName() {
                     return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
                 }
+
+                /**
+                 * Get the configurations of current task.
+                 *
+                 * @return the configuration of current task.
+                 */
+                @Override
+                public KeyValue configs() {
+                    return taskConfig;
+                }
             });
+            sourceTask.start(taskConfig);
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
             log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
             while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
@@ -232,8 +249,11 @@ public class WorkerSourceTask implements WorkerTask {
             }
             List<ConnectRecord> connectRecordList1 = new ArrayList<>(32);
             for (ConnectRecord connectRecord : connectRecordList) {
+
+                retryWithToleranceOperator.sourceRecord(connectRecord);
+
                 ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
-                if (null != connectRecord1) {
+                if (null != connectRecord1 && !retryWithToleranceOperator.failed()) {
                     connectRecordList1.add(connectRecord1);
                 }
             }
@@ -247,11 +267,8 @@ public class WorkerSourceTask implements WorkerTask {
     @Override
     public void stop() {
         state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
-        try {
-            transformChain.close();
-        } catch (Exception exception) {
-            log.error("Transform close failed, {}", exception);
-        }
+        Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
+        Utils.closeQuietly(transformChain, "transform chain");
         log.warn("Stop a task success.");
     }
 
@@ -304,8 +321,8 @@ public class WorkerSourceTask implements WorkerTask {
                 throw new ConnectException("source connect lack of topic config");
             }
             sourceMessage.setTopic(topic);
+            putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
             if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
-                putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
                 Object payload = sourceDataEntry.getData();
                 if (null != payload) {
                     final byte[] messageBody = (String.valueOf(payload)).getBytes();
@@ -316,7 +333,7 @@ public class WorkerSourceTask implements WorkerTask {
                     sourceMessage.setBody(messageBody);
                 }
             } else {
-                final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
+                final byte[] messageBody = JSON.toJSONString(sourceDataEntry, SerializerFeature.DisableCircularReferenceDetect).getBytes();
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                     continue;
@@ -379,6 +396,7 @@ public class WorkerSourceTask implements WorkerTask {
             log.info("extension keySet null.");
             return;
         }
+
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
@@ -386,6 +404,7 @@ public class WorkerSourceTask implements WorkerTask {
                 MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
             }
         }
+
     }
 
     @Override

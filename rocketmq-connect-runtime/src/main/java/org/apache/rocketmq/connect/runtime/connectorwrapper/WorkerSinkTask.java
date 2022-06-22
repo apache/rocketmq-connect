@@ -60,6 +60,9 @@ import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -139,7 +142,10 @@ public class WorkerSinkTask implements WorkerTask {
 
     private long pullMsgErrorCount = 0;
 
+    private long pullNotFountMsgCount = 0;
+
     private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 10;
+    private static final long PULL_NO_MSG_BACKOFF_MS = 1000 * 3;
 
     private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
@@ -154,6 +160,10 @@ public class WorkerSinkTask implements WorkerTask {
     private WorkerSinkTaskContext sinkTaskContext;
 
     private final TransformChain<ConnectRecord> transformChain;
+
+    private WorkerErrorRecordReporter errorRecordReporter;
+    private RetryWithToleranceOperator retryWithToleranceOperator;
+
 
     public static final String BROKER_NAME = "brokerName";
     public static final String QUEUE_ID = "queueId";
@@ -180,7 +190,9 @@ public class WorkerSinkTask implements WorkerTask {
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
         ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain) {
+        TransformChain<ConnectRecord> transformChain,
+        RetryWithToleranceOperator retryWithToleranceOperator,
+        WorkerErrorRecordReporter errorRecordReporter) {
         this.connectorName = connectorName;
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
@@ -194,6 +206,9 @@ public class WorkerSinkTask implements WorkerTask {
         this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
         this.transformChain = transformChain;
+        this.errorRecordReporter = errorRecordReporter;
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
+        this.transformChain.retryWithToleranceOperator(retryWithToleranceOperator);
     }
 
     /**
@@ -206,9 +221,9 @@ public class WorkerSinkTask implements WorkerTask {
             consumer.start();
             log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
             state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sinkTask.init(taskConfig);
             this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
-            sinkTask.start(sinkTaskContext);
+            sinkTask.init(sinkTaskContext);
+            sinkTask.start(taskConfig);
             // we assume executed here means we are safe
             log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
             state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
@@ -372,7 +387,7 @@ public class WorkerSinkTask implements WorkerTask {
             final long beginPullMsgTimestamp = System.currentTimeMillis();
             try {
                 shouldStopPullMsg();
-                pullResult = consumer.pullBlockIfNotFound(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
+                pullResult = consumer.pull(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
                 pullMsgErrorCount = 0;
             } catch (MQClientException e) {
                 pullMsgErrorCount++;
@@ -422,6 +437,7 @@ public class WorkerSinkTask implements WorkerTask {
             List<MessageExt> messages = null;
             log.info("INSIDE pullMessageFromQueues, time elapsed : {}", currentTime - startTimeStamp);
             if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.FOUND)) {
+                pullNotFountMsgCount = 0;
                 this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
                 messages = pullResult.getMsgFoundList();
                 connectStatsManager.incSinkRecordReadTotalNums(messages.size());
@@ -444,12 +460,14 @@ public class WorkerSinkTask implements WorkerTask {
                 log.warn("offset illegal, reset offset, message queue {}, pull offset {}, nextBeginOffset {}", JSON.toJSONString(entry.getKey()), entry.getValue(), pullResult.getNextBeginOffset());
                 this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
             } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.NO_NEW_MSG)) {
+                pullNotFountMsgCount++;
                 log.info("no new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
             } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.NO_MATCHED_MSG)) {
                 log.info("no matched msg, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
                 this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
             } else {
-                log.info("no new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+                pullNotFountMsgCount++;
+                log.info("unknow pull msg state, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
             }
 
             AtomicLong atomicLong = connectStatsService.singleSinkTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
@@ -464,6 +482,11 @@ public class WorkerSinkTask implements WorkerTask {
             log.error("Accumulative error {} times, stop pull msg for {} ms", pullMsgErrorCount, PULL_MSG_ERROR_BACKOFF_MS);
             stopPullMsgLatch.await(PULL_MSG_ERROR_BACKOFF_MS, TimeUnit.MILLISECONDS);
             pullMsgErrorCount = 0;
+        }
+        if (pullNotFountMsgCount >= PULL_MSG_ERROR_THRESHOLD) {
+            log.error("pull not found msg {} times, stop pull msg for {} ms", pullNotFountMsgCount, PULL_NO_MSG_BACKOFF_MS);
+            stopPullMsgLatch.await(PULL_NO_MSG_BACKOFF_MS, TimeUnit.MILLISECONDS);
+            pullNotFountMsgCount = 0;
         }
     }
 
@@ -527,7 +550,9 @@ public class WorkerSinkTask implements WorkerTask {
     private void receiveMessages(List<MessageExt> messages) {
         List<ConnectRecord> sinkDataEntries = new ArrayList<>(32);
         for (MessageExt message : messages) {
-            ConnectRecord sinkDataEntry = convertToSinkDataEntry(message);
+            this.retryWithToleranceOperator.consumerRecord(message);
+            ConnectRecord sinkDataEntry = this.retryWithToleranceOperator.execute(()->convertToSinkDataEntry(message), ErrorReporter.Stage.CONVERTER, WorkerSinkTask.class);
+            if (sinkDataEntry != null && !this.retryWithToleranceOperator.failed())
             sinkDataEntries.add(sinkDataEntry);
             String msgId = message.getMsgId();
             log.info("Received one message success : msgId {}", msgId);
@@ -573,24 +598,27 @@ public class WorkerSinkTask implements WorkerTask {
 
             String bodyStr = new String(body, StandardCharsets.UTF_8);
             sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schema, bodyStr);
-            KeyValue keyValue = new DefaultKeyValue();
-            if (MapUtils.isNotEmpty(properties)) {
-                for (Map.Entry<String, String> entry : properties.entrySet()) {
-                    if (MQ_SYS_KEYS.contains(entry.getKey())) {
-                        keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
-                    } else if (entry.getKey().startsWith("connect-ext-")) {
-                        keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
-                    } else {
-                        keyValue.put(entry.getKey(), entry.getValue());
-                    }
-                }
-            }
-            sinkDataEntry.addExtension(keyValue);
+
         } else {
             final byte[] messageBody = message.getBody();
             String s = new String(messageBody);
             sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
         }
+
+        KeyValue keyValue = new DefaultKeyValue();
+        if (MapUtils.isNotEmpty(properties)) {
+            for (Map.Entry<String, String> entry : properties.entrySet()) {
+                if (MQ_SYS_KEYS.contains(entry.getKey())) {
+                    keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
+                } else if (entry.getKey().startsWith("connect-ext-")) {
+                    keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
+                } else {
+                    keyValue.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        sinkDataEntry.addExtension(keyValue);
+
         return sinkDataEntry;
     }
 
@@ -659,6 +687,13 @@ public class WorkerSinkTask implements WorkerTask {
         this.sinkTaskContext.resetOffset(offsets);
     }
 
+    /**
+     * error record reporter
+     * @return
+     */
+    public WorkerErrorRecordReporter errorRecordReporter() {
+        return errorRecordReporter;
+    }
 }
 
 

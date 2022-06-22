@@ -154,7 +154,7 @@ public class MemoryConfigManagementServiceImpl implements ConfigManagementServic
         }
         final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
         connector.validate(configs);
-        connector.init(configs);
+        connector.start(configs);
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return "";

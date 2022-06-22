@@ -232,8 +232,8 @@ public class JdbcSourceConfig extends AbstractConfig {
         this.timestampColumnNames = getList(config, TIMESTAMP_COLUMN_NAME_CONFIG);
         timestampDelayIntervalMs = config.getLong(TIMESTAMP_DELAY_INTERVAL_MS_CONFIG);
 //        this.timestampInitial=config.getLong(TIMESTAMP_INITIAL_CONFIG,TIMESTAMP_INITIAL_DEFAULT);
-        if (config.containsKey(TIMESTAMP_INITIAL_CONFIG)){
-            this.timestampInitial=config.getLong(TIMESTAMP_INITIAL_CONFIG);
+        if (config.containsKey(TIMESTAMP_INITIAL_CONFIG)) {
+            this.timestampInitial = config.getLong(TIMESTAMP_INITIAL_CONFIG);
         }
         this.tableWhitelist = new HashSet<>(getList(config, TABLE_WHITELIST_CONFIG));
         this.tableBlacklist = new HashSet<>(getList(config, TABLE_BLACKLIST_CONFIG));

@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.jdbc.connector;
 
 
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.component.task.sink.ErrorRecordReporter;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -42,6 +43,7 @@ public class JdbcSinkTask extends SinkTask {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcSinkTask.class);
     private SinkTaskContext context;
+    private ErrorRecordReporter errorRecordReporter;
     private KeyValue originalConfig;
     private JdbcSinkConfig config;
     private DatabaseDialect dialect;
@@ -69,10 +71,11 @@ public class JdbcSinkTask extends SinkTask {
             SQLException sqlAllMessagesException = getAllMessagesException(sqle);
             if (remainingRetries > 0) {
                 updater.closeQuietly();
-                init(originalConfig);
+                start(originalConfig);
                 remainingRetries--;
                 throw new RetriableException(sqlAllMessagesException);
             }
+
         }
         remainingRetries = config.getMaxRetries();
     }
@@ -86,31 +89,14 @@ public class JdbcSinkTask extends SinkTask {
         sqlAllMessagesException.setNextException(sqle);
         return sqlAllMessagesException;
     }
-
-
-    @Override
-    public void start(SinkTaskContext context) {
-        this.context = context;
-    }
-
+  
     /**
-     * Should invoke before start the connector.
-     *
-     * @param config
-     * @return error message
-     */
-    @Override
-    public void validate(KeyValue config) {
-        // to do nothing
-    }
-
-    /**
-     * Init the component
+     * Start the component
      *
      * @param keyValue
      */
     @Override
-    public void init(KeyValue keyValue) {
+    public void start(KeyValue keyValue) {
         originalConfig = keyValue;
         config = new JdbcSinkConfig(keyValue);
         remainingRetries = config.getMaxRetries();
@@ -142,12 +128,5 @@ public class JdbcSinkTask extends SinkTask {
         }
     }
 
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
 
 }

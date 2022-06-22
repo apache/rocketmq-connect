@@ -18,7 +18,7 @@
         <assertj.version>2.6.0</assertj.version>
         <mockito.version>3.2.4</mockito.version>
         <openmessaging-connector.version>0.1.2</openmessaging-connector.version>
-        <fastjson.version>1.2.62</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <aliyun-java-sdk-fc.version>1.8.25</aliyun-java-sdk-fc.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
