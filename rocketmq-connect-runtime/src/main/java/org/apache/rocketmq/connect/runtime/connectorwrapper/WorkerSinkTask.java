@@ -598,24 +598,27 @@ public class WorkerSinkTask implements WorkerTask {
 
             String bodyStr = new String(body, StandardCharsets.UTF_8);
             sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schema, bodyStr);
-            KeyValue keyValue = new DefaultKeyValue();
-            if (MapUtils.isNotEmpty(properties)) {
-                for (Map.Entry<String, String> entry : properties.entrySet()) {
-                    if (MQ_SYS_KEYS.contains(entry.getKey())) {
-                        keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
-                    } else if (entry.getKey().startsWith("connect-ext-")) {
-                        keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
-                    } else {
-                        keyValue.put(entry.getKey(), entry.getValue());
-                    }
-                }
-            }
-            sinkDataEntry.addExtension(keyValue);
+
         } else {
             final byte[] messageBody = message.getBody();
             String s = new String(messageBody);
             sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
         }
+
+        KeyValue keyValue = new DefaultKeyValue();
+        if (MapUtils.isNotEmpty(properties)) {
+            for (Map.Entry<String, String> entry : properties.entrySet()) {
+                if (MQ_SYS_KEYS.contains(entry.getKey())) {
+                    keyValue.put("MQ-SYS-" + entry.getKey(), entry.getValue());
+                } else if (entry.getKey().startsWith("connect-ext-")) {
+                    keyValue.put(entry.getKey().replaceAll("connect-ext-", ""), entry.getValue());
+                } else {
+                    keyValue.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        sinkDataEntry.addExtension(keyValue);
+
         return sinkDataEntry;
     }
 

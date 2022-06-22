@@ -321,8 +321,8 @@ public class WorkerSourceTask implements WorkerTask {
                 throw new ConnectException("source connect lack of topic config");
             }
             sourceMessage.setTopic(topic);
+            putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
             if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
-                putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
                 Object payload = sourceDataEntry.getData();
                 if (null != payload) {
                     final byte[] messageBody = (String.valueOf(payload)).getBytes();
@@ -396,6 +396,7 @@ public class WorkerSourceTask implements WorkerTask {
             log.info("extension keySet null.");
             return;
         }
+
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
@@ -403,6 +404,7 @@ public class WorkerSourceTask implements WorkerTask {
                 MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
             }
         }
+
     }
 
     @Override
