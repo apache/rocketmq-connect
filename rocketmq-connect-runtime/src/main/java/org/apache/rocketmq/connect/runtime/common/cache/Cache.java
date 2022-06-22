@@ -19,10 +19,11 @@ package org.apache.rocketmq.connect.runtime.common.cache;
 
 /**
  * cache
+ *
  * @param <K>
  * @param <V>
  */
-public interface Cache<K,V> {
+public interface Cache<K, V> {
 
     /**
      * @param key
@@ -32,6 +33,7 @@ public interface Cache<K,V> {
 
     /**
      * put a data to cache
+     *
      * @param key
      * @param value
      */
@@ -40,6 +42,7 @@ public interface Cache<K,V> {
 
     /**
      * remove a data to cache
+     *
      * @param key
      * @return
      */
@@ -47,7 +50,6 @@ public interface Cache<K,V> {
 
 
     /**
-     * 获取
      * @return
      */
     long size();

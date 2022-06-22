@@ -20,13 +20,10 @@ package org.apache.rocketmq.connect.runtime.errors;
 import io.openmessaging.connector.api.component.task.sink.ErrorRecordReporter;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.common.message.MessageExt;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * worker error record reporter
@@ -51,10 +48,9 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
      */
     @Override
     public void report(ConnectRecord record, Throwable error) {
-
         RecordPartition partition = record.getPosition().getPartition();
         String topic = partition.getPartition().containsKey("topic") ? String.valueOf(partition.getPartition().get("topic")) : null;
-        byte[] value = converter.fromConnectData(topic , record.getSchema(), record.getData());
+        byte[] value = converter.fromConnectData(topic, record.getSchema(), record.getData());
         MessageExt consumerRecord = new MessageExt();
         consumerRecord.setBody(value);
         retryWithToleranceOperator.executeFailed(ErrorReporter.Stage.TASK_PUT, SinkTask.class, consumerRecord, error);

@@ -66,9 +66,10 @@ public class JsonConverterConfig {
 
     /**
      * return cache size
+     *
      * @return
      */
-    public int cacheSize(){
+    public int cacheSize() {
         return cacheSize;
     }
 

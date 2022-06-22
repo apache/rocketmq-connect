@@ -23,13 +23,15 @@ import java.util.Map;
 
 /**
  * lru cache
+ *
  * @param <K>
  * @param <V>
  */
-public class LRUCache<K, V> implements Cache<K,V>{
+public class LRUCache<K, V> implements Cache<K, V> {
 
-    private final Map<K,V> cache;
-    public LRUCache(final int maxSize){
+    private final Map<K, V> cache;
+
+    public LRUCache(final int maxSize) {
         cache = Collections.synchronizedMap(new LinkedHashMap<K, V>(300, 1.1F, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
@@ -70,8 +72,7 @@ public class LRUCache<K, V> implements Cache<K,V>{
     }
 
     /**
-     * 获取
-     *
+     * cache size
      * @return
      */
     @Override

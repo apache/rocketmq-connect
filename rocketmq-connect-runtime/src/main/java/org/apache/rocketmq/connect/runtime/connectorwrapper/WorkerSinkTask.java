@@ -584,7 +584,7 @@ public class WorkerSinkTask implements WorkerTask {
         ConnectRecord sinkDataEntry;
         
         // start convert
-        if (null == recordConverter ) {
+        if (null == recordConverter) {
             final byte[] messageBody = message.getBody();
             String s = new String(messageBody);
             sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);

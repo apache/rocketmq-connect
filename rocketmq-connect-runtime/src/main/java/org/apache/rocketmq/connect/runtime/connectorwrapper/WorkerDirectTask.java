@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
@@ -168,6 +169,16 @@ public class WorkerDirectTask implements WorkerTask {
                 return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
 
+            /**
+             * Get the configurations of current task.
+             *
+             * @return the configuration of current task.
+             */
+            @Override
+            public KeyValue configs() {
+                return taskConfig;
+            }
+
             @Override
             public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
 
@@ -213,6 +224,16 @@ public class WorkerDirectTask implements WorkerTask {
 
             @Override public String getTaskName() {
                 return null;
+            }
+
+            /**
+             * Get the configurations of current task.
+             *
+             * @return the configuration of current task.
+             */
+            @Override
+            public KeyValue configs() {
+                return taskConfig;
             }
         });
         sourceTask.start(taskConfig);

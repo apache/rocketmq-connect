@@ -27,8 +27,8 @@ public class StringSerializer implements Serializer<String> {
 
     @Override
     public void configure(Map<String, ?> configs) {
-        String propertyName =  "serializer.encoding";
-        if (configs.containsKey(propertyName)){
+        String propertyName = "serializer.encoding";
+        if (configs.containsKey(propertyName)) {
             Object encodingValue = configs.get(propertyName);
             if (encodingValue instanceof String) {
                 encoding = (String) encodingValue;

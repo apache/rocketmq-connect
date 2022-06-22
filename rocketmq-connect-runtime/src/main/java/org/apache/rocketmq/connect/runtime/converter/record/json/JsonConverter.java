@@ -61,7 +61,6 @@ public class JsonConverter implements RecordConverter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
 
-
     private static final Map<FieldType, JsonToConnectTypeConverter> TO_CONNECT_CONVERTERS = new EnumMap<>(FieldType.class);
 
     {
@@ -285,7 +284,7 @@ public class JsonConverter implements RecordConverter {
 
     private JsonDeserializer deserializer = new JsonDeserializer();
     private JsonSerializer serializer = new JsonSerializer();
-    public  JsonConverterConfig converterConfig;
+    public JsonConverterConfig converterConfig;
     private Cache<Schema, JSONObject> fromConnectSchemaCache;
     private Cache<JSONObject, Schema> toConnectSchemaCache;
 
@@ -356,7 +355,7 @@ public class JsonConverter implements RecordConverter {
         Schema schema = asConnectSchema(jsonSchema == null ? null : (JSONObject) jsonSchema);
         return new SchemaAndValue(
                 schema,
-               convertToConnect(schema, newJsonValue.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME))
+                convertToConnect(schema, newJsonValue.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME))
         );
     }
 
@@ -400,6 +399,7 @@ public class JsonConverter implements RecordConverter {
 
     /**
      * convert ConnectRecord schema to json schema
+     *
      * @param schema
      * @return
      */
@@ -519,7 +519,7 @@ public class JsonConverter implements RecordConverter {
             if (schema.getDefaultValue() != null) {
                 return convertToJson(schema, schema.getDefaultValue());
             }
-            if (schema.isOptional()){
+            if (schema.isOptional()) {
                 return null;
             }
             throw new ConnectException("Conversion error: null value for field that is required and has no default value");
@@ -528,7 +528,7 @@ public class JsonConverter implements RecordConverter {
         if (schema != null && schema.getName() != null) {
             LogicalTypeConverter logicalConverter = LOGICAL_CONVERTERS.get(schema.getName());
             if (logicalConverter != null) {
-                if (value == null){
+                if (value == null) {
                     return null;
                 } else {
                     return logicalConverter.toJson(schema, value, converterConfig);
@@ -612,6 +612,7 @@ public class JsonConverter implements RecordConverter {
 
     /**
      * convert json to schema if not empty
+     *
      * @param jsonSchema
      * @return
      */
@@ -737,6 +738,7 @@ public class JsonConverter implements RecordConverter {
 
     /**
      * convert to connect
+     *
      * @param schema
      * @param value
      * @return

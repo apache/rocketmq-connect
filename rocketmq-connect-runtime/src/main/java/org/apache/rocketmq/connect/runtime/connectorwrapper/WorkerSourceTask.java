@@ -19,7 +19,6 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -31,14 +30,6 @@ import io.openmessaging.connector.api.data.RecordPosition;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -50,7 +41,6 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
@@ -61,6 +51,15 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
 
@@ -133,16 +132,16 @@ public class WorkerSourceTask implements WorkerTask {
     }
 
     public WorkerSourceTask(String connectorName,
-        SourceTask sourceTask,
-        ConnectKeyValue taskConfig,
-        PositionManagementService positionManagementService,
-        RecordConverter recordConverter,
-        DefaultMQProducer producer,
-        AtomicReference<WorkerState> workerState,
-        ConnectStatsManager connectStatsManager,
-        ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain,
-        RetryWithToleranceOperator retryWithToleranceOperator) {
+                            SourceTask sourceTask,
+                            ConnectKeyValue taskConfig,
+                            PositionManagementService positionManagementService,
+                            RecordConverter recordConverter,
+                            DefaultMQProducer producer,
+                            AtomicReference<WorkerState> workerState,
+                            ConnectStatsManager connectStatsManager,
+                            ConnectStatsService connectStatsService,
+                            TransformChain<ConnectRecord> transformChain,
+                            RetryWithToleranceOperator retryWithToleranceOperator) {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -276,7 +275,7 @@ public class WorkerSourceTask implements WorkerTask {
     public void cleanup() {
         log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
         if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
-            state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
+                state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
             log.info("Cleaning a task success");
         } else {
             log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
@@ -323,7 +322,7 @@ public class WorkerSourceTask implements WorkerTask {
             sourceMessage.setTopic(topic);
 
             // converter
-            if (recordConverter == null){
+            if (recordConverter == null) {
                 final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
@@ -332,7 +331,7 @@ public class WorkerSourceTask implements WorkerTask {
                 sourceMessage.setBody(messageBody);
             } else {
                 putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
-                byte[] messageBody = recordConverter.fromConnectData(topic,sourceDataEntry.getSchema(),sourceDataEntry.getData());
+                byte[] messageBody = recordConverter.fromConnectData(topic, sourceDataEntry.getSchema(), sourceDataEntry.getData());
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                     continue;
@@ -432,8 +431,8 @@ public class WorkerSourceTask implements WorkerTask {
 
         StringBuilder sb = new StringBuilder();
         sb.append("connectorName:" + connectorName)
-            .append("\nConfigs:" + JSON.toJSONString(taskConfig))
-            .append("\nState:" + state.get().toString());
+                .append("\nConfigs:" + JSON.toJSONString(taskConfig))
+                .append("\nState:" + state.get().toString());
         return sb.toString();
     }
 
