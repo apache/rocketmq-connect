@@ -17,6 +17,7 @@
 package org.apache.rocketmq.connect.jdbc.sink;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
+import org.apache.rocketmq.connect.jdbc.common.HeaderField;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.CachedConnectionProvider;
@@ -100,6 +101,9 @@ public class Updater {
 
     TableId destinationTable(ConnectRecord record) {
         // todo table from header
+        if (config.isTableFromHeader()){
+            return dbDialect.parseToTableId(record.getExtensions().getString(HeaderField.__source_table_key));
+        }
         return dbDialect.parseToTableId(record.getSchema().getName());
     }
 }

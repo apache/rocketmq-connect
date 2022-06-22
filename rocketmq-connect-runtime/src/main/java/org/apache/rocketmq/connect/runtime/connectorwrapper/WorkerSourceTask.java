@@ -24,6 +24,7 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.RecordPosition;
@@ -49,12 +50,14 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.converter.record.RecordConverter;
+import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +121,7 @@ public class WorkerSourceTask implements WorkerTask {
 
     private TransformChain<ConnectRecord> transformChain;
 
+    private RetryWithToleranceOperator retryWithToleranceOperator;
     /**
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
@@ -137,7 +141,8 @@ public class WorkerSourceTask implements WorkerTask {
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
         ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain) {
+        TransformChain<ConnectRecord> transformChain,
+        RetryWithToleranceOperator retryWithToleranceOperator) {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -150,6 +155,8 @@ public class WorkerSourceTask implements WorkerTask {
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.transformChain = transformChain;
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
+        this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
     }
 
     /**
@@ -242,8 +249,11 @@ public class WorkerSourceTask implements WorkerTask {
             }
             List<ConnectRecord> connectRecordList1 = new ArrayList<>(32);
             for (ConnectRecord connectRecord : connectRecordList) {
+
+                retryWithToleranceOperator.sourceRecord(connectRecord);
+
                 ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
-                if (null != connectRecord1) {
+                if (null != connectRecord1 && !retryWithToleranceOperator.failed()) {
                     connectRecordList1.add(connectRecord1);
                 }
             }
@@ -257,11 +267,8 @@ public class WorkerSourceTask implements WorkerTask {
     @Override
     public void stop() {
         state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
-        try {
-            transformChain.close();
-        } catch (Exception exception) {
-            log.error("Transform close failed, {}", exception);
-        }
+        Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
+        Utils.closeQuietly(transformChain, "transform chain");
         log.warn("Stop a task success.");
     }
 
@@ -389,6 +396,7 @@ public class WorkerSourceTask implements WorkerTask {
             log.info("extension keySet null.");
             return;
         }
+
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
@@ -396,6 +404,7 @@ public class WorkerSourceTask implements WorkerTask {
                 MessageAccessor.putProperty(sourceMessage, "connect-ext-" + key, extensionKeyValues.getString(key));
             }
         }
+
     }
 
     @Override

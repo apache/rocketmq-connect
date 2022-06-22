@@ -17,6 +17,7 @@
 package org.apache.rocketmq.connect.runtime.converter.record;
 
 import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;

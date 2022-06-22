@@ -23,13 +23,17 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
 import org.slf4j.Logger;
@@ -49,11 +53,20 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     private static final String PREFIX = RuntimeConfigDefine.TRANSFORMS + "-";
 
+    private RetryWithToleranceOperator retryWithToleranceOperator;
+
     public TransformChain(KeyValue config, Plugin plugin) {
         this.config = config;
         this.plugin = plugin;
         transformList = new ArrayList<>(8);
         init();
+    }
+
+    /**
+     * set retryWithToleranceOperator
+     */
+    public void retryWithToleranceOperator(RetryWithToleranceOperator retryWithToleranceOperator) {
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
     }
 
     private void init() {
@@ -94,7 +107,14 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
         }
         for (final Transform<R> transform : transformList) {
             final R currentRecord = connectRecord;
-            connectRecord = transform.doTransform(currentRecord);
+            if (this.retryWithToleranceOperator == null) {
+                connectRecord = transform.doTransform(currentRecord);
+            } else {
+                connectRecord = this.retryWithToleranceOperator.execute(
+                        () -> transform.doTransform(currentRecord), ErrorReporter.Stage.TRANSFORMATION, transform.getClass()
+                );
+            }
+
             if (connectRecord == null) {
                 break;
             }
