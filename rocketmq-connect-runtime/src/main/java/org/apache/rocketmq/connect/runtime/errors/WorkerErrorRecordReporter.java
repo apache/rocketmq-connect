@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.errors;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.component.task.sink.ErrorRecordReporter;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -50,9 +51,25 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
     public void report(ConnectRecord record, Throwable error) {
         RecordPartition partition = record.getPosition().getPartition();
         String topic = partition.getPartition().containsKey("topic") ? String.valueOf(partition.getPartition().get("topic")) : null;
-        byte[] value = converter.fromConnectData(topic, record.getSchema(), record.getData());
+        Integer queueId = partition.getPartition().containsKey("queueId") ? (Integer) partition.getPartition().get("queueId") : null;
+        Long queueOffset = partition.getPartition().containsKey("queueOffset") ? (Long) partition.getPartition().get("queueOffset") : null;
+        String brokerName = partition.getPartition().containsKey("brokerName") ? String.valueOf(partition.getPartition().get("topic")) : null;
+
         MessageExt consumerRecord = new MessageExt();
-        consumerRecord.setBody(value);
+        if (converter instanceof RecordConverter){
+            byte[] value = converter.fromConnectData(topic, record.getSchema(), record.getData());
+            consumerRecord.setBody(value);
+            consumerRecord.setBrokerName(brokerName);
+            consumerRecord.setQueueId(queueId);
+            consumerRecord.setQueueOffset(queueOffset);
+        }else {
+            byte[] messageBody = JSON.toJSONString(record).getBytes();
+            consumerRecord.setBody(messageBody);
+        }
+        // add extensions
+        record.getExtensions().keySet().forEach(key->{
+            consumerRecord.putUserProperty(key, record.getExtensions().getString(key));
+        });
         retryWithToleranceOperator.executeFailed(ErrorReporter.Stage.TASK_PUT, SinkTask.class, consumerRecord, error);
     }
 }

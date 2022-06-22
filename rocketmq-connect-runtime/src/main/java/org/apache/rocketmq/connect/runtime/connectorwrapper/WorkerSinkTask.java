@@ -584,11 +584,7 @@ public class WorkerSinkTask implements WorkerTask {
         ConnectRecord sinkDataEntry;
         
         // start convert
-        if (null == recordConverter) {
-            final byte[] messageBody = message.getBody();
-            String s = new String(messageBody);
-            sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
-        } else {
+        if (recordConverter instanceof RecordConverter) {
             // timestamp
             String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
             Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
@@ -601,6 +597,10 @@ public class WorkerSinkTask implements WorkerTask {
             SchemaAndValue schemaAndValue = recordConverter.toConnectData(message.getTopic(), message.getBody());
             sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
 
+        } else {
+            final byte[] messageBody = message.getBody();
+            String s = new String(messageBody);
+            sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
         }
         // add extension
         addExtension(properties, sinkDataEntry);

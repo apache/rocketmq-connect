@@ -322,22 +322,23 @@ public class WorkerSourceTask implements WorkerTask {
             sourceMessage.setTopic(topic);
 
             // converter
-            if (recordConverter == null) {
-                final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
-                if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-                    log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
-                    continue;
-                }
-                sourceMessage.setBody(messageBody);
-            } else {
-                putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
+            if (recordConverter instanceof RecordConverter) {
                 byte[] messageBody = recordConverter.fromConnectData(topic, sourceDataEntry.getSchema(), sourceDataEntry.getData());
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                     continue;
                 }
                 sourceMessage.setBody(messageBody);
+            } else {
+                final byte[] messageBody = JSON.toJSONString(sourceDataEntry).getBytes();
+                if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
+                    log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
+                    continue;
+                }
+                sourceMessage.setBody(messageBody);
             }
+            // put extend msg property
+            putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
 
             try {
                 producer.send(sourceMessage, new SendCallback() {
