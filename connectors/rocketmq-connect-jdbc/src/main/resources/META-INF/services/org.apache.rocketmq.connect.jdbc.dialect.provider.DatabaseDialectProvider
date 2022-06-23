@@ -1,0 +1,3 @@
+org.apache.rocketmq.connect.jdbc.dialect.impl.GenericDatabaseDialect$Provider
+org.apache.rocketmq.connect.jdbc.dialect.impl.MySqlDatabaseDialect$Provider
+org.apache.rocketmq.connect.jdbc.dialect.impl.OpenMLDBDatabaseDialect$Provider

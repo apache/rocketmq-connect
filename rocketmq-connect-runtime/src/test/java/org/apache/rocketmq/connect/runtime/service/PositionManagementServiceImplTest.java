@@ -20,7 +20,6 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.Future;
 import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.producer.SendResult;
 import java.io.File;
 import java.lang.reflect.Field;
@@ -37,6 +36,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
@@ -74,16 +74,17 @@ public class PositionManagementServiceImplTest {
 
     private PositionManagementServiceImpl positionManagementService;
 
-    private Set<RecordPartition> needSyncPartition;
+    private Set<ExtendRecordPartition> needSyncPartition;
 
-    private KeyValueStore<RecordPartition, RecordOffset> positionStore;
+    private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
 
-    private RecordPartition sourcePartition;
+    private ExtendRecordPartition sourcePartition;
 
     private RecordOffset sourcePosition;
 
-    private Map<RecordPartition, RecordOffset> positions;
+    private Map<ExtendRecordPartition, RecordOffset> positions;
 
+    private final String namespace = "namespace";
     @Before
     public void init() throws Exception {
         connectConfig = new ConnectConfig();
@@ -133,18 +134,18 @@ public class PositionManagementServiceImplTest {
 
         Field positionStoreField = PositionManagementServiceImpl.class.getDeclaredField("positionStore");
         positionStoreField.setAccessible(true);
-        positionStore = (KeyValueStore<RecordPartition, RecordOffset>) positionStoreField.get(positionManagementService);
+        positionStore = (KeyValueStore<ExtendRecordPartition, RecordOffset>) positionStoreField.get(positionManagementService);
 
 
         Field needSyncPartitionField = PositionManagementServiceImpl.class.getDeclaredField("needSyncPartition");
         needSyncPartitionField.setAccessible(true);
-        needSyncPartition = (ConcurrentSet<RecordPartition>) needSyncPartitionField.get(positionManagementService);
+        needSyncPartition = (ConcurrentSet<ExtendRecordPartition>) needSyncPartitionField.get(positionManagementService);
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.13306");
-        sourcePartition = new RecordPartition(map);
+        sourcePartition = new ExtendRecordPartition(namespace,map);
         Map<String, String> map1 = Maps.newHashMap("binlog_file", "binlogFilename");
         map1.put("next_position", "100");
         sourcePosition = new RecordOffset(map1);
-        positions = new HashMap<RecordPartition, RecordOffset>() {
+        positions = new HashMap<ExtendRecordPartition, RecordOffset>() {
             {
                 put(sourcePartition, sourcePosition);
             }
@@ -159,7 +160,7 @@ public class PositionManagementServiceImplTest {
 
     @Test
     public void testGetPositionTable() {
-        Map<RecordPartition, RecordOffset> positionTable = positionManagementService.getPositionTable();
+        Map<ExtendRecordPartition, RecordOffset> positionTable = positionManagementService.getPositionTable();
         RecordOffset bytes = positionTable.get(sourcePartition);
 
         assertNull(bytes);
@@ -191,7 +192,7 @@ public class PositionManagementServiceImplTest {
 
         assertNotNull(bytes);
 
-        List<RecordPartition> sourcePartitions = new ArrayList<RecordPartition>(8) {
+        List<ExtendRecordPartition> sourcePartitions = new ArrayList<ExtendRecordPartition>(8) {
             {
                 add(sourcePartition);
             }
@@ -210,7 +211,7 @@ public class PositionManagementServiceImplTest {
 
         assertTrue(needSyncPartition.contains(sourcePartition));
 
-        List<RecordPartition> sourcePartitions = new ArrayList<RecordPartition>(8) {
+        List<ExtendRecordPartition> sourcePartitions = new ArrayList<ExtendRecordPartition>(8) {
             {
                 add(sourcePartition);
             }
@@ -233,15 +234,15 @@ public class PositionManagementServiceImplTest {
         positionManagementService.putPosition(positions);
 
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.2:3306");
-        RecordPartition sourcePartitionTmp = new RecordPartition(map);
+        ExtendRecordPartition sourcePartitionTmp = new ExtendRecordPartition(namespace,map);
         Map<String, String> map1 = Maps.newHashMap("binlog_file", "binlogFilename");
         map1.put("next_position", "100");
         RecordOffset sourcePositionTmp = new RecordOffset(map1);
         positionStore.put(sourcePartitionTmp, sourcePositionTmp);
 
-        Set<RecordPartition> needSyncPartitionTmp = needSyncPartition;
+        Set<ExtendRecordPartition> needSyncPartitionTmp = needSyncPartition;
         needSyncPartition = new ConcurrentSet<>();
-        Map<RecordPartition, RecordOffset> needSyncPosition = positionStore.getKVMap().entrySet().stream()
+        Map<ExtendRecordPartition, RecordOffset> needSyncPosition = positionStore.getKVMap().entrySet().stream()
             .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
             .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
@@ -253,7 +254,7 @@ public class PositionManagementServiceImplTest {
         RecordOffset tmpBytes = needSyncPosition.get(sourcePartitionTmp);
         assertNull(tmpBytes);
 
-        List<RecordPartition> sourcePartitions = new ArrayList<RecordPartition>(8) {
+        List<ExtendRecordPartition> sourcePartitions = new ArrayList<ExtendRecordPartition>(8) {
             {
                 add(sourcePartition);
                 add(sourcePartitionTmp);

@@ -17,8 +17,9 @@
 package org.apache.rocketmq.replicator;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,26 +90,19 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public String verifyAndSetConfig(KeyValue config) {
-
-        // Check the need key.
+    public void validate(KeyValue config) {
+        // Check they need key.
         for (String requestKey : ConfigDefine.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
+                log.error("RmqSourceReplicator check need key error , request config key: " + requestKey);
+                throw new RuntimeException("RmqSourceReplicator check need key error.");
             }
         }
-
-        try {
-            this.replicatorConfig.validate(config);
-        } catch (IllegalArgumentException e) {
-            return e.getMessage();
-        }
-        this.configValid = true;
-        return "";
     }
 
     @Override
-    public void start() {
+    public void start(ConnectorContext componentContext) {
+        super.start(componentContext);
         try {
             startMQAdminTools();
         } catch (MQClientException e) {
@@ -117,15 +111,14 @@ public class RmqSourceReplicator extends SourceConnector {
         }
 
         buildRoute();
-        startListner();
+        startListener();
     }
 
-    public void startListner() {
+    public void startListener() {
         executor.scheduleAtFixedRate(new Runnable() {
 
             boolean first = true;
             Map<String, Set<TaskTopicInfo>> origin = null;
-
 
             @Override public void run() {
 
@@ -135,7 +128,7 @@ public class RmqSourceReplicator extends SourceConnector {
                     first = false;
                 }
                 if (!compare(origin, topicRouteMap)) {
-                    context.requestTaskReconfiguration();
+                    connectorContext.requestTaskReconfiguration();
                     origin = new HashMap<>(topicRouteMap);
                 }
             }
@@ -165,6 +158,17 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
+    public void init(KeyValue config) {
+        try {
+            this.replicatorConfig.init(config);
+        } catch (IllegalArgumentException e) {
+            log.error("RmqSourceReplicator init config error.", e);
+            throw new IllegalArgumentException("RmqSourceReplicator init config error.");
+        }
+        this.configValid = true;
+    }
+
+    @Override
     public void stop() {
         executor.shutdown();
         this.srcMQAdminExt.shutdown();
@@ -188,7 +192,7 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public List<KeyValue> taskConfigs() {
+    public List<KeyValue> taskConfigs(int maxTasks) {
         if (!configValid) {
             return new ArrayList<KeyValue>();
         }
@@ -208,12 +212,11 @@ public class RmqSourceReplicator extends SourceConnector {
             this.replicatorConfig.getStoreTopic(),
             this.replicatorConfig.getConverter(),
             DataType.COMMON_MESSAGE.ordinal(),
-            this.replicatorConfig.getTaskParallelism(),
             this.replicatorConfig.isSrcAclEnable(),
             this.replicatorConfig.getSrcAccessKey(),
             this.replicatorConfig.getSrcSecretKey()
         );
-        return this.replicatorConfig.getTaskDivideStrategy().divide(this.topicRouteMap, tdc);
+        return this.replicatorConfig.getTaskDivideStrategy().divide(this.topicRouteMap, tdc, maxTasks);
     }
 
     public void buildRoute() {

@@ -1,15 +1,14 @@
 # rocketmq-connect
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-# GitBook文档
-
-[快速开始](https://rocketmq-1.gitbook.io/rocketmq-connector/quick-start/qian-qi-zhun-bei)
-
-[Runtime](https://rocketmq-1.gitbook.io/rocketmq-connector/rocketmq-connect-1/rocketmq-runtime)
+[Runtime](https://rocketmq-1.gitbook.io/rocketmq-connector/quick-start/runtime-qs)
 
 # 快速开始
 
-文档以rocketmq-connect-sample作为demo
+以rocketmq-connect-sample作为demo
+
+rocketmq-connect-sample的主要作用是从文件中读取数据发送到RocketMQ集群
+然后从Topic中读取消息，写入到目标文件
 
 ## 1.准备
 
@@ -17,85 +16,58 @@
 
 2. Maven 3.2.x或以上版本;
 
-3. A running RocketMQ cluster;
+3. 启动RocketMQ， [RocketMQ](https://rocketmq.apache.org/docs/quick-start/);
 
-## 2.构建
+4. 创建测试Topic
+sh  ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
 
-```
-mvn clean install -Dmaven.test.skip=true
-```
 
-## 3.配置
-
-cd rocketmq-connect/rocketmq-connect-runtime/target/distribution/conf
-
-1. 修改配置文件connect.conf
+## 2.构建Connect
 
 ```
-#current cluster node uniquely identifies
-workerId=DEFAULT_WORKER_1
+git clone https://github.com/apache/rocketmq-connect.git
 
-# Http prot for user to access REST API
-httpPort=8081
+cd  rocketmq-connect
 
-# Local file dir for config store
-storePathRootDir=～/storeRoot
+mvn -Prelease-connect -DskipTests clean install -U
 
-#需要修改为自己的rocketmq
-# Rocketmq namesrvAddr
-namesrvAddr=127.0.0.1:9876  
-
-#需要修改，修改为rocketmq-connect-sample target目录加载demo中source/sink
-# Source or sink connector jar file dir
-pluginPaths=/home/connect/file-connect/target
-``` 
-
-## 4.运行
-
-返回rocketmq-connect-runtime根目录运行
-```
-sh ./run_worker.sh
 ```
 
-查看日志文件${user.home}/logs/rocketmqconnect/connect_runtime.log
+## 3.运行Worker
+
+```
+cd distribution/target/rocketmq-connect-0.0.1-SNAPSHOT/rocketmq-connect-0.0.1-SNAPSHOT
+
+sh bin/connect-standalone.sh -c conf/connect-standalone.conf &
+
+```
+
+查看日志文件
+
+tail -100f ~/logs/rocketmqconnect/connect_runtime.log
+
 以下日志表示runtime启动成功：
 
-The worker [DEFAULT_WORKER_1] boot success.
+The standalone worker boot success.
 
+ctrl + c 退出日志
+
+## 4.启动source connector
+
+当前目录创建测试文件test-source-file.txt
 ```
-注：启动之前RocketMQ创建以下topic
-connector-cluster-topic 集群信息
-connector-config-topic  配置信息
-connector-offset-topic  sink消费进度
-connector-position-topic source数据处理进度
-并且为了保证消息有序，每个topic可以只建一个queue
+touch test-source-file.txt
+
+echo "Hello \r\nRocketMQ\r\n Connect" > test-source-file.txt
+
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","filename":"test-source-file.txt","connect-topicname":"fileTopic"}'
 ```
 
-## 5.日志目录
+看到以下日志说明file source connector启动成功了
 
- ${user.home}/logs/rocketmqconnect 
+tail -100f ~/logs/rocketmqconnect/connect_runtime.log
 
-## 6.配置文件
-
-持久化配置文件默认目录 ～/storeRoot
-
-1. connectorConfig.json connector配置持久化文件
-2. position.json        source connect数据处理进度持久化文件
-3. taskConfig.json      task配置持久化文件
-4. offset.json          sink connect数据消费进度持久化文件
-
-## 7.启动source connector
-
-```
-    GET请求  
-    http://(your worker ip):(port)/connectors/(connector name)?config={"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","connect-topicname":"fileTopic","filename":"/home/connect/rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}   
-```
-   看到一下日志说明file source connector启动成功了
-   
-   2019-07-16 11:18:39 INFO pool-7-thread-1 - Source task start, config:{"properties":{"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter","filename":"/home/connect/rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","task-class":"org.apache.rocketmq.connect.file.FileSourceTask","connect-topicname":"fileTopic","connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","update-timestamp":"1563247119715"}}
-```  
-    注：创建topic："connect-topicname":"fileTopic"
-```
+2019-07-16 11:18:39 INFO pool-7-thread-1 - Source task start, config:{"properties":{"source-record-...
 
 #### source connector配置说明
 
@@ -105,22 +77,24 @@ connector-position-topic source数据处理进度
 | filename                | false    |         | 数据源文件名称                                                                         |
 | task-class              | false    |         | 实现SourceTask类名称（包含包名）                                                       |
 | connect-topicname                   | false    |         | 同步文件数据所需topic                                                                  |
-| update-timestamp        | false    |         | 配置更新时间戳                                                                         |
-| source-record-converter | false    |         | Full class name of the impl of the converter used to convert SourceDataEntry to byte[] |
 
 
-## 8.启动sink connector
+## 5.启动sink connector
 
 ```
-    GET请求  
-    http://(your worker ip):(port)/connectors/(connector name)?config={"connector-class":"org.apache.rocketmq.connect.file.FileSinkConnector","connect-topicname":"fileTopic","filename":"/home/connect/rocketmq-externals/rocketmq-connect-runtime/sink-file.txt","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSinkConnector","filename":"test-sink-file.txt","connect-topicname":"fileTopic"}'
+
+cat test-sink-file.txt
 ```  
-看到一下日志说明file sink connector启动成功了
 
-2019-07-16 11:24:58 INFO pool-7-thread-2 - Sink task start, config:{"properties":{"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter","filename":"/home/connect/rocketmq-externals/rocketmq-connect-runtime/sink-file.txt","connect-topicname":"fileTopic","task-class":"org.apache.rocketmq.connect.file.FileSinkTask","connector-class":"org.apache.rocketmq.connect.file.FileSinkConnector","update-timestamp":"1563247498694"}}
+tail -100f ~/logs/rocketmqconnect/connect_runtime.log
 
-查看配置中"filename":"/home/connect/rocketmq-externals/rocketmq-connect-runtime/sink-file.txt"配置文件
-如果sink-file.txt生成并且与source-file.txt内容一样，说明整个流程已经跑通
+看到以下日志说明file sink connector启动成功了
+
+2019-07-16 11:24:58 INFO pool-7-thread-2 - Sink task start, config:{"properties":{"source-record-...
+
+如果test-sink-file.txt生成并且与source-file.txt内容一样，说明整个流程正常运行。
+文件内容可能顺序不一样，这主要是因为RocketMQ发到不同queue时，接收不同queue消息顺序可能也不一致导致的，是正常的。
 
 #### sink connector配置说明
 
@@ -128,64 +102,124 @@ connector-position-topic source数据处理进度
 | ----------------------- | -------- | ------- | -------------------------------------------------------------------------------------- |
 | connector-class         | false    |         | 实现Connector接口的类名称（包含包名）                                                  |
 | connect-topicname              | false    |         | sink需要处理数据消息topics                                                             |
-| task-class              | false    |         | 实现SourceTask类名称（包含包名）                                                       |
 | filename                | false    |         | sink拉去的数据保存到文件                                                               |
-| update-timestamp        | false    |         | 配置更新时间戳                                                                         |
-| source-record-converter | false    |         | Full class name of the impl of the converter used to convert SourceDataEntry to byte[] |
 
 ```  
 注：source/sink配置文件说明是以rocketmq-connect-sample为demo，不同source/sink connector配置有差异，请以具体sourc/sink connector为准
 ```  
 
-## 9.停止connector
+## 6.停止connector
 
 ```
     GET请求  
     http://(your worker ip):(port)/connectors/(connector name)/stop
+    
+    停止demo中的两个connector
+    curl     http://127.0.0.1:8082/connectors/fileSinkConnector/stop
+    curl     http://127.0.0.1:8082/connectors/fileSourceConnector/stop
+    
 ```  
-看到一下日志说明connector停止成功了
+看到以下日志说明connector停止成功了
 
 Source task stop, config:{"properties":{"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter","filename":"/home/zhoubo/IdeaProjects/my-new3-rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","task-class":"org.apache.rocketmq.connect.file.FileSourceTask","topic":"fileTopic","connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","update-timestamp":"1564765189322"}}
 
+## 7.停止Worker进程
 
-## 10.其它restful接口
+```
+sh bin/connectshutdown.sh
+
+```
 
 
-查看集群节点信息
+## 8.日志目录
 
+ ${user.home}/logs/rocketmqconnect 
+
+## 9.配置文件
+
+持久化配置文件默认目录 ～/storeRoot
+
+1. connectorConfig.json connector配置持久化文件
+2. position.json        source connect数据处理进度持久化文件
+3. taskConfig.json      task配置持久化文件
+4. offset.json          sink connect数据消费进度持久化文件
+
+## 10.配置说明
+
+可根据使用情况修改端口，目录，RocketMQ链接等信息
+```
+#current cluster node uniquely identifies
+workerId=DEFAULT_WORKER_1
+
+# Http prot for user to access REST API
+httpPort=8082
+
+# Local file dir for config store
+storePathRootDir=/home/connect/storeRoot
+
+#需要修改为自己的rocketmq nameserver 接入点
+# RocketMQ namesrvAddr
+namesrvAddr=127.0.0.1:9876  
+
+#用于加载Connector插件，类似于jvm启动加载jar包或者class类，这里目录目录用于放Connector相关的实现插件，
+支持文件和目录
+# Source or sink connector jar file dir
+pluginPaths=rocketmq-connect-sample/target/rocketmq-connect-sample-0.0.1-SNAPSHOT.jar
+``` 
+
+## 11.其它restful接口
+
+
+查看集群节点信息：
+
+```
 http://(your worker ip):(port)/getClusterInfo
+```
 
-查看集群中Connector和Task配置信息
+查看集群中Connector和Task配置信息：
 
+```
 http://(your worker ip):(port)/getConfigInfo
+```
 
-查看当前节点分配Connector和Task配置信息
+查看当前节点分配Connector和Task配置信息：
 
+```
 http://(your worker ip):(port)/getAllocatedInfo
+```
 
-查看指定Connector配置信息
+查看指定Connector配置信息：
 
+```
 http://(your worker ip):(port)/connectors/(connector name)/config
+```
 
-查看指定Connector状态
+查看指定Connector状态：
 
+```
 http://(your worker ip):(port)/connectors/(connector name)/status
+```
 
-停止所有Connector
+停止所有Connector：
 
+```
 http://(your worker ip):(port)/connectors/stopAll
+```
 
-重新加载Connector插件目录下的Connector包
+重新加载Connector插件目录下的Connector包：
 
+```
 http://(your worker ip):(port)/plugin/reload
+```
 
-从内存删除Connector配置信息（谨慎使用）
+从内存删除Connector配置信息（谨慎使用）：
 
+```
 http://(your worker ip):(port)/connectors/(connector name)/delete
+```
 
 
-
-## 11.runtime配置参数说明
+## 12.runtime配置参数说明
 
 | key                      | nullable | default                                                                                         | description                                                                        |
 | ------------------------ | -------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -225,7 +259,7 @@ org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy
 
 [负载均衡](https://rocketmq-1.gitbook.io/rocketmq-connector/rocketmq-connect-1/rocketmq-runtime/fu-zai-jun-heng)
 
-## 12.runtime支持JVM参数说明
+## 13.runtime支持JVM参数说明
 
 | key                                             | nullable | default | description             |
 | ----------------------------------------------- | -------- | ------- | ----------------------- |
@@ -285,12 +319,38 @@ private static class MD5Hash implements HashFunction {
     }
 ```
 
-## FAQ
 
-Q1：sink-file.txt文件中每行的文本顺序source-file.txt不一致？
+##开发指南
+如何在IDE中启动Connect Worker ?
 
-A1: source数据到sink中经过rocketmq中转，如果需要顺序消息，需要有序消息发送到同一个queue。
-实现有序消息有2中方式：1、一个topic创建一个queue（rocketmq-connect-runtime目前只能使用这种方式）2、rocketmq-connect-runtime支持顺序消息，通过消息中指定字段处理发送到rocketmq的同一queue（后续支持）
+###单机模式启动Connect Worker
+
+Main Class配置
+org.apache.rocketmq.connect.runtime.StandaloneConnectStartup
+
+![img_2.png](img_2.png)
+
+Program arguments配置
+
+-c  ${user path}/rocketmq-connect/distribution/conf/connect-standalone.conf
+
+Environment variables配置
+
+CONNECT_HOME=${user path}/rocketmq-connect/distribution
+
+###集群模式启动Connect Worker
+
+Main Class配置
+org.apache.rocketmq.connect.runtime.DistributedConnectStartup
+
+
+Program arguments配置
+
+-c  ${user path}/rocketmq-connect/distribution/conf/connect-distributed.conf
+
+Environment variables配置
+
+CONNECT_HOME=${user path}/rocketmq-connect/distribution
 
 
 

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
+import com.beust.jcommander.internal.Sets;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import java.util.ArrayList;
@@ -34,9 +35,14 @@ import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -154,19 +160,86 @@ public class ConnectUtil {
         return defaultMQAdminExt;
     }
 
+    public static void createTopic(ConnectConfig connectConfig, TopicConfig topicConfig) {
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Set<String> clusterNameSet = clusterAddrTable.keySet();
+            for (String clusterName : clusterNameSet) {
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("create topic: " + topicConfig.getTopicName() + " failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+    }
+
+    public static boolean isTopicExist(ConnectConfig connectConfig, String topic) {
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        boolean foundTopicRouteInfo = false;
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
+            if (topicRouteData != null) {
+                foundTopicRouteInfo = true;
+            }
+        } catch (MQClientException e) {
+            foundTopicRouteInfo = false;
+        } catch (Exception e) {
+            throw new RuntimeException("get topic route info  failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+        return foundTopicRouteInfo;
+    }
+
+    public static Set<String> fetchAllConsumerGroupList(ConnectConfig connectConfig) {
+        Set<String> consumerGroupSet = Sets.newHashSet();
+        DefaultMQAdminExt defaultMQAdminExt = null;
+        try {
+            defaultMQAdminExt = startMQAdminTool(connectConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            for (BrokerData brokerData : clusterInfo.getBrokerAddrTable().values()) {
+                SubscriptionGroupWrapper subscriptionGroupWrapper = defaultMQAdminExt.getAllSubscriptionGroup(brokerData.selectBrokerAddr(), 3000L);
+                consumerGroupSet.addAll(subscriptionGroupWrapper.getSubscriptionGroupTable().keySet());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("fetch all topic  failed", e);
+        } finally {
+            if (defaultMQAdminExt != null) {
+                defaultMQAdminExt.shutdown();
+            }
+        }
+        return consumerGroupSet;
+    }
+
     public static String createSubGroup(ConnectConfig connectConfig, String subGroup) {
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
             SubscriptionGroupConfig initConfig = new SubscriptionGroupConfig();
             initConfig.setGroupName(subGroup);
-
-            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, connectConfig.getClusterName());
-            for (String addr : masterSet) {
-                defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, initConfig);
+            ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
+            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Set<String> clusterNameSet = clusterAddrTable.keySet();
+            for (String clusterName : clusterNameSet) {
+                Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : masterSet) {
+                    defaultMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, initConfig);
+                }
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("create subGroup: " + subGroup + " failed", e);
+            throw new RuntimeException("create subGroup: " + subGroup + " failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
@@ -215,6 +288,24 @@ public class ConnectUtil {
         return recordPartition;
     }
 
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, String connectorName, ConnectKeyValue keyValue, Integer taskId) {
+        RPCHook rpcHook = null;
+        if (connectConfig.getAclEnable()) {
+            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+        }
+        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(rpcHook);
+        consumer.setInstanceName(createInstance(connectorName.concat("-").concat(taskId.toString())));
+        String taskGroupId = keyValue.getString("task-group-id");
+        if (StringUtils.isNotBlank(taskGroupId)) {
+            consumer.setConsumerGroup(taskGroupId);
+        } else {
+            consumer.setConsumerGroup(SYS_TASK_CG_PREFIX + connectorName);
+        }
+        if (StringUtils.isNotBlank(connectConfig.getNamesrvAddr())) {
+            consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        }
+        return consumer;
+    }
 
     public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, String connectorName, ConnectKeyValue keyValue) {
         RPCHook rpcHook = null;

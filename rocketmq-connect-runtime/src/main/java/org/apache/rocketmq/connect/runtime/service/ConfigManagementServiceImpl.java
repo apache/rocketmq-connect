@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -73,6 +74,41 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
     private final String configManagePrefix = "ConfigManage";
 
     public ConfigManagementServiceImpl() {
+    }
+
+    public ConfigManagementServiceImpl(ConnectConfig connectConfig, Plugin plugin) {
+
+        this.connectorConfigUpdateListener = new HashSet<>();
+        this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
+            connectConfig.getConfigStoreTopic(),
+            ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId()),
+            new ConfigChangeCallback(),
+            new JsonConverter(),
+            new ConnAndTaskConfigConverter());
+        this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
+            FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
+            new JsonConverter(),
+            new JsonConverter(ConnectKeyValue.class));
+        this.taskKeyValueStore = new FileBaseKeyValueStore<>(
+            FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
+            new JsonConverter(),
+            new ListConverter(ConnectKeyValue.class));
+        this.plugin = plugin;
+        this.prepare(connectConfig);
+    }
+
+    /**
+     * Preparation before startup
+     *
+     * @param connectConfig
+     */
+    private void prepare(ConnectConfig connectConfig) {
+        String configStoreTopic = connectConfig.getConfigStoreTopic();
+        if (!ConnectUtil.isTopicExist(connectConfig, configStoreTopic)) {
+            log.info("try to create config store topic: {}!", configStoreTopic);
+            TopicConfig topicConfig = new TopicConfig(configStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
+        }
     }
 
     @Override
@@ -152,7 +188,7 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
         }
         final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
         connector.validate(configs);
-        connector.init(configs);
+        connector.start(configs);
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return "";

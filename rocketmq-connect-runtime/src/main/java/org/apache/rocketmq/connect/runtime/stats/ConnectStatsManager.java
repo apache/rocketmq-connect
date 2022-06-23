@@ -68,6 +68,9 @@ public class ConnectStatsManager {
     public static final String SINK_RECORD_PUT_FAIL_RT = "SINK_RECORD_PUT_FAIL_RT";
     public static final String SINK_RECORD_PUT_TOTAL_FAIL_RT = "SINK_RECORD_PUT_TOTAL_FAIL_RT";
 
+    public static final String SOURCE_RECORD_POLL_TOTAL_TIMES = "SOURCE_RECORD_POLL_TOTAL_TIMES";
+    public static final String SINK_RECORD_READ_TOTAL_TIMES = "SINK_RECORD_READ_TOTAL_TIMES";
+
     /**
      * read disk follow stats
      */
@@ -119,6 +122,9 @@ public class ConnectStatsManager {
         this.statsTable.put(SINK_RECORD_PUT_TOTAL_RT, new StatsItemSet(SINK_RECORD_PUT_TOTAL_RT, this.scheduledExecutorService, log));
         this.statsTable.put(SINK_RECORD_PUT_FAIL_RT, new StatsItemSet(SINK_RECORD_PUT_FAIL_RT, this.scheduledExecutorService, log));
         this.statsTable.put(SINK_RECORD_PUT_TOTAL_FAIL_RT, new StatsItemSet(SINK_RECORD_PUT_TOTAL_FAIL_RT, this.scheduledExecutorService, log));
+
+        this.statsTable.put(SOURCE_RECORD_POLL_TOTAL_TIMES, new StatsItemSet(SOURCE_RECORD_POLL_TOTAL_TIMES, this.scheduledExecutorService, log));
+        this.statsTable.put(SINK_RECORD_READ_TOTAL_TIMES, new StatsItemSet(SINK_RECORD_READ_TOTAL_TIMES, this.scheduledExecutorService, log));
     }
 
     public void start() {
@@ -138,16 +144,16 @@ public class ConnectStatsManager {
         return null;
     }
 
-    public void incSourceRecordPollTotalNums() {
-        this.statsTable.get(SOURCE_RECORD_POLL_TOTAL_NUMS).addValue(worker, 1, 1);
+    public void incSourceRecordPollTotalNums(int incValue) {
+        this.statsTable.get(SOURCE_RECORD_POLL_TOTAL_NUMS).addValue(worker, incValue, 1);
 
     }
 
-    public void incSourceRecordPollNums(String taskId) {
+    public void incSourceRecordPollNums(String taskId, int incValue) {
         if (StringUtils.isBlank(taskId)) {
             return;
         }
-        this.statsTable.get(SOURCE_RECORD_POLL_NUMS).addValue(taskId, 1, 1);
+        this.statsTable.get(SOURCE_RECORD_POLL_NUMS).addValue(taskId, incValue, 1);
     }
 
     public void incSourceRecordPollTotalFailNums() {
@@ -206,8 +212,8 @@ public class ConnectStatsManager {
         this.statsTable.get(SINK_RECORD_READ_FAIL_NUMS).addValue(taskId, 1, 1);
     }
 
-    public void incSinkRecordReadTotalNums() {
-        this.statsTable.get(SINK_RECORD_READ_TOTAL_NUMS).addValue(worker, 1, 1);
+    public void incSinkRecordReadTotalNums(int incValue) {
+        this.statsTable.get(SINK_RECORD_READ_TOTAL_NUMS).addValue(worker, incValue, 1);
     }
 
     public void incSinkRecordReadNums(String taskId) {
@@ -280,5 +286,13 @@ public class ConnectStatsManager {
             return;
         }
         this.statsTable.get(SINK_RECORD_PUT_RT).addValue(taskId, (int) rt, 1);
+    }
+
+    public void incSourceRecordPollTotalTimes() {
+        this.statsTable.get(SOURCE_RECORD_POLL_TOTAL_TIMES).addValue(worker, 1, 1);
+    }
+
+    public void incSinkRecordReadTotalTimes() {
+        this.statsTable.get(SINK_RECORD_READ_TOTAL_TIMES).addValue(worker, 1, 1);
     }
 }

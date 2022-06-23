@@ -67,43 +67,51 @@
     </build>
 
     <properties>
-        <rocketmq.version>4.5.2</rocketmq.version>
+        <rocketmq.version>4.7.0</rocketmq.version>
+        <openmessaging.connector.version>0.1.2</openmessaging.connector.version>
+        <junit.version>4.13.1</junit.version>
+        <mockito.version>3.2.4</mockito.version>
+        <assertj.version>2.6.0</assertj.version>
+        <slf4j.version>1.7.7</slf4j.version>
+        <logback.version>1.2.9</logback.version>
+        <fastjson.version>1.2.83</fastjson.version>
+        <joor.version>0.9.6</joor.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.openmessaging</groupId>
             <artifactId>openmessaging-connector</artifactId>
-            <version>0.1.1</version>
+            <version>${openmessaging.connector.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.1</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.6.3</version>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>2.6.0</version>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.5</version>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.0</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
@@ -123,12 +131,12 @@
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>joor</artifactId>
-            <version>0.9.6</version>
+            <version>${joor.version}</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.80</version>
+            <version>${fastjson.version}</version>
         </dependency>
     </dependencies>
 
@@ -137,7 +145,7 @@
             <id>release-all</id>
             <build>
                 <plugins>
-                  <plugin>
+                    <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
                             <descriptors>

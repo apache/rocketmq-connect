@@ -1,8 +1,13 @@
 # rocketmq-connect-jdbc
 
+```  
+注: 目前支持的数据库类型为 mysql ,openMLDB ，其它数据库的jdbc模式持续扩展中
+```  
+
 ## rocketmq-connect-jdbc 打包
+
 ```
-mvn clean install -Dmaven.test.skip=true
+mvn clean package -Dmaven.test.skip=true
 ```
 
 ## rocketmq-connect-jdbc 启动
@@ -10,34 +15,40 @@ mvn clean install -Dmaven.test.skip=true
 * **jdbc-source-connector** 启动
 
 ```
-http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",“dbUrl”:"${source-db-ip}",dbPort”:"${source-db-port}",dbUsername”:"${source-db-username}",dbPassword”:"${source-db-password}","rocketmqTopic":"${source-table-name}","mode":"bulk","whiteDataBase":{"${source-db-name}":{"${source-table-name}":{"${source-column-name}":"${source-column-value}"}}},"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
-```
-
-例子
-
-```
-http://localhost:8081/connectors/jdbcConnectorSource?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector","dbUrl":"192.168.1.3","dbPort":"3306","dbUsername":"root","dbPassword":"mysqldb123456",
-"rocketmqTopic":"test_table","mode":"bulk","whiteDataBase":{"test_database":{"test_table":{"test_column":"8"}}},
-"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
+{
+    "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
+    "max-task":"2",
+    "connection.url":"jdbc:mysql://XXXXXXXXX:3306",
+    "connection.user":"*****",
+    "connection.password":"*****",
+    "table.whitelist":"db.table",
+    "mode": "incrementing",
+    "incrementing.column.name":"id",
+    "timestamp.initial": -1,
+    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+}
 ```
 
 * **jdbc-sink-connector** 启动
 
 ```
-http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-connector-name}
-?config={"source-rocketmq":"${runtime-ip}:${runtime-port}","source-cluster":"${broker-cluster}","connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",“dbUrl”:"${sink-db-ip}",dbPort”:"${sink-db-port}",dbUsername”:"${sink-db-username}",dbPassword”:"${sink-db-password}","mode":"bulk","topicNames":"${source-table-name}","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-connector-name}
+{
+    "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
+    "max-task":"2",
+    "connect-topicname":"connect-topicname-jdbc-02",
+    "connection.url":"jdbc:mysql://*****:3306/{dbname}",
+    "connection.user":"******",
+    "connection.password":"******",
+    "pk.fields":"id",
+    "pk.mode":"record_value",
+    "insert.mode":"UPSERT",
+    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+}
 ```
 
-例子 
-```
-http://localhost:8081/connectors/jdbcConnectorSink?config={"source-rocketmq":"localhost:9876","source-cluster":"DefaultCluster",
-"connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector","dbUrl":"192.168.1.2","dbPort":"3306","dbUsername":"root",
-"dbPassword":"mysqldb123456","topicNames":"test_table","mode":"bulk","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
-```
-
->**注：** `rocketmq-jdbc-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的所有`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
+> **注：** `rocketmq-jdbc-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的所有`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
 
 ## rocketmq-connect-jdbc 停止
 
@@ -46,40 +57,69 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 ```
 
 ## rocketmq-connect-jdbc 参数说明
+
 * **jdbc-source-connector 参数说明**
 
-|         KEY            |  TYPE   | Must be filled | Description| Example
-|------------------------|---------|----------------|------------|---|
-|dbUrl                   | String  | YES            | source端 DB ip | 192.168.1.3|
-|dbPort                  | String  | YES            | source端 DB port | 3306 |
-|dbUsername              | String  | YES            | source端 DB 用户名 | root |
-|dbPassword              | String  | YES            | source端 DB 密码 | 123456 |
-|whiteDataBase           | String  | YES            | source端同步数据白名单，嵌套配置，为{DB名：{表名：{字段名：字段值}}}，若无指定字段数据同步，字段名可设为NO-FILTER，值为任意 | {"DATABASE_TEST":{"TEST_DATA":{"name":"test"}}} |
-|mode                    | String  | YES            | source-connector 模式，目前仅支持bulk | bulk |
-|rocketmqTopic           | String  | NO             | source端同步数据的topic名字，必须和要同步的数据库表名一样 | TEST_DATA |
-|task-divide-strategy    | Integer | NO             | task 分配策略, 默认值为 0，表示按照topic分配任务，每一个table便是一个topic | 0 |
-|task-parallelism        | Integer | NO             | task parallelism，默认值为 1，表示将topic拆分为多少个任务进行执行 | 2 |
-|source-rocketmq         | String  | YES            | source 端获取路由信息连接到的RocketMQ nameserver 地址 | 192.168.1.3:9876 |
-|source-cluster          | String  | YES            | source 端获取路由信息连接到的RocketMQ broker cluster | DefaultCluster |
-|source-record-converter | String  | YES            | source data 解析 | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
+|         KEY                 |  TYPE   | Must be filled | Description| Example
+|------------------------|----|---------|---------------|------------------|
+|connection.url               | String  | YES           | source端 jdbc连接 | jdbc:mysql://XXXXXXXXX:3306|
+|connection.user              | String  | YES           | source端 DB 用户名 | root |
+|connection.password          | String  | YES           | source端 DB 密码   | root |
+|connection.attempts          | String  | YES           | source端 DB连接重试次数 | 3 |
+|connection.backoff.ms        | Long    | YES           |  |
+|poll.interval.ms             | Long    | YES           |拉取间隔时间  | 3000ms |
+|batch.max.rows               | Integer | NO            |每次拉取数量 | 300 |
+|mode                         | Integer | NO            |拉取模式 | bulk、timestamp、incrementing、timestamp+incrementing |
+|incrementing.column.name     | Integer | NO            |增量字段，常用ID  | id |
+|timestamp.column.name        | String  | YES           |时间增量字段 | modified_time |
+|table.whitelist              | String  | YES           |需要扫描的表 | db.table,db.table01 |
+|max-task                     | Integer | YES           |任务数量，最大不能大于表的数量 | 2 |
+|source-record-converter      | Integer | YES           |data转换器  | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
 
 ```  
-注：1. source/sink配置文件说明是以rocketmq-connect-jdcb为demo，不同source/sink connector配置有差异，请以具体sourc/sink connector为准
-    2. rocketmqTopic 在jdbc-source-connector中没有被用到，暂时保留的原因是为了配置显示一致性
+注：1.source拉取的数据写入到以表名自动创建的topic中，如果需要写入特定的topic中则需要指定"connect-topicname" 参数
+   2.topic.prefix参数可以为自动创建的topic增加前缀，用来进行逻辑的隔离
 ```  
+
 * **jdbc-sink-connector 参数说明**
 
-|         KEY            |  TYPE   | Must be filled | Description| Example
-|------------------------|---------|----------------|------------|---|
-|dbUrl                   | String  | YES            | sink端 DB ip | 192.168.1.2|
-|dbPort                  | String  | YES            | sink端 DB port | 3306 |
-|dbUsername              | String  | YES            | sink端 DB 用户名 | root |
-|dbPassword              | String  | YES            | sink端 DB 密码 | 123456 |
-|mode                    | String  | YES            | source-connector 模式，目前仅支持bulk | bulk |
-|topicNames              | String  | YES            | sink端同步数据的topic名字，必须和要同步的数据库表名一样 | TEST_DATA |
-|task-divide-strategy    | Integer | NO             | sink端 分配策略, 默认值为 0，表示按照topic分配任务，每一个table便是一个topic | 0 |
-|task-parallelism        | Integer | NO             | sink端 parallelism，默认值为 1，表示将topic拆分为多少个任务进行执行 | 2 |
-|source-rocketmq         | String  | YES            | sink端 端获取路由信息连接到的RocketMQ nameserver 地址 | 192.168.1.3:9876 |
-|source-cluster          | String  | YES            | sink端 端获取路由信息连接到的RocketMQ broker cluster | DefaultCluster |
-|source-record-converter | String  | YES            | sink端 data 解析 | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
+|         KEY                 |  TYPE   | Must be filled | Description| Example
+|------------------------|----|---------|---------------|------------------|
+|connection.url               | String  | YES           | sink端 jdbc连接          | jdbc:mysql://XXXXXXXXX:3306|
+|connection.user              | String  | YES           | sink端 DB 用户名 | root |
+|connection.password          | String  | YES           | sink端 DB 密码   | root |
+|connection.attempts          | String  | NO           | sink端 DB连接重试次数 | 3 |
+|connection.backoff.ms        | Long    | NO           |  |
+|connect-topicname            | Long    | YES          |监听的topic  | topic-name |
+|pk.fields                     | String  | NO           |写入侧主键配置，用于更新使用 | id |
+|pk.mode                      | String  | NO           |获取主键的模式 | none、record_value |
+|insert.mode                  | Integer | YES           |写入模式 | UPDATE、UPSERT、INSERT |
+|max-task                     | Integer | NO           |任务数量 | 2 |
+|source-record-converter      | Integer | YES          |data转换器  | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
 
+```  
+注: openMLDB maven包的引入：
+---------MacOS 系统下运行-------------
+     <dependency>
+            <groupId>com.4paradigm.openmldb</groupId>
+            <artifactId>openmldb-native</artifactId>
+            <version>0.5.0-macos</version>
+        </dependency>
+        <dependency>
+            <groupId>com.4paradigm.openmldb</groupId>
+            <artifactId>openmldb-jdbc</artifactId>
+            <version>0.5.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.4paradigm.openmldb</groupId>
+                    <artifactId>openmldb-native</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+---------Linux 系统下运行-------------
+        <dependency>
+            <groupId>com.4paradigm.openmldb</groupId>
+            <artifactId>openmldb-jdbc</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+```

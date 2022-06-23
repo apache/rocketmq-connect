@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -60,9 +61,19 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
      * @param connectConfig
      */
     private void prepare(ConnectConfig connectConfig) {
-        if (connectConfig.isAutoCreateGroupEnable()) {
-            ConnectUtil.createSubGroup(connectConfig, this.defaultMQPullConsumer.getConsumerGroup());
+        String consumerGroup = this.defaultMQPullConsumer.getConsumerGroup();
+        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+        if (!consumerGroupSet.contains(consumerGroup)) {
+            log.info("try to create consumerGroup: {}!", consumerGroup);
+            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
         }
+        String clusterStoreTopic = connectConfig.getClusterStoreTopic();
+        if (!ConnectUtil.isTopicExist(connectConfig, clusterStoreTopic)) {
+            log.info("try to create cluster store topic: {}!", clusterStoreTopic);
+            TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
+            ConnectUtil.createTopic(connectConfig, topicConfig);
+        }
+
     }
 
     @Override public void initialize(ConnectConfig connectConfig) {

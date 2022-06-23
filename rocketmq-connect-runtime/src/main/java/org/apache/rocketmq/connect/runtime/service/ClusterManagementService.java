@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+
 import java.util.List;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 
@@ -38,6 +40,15 @@ public interface ClusterManagementService {
      * Stop the cluster manager.
      */
     void stop();
+
+    /**
+     * Configure class with the given key-value pairs
+     *
+     * @param config can be DistributedConfig or StandaloneConfig
+     */
+    default void configure(ConnectConfig config) {
+
+    }
 
     /**
      * Check if Cluster Store Topic exists.
