@@ -115,4 +115,6 @@ public interface ConfigManagementService {
     }
 
     Plugin getPlugin();
+
+    StagingMode getStagingMode();
 }

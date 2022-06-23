@@ -397,4 +397,8 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
     public Plugin getPlugin() {
         return this.plugin;
     }
+
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.DISTRIBUTED;
+    }
 }

@@ -35,13 +35,14 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConfig;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
-import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.OffsetManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
+import org.apache.rocketmq.connect.runtime.utils.ServiceProviderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,14 +132,19 @@ public class DistributedConnectStartup {
             plugin.initPlugin();
 
             // Create controller and initialize.
+            ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.DISTRIBUTED);
+            clusterManagementService.initialize(connectConfig);
+            ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.DISTRIBUTED);
+            configManagementService.initialize(connectConfig, plugin);
+            PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.DISTRIBUTED);
+            positionManagementServices.initialize(connectConfig);
 
             DistributedConnectController controller = new DistributedConnectController(
                     plugin,
                     connectConfig,
-                    new ClusterManagementServiceImpl(connectConfig),
-                    new ConfigManagementServiceImpl(connectConfig, plugin),
-                    new PositionManagementServiceImpl(connectConfig),
-                    new OffsetManagementServiceImpl(connectConfig));
+                    clusterManagementService,
+                    configManagementService,
+                    positionManagementServices);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;

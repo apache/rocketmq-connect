@@ -27,6 +27,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.ListConverter;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
@@ -61,18 +62,20 @@ public class MemoryConfigManagementServiceImpl implements ConfigManagementServic
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
 
-    private final Plugin plugin;
+    private Plugin plugin;
 
-    public MemoryConfigManagementServiceImpl(ConnectConfig connectConfig, Plugin plugin) {
+    public MemoryConfigManagementServiceImpl() {
+    }
 
+    @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
-                new JsonConverter(),
-                new JsonConverter(ConnectKeyValue.class));
+            FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
+            new JsonConverter(),
+            new JsonConverter(ConnectKeyValue.class));
         this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
-                new JsonConverter(),
-                new ListConverter(ConnectKeyValue.class));
+            FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
+            new JsonConverter(),
+            new ListConverter(ConnectKeyValue.class));
         this.plugin = plugin;
     }
 
@@ -250,5 +253,9 @@ public class MemoryConfigManagementServiceImpl implements ConfigManagementServic
     @Override
     public Plugin getPlugin() {
         return this.plugin;
+    }
+
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.STANDALONE;
     }
 }

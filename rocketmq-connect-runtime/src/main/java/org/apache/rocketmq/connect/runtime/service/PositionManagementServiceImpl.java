@@ -72,22 +72,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     public PositionManagementServiceImpl() {
     }
 
-    public PositionManagementServiceImpl(ConnectConfig connectConfig) {
-
-        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
-                new RecordPartitionConverter(),
-                new RecordOffsetConverter());
-        this.dataSynchronizer = new BrokerBasedLog(connectConfig,
-                connectConfig.getPositionStoreTopic(),
-                ConnectUtil.createGroupName(positionManagePrefix, connectConfig.getWorkerId()),
-                new PositionChangeCallback(),
-                new JsonConverter(),
-                new RecordPositionMapConverter());
-        this.positionUpdateListener = new HashSet<>();
-        this.needSyncPartition = new ConcurrentSet<>();
-        this.prepare(connectConfig);
-    }
-
     /**
      * Preparation before startup
      *
@@ -192,6 +176,11 @@ public class PositionManagementServiceImpl implements PositionManagementService 
             new RecordPositionMapConverter());
         this.positionUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
+        this.prepare(connectConfig);
+    }
+
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.DISTRIBUTED;
     }
 
     private void sendOnlinePositionInfo() {

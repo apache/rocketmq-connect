@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-
 import java.util.List;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 
@@ -72,6 +70,8 @@ public interface ClusterManagementService {
     void registerListener(WorkerStatusListener listener);
 
     String getCurrentWorker();
+
+    StagingMode getStagingMode();
 
     interface WorkerStatusListener {
 

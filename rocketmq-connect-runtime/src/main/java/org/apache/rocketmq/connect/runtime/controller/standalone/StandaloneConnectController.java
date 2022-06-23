@@ -39,10 +39,9 @@ public class StandaloneConnectController extends AbstractConnectController {
                                        StandaloneConfig connectConfig,
                                        ClusterManagementService clusterManagementService,
                                        ConfigManagementService configManagementService,
-                                       PositionManagementService positionManagementService,
-                                       PositionManagementService offsetManagementService) {
+                                       PositionManagementService positionManagementService) {
 
-        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService, offsetManagementService);
+        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.rebalanceService = new StandaloneRebalanceService(rebalanceImpl, configManagementService, clusterManagementService);

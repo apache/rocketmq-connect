@@ -129,6 +129,10 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
         return this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory().getClientId();
     }
 
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.DISTRIBUTED;
+    }
+
     @Override
     public void registerListener(WorkerStatusListener listener) {
         this.workerStatusListeners.add(listener);

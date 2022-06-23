@@ -19,12 +19,10 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.data.RecordOffset;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
-
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 
 /**
  * Interface for position manager.
@@ -104,4 +102,6 @@ public interface PositionManagementService {
          */
         void onPositionUpdate();
     }
+
+    StagingMode getStagingMode();
 }
