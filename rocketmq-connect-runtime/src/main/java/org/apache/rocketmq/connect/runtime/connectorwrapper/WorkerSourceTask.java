@@ -322,7 +322,7 @@ public class WorkerSourceTask implements WorkerTask {
             }
             sourceMessage.setTopic(topic);
             // converter
-            if (recordConverter instanceof RecordConverter) {
+            if (recordConverter != null && recordConverter instanceof RecordConverter) {
                 String finalTopic = topic;
                 byte[] messageBody = retryWithToleranceOperator.execute(() -> recordConverter.fromConnectData(finalTopic, sourceDataEntry.getSchema(), sourceDataEntry.getData()),
                         ErrorReporter.Stage.CONVERTER, recordConverter.getClass());

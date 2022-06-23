@@ -56,7 +56,7 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
         String brokerName = partition.getPartition().containsKey("brokerName") ? String.valueOf(partition.getPartition().get("topic")) : null;
 
         MessageExt consumerRecord = new MessageExt();
-        if (converter instanceof RecordConverter){
+        if (converter != null && converter instanceof RecordConverter){
             byte[] value = converter.fromConnectData(topic, record.getSchema(), record.getData());
             consumerRecord.setBody(value);
             consumerRecord.setBrokerName(brokerName);

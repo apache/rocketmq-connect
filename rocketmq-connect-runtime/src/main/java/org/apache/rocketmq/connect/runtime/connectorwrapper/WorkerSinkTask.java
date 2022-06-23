@@ -584,7 +584,7 @@ public class WorkerSinkTask implements WorkerTask {
         ConnectRecord sinkDataEntry;
         
         // start convert
-        if (recordConverter instanceof RecordConverter) {
+        if (recordConverter != null && recordConverter instanceof RecordConverter) {
             // timestamp
             String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
             Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
