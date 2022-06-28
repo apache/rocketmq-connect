@@ -24,21 +24,13 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.RecordPosition;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -50,7 +42,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
+import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
@@ -61,6 +53,15 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
 
@@ -109,7 +110,7 @@ public class WorkerSourceTask implements WorkerTask {
     /**
      * A converter to parse source data entry to byte[].
      */
-    private Converter recordConverter;
+    private RecordConverter recordConverter;
 
     private final AtomicReference<WorkerState> workerState;
 
@@ -133,16 +134,16 @@ public class WorkerSourceTask implements WorkerTask {
     }
 
     public WorkerSourceTask(String connectorName,
-        SourceTask sourceTask,
-        ConnectKeyValue taskConfig,
-        PositionManagementService positionManagementService,
-        Converter recordConverter,
-        DefaultMQProducer producer,
-        AtomicReference<WorkerState> workerState,
-        ConnectStatsManager connectStatsManager,
-        ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain,
-        RetryWithToleranceOperator retryWithToleranceOperator) {
+                            SourceTask sourceTask,
+                            ConnectKeyValue taskConfig,
+                            PositionManagementService positionManagementService,
+                            RecordConverter recordConverter,
+                            DefaultMQProducer producer,
+                            AtomicReference<WorkerState> workerState,
+                            ConnectStatsManager connectStatsManager,
+                            ConnectStatsService connectStatsService,
+                            TransformChain<ConnectRecord> transformChain,
+                            RetryWithToleranceOperator retryWithToleranceOperator) {
         this.connectorName = connectorName;
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -276,7 +277,7 @@ public class WorkerSourceTask implements WorkerTask {
     public void cleanup() {
         log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
         if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
-            state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
+                state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
             log.info("Cleaning a task success");
         } else {
             log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
@@ -321,25 +322,27 @@ public class WorkerSourceTask implements WorkerTask {
                 throw new ConnectException("source connect lack of topic config");
             }
             sourceMessage.setTopic(topic);
-            putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
-            if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
-                Object payload = sourceDataEntry.getData();
-                if (null != payload) {
-                    final byte[] messageBody = (String.valueOf(payload)).getBytes();
-                    if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-                        log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
-                        continue;
-                    }
-                    sourceMessage.setBody(messageBody);
+            // converter
+            if (recordConverter == null) {
+                final byte[] messageBody = JSON.toJSONString(sourceDataEntry, SerializerFeature.DisableCircularReferenceDetect,  SerializerFeature.WriteMapNullValue).getBytes();
+                if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
+                    log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
+                    continue;
                 }
+                sourceMessage.setBody(messageBody);
             } else {
-                final byte[] messageBody = JSON.toJSONString(sourceDataEntry, SerializerFeature.DisableCircularReferenceDetect).getBytes();
+                String finalTopic = topic;
+                byte[] messageBody = retryWithToleranceOperator.execute(() -> recordConverter.fromConnectData(finalTopic, sourceDataEntry.getSchema(), sourceDataEntry.getData()),
+                        ErrorReporter.Stage.CONVERTER, recordConverter.getClass());
                 if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                     log.error("Send record, message size is greater than {} bytes, sourceDataEntry: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(sourceDataEntry));
                     continue;
                 }
                 sourceMessage.setBody(messageBody);
             }
+            // put extend msg property
+            putExtendMsgProperty(sourceDataEntry, sourceMessage, topic);
+
             try {
                 producer.send(sourceMessage, new SendCallback() {
                     @Override
@@ -432,8 +435,8 @@ public class WorkerSourceTask implements WorkerTask {
 
         StringBuilder sb = new StringBuilder();
         sb.append("connectorName:" + connectorName)
-            .append("\nConfigs:" + JSON.toJSONString(taskConfig))
-            .append("\nState:" + state.get().toString());
+                .append("\nConfigs:" + JSON.toJSONString(taskConfig))
+                .append("\nState:" + state.get().toString());
         return sb.toString();
     }
 

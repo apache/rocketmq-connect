@@ -89,7 +89,7 @@ public class JdbcSinkTask extends SinkTask {
         sqlAllMessagesException.setNextException(sqle);
         return sqlAllMessagesException;
     }
-  
+    
     /**
      * Start the component
      *

@@ -168,8 +168,14 @@ public class WorkerDirectTask implements WorkerTask {
             public String getTaskName() {
                 return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
-
-            @Override public KeyValue configs() {
+          
+            /**
+             * Get the configurations of current task.
+             *
+             * @return the configuration of current task.
+             */
+            @Override
+            public KeyValue configs() {
                 return taskConfig;
             }
 
@@ -219,8 +225,13 @@ public class WorkerDirectTask implements WorkerTask {
             @Override public String getTaskName() {
                 return null;
             }
-
-            @Override public KeyValue configs() {
+            /**
+             * Get the configurations of current task.
+             *
+             * @return the configuration of current task.
+             */
+            @Override
+            public KeyValue configs() {
                 return taskConfig;
             }
         });

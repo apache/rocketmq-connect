@@ -15,29 +15,43 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.store;
+package org.apache.rocketmq.connect.runtime.common.cache;
 
-import java.util.HashMap;
+/**
+ * cache
+ *
+ * @param <K>
+ * @param <V>
+ */
+public interface Cache<K, V> {
 
-import org.apache.rocketmq.connect.runtime.converter.ByteConverter;
-import org.junit.Test;
+    /**
+     * @param key
+     * @return
+     */
+    V get(K key);
 
-import static org.assertj.core.api.Assertions.assertThat;
+    /**
+     * put a data to cache
+     *
+     * @param key
+     * @param value
+     */
+    void put(K key, V value);
 
-public class FileBaseKeyValueStoreTest {
 
-    @Test
-    public void testFileBaseKeyValueStore() {
-        FileBaseKeyValueStore<byte[], byte[]> fbkvs = new FileBaseKeyValueStore<>(
-            "target/unit_test_store/testFileBaseKeyValueStore/000",
-            new ByteConverter(),
-            new ByteConverter()
-        );
+    /**
+     * remove a data to cache
+     *
+     * @param key
+     * @return
+     */
+    boolean remove(K key);
 
-        fbkvs.data = new HashMap<>();
-        fbkvs.data.put("test_key".getBytes(), "test_value".getBytes());
-        fbkvs.persist();
-        boolean flag = fbkvs.load();
-        assertThat(flag).isEqualTo(true);
-    }
+
+    /**
+     * @return
+     */
+    long size();
+
 }

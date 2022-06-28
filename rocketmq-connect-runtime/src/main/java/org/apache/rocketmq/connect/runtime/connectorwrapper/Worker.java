@@ -25,7 +25,7 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +41,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -417,11 +419,15 @@ public class Worker {
                     }
                     final Task task = (Task) taskClazz.getDeclaredConstructor().newInstance();
                     final String converterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER);
-                    Converter recordConverter = null;
+                    RecordConverter recordConverter = null;
                     if (StringUtils.isNotEmpty(converterClazzName)) {
-                        Class converterClazz = Class.forName(converterClazzName);
-                        recordConverter = (Converter) converterClazz.newInstance();
+                        recordConverter = Class.forName(converterClazzName)
+                                .asSubclass(io.openmessaging.connector.api.data.RecordConverter.class)
+                                .getDeclaredConstructor()
+                                .newInstance();
+                        recordConverter.configure(keyValue.getProperties());
                     }
+
                     if (isolationFlag) {
                         Plugin.compareAndSwapLoaders(loader);
                     }

@@ -21,14 +21,13 @@ import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,7 +58,6 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
-import org.apache.rocketmq.connect.runtime.converter.RocketMQConverter;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
@@ -121,7 +119,7 @@ public class WorkerSinkTask implements WorkerTask {
     /**
      * A converter to parse sink data entry to object.
      */
-    private Converter recordConverter;
+    private RecordConverter recordConverter;
 
     private final ConcurrentHashMap<MessageQueue, Long> messageQueuesOffsetMap;
 
@@ -185,7 +183,7 @@ public class WorkerSinkTask implements WorkerTask {
     public WorkerSinkTask(String connectorName,
         SinkTask sinkTask,
         ConnectKeyValue taskConfig,
-        Converter recordConverter,
+        RecordConverter recordConverter,
         DefaultMQPullConsumer consumer,
         AtomicReference<WorkerState> workerState,
         ConnectStatsManager connectStatsManager,
@@ -583,28 +581,33 @@ public class WorkerSinkTask implements WorkerTask {
 
     private ConnectRecord convertToSinkDataEntry(MessageExt message) {
         Map<String, String> properties = message.getProperties();
-        Schema schema;
-        Long timestamp;
-        ConnectRecord sinkDataEntry = null;
-        if (null == recordConverter || recordConverter instanceof RocketMQConverter) {
-            String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
-            timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
-            String connectSchema = properties.get(RuntimeConfigDefine.CONNECT_SCHEMA);
-            schema = StringUtils.isNotEmpty(connectSchema) ? JSON.parseObject(connectSchema, Schema.class) : null;
-            byte[] body = message.getBody();
-            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
+        ConnectRecord sinkDataEntry;
 
-            RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
-
-            String bodyStr = new String(body, StandardCharsets.UTF_8);
-            sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schema, bodyStr);
-
-        } else {
+        // start convert
+        if (recordConverter == null) {
             final byte[] messageBody = message.getBody();
             String s = new String(messageBody);
             sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
-        }
+        } else {
+            // timestamp
+            String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
+            Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
 
+            // partition and offset
+            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
+            RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
+
+            // convert
+            SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> recordConverter.toConnectData(message.getTopic(), message.getBody()),
+                    ErrorReporter.Stage.CONVERTER, recordConverter.getClass());
+            sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
+        }
+        // add extension
+        addExtension(properties, sinkDataEntry);
+        return sinkDataEntry;
+    }
+
+    private void addExtension(Map<String, String> properties, ConnectRecord sinkDataEntry) {
         KeyValue keyValue = new DefaultKeyValue();
         if (MapUtils.isNotEmpty(properties)) {
             for (Map.Entry<String, String> entry : properties.entrySet()) {
@@ -618,8 +621,6 @@ public class WorkerSinkTask implements WorkerTask {
             }
         }
         sinkDataEntry.addExtension(keyValue);
-
-        return sinkDataEntry;
     }
 
     @Override
