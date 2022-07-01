@@ -179,6 +179,10 @@ public class WorkerDirectTask implements WorkerTask {
                 return taskConfig;
             }
 
+            @Override public KeyValue configs() {
+                return taskConfig;
+            }
+
             @Override
             public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
 
@@ -219,11 +223,15 @@ public class WorkerDirectTask implements WorkerTask {
             }
 
             @Override public String getConnectorName() {
-                return null;
+                return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
             }
 
             @Override public String getTaskName() {
-                return null;
+                return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
+            }
+
+            @Override public KeyValue configs() {
+                return taskConfig;
             }
             /**
              * Get the configurations of current task.

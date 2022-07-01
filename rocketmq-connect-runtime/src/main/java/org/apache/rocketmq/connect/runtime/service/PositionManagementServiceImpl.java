@@ -69,20 +69,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     private final String positionManagePrefix = "PositionManage";
 
-    public PositionManagementServiceImpl(ConnectConfig connectConfig) {
-
-        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
-                new RecordPartitionConverter(),
-                new RecordOffsetConverter());
-        this.dataSynchronizer = new BrokerBasedLog(connectConfig,
-                connectConfig.getPositionStoreTopic(),
-                ConnectUtil.createGroupName(positionManagePrefix, connectConfig.getWorkerId()),
-                new PositionChangeCallback(),
-                new JsonConverter(),
-                new RecordPositionMapConverter());
-        this.positionUpdateListener = new HashSet<>();
-        this.needSyncPartition = new ConcurrentSet<>();
-        this.prepare(connectConfig);
+    public PositionManagementServiceImpl() {
     }
 
     /**
@@ -175,6 +162,25 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     public void registerListener(PositionUpdateListener listener) {
 
         this.positionUpdateListener.add(listener);
+    }
+
+    @Override public void initialize(ConnectConfig connectConfig) {
+        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
+            new RecordPartitionConverter(),
+            new RecordOffsetConverter());
+        this.dataSynchronizer = new BrokerBasedLog(connectConfig,
+            connectConfig.getPositionStoreTopic(),
+            ConnectUtil.createGroupName(positionManagePrefix, connectConfig.getWorkerId()),
+            new PositionChangeCallback(),
+            new JsonConverter(),
+            new RecordPositionMapConverter());
+        this.positionUpdateListener = new HashSet<>();
+        this.needSyncPartition = new ConcurrentSet<>();
+        this.prepare(connectConfig);
+    }
+
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.DISTRIBUTED;
     }
 
     private void sendOnlinePositionInfo() {

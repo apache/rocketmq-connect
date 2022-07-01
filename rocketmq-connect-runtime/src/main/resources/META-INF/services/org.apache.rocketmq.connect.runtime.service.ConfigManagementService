@@ -1,0 +1,2 @@
+org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl
+org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl

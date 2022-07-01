@@ -72,4 +72,8 @@ public class MemoryBasedKeyValueStore<K, V> implements KeyValueStore<K, V> {
     public void persist() {
 
     }
+
+    @Override public Stage getStage() {
+        return Stage.UNIVERSAL;
+    }
 }

@@ -104,6 +104,8 @@ public interface ConfigManagementService {
      */
     void registerListener(ConnectorConfigUpdateListener listener);
 
+    void initialize(ConnectConfig connectConfig, Plugin plugin);
+
     interface ConnectorConfigUpdateListener {
 
         /**
@@ -113,4 +115,6 @@ public interface ConfigManagementService {
     }
 
     Plugin getPlugin();
+
+    StagingMode getStagingMode();
 }

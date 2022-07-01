@@ -35,13 +35,14 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
-import org.apache.rocketmq.connect.runtime.service.memory.FileOffsetManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
+import org.apache.rocketmq.connect.runtime.utils.ServiceProviderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +87,7 @@ public class StandaloneConnectStartup {
             // Build the command line options.
             Options options = ServerUtil.buildCommandlineOptions(new Options());
             commandLine = ServerUtil.parseCmdLine("connect", args, buildCommandlineOptions(options),
-                    new PosixParser());
+                new PosixParser());
             if (null == commandLine) {
                 System.exit(-1);
             }
@@ -116,7 +117,6 @@ public class StandaloneConnectStartup {
             lc.reset();
             configurator.doConfigure(connectConfig.getConnectHome() + "/conf/logback.xml");
 
-
             List<String> pluginPaths = new ArrayList<>(16);
             if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
                 String[] strArr = connectConfig.getPluginPaths().split(",");
@@ -129,15 +129,19 @@ public class StandaloneConnectStartup {
             Plugin plugin = new Plugin(pluginPaths);
             plugin.initPlugin();
 
-            // Create controller and initialize.
+            ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.STANDALONE);
+            clusterManagementService.initialize(connectConfig);
+            ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.STANDALONE);
+            configManagementService.initialize(connectConfig, plugin);
+            PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.STANDALONE);
+            positionManagementServices.initialize(connectConfig);
 
             StandaloneConnectController controller = new StandaloneConnectController(
-                    plugin,
-                    connectConfig,
-                    new MemoryClusterManagementServiceImpl(connectConfig),
-                    new MemoryConfigManagementServiceImpl(connectConfig, plugin),
-                    new FilePositionManagementServiceImpl(connectConfig),
-                    new FileOffsetManagementServiceImpl(connectConfig));
+                plugin,
+                connectConfig,
+                clusterManagementService,
+                configManagementService,
+                positionManagementServices);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;

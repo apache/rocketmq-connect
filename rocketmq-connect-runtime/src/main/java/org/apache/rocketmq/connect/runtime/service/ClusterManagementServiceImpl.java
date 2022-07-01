@@ -45,19 +45,14 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
     /**
      * Configs of current worker.
      */
-    private final ConnectConfig connectConfig;
+    private ConnectConfig connectConfig;
 
     /**
      * Used for worker discovery
      */
     private DefaultMQPullConsumer defaultMQPullConsumer;
 
-    public ClusterManagementServiceImpl(ConnectConfig connectConfig) {
-        this.connectConfig = connectConfig;
-        this.workerStatusListeners = new HashSet<>();
-        this.defaultMQPullConsumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
-        this.defaultMQPullConsumer.setConsumerGroup(connectConfig.getConnectClusterId());
-        this.prepare(connectConfig);
+    public ClusterManagementServiceImpl() {
     }
 
     /**
@@ -79,6 +74,14 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
             ConnectUtil.createTopic(connectConfig, topicConfig);
         }
 
+    }
+
+    @Override public void initialize(ConnectConfig connectConfig) {
+        this.connectConfig = connectConfig;
+        this.workerStatusListeners = new HashSet<>();
+        this.defaultMQPullConsumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
+        this.defaultMQPullConsumer.setConsumerGroup(connectConfig.getConnectClusterId());
+        this.prepare(connectConfig);
     }
 
     @Override
@@ -124,6 +127,10 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
     @Override
     public String getCurrentWorker() {
         return this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory().getClientId();
+    }
+
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.DISTRIBUTED;
     }
 
     @Override

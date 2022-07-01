@@ -92,4 +92,15 @@ public interface KeyValueStore<K, V> {
      * Persist all data into the store.
      */
     void persist();
+
+
+    Stage getStage();
+
+
+    enum Stage {
+        CONNECTOR,
+        TASK,
+        POSITION,
+        UNIVERSAL
+    }
 }
