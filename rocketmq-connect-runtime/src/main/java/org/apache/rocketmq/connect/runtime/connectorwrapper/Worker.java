@@ -60,6 +60,7 @@ import org.apache.rocketmq.connect.runtime.service.TaskPositionCommitService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
@@ -247,11 +248,11 @@ public class Worker {
         for (Runnable runnable : set) {
             ConnectKeyValue taskConfig = null;
             if (runnable instanceof WorkerSourceTask) {
-                taskConfig = ((WorkerSourceTask) runnable).getTaskConfig();
+                taskConfig = ((WorkerSourceTask) runnable).currentTaskConfig();
             } else if (runnable instanceof WorkerSinkTask) {
-                taskConfig = ((WorkerSinkTask) runnable).getTaskConfig();
+                taskConfig = ((WorkerSinkTask) runnable).currentTaskConfig();
             } else if (runnable instanceof WorkerDirectTask) {
-                taskConfig = ((WorkerDirectTask) runnable).getTaskConfig();
+                taskConfig = ((WorkerDirectTask) runnable).currentTaskConfig();
             }
             if (keyValue.equals(taskConfig)) {
                 return true;
@@ -337,8 +338,8 @@ public class Worker {
         //  STEP 1: check running tasks and put to error status
         for (Runnable runnable : runningTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
-            String connectorName = workerTask.getConnectorName();
-            ConnectKeyValue taskConfig = workerTask.getTaskConfig();
+            String connectorName = workerTask.id().connector();
+            ConnectKeyValue taskConfig = workerTask.currentTaskConfig();
             List<ConnectKeyValue> keyValues = taskConfigs.get(connectorName);
             WorkerTaskState state = ((WorkerTask) runnable).getState();
 
@@ -358,18 +359,18 @@ public class Worker {
 
                 if (needStop) {
                     try {
-                        workerTask.stop();
+                        workerTask.close();
                     } catch (Exception e) {
-                        log.error("workerTask stop exception, workerTask: " + workerTask.getTaskConfig(), e);
+                        log.error("workerTask stop exception, workerTask: " + workerTask.currentTaskConfig(), e);
                     }
-                    log.info("Task stopping, connector name {}, config {}", workerTask.getConnectorName(), workerTask.getTaskConfig());
+                    log.info("Task stopping, connector name {}, config {}", workerTask.id().connector(), workerTask.currentTaskConfig());
                     runningTasks.remove(runnable);
                     stoppingTasks.put(runnable, System.currentTimeMillis());
                     needCommitPosition = true;
                 }
             } else {
                 log.error("[BUG] Illegal State in when checking running tasks, {} is in {} state",
-                    ((WorkerTask) runnable).getConnectorName(), state.toString());
+                    ((WorkerTask) runnable).id().connector(), state.toString());
             }
         }
 
@@ -397,12 +398,13 @@ public class Worker {
         }
 
         //  STEP 2: try to create new tasks
-        int taskId = 0;
         for (String connectorName : newTasks.keySet()) {
+            int taskId = 0;
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
+                ConnectorTaskId id = new ConnectorTaskId(connectorName,taskId);
                 String taskType = keyValue.getString(RuntimeConfigDefine.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
-                    createDirectTask(connectorName, keyValue);
+                    createDirectTask(id, keyValue);
                     continue;
                 }
                 try {
@@ -439,10 +441,9 @@ public class Worker {
                         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
-                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(connectorName,
-                            (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(id,
+                            (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
-
                         Future future = taskExecutor.submit(workerSourceTask);
                         taskToFutureMap.put(workerSourceTask, future);
                         this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
@@ -460,8 +461,8 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, connectConfig));
 
 
-                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(connectorName,
-                            (SinkTask) task, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
+                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(id,
+                            (SinkTask) task, loader, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
                                 retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, recordConverter));
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
                         Future future = taskExecutor.submit(workerSinkTask);
@@ -471,6 +472,7 @@ public class Worker {
                 } catch (Exception e) {
                     log.error("start worker task exception. config {}" + JSON.toJSONString(keyValue), e);
                 }
+                taskId++;
             }
         }
 
@@ -497,7 +499,7 @@ public class Worker {
                 }
             } else {
                 log.error("[BUG] Illegal State in when checking pending tasks, {} is in {} state",
-                    ((WorkerTask) runnable).getConnectorName(), state.toString());
+                    ((WorkerTask) runnable).id().connector(), state.toString());
             }
         }
 
@@ -530,7 +532,7 @@ public class Worker {
             } else {
 
                 log.error("[BUG] Illegal State in when checking stopping tasks, {} is in {} state",
-                    ((WorkerTask) runnable).getConnectorName(), state.toString());
+                    ((WorkerTask) runnable).id().connector(), state.toString());
             }
         }
 
@@ -593,14 +595,14 @@ public class Worker {
         }
     }
 
-    private void createDirectTask(String connectorName, ConnectKeyValue keyValue) throws Exception {
+    private void createDirectTask(ConnectorTaskId taskId, ConnectKeyValue keyValue) throws Exception {
         String sourceTaskClass = keyValue.getString(RuntimeConfigDefine.SOURCE_TASK_CLASS);
         Task sourceTask = getTask(sourceTaskClass);
 
         String sinkTaskClass = keyValue.getString(RuntimeConfigDefine.SINK_TASK_CLASS);
         Task sinkTask = getTask(sinkTaskClass);
 
-        WorkerDirectTask workerDirectTask = new WorkerDirectTask(connectorName,
+        WorkerDirectTask workerDirectTask = new WorkerDirectTask(taskId,
             (SourceTask) sourceTask, (SinkTask) sinkTask, keyValue, positionManagementService, workerState);
 
         Future future = taskExecutor.submit(workerDirectTask);

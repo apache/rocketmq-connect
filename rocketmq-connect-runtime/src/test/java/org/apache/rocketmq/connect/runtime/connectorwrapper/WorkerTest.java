@@ -45,6 +45,7 @@ import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.junit.After;
@@ -118,8 +119,9 @@ public class WorkerTest {
             RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
             retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
 
-            runnables.add(new WorkerSourceTask("TEST-CONN-" + i,
+            runnables.add(new WorkerSourceTask(new ConnectorTaskId("TEST-CONN-" + i,i),
                 new TestSourceTask(),
+                null,
                 connectKeyValue,
                 new TestPositionManageServiceImpl(),
                 new JsonConverter(),
@@ -189,7 +191,7 @@ public class WorkerTest {
             } else {
                 workerSinkTask = (WorkerSinkTask) runnable;
             }
-            String connectorName = null != workerSourceTask ? workerSourceTask.getConnectorName() : workerSinkTask.getConnectorName();
+            String connectorName = null != workerSourceTask ? workerSourceTask.id().connector() : workerSinkTask.id().connector();
             assertThat(connectorName).isIn("TEST-CONN-0", "TEST-CONN-1", "TEST-CONN-2", "TEST-CONN-3");
         }
     }

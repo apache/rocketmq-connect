@@ -22,7 +22,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
-import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
@@ -49,13 +48,13 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,39 +67,30 @@ import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTas
 /**
  * A wrapper of {@link SourceTask} for runtime.
  */
-public class WorkerSourceTask implements WorkerTask {
+public class WorkerSourceTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     /**
-     * Connector name of current task.
-     */
-    private String connectorName;
-
-    /**
      * The implements of the source task.
      */
-    private SourceTask sourceTask;
+    private final SourceTask sourceTask;
 
     /**
      * The configs of current source task.
      */
-    private ConnectKeyValue taskConfig;
-
-    /**
-     * Atomic state variable
-     */
-    private AtomicReference<WorkerTaskState> state;
+    private final ConnectKeyValue taskConfig;
+    protected final WorkerSourceTaskContext sourceTaskContext;
 
     /**
      * Used to read the position of source data source.
      */
-    private OffsetStorageReader offsetStorageReader;
+    private final OffsetStorageReader offsetStorageReader;
 
     /**
      * Used to write the position of source data source.
      */
-    private PositionStorageWriter positionStorageWriter;
+    private final PositionStorageWriter positionStorageWriter;
 
     /**
      * A RocketMQ producer to send message to dest MQ.
@@ -110,19 +100,20 @@ public class WorkerSourceTask implements WorkerTask {
     /**
      * A converter to parse source data entry to byte[].
      */
-    private RecordConverter recordConverter;
+    private final RecordConverter recordConverter;
 
-    private final AtomicReference<WorkerState> workerState;
+    /**
+     * stat connect
+     */
+    private final ConnectStatsManager connectStatsManager;
+    private final ConnectStatsService connectStatsService;
 
-    private ConnectStatsManager connectStatsManager;
-
-    private ConnectStatsService connectStatsService;
 
     private List<ConnectRecord> toSendRecord;
 
-    private TransformChain<ConnectRecord> transformChain;
+    private final TransformChain<ConnectRecord> transformChain;
 
-    private RetryWithToleranceOperator retryWithToleranceOperator;
+    private final RetryWithToleranceOperator retryWithToleranceOperator;
     /**
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
@@ -133,8 +124,9 @@ public class WorkerSourceTask implements WorkerTask {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
     }
 
-    public WorkerSourceTask(String connectorName,
+    public WorkerSourceTask(ConnectorTaskId id,
                             SourceTask sourceTask,
+                            ClassLoader classLoader,
                             ConnectKeyValue taskConfig,
                             PositionManagementService positionManagementService,
                             RecordConverter recordConverter,
@@ -144,101 +136,20 @@ public class WorkerSourceTask implements WorkerTask {
                             ConnectStatsService connectStatsService,
                             TransformChain<ConnectRecord> transformChain,
                             RetryWithToleranceOperator retryWithToleranceOperator) {
-        this.connectorName = connectorName;
+        super(id, classLoader, taskConfig, retryWithToleranceOperator, workerState);
+
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
-        this.offsetStorageReader = new PositionStorageReaderImpl(connectorName, positionManagementService);
-        this.positionStorageWriter = new PositionStorageWriter(connectorName, positionManagementService);
+        this.offsetStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
+        this.positionStorageWriter = new PositionStorageWriter(id.connector(), positionManagementService);
         this.producer = producer;
         this.recordConverter = recordConverter;
-        this.state = new AtomicReference<>(WorkerTaskState.NEW);
-        this.workerState = workerState;
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.transformChain = transformChain;
         this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
-    }
-
-    /**
-     * Start a source task, and send data entry to MQ cyclically.
-     */
-    @Override
-    public void run() {
-        try {
-            producer.start();
-            log.info("Source task producer start.");
-            state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            sourceTask.init(new SourceTaskContext() {
-
-                @Override
-                public OffsetStorageReader offsetStorageReader() {
-                    return offsetStorageReader;
-                }
-
-                @Override
-                public String getConnectorName() {
-                    return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
-                }
-
-                @Override
-                public String getTaskName() {
-                    return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
-                }
-
-                /**
-                 * Get the configurations of current task.
-                 *
-                 * @return the configuration of current task.
-                 */
-                @Override
-                public KeyValue configs() {
-                    return taskConfig;
-                }
-            });
-            sourceTask.start(taskConfig);
-            state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
-            log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
-            while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
-                if (CollectionUtils.isEmpty(toSendRecord)) {
-                    try {
-                        toSendRecord = poll();
-                        if (null != toSendRecord && toSendRecord.size() > 0) {
-                            connectStatsManager.incSourceRecordPollTotalNums(toSendRecord.size());
-                            connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), toSendRecord.size());
-                            sendRecord();
-                        }
-                    } catch (RetriableException e) {
-                        connectStatsManager.incSourceRecordPollTotalFailNums();
-                        connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                        log.error("Source task RetriableException exception", e);
-                    } catch (Exception e) {
-                        connectStatsManager.incSourceRecordPollTotalFailNums();
-                        connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                        log.error("Source task Exception exception", e);
-                        state.set(WorkerTaskState.ERROR);
-                    } finally {
-                        // record source poll times
-                        connectStatsManager.incSourceRecordPollTotalTimes();
-                    }
-                }
-                AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                if (null != atomicLong) {
-                    atomicLong.addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
-                }
-            }
-            sourceTask.stop();
-            state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
-            log.info("Source task stop, config:{}", JSON.toJSONString(taskConfig));
-        } catch (Exception e) {
-            log.error("Run task failed., task config: " + JSON.toJSONString(taskConfig), e);
-            state.set(WorkerTaskState.ERROR);
-        } finally {
-            if (producer != null) {
-                producer.shutdown();
-                log.info("Source task producer shutdown. task config {}", JSON.toJSONString(taskConfig));
-            }
-        }
+        this.sourceTaskContext = new WorkerSourceTaskContext(offsetStorageReader, this, taskConfig);
     }
 
     private List<ConnectRecord> poll() throws InterruptedException {
@@ -250,9 +161,7 @@ public class WorkerSourceTask implements WorkerTask {
             }
             List<ConnectRecord> connectRecordList1 = new ArrayList<>(32);
             for (ConnectRecord connectRecord : connectRecordList) {
-
                 retryWithToleranceOperator.sourceRecord(connectRecord);
-
                 ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
                 if (null != connectRecord1 && !retryWithToleranceOperator.failed()) {
                     connectRecordList1.add(connectRecord1);
@@ -266,28 +175,15 @@ public class WorkerSourceTask implements WorkerTask {
     }
 
     @Override
-    public void stop() {
-        state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+    public void close() {
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(transformChain, "transform chain");
-        log.warn("Stop a task success.");
-    }
-
-    @Override
-    public void cleanup() {
-        log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
-        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
-                state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
-            log.info("Cleaning a task success");
-        } else {
-            log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
-        }
     }
 
     /**
      * Send list of sourceDataEntries to MQ.
      */
-    private void sendRecord() throws InterruptedException, RemotingException, MQClientException {
+    private void sendRecord() throws InterruptedException{
         for (ConnectRecord sourceDataEntry : toSendRecord) {
             RecordPosition position = sourceDataEntry.getPosition();
             RecordOffset offset = position.getOffset();
@@ -399,7 +295,6 @@ public class WorkerSourceTask implements WorkerTask {
             log.info("extension keySet null.");
             return;
         }
-
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
@@ -410,42 +305,59 @@ public class WorkerSourceTask implements WorkerTask {
 
     }
 
+    /**
+     * initinalize and start
+     */
     @Override
-    public WorkerTaskState getState() {
-        return this.state.get();
+    protected void initializeAndStart() {
+        try {
+            producer.start();
+        } catch (MQClientException e) {
+            log.error("{} Source task producer start failed!!", this);
+            throw new ConnectException(e);
+        }
+        sourceTask.init(sourceTaskContext);
+        sourceTask.start(taskConfig);
+        log.info("{} Source task finished initialization and start", this);
     }
 
+    /**
+     * execute poll and send record
+     */
     @Override
-    public String getConnectorName() {
-        return connectorName;
+    protected void execute() {
+        while (isRunning()) {
+            if (CollectionUtils.isEmpty(toSendRecord)) {
+                try {
+                    toSendRecord = poll();
+                    if (null != toSendRecord && toSendRecord.size() > 0) {
+                        connectStatsManager.incSourceRecordPollTotalNums(toSendRecord.size());
+                        connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), toSendRecord.size());
+                        sendRecord();
+                    }
+                } catch (RetriableException e) {
+                    connectStatsManager.incSourceRecordPollTotalFailNums();
+                    connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                    log.error("Source task RetriableException exception", e);
+                    throw e;
+
+                } catch (InterruptedException e) {
+                        // Ignore and allow to exit.
+                } catch (RuntimeException e) {
+                    connectStatsManager.incSourceRecordPollTotalFailNums();
+                    connectStatsManager.incSourceRecordPollFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                    log.error("Source task Exception exception", e);
+                    throw e;
+                } finally {
+                    // record source poll times
+                    connectStatsManager.incSourceRecordPollTotalTimes();
+                }
+            }
+            AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+            if (null != atomicLong) {
+                atomicLong.addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
+            }
+        }
     }
 
-    @Override
-    public ConnectKeyValue getTaskConfig() {
-        return taskConfig;
-    }
-
-    @Override
-    public void timeout() {
-        this.state.set(WorkerTaskState.ERROR);
-    }
-
-    @Override
-    public String toString() {
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("connectorName:" + connectorName)
-                .append("\nConfigs:" + JSON.toJSONString(taskConfig))
-                .append("\nState:" + state.get().toString());
-        return sb.toString();
-    }
-
-    @Override
-    public Object getJsonObject() {
-        HashMap obj = new HashMap<String, Object>();
-        obj.put("connectorName", connectorName);
-        obj.put("configs", JSON.toJSONString(taskConfig));
-        obj.put("state", state.get().toString());
-        return obj;
-    }
 }

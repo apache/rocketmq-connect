@@ -64,6 +64,8 @@ import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +73,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A wrapper of {@link SinkTask} for runtime.
  */
-public class WorkerSinkTask implements WorkerTask {
+public class WorkerSinkTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
@@ -90,7 +92,7 @@ public class WorkerSinkTask implements WorkerTask {
     /**
      * Connector name of current task.
      */
-    private String connectorName;
+    private ConnectorTaskId id;
 
     /**
      * The implements of the sink task.
@@ -147,8 +149,6 @@ public class WorkerSinkTask implements WorkerTask {
 
     private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
-    private final AtomicReference<WorkerState> workerState;
-
     private final ConnectStatsManager connectStatsManager;
 
     private final ConnectStatsService connectStatsService;
@@ -180,26 +180,25 @@ public class WorkerSinkTask implements WorkerTask {
         }
     };
 
-    public WorkerSinkTask(String connectorName,
-        SinkTask sinkTask,
-        ConnectKeyValue taskConfig,
-        RecordConverter recordConverter,
-        DefaultMQPullConsumer consumer,
-        AtomicReference<WorkerState> workerState,
-        ConnectStatsManager connectStatsManager,
-        ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain,
-        RetryWithToleranceOperator retryWithToleranceOperator,
-        WorkerErrorRecordReporter errorRecordReporter) {
-        this.connectorName = connectorName;
+    public WorkerSinkTask(ConnectorTaskId id,
+                          SinkTask sinkTask,
+                          ClassLoader classLoader,
+                          ConnectKeyValue taskConfig,
+                          RecordConverter recordConverter,
+                          DefaultMQPullConsumer consumer,
+                          AtomicReference<WorkerState> workerState,
+                          ConnectStatsManager connectStatsManager,
+                          ConnectStatsService connectStatsService,
+                          TransformChain<ConnectRecord> transformChain,
+                          RetryWithToleranceOperator retryWithToleranceOperator,
+                          WorkerErrorRecordReporter errorRecordReporter) {
+        super(id, classLoader, taskConfig, retryWithToleranceOperator, workerState);
         this.sinkTask = sinkTask;
         this.taskConfig = taskConfig;
         this.consumer = consumer;
         this.recordConverter = recordConverter;
         this.messageQueuesOffsetMap = new ConcurrentHashMap<>(256);
         this.messageQueuesStateMap = new ConcurrentHashMap<>(256);
-        this.state = new AtomicReference<>(WorkerTaskState.NEW);
-        this.workerState = workerState;
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
@@ -207,64 +206,8 @@ public class WorkerSinkTask implements WorkerTask {
         this.errorRecordReporter = errorRecordReporter;
         this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.transformChain.retryWithToleranceOperator(retryWithToleranceOperator);
-    }
+        this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
 
-    /**
-     * Start a sink task, and receive data entry from MQ cyclically.
-     */
-    @Override
-    public void run() {
-        try {
-            registTopics();
-            consumer.start();
-            log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
-            state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-            this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
-            sinkTask.init(sinkTaskContext);
-            sinkTask.start(taskConfig);
-            // we assume executed here means we are safe
-            log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
-            state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
-
-            while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
-                // this method can block up to 3 minutes long
-                try {
-                    preCommit(false);
-                    setQueueOffset();
-                    pullMessageFromQueues();
-                } catch (RetriableException e) {
-                    connectStatsManager.incSinkRecordPutTotalFailNums();
-                    connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                    log.error("Sink task RetriableException exception", e);
-                } catch (InterruptedException e) {
-                    connectStatsManager.incSinkRecordPutTotalFailNums();
-                    connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                    log.error("Sink task InterruptedException exception", e);
-                    throw e;
-                } catch (Throwable e) {
-                    state.set(WorkerTaskState.ERROR);
-                    log.error(" sink task {},pull message MQClientException, Error {} ", this, e.getMessage(), e);
-                    connectStatsManager.incSinkRecordPutTotalFailNums();
-                    connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                } finally {
-                    // record sink read times
-                    connectStatsManager.incSinkRecordReadTotalTimes();
-                }
-            }
-
-            sinkTask.stop();
-            state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
-            log.info("Sink task stop, config:{}", JSON.toJSONString(taskConfig));
-
-        } catch (Exception e) {
-            log.error("Run task failed.", e);
-            state.set(WorkerTaskState.ERROR);
-        } finally {
-            if (consumer != null) {
-                consumer.shutdown();
-                log.info("Sink task consumer shutdown. config:{}", JSON.toJSONString(taskConfig));
-            }
-        }
     }
 
     private void setQueueOffset() {
@@ -521,8 +464,7 @@ public class WorkerSinkTask implements WorkerTask {
     }
 
     @Override
-    public void stop() {
-        state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+    public void close() {
         try {
             transformChain.close();
         } catch (Exception exception) {
@@ -530,15 +472,6 @@ public class WorkerSinkTask implements WorkerTask {
         }
     }
 
-    @Override
-    public void cleanup() {
-        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
-            state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED))
-            consumer.shutdown();
-        else {
-            log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
-        }
-    }
 
     /**
      * receive message from MQ.
@@ -623,46 +556,55 @@ public class WorkerSinkTask implements WorkerTask {
         sinkDataEntry.addExtension(keyValue);
     }
 
+    /**
+     * initinalize and start
+     */
     @Override
-    public String getConnectorName() {
-        return connectorName;
-    }
-
-    @Override
-    public WorkerTaskState getState() {
-        return state.get();
-    }
-
-    @Override
-    public ConnectKeyValue getTaskConfig() {
-        return taskConfig;
+    protected void initializeAndStart() {
+        registTopics();
+        try {
+            consumer.start();
+        } catch (MQClientException e) {
+        }
+        log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
+        sinkTask.init(sinkTaskContext);
+        sinkTask.start(taskConfig);
     }
 
     /**
-     * Further we cant try to log what caused the error
+     * execute poll and send record
      */
     @Override
-    public void timeout() {
-        this.state.set(WorkerTaskState.ERROR);
-    }
+    protected void execute() {
+        while (isRunning()) {
+            // this method can block up to 3 minutes long
+            try {
+                preCommit(false);
+                setQueueOffset();
+                pullMessageFromQueues();
+            } catch (RetriableException e) {
+                connectStatsManager.incSinkRecordPutTotalFailNums();
+                connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                log.error("Sink task RetriableException exception", e);
+            } catch (InterruptedException e) {
+                connectStatsManager.incSinkRecordPutTotalFailNums();
+                connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                log.error("Sink task InterruptedException exception", e);
+            } catch (Throwable e) {
+                state.set(WorkerTaskState.ERROR);
+                log.error(" sink task {},pull message MQClientException, Error {} ", this, e.getMessage(), e);
+                connectStatsManager.incSinkRecordPutTotalFailNums();
+                connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+            } finally {
+                // record sink read times
+                connectStatsManager.incSinkRecordReadTotalTimes();
+            }
+        }
 
-    @Override
-    public String toString() {
+        sinkTask.stop();
+        state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
+        log.info("Sink task stop, config:{}", JSON.toJSONString(taskConfig));
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("connectorName:" + connectorName)
-            .append("\nConfigs:" + JSON.toJSONString(taskConfig))
-            .append("\nState:" + state.get().toString());
-        return sb.toString();
-    }
-
-    @Override
-    public Object getJsonObject() {
-        HashMap obj = new HashMap<String, Object>();
-        obj.put("connectorName", connectorName);
-        obj.put("configs", JSON.toJSONString(taskConfig));
-        obj.put("state", state.get().toString());
-        return obj;
     }
 
     public Set<RecordPartition> getRecordPartitions() {
