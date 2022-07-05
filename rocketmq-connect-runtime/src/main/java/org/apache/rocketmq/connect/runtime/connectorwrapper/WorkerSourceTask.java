@@ -110,8 +110,6 @@ public class WorkerSourceTask extends WorkerTask {
     private final ConnectStatsManager connectStatsManager;
     private final ConnectStatsService connectStatsService;
 
-    private final TransformChain<ConnectRecord> transformChain;
-    private final RetryWithToleranceOperator retryWithToleranceOperator;
     private final CountDownLatch stopRequestedLatch;
     private final AtomicReference<Throwable> producerSendException;
     private List<ConnectRecord> toSendRecord;
@@ -119,7 +117,6 @@ public class WorkerSourceTask extends WorkerTask {
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
     private static final Set<String> WHITE_KEY_SET = new HashSet<>();
-
     static {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_KEYS);
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
@@ -137,7 +134,7 @@ public class WorkerSourceTask extends WorkerTask {
                             ConnectStatsService connectStatsService,
                             TransformChain<ConnectRecord> transformChain,
                             RetryWithToleranceOperator retryWithToleranceOperator) {
-        super(id, classLoader, taskConfig, retryWithToleranceOperator, workerState);
+        super(id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
 
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -147,9 +144,6 @@ public class WorkerSourceTask extends WorkerTask {
         this.recordConverter = recordConverter;
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
-        this.transformChain = transformChain;
-        this.retryWithToleranceOperator = retryWithToleranceOperator;
-        this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
         this.sourceTaskContext = new WorkerSourceTaskContext(offsetStorageReader, this, taskConfig);
         this.stopRequestedLatch = new CountDownLatch(1);
         this.producerSendException = new AtomicReference<>();
@@ -172,8 +166,8 @@ public class WorkerSourceTask extends WorkerTask {
     public void close() {
         producer.shutdown();
         stopRequestedLatch.countDown();
-        Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(transformChain, "transform chain");
+        Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
     }
 
     /**

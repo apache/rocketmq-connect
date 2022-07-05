@@ -70,7 +70,7 @@ public class WorkerDirectTask extends WorkerTask {
                             ConnectKeyValue taskConfig,
                             PositionManagementService positionManagementService,
                             AtomicReference<WorkerState> workerState) {
-        super(id, null, taskConfig,null, workerState);
+        super(id, null, taskConfig,null, null,workerState);
         this.sourceTask = sourceTask;
         this.sinkTask = sinkTask;
         this.positionStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);

@@ -43,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.openmessaging.connector.api.data.RecordConverter;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -64,7 +65,6 @@ import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -262,6 +262,7 @@ public class Worker {
         stateMachineService.shutdown();
     }
 
+
     public Set<WorkerConnector> getWorkingConnectors() {
         return workingConnectors;
     }
@@ -275,7 +276,6 @@ public class Worker {
      * Beaware that we are not creating a defensive copy of these tasks
      * So developers should only use these references for read-only purposes.
      * These variables should be immutable
-     *
      * @return
      */
     public Set<Runnable> getWorkingTasks() {
@@ -319,16 +319,16 @@ public class Worker {
      * @throws Exception
      */
     public void maintainTaskState() throws Exception {
-        Map<String, List<ConnectKeyValue>> taskConfigs = new HashMap<>();
+        Map<String, List<ConnectKeyValue>> connectorConfig = new HashMap<>();
         synchronized (latestTaskConfigs) {
-            taskConfigs.putAll(latestTaskConfigs);
+            connectorConfig.putAll(latestTaskConfigs);
         }
 
         //  STEP 1: check running tasks and put to error status
-        checkRunningTasks(taskConfigs);
+        checkRunningTasks(connectorConfig);
 
         // get new Tasks
-        Map<String, List<ConnectKeyValue>> newTasks = newTasks(taskConfigs);
+        Map<String, List<ConnectKeyValue>> newTasks = newTasks(connectorConfig);
 
         //  STEP 2: try to create new tasks
         startTask(newTasks);
@@ -348,16 +348,16 @@ public class Worker {
 
     /**
      * check running task
-     * @param taskConfigs
+     * @param connectorConfig
      */
-    private void checkRunningTasks(Map<String, List<ConnectKeyValue>> taskConfigs) {
+    private void checkRunningTasks(Map<String, List<ConnectKeyValue>> connectorConfig) {
         boolean needCommitPosition = false;
         //  STEP 1: check running tasks and put to error status
         for (Runnable runnable : runningTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
             String connectorName = workerTask.id().connector();
             ConnectKeyValue taskConfig = workerTask.currentTaskConfig();
-            List<ConnectKeyValue> keyValues = taskConfigs.get(connectorName);
+            List<ConnectKeyValue> taskConfigs = connectorConfig.get(connectorName);
             WorkerTaskState state = ((WorkerTask) runnable).getState();
             switch (state){
                 case ERROR:
@@ -365,16 +365,7 @@ public class Worker {
                     runningTasks.remove(runnable);
                     break;
                 case RUNNING:
-                    boolean needStop = true;
-                    if (null != keyValues && keyValues.size() > 0) {
-                        for (ConnectKeyValue keyValue : keyValues) {
-                            if (keyValue.equals(taskConfig)) {
-                                needStop = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (needStop) {
+                    if (isNeedStop(taskConfig, taskConfigs)) {
                         try {
                             workerTask.close();
                         } catch (Exception e) {
@@ -390,7 +381,6 @@ public class Worker {
                     log.error("[BUG] Illegal State in when checking running tasks, {} is in {} state",
                             ((WorkerTask) runnable).id().connector(), state.toString());
                     break;
-
             }
         }
         //If some tasks are closed, synchronize the position.
@@ -399,6 +389,28 @@ public class Worker {
         }
     }
 
+    /**
+     * check is need stop
+     * @param taskConfig
+     * @param keyValues
+     * @return
+     */
+    private boolean isNeedStop(ConnectKeyValue taskConfig, List<ConnectKeyValue> keyValues) {
+        if (CollectionUtils.isEmpty(keyValues)) {
+            return true;
+        }
+        for (ConnectKeyValue keyValue : keyValues) {
+            if (keyValue.equals(taskConfig)) {
+                // not stop
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * check stopped tasks
+     */
     private void checkStoppedTasks() {
         for (Runnable runnable : stoppedTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
@@ -565,7 +577,6 @@ public class Worker {
                         Plugin.compareAndSwapLoaders(loader);
                     }
                     if (task instanceof SourceTask) {
-
                         DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
@@ -607,7 +618,6 @@ public class Worker {
         }
     }
 
-    @NotNull
     private Map<String, List<ConnectKeyValue>> newTasks(Map<String, List<ConnectKeyValue>> taskConfigs) {
         Map<String, List<ConnectKeyValue>> newTasks = new HashMap<>();
         for (String connectorName : taskConfigs.keySet()) {

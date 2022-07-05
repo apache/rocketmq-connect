@@ -15,6 +15,7 @@
  *  limitations under the License.
  */
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -44,14 +45,18 @@ public abstract class WorkerTask implements Runnable {
      */
     protected final AtomicReference<WorkerState> workerState;
     protected final RetryWithToleranceOperator retryWithToleranceOperator;
+    protected final TransformChain<ConnectRecord> transformChain;
 
-    public WorkerTask(ConnectorTaskId id,  ClassLoader loader,ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, AtomicReference<WorkerState> workerState){
+
+    public WorkerTask(ConnectorTaskId id,  ClassLoader loader,ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator,TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState){
         this.id =  id;
         this.loader = loader;
         this.taskConfig = taskConfig;
-        this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
         this.workerState = workerState;
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
+        this.transformChain = transformChain;
+        this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
     }
 
     public ConnectorTaskId id() {
@@ -97,11 +102,11 @@ public abstract class WorkerTask implements Runnable {
     }
 
     protected boolean isRunning() {
-        return (WorkerState.STARTED ==workerState.get() && WorkerTaskState.RUNNING == state.get());
+        return (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get());
     }
 
     protected boolean isStopping() {
-        return WorkerTaskState.STOPPING == state.get() || WorkerTaskState.STOPPED == state.get() || WorkerTaskState.ERROR == state.get() ;
+        return !isRunning() ;
     }
 
     /**

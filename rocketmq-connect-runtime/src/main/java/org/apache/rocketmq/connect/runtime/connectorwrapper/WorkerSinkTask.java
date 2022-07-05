@@ -65,7 +65,6 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,42 +75,10 @@ import org.slf4j.LoggerFactory;
 public class WorkerSinkTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    /**
-     * The configuration key that provides the list of topicNames that are inputs for this SinkTask.
-     */
-    public static final String QUEUENAMES_CONFIG = "topicNames";
-
-    /**
-     * The configuration key that provide the list of topicQueues that are inputs for this SinkTask; The config value
-     * format is topicName1,brokerName1,queueId1;topicName2,brokerName2,queueId2, use topicName1, brokerName1, queueId1
-     * can construct {@link MessageQueue}
-     */
-    public static final String TOPIC_QUEUES_CONFIG = "topicQueues";
-
-    /**
-     * Connector name of current task.
-     */
-    private ConnectorTaskId id;
-
     /**
      * The implements of the sink task.
      */
     private SinkTask sinkTask;
-
-    /**
-     * The configs of current sink task.
-     */
-    private ConnectKeyValue taskConfig;
-
-    /**
-     * Atomic state variable
-     */
-    private AtomicReference<WorkerTaskState> state;
-
-    /**
-     * Stop retry limit
-     */
 
     /**
      * A RocketMQ consumer to pull message from MQ.
@@ -149,18 +116,13 @@ public class WorkerSinkTask extends WorkerTask {
 
     private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
+    /**stat*/
     private final ConnectStatsManager connectStatsManager;
-
     private final ConnectStatsService connectStatsService;
 
     private final CountDownLatch stopPullMsgLatch;
-
     private WorkerSinkTaskContext sinkTaskContext;
-
-    private final TransformChain<ConnectRecord> transformChain;
-
     private WorkerErrorRecordReporter errorRecordReporter;
-    private RetryWithToleranceOperator retryWithToleranceOperator;
 
 
     public static final String BROKER_NAME = "brokerName";
@@ -192,9 +154,8 @@ public class WorkerSinkTask extends WorkerTask {
                           TransformChain<ConnectRecord> transformChain,
                           RetryWithToleranceOperator retryWithToleranceOperator,
                           WorkerErrorRecordReporter errorRecordReporter) {
-        super(id, classLoader, taskConfig, retryWithToleranceOperator, workerState);
+        super(id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
         this.sinkTask = sinkTask;
-        this.taskConfig = taskConfig;
         this.consumer = consumer;
         this.recordConverter = recordConverter;
         this.messageQueuesOffsetMap = new ConcurrentHashMap<>(256);
@@ -202,10 +163,6 @@ public class WorkerSinkTask extends WorkerTask {
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
-        this.transformChain = transformChain;
-        this.errorRecordReporter = errorRecordReporter;
-        this.retryWithToleranceOperator = retryWithToleranceOperator;
-        this.transformChain.retryWithToleranceOperator(retryWithToleranceOperator);
         this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
 
     }
