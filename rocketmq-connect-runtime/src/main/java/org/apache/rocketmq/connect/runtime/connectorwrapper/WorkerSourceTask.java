@@ -183,7 +183,7 @@ public class WorkerSourceTask extends WorkerTask {
             Message sourceMessage = convertTransformedRecord(topic, record);
             if (sourceMessage == null || retryWithToleranceOperator.failed()) {
                 // commit record
-                recordDropped(preTransformRecord);
+                recordFailed(preTransformRecord);
                 continue;
             }
             try {
@@ -191,15 +191,12 @@ public class WorkerSourceTask extends WorkerTask {
                     @Override
                     public void onSuccess(SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
-                        connectStatsManager.incSourceRecordWriteTotalNums();
-                        connectStatsManager.incSourceRecordWriteNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-
-                        // custom commit record
+                        incWriteRecordStat();
+                        // commit record
                         recordSent(preTransformRecord, sourceMessage, result);
-
+                        // record offset writer
                         RecordPosition position = record.getPosition();
                         RecordPartition partition = position.getPartition();
-                        // commit offset
                         if (null != partition && null != position) {
                             Map<String, String> offsetMap = (Map<String, String>) position.getOffset();
                             offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(record.getTimestamp()));
@@ -210,9 +207,7 @@ public class WorkerSourceTask extends WorkerTask {
                     @Override
                     public void onException(Throwable throwable) {
                         log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
-                        connectStatsManager.incSourceRecordWriteTotalFailNums();
-                        connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                        // send failed message
+                        inWriteRecordFail();
                         recordSendFailed(false, sourceMessage, preTransformRecord, throwable);
                     }
                 });
@@ -223,13 +218,11 @@ public class WorkerSourceTask extends WorkerTask {
                 return false;
             } catch (MQClientException | RemotingException e) {
                 log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
-                connectStatsManager.incSourceRecordWriteTotalFailNums();
-                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                inWriteRecordFail();
                 recordSendFailed(true, sourceMessage, preTransformRecord, e);
             } catch (InterruptedException e) {
                 log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
-                connectStatsManager.incSourceRecordWriteTotalFailNums();
-                connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                inWriteRecordFail();
                 throw e;
             }
             processed++;
@@ -287,7 +280,7 @@ public class WorkerSourceTask extends WorkerTask {
      *
      * @param record
      */
-    private void recordDropped(ConnectRecord record) {
+    private void recordFailed(ConnectRecord record) {
         commitTaskRecord(record, null);
     }
 
@@ -469,6 +462,17 @@ public class WorkerSourceTask extends WorkerTask {
                 atomicLong.addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
             }
         }
+    }
+
+
+    private void inWriteRecordFail() {
+        connectStatsManager.incSourceRecordWriteTotalFailNums();
+        connectStatsManager.incSourceRecordWriteFailNums(id().toString());
+    }
+
+    private void incWriteRecordStat() {
+        connectStatsManager.incSourceRecordWriteTotalNums();
+        connectStatsManager.incSourceRecordWriteNums(id().toString());
     }
 
 }
