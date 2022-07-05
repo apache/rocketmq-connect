@@ -15,6 +15,7 @@
  *  limitations under the License.
  */
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
+
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -48,8 +49,8 @@ public abstract class WorkerTask implements Runnable {
     protected final TransformChain<ConnectRecord> transformChain;
 
 
-    public WorkerTask(ConnectorTaskId id,  ClassLoader loader,ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator,TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState){
-        this.id =  id;
+    public WorkerTask(ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState) {
+        this.id = id;
         this.loader = loader;
         this.taskConfig = taskConfig;
         this.state = new AtomicReference<>(WorkerTaskState.NEW);
@@ -69,9 +70,10 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * Initialize the task for execution.
+     *
      * @param taskConfig initial configuration
      */
-    protected void initialize(ConnectKeyValue taskConfig){
+    protected void initialize(ConnectKeyValue taskConfig) {
         // NO-op
     }
 
@@ -79,7 +81,8 @@ public abstract class WorkerTask implements Runnable {
      * initinalize and start
      */
     protected abstract void initializeAndStart();
-    private void doInitializeAndStart(){
+
+    private void doInitializeAndStart() {
         state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
         initializeAndStart();
         state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
@@ -89,30 +92,33 @@ public abstract class WorkerTask implements Runnable {
      * execute poll and send record
      */
     protected abstract void execute();
-    private void doExecute(){
+
+    private void doExecute() {
         execute();
     }
 
     /**
      * get state
+     *
      * @return
      */
-    public WorkerTaskState getState(){
+    public WorkerTaskState getState() {
         return this.state.get();
     }
 
     protected boolean isRunning() {
-        return (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get());
+        return WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get();
     }
 
     protected boolean isStopping() {
-        return !isRunning() ;
+        return !isRunning();
     }
 
     /**
      * close resources
      */
     public abstract void close();
+
     private void doClose() {
         try {
             state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
@@ -123,10 +129,11 @@ public abstract class WorkerTask implements Runnable {
             throw t;
         }
     }
+
     /**
      * clean up
      */
-    public void cleanup(){
+    public void cleanup() {
         log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
         if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
                 state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
@@ -143,6 +150,7 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * current task state
+     *
      * @return
      */
     public CurrentTaskState currentTaskState() {
@@ -185,7 +193,7 @@ public abstract class WorkerTask implements Runnable {
         }
     }
 
-    public void onFailure (Throwable t){
+    public void onFailure(Throwable t) {
         synchronized (this) {
             state.set(WorkerTaskState.ERROR);
         }

@@ -25,6 +25,31 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordConverter;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.TaskPositionCommitService;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
+import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,32 +66,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-
-import io.openmessaging.connector.api.data.RecordConverter;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
-import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
-import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.TaskPositionCommitService;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
-import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A worker to schedule all connectors and tasks in a process.
@@ -130,8 +129,8 @@ public class Worker {
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
         this.taskPositionCommitService = new TaskPositionCommitService(
-            this,
-            positionManagementService);
+                this,
+                positionManagementService);
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
@@ -152,7 +151,7 @@ public class Worker {
      * @throws Exception
      */
     public synchronized void startConnectors(Map<String, ConnectKeyValue> connectorConfigs,
-        AbstractConnectController connectController) throws Exception {
+                                             AbstractConnectController connectController) throws Exception {
         Set<WorkerConnector> stoppedConnector = new HashSet<>();
         for (WorkerConnector workerConnector : workingConnectors) {
             try {
@@ -268,7 +267,7 @@ public class Worker {
     }
 
     public void setWorkingConnectors(
-        Set<WorkerConnector> workingConnectors) {
+            Set<WorkerConnector> workingConnectors) {
         this.workingConnectors = workingConnectors;
     }
 
@@ -276,6 +275,7 @@ public class Worker {
      * Beaware that we are not creating a defensive copy of these tasks
      * So developers should only use these references for read-only purposes.
      * These variables should be immutable
+     *
      * @return
      */
     public Set<Runnable> getWorkingTasks() {
@@ -316,6 +316,7 @@ public class Worker {
 
     /**
      * maintain task state
+     *
      * @throws Exception
      */
     public void maintainTaskState() throws Exception {
@@ -348,6 +349,7 @@ public class Worker {
 
     /**
      * check running task
+     *
      * @param connectorConfig
      */
     private void checkRunningTasks(Map<String, List<ConnectKeyValue>> connectorConfig) {
@@ -359,7 +361,7 @@ public class Worker {
             ConnectKeyValue taskConfig = workerTask.currentTaskConfig();
             List<ConnectKeyValue> taskConfigs = connectorConfig.get(connectorName);
             WorkerTaskState state = ((WorkerTask) runnable).getState();
-            switch (state){
+            switch (state) {
                 case ERROR:
                     errorTasks.add(runnable);
                     runningTasks.remove(runnable);
@@ -391,6 +393,7 @@ public class Worker {
 
     /**
      * check is need stop
+     *
      * @param taskConfig
      * @param keyValues
      * @return
@@ -476,7 +479,7 @@ public class Worker {
             Future future = taskToFutureMap.get(runnable);
             WorkerTaskState state = ((WorkerTask) runnable).getState();
             // exited normally
-            switch (state){
+            switch (state) {
                 case STOPPED:
                     // concurrent modification Exception ? Will it pop that in the
                     if (null == future || !future.isDone()) {
@@ -509,7 +512,7 @@ public class Worker {
             Long startTimestamp = entry.getValue();
             Long currentTimeMillis = System.currentTimeMillis();
             WorkerTaskState state = ((WorkerTask) runnable).getState();
-            switch (state){
+            switch (state) {
                 case ERROR:
                     errorTasks.add(runnable);
                     pendingTasks.remove(runnable);
@@ -537,6 +540,7 @@ public class Worker {
 
     /**
      * start task
+     *
      * @param newTasks
      * @throws Exception
      */
@@ -544,7 +548,7 @@ public class Worker {
         for (String connectorName : newTasks.keySet()) {
             int taskId = 0;
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
-                ConnectorTaskId id = new ConnectorTaskId(connectorName,taskId);
+                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
                 String taskType = keyValue.getString(RuntimeConfigDefine.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
                     createDirectTask(id, keyValue);
@@ -584,7 +588,7 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(id,
-                            (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+                                (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
                         Future future = taskExecutor.submit(workerSourceTask);
                         taskToFutureMap.put(workerSourceTask, future);
@@ -603,7 +607,7 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, connectConfig));
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(id,
-                            (SinkTask) task, loader, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
+                                (SinkTask) task, loader, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
                                 retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, recordConverter));
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
                         Future future = taskExecutor.submit(workerSinkTask);
@@ -646,7 +650,7 @@ public class Worker {
         Task sinkTask = getTask(sinkTaskClass);
 
         WorkerDirectTask workerDirectTask = new WorkerDirectTask(taskId,
-            (SourceTask) sourceTask, (SinkTask) sinkTask, keyValue, positionManagementService, workerState);
+                (SourceTask) sourceTask, (SinkTask) sinkTask, keyValue, positionManagementService, workerState);
 
         Future future = taskExecutor.submit(workerDirectTask);
         taskToFutureMap.put(workerDirectTask, future);

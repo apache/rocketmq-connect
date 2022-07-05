@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -77,9 +76,9 @@ public class RetryWithToleranceOperator implements AutoCloseable {
     }
 
     public synchronized void executeFailed(ErrorReporter.Stage stage,
-                                                   Class<?> executingClass,
-                                                   ConnectRecord sourceRecord,
-                                                   Throwable error) {
+                                           Class<?> executingClass,
+                                           ConnectRecord sourceRecord,
+                                           Throwable error) {
         markAsFailed();
         context.sourceRecord(sourceRecord);
         context.currentContext(stage, executingClass);
@@ -89,7 +88,6 @@ public class RetryWithToleranceOperator implements AutoCloseable {
             throw new ConnectException("Tolerance exceeded in Source Worker error handler", error);
         }
     }
-
 
 
     /**

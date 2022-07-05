@@ -28,20 +28,6 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -69,6 +55,20 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A wrapper of {@link SinkTask} for runtime.
@@ -116,7 +116,9 @@ public class WorkerSinkTask extends WorkerTask {
     private static final long PULL_NO_MSG_BACKOFF_MS = 1000 * 3;
     private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
-    /**stat*/
+    /**
+     * stat
+     */
     private final ConnectStatsManager connectStatsManager;
     private final ConnectStatsService connectStatsService;
 
@@ -291,7 +293,7 @@ public class WorkerSinkTask extends WorkerTask {
             try {
                 shouldStopPullMsg();
                 pullResult = consumer.pull(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
-                if (pullResult == null){
+                if (pullResult == null) {
                     continue;
                 }
                 pullMsgErrorCount = 0;
@@ -314,7 +316,7 @@ public class WorkerSinkTask extends WorkerTask {
             List<MessageExt> messages = null;
             log.info("INSIDE pullMessageFromQueues, time elapsed : {}", System.currentTimeMillis() - startTimeStamp);
             PullStatus status = pullResult.getPullStatus();
-            switch (status){
+            switch (status) {
                 case FOUND:
                     pullNotFountMsgCount = 0;
                     this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
@@ -417,7 +419,7 @@ public class WorkerSinkTask extends WorkerTask {
             if (connectRecord != null && !this.retryWithToleranceOperator.failed()) {
                 records.add(connectRecord);
             }
-            log.info("Received one message success : msgId {}",  message.getMsgId());
+            log.info("Received one message success : msgId {}", message.getMsgId());
         }
         try {
             sinkTask.put(records);
@@ -567,13 +569,14 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * error record reporter
+     *
      * @return
      */
     public WorkerErrorRecordReporter errorRecordReporter() {
         return errorRecordReporter;
     }
 
-    private void recordReadSuccess(int recordSize, long beginPullMsgTimestamp){
+    private void recordReadSuccess(int recordSize, long beginPullMsgTimestamp) {
         long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
         recordReadNums(recordSize);
         recordReadRT(pullRT);
@@ -590,9 +593,7 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
 
-
-
-    private void readRecordFail(long beginPullMsgTimestamp){
+    private void readRecordFail(long beginPullMsgTimestamp) {
         readRecordFailNum();
         readRecordFailRT(System.currentTimeMillis() - beginPullMsgTimestamp);
     }

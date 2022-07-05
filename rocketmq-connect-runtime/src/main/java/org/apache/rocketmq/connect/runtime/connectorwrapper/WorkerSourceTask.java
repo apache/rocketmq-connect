@@ -117,6 +117,7 @@ public class WorkerSourceTask extends WorkerTask {
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
     private static final Set<String> WHITE_KEY_SET = new HashSet<>();
+
     static {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_KEYS);
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
@@ -173,13 +174,13 @@ public class WorkerSourceTask extends WorkerTask {
     /**
      * Send list of sourceDataEntries to MQ.
      */
-    private Boolean sendRecord() throws InterruptedException{
+    private Boolean sendRecord() throws InterruptedException {
         int processed = 0;
         for (ConnectRecord preTransformRecord : toSendRecord) {
             retryWithToleranceOperator.sourceRecord(preTransformRecord);
             ConnectRecord record = transformChain.doTransforms(preTransformRecord);
             String topic = maybeCreateAndGetTopic(record);
-            Message sourceMessage =convertTransformedRecord(topic, record);
+            Message sourceMessage = convertTransformedRecord(topic, record);
             if (sourceMessage == null || retryWithToleranceOperator.failed()) {
                 // commit record
                 recordDropped(preTransformRecord);
@@ -215,12 +216,12 @@ public class WorkerSourceTask extends WorkerTask {
                         recordSendFailed(false, sourceMessage, preTransformRecord, throwable);
                     }
                 });
-            } catch (RetriableException  e) {
+            } catch (RetriableException e) {
                 log.warn("{} Failed to send record to topic '{}'. Backing off before retrying: ",
                         this, sourceMessage.getTopic(), e);
                 toSendRecord = toSendRecord.subList(processed, toSendRecord.size());
                 return false;
-            } catch (MQClientException | RemotingException  e) {
+            } catch (MQClientException | RemotingException e) {
                 log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
                 connectStatsManager.incSourceRecordWriteTotalFailNums();
                 connectStatsManager.incSourceRecordWriteFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
@@ -283,6 +284,7 @@ public class WorkerSourceTask extends WorkerTask {
 
     /**
      * failed send
+     *
      * @param record
      */
     private void recordDropped(ConnectRecord record) {
@@ -292,6 +294,7 @@ public class WorkerSourceTask extends WorkerTask {
 
     /**
      * send success record
+     *
      * @param preTransformRecord
      * @param sourceMessage
      * @param result
@@ -305,7 +308,7 @@ public class WorkerSourceTask extends WorkerTask {
 
     private void commitTaskRecord(ConnectRecord preTransformRecord, SendResult result) {
         ConnectKeyValue keyValue = null;
-        if (result != null){
+        if (result != null) {
             keyValue = new ConnectKeyValue();
             keyValue.put("send.status", result.getSendStatus().name());
             keyValue.put("msg.id", result.getMsgId());
@@ -317,7 +320,7 @@ public class WorkerSourceTask extends WorkerTask {
             keyValue.put("offset.msg.id", result.getOffsetMsgId());
             keyValue.put("region.id", result.getRegionId());
         }
-        sourceTask.commit(preTransformRecord, keyValue == null? null : keyValue.getProperties());
+        sourceTask.commit(preTransformRecord, keyValue == null ? null : keyValue.getProperties());
     }
 
 
@@ -328,7 +331,7 @@ public class WorkerSourceTask extends WorkerTask {
      * @return the producer record which can sent over to Kafka. A null is returned if the input is null or
      * if an error was encountered during any of the converter stages.
      */
-    protected Message convertTransformedRecord(final String topic,ConnectRecord record) {
+    protected Message convertTransformedRecord(final String topic, ConnectRecord record) {
         if (record == null) {
             return null;
         }
@@ -336,7 +339,7 @@ public class WorkerSourceTask extends WorkerTask {
         sourceMessage.setTopic(topic);
         // converter
         if (recordConverter == null) {
-            final byte[] messageBody = JSON.toJSONString(record, SerializerFeature.DisableCircularReferenceDetect,  SerializerFeature.WriteMapNullValue).getBytes();
+            final byte[] messageBody = JSON.toJSONString(record, SerializerFeature.DisableCircularReferenceDetect, SerializerFeature.WriteMapNullValue).getBytes();
             if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
                 log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
             }
@@ -360,6 +363,7 @@ public class WorkerSourceTask extends WorkerTask {
 
     /**
      * maybe create and get topic
+     *
      * @param record
      * @return
      */
@@ -454,7 +458,7 @@ public class WorkerSourceTask extends WorkerTask {
                         stopRequestedLatch.await(SEND_FAILED_BACKOFF_MS, TimeUnit.MILLISECONDS);
                     }
                 } catch (InterruptedException e) {
-                        // Ignore and allow to exit.
+                    // Ignore and allow to exit.
                 } finally {
                     // record source poll times
                     connectStatsManager.incSourceRecordPollTotalTimes();

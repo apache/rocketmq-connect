@@ -27,13 +27,6 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -44,6 +37,14 @@ import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A wrapper of {@link SinkTask} and {@link SourceTask} for runtime.
@@ -70,7 +71,7 @@ public class WorkerDirectTask extends WorkerTask {
                             ConnectKeyValue taskConfig,
                             PositionManagementService positionManagementService,
                             AtomicReference<WorkerState> workerState) {
-        super(id, null, taskConfig,null, null,workerState);
+        super(id, null, taskConfig, null, null, workerState);
         this.sourceTask = sourceTask;
         this.sinkTask = sinkTask;
         this.positionStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
@@ -113,7 +114,7 @@ public class WorkerDirectTask extends WorkerTask {
             public String getTaskName() {
                 return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
-          
+
             /**
              * Get the configurations of current task.
              * @return the configuration of current task.
@@ -127,6 +128,7 @@ public class WorkerDirectTask extends WorkerTask {
             public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
 
             }
+
             @Override
             public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
 
@@ -141,6 +143,7 @@ public class WorkerDirectTask extends WorkerTask {
             public void resume(List<RecordPartition> partitions) {
 
             }
+
             @Override
             public Set<RecordPartition> assignment() {
                 return null;
@@ -158,15 +161,18 @@ public class WorkerDirectTask extends WorkerTask {
     private void startSourceTask() {
         state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
         sourceTask.init(new SourceTaskContext() {
-            @Override public OffsetStorageReader offsetStorageReader() {
+            @Override
+            public OffsetStorageReader offsetStorageReader() {
                 return positionStorageReader;
             }
 
-            @Override public String getConnectorName() {
+            @Override
+            public String getConnectorName() {
                 return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
             }
 
-            @Override public String getTaskName() {
+            @Override
+            public String getTaskName() {
                 return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
             }
 
