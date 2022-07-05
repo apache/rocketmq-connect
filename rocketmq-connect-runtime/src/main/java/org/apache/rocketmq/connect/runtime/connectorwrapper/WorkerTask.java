@@ -160,11 +160,6 @@ public abstract class WorkerTask implements Runnable {
 
     private void doRun() throws InterruptedException {
         try {
-            synchronized (this) {
-                if (isStopping()) {
-                    return;
-                }
-            }
             doInitializeAndStart();
             // while poll
             doExecute();
