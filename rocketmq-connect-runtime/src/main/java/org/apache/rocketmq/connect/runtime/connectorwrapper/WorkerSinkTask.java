@@ -467,6 +467,7 @@ public class WorkerSinkTask extends WorkerTask {
     public void close() {
         try {
             transformChain.close();
+            sinkTask.stop();
         } catch (Exception exception) {
             log.error("Transform close failed, {}", exception);
         }
@@ -600,10 +601,6 @@ public class WorkerSinkTask extends WorkerTask {
                 connectStatsManager.incSinkRecordReadTotalTimes();
             }
         }
-
-        sinkTask.stop();
-        state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
-        log.info("Sink task stop, config:{}", JSON.toJSONString(taskConfig));
 
     }
 

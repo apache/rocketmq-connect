@@ -61,6 +61,7 @@ public abstract class WorkerTask implements Runnable {
     public ClassLoader loader() {
         return loader;
     }
+
     /**
      * Initialize the task for execution.
      * @param taskConfig initial configuration
@@ -68,6 +69,7 @@ public abstract class WorkerTask implements Runnable {
     protected void initialize(ConnectKeyValue taskConfig){
         // NO-op
     }
+
     /**
      * initinalize and start
      */
@@ -84,8 +86,6 @@ public abstract class WorkerTask implements Runnable {
     protected abstract void execute();
     private void doExecute(){
         execute();
-        doClose();
-        state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
     }
 
     /**
@@ -101,7 +101,7 @@ public abstract class WorkerTask implements Runnable {
     }
 
     protected boolean isStopping() {
-        return WorkerTaskState.STOPPING == state.get() || WorkerTaskState.ERROR == state.get() ;
+        return WorkerTaskState.STOPPING == state.get() || WorkerTaskState.STOPPED == state.get() || WorkerTaskState.ERROR == state.get() ;
     }
 
     /**
@@ -112,6 +112,7 @@ public abstract class WorkerTask implements Runnable {
         try {
             state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
             close();
+            state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
         } catch (Throwable t) {
             log.error("{} Task threw an uncaught and unrecoverable exception during shutdown", this, t);
             throw t;
@@ -141,10 +142,6 @@ public abstract class WorkerTask implements Runnable {
      */
     public CurrentTaskState currentTaskState() {
         return new CurrentTaskState(id().connector(), taskConfig, state.get());
-    }
-
-    public void timeout() {
-        this.state.set(WorkerTaskState.ERROR);
     }
 
 
@@ -183,10 +180,14 @@ public abstract class WorkerTask implements Runnable {
         }
     }
 
-    protected void onFailure (Throwable t){
+    public void onFailure (Throwable t){
         synchronized (this) {
             state.set(WorkerTaskState.ERROR);
         }
+    }
+
+    public void timeout() {
+        onFailure(null);
     }
 
 }

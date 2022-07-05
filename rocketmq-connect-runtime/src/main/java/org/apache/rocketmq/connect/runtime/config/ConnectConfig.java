@@ -137,6 +137,12 @@ public class ConnectConfig {
 
     private String adminExtGroup = "connector-admin-group";
 
+    /**
+     * offset commit interval ms
+     */
+    private long offsetCommitIntervalMs = 60000L;
+
+
     public String getWorkerId() {
         return workerId;
     }
@@ -369,38 +375,49 @@ public class ConnectConfig {
         this.connectHome = connectHome;
     }
 
-    @Override public String toString() {
+
+    public long getOffsetCommitIntervalMs() {
+        return offsetCommitIntervalMs;
+    }
+
+    public void setOffsetCommitIntervalMs(long offsetCommitIntervalMs) {
+        this.offsetCommitIntervalMs = offsetCommitIntervalMs;
+    }
+
+    @Override
+    public String toString() {
         return "ConnectConfig{" +
-            "workerId='" + workerId + '\'' +
-            ", storePathRootDir='" + storePathRootDir + '\'' +
-            ", connectHome='" + connectHome + '\'' +
-            ", namesrvAddr='" + namesrvAddr + '\'' +
-            ", rmqProducerGroup='" + rmqProducerGroup + '\'' +
-            ", maxMessageSize=" + maxMessageSize +
-            ", operationTimeout=" + operationTimeout +
-            ", rmqConsumerGroup='" + rmqConsumerGroup + '\'' +
-            ", rmqMaxRedeliveryTimes=" + rmqMaxRedeliveryTimes +
-            ", rmqMessageConsumeTimeout=" + rmqMessageConsumeTimeout +
-            ", rmqMaxConsumeThreadNums=" + rmqMaxConsumeThreadNums +
-            ", rmqMinConsumeThreadNums=" + rmqMinConsumeThreadNums +
-            ", brokerSuspendMaxTimeMillis=" + brokerSuspendMaxTimeMillis +
-            ", clusterStoreTopic='" + clusterStoreTopic + '\'' +
-            ", configStoreTopic='" + configStoreTopic + '\'' +
-            ", positionStoreTopic='" + positionStoreTopic + '\'' +
-            ", offsetStoreTopic='" + offsetStoreTopic + '\'' +
-            ", httpPort=" + httpPort +
-            ", positionPersistInterval=" + positionPersistInterval +
-            ", offsetPersistInterval=" + offsetPersistInterval +
-            ", configPersistInterval=" + configPersistInterval +
-            ", pluginPaths='" + pluginPaths + '\'' +
-            ", connectClusterId='" + connectClusterId + '\'' +
-            ", allocTaskStrategy='" + allocTaskStrategy + '\'' +
-            ", aclEnable=" + aclEnable +
-            ", accessKey='" + accessKey + '\'' +
-            ", secretKey='" + secretKey + '\'' +
-            ", autoCreateGroupEnable=" + autoCreateGroupEnable +
-            ", clusterName='" + clusterName + '\'' +
-            ", adminExtGroup='" + adminExtGroup + '\'' +
-            '}';
+                "workerId='" + workerId + '\'' +
+                ", storePathRootDir='" + storePathRootDir + '\'' +
+                ", connectHome='" + connectHome + '\'' +
+                ", namesrvAddr='" + namesrvAddr + '\'' +
+                ", rmqProducerGroup='" + rmqProducerGroup + '\'' +
+                ", maxMessageSize=" + maxMessageSize +
+                ", operationTimeout=" + operationTimeout +
+                ", rmqConsumerGroup='" + rmqConsumerGroup + '\'' +
+                ", rmqMaxRedeliveryTimes=" + rmqMaxRedeliveryTimes +
+                ", rmqMessageConsumeTimeout=" + rmqMessageConsumeTimeout +
+                ", rmqMaxConsumeThreadNums=" + rmqMaxConsumeThreadNums +
+                ", rmqMinConsumeThreadNums=" + rmqMinConsumeThreadNums +
+                ", brokerSuspendMaxTimeMillis=" + brokerSuspendMaxTimeMillis +
+                ", clusterStoreTopic='" + clusterStoreTopic + '\'' +
+                ", configStoreTopic='" + configStoreTopic + '\'' +
+                ", positionStoreTopic='" + positionStoreTopic + '\'' +
+                ", offsetStoreTopic='" + offsetStoreTopic + '\'' +
+                ", httpPort=" + httpPort +
+                ", positionPersistInterval=" + positionPersistInterval +
+                ", offsetPersistInterval=" + offsetPersistInterval +
+                ", configPersistInterval=" + configPersistInterval +
+                ", pluginPaths='" + pluginPaths + '\'' +
+                ", connectClusterId='" + connectClusterId + '\'' +
+                ", allocTaskStrategy='" + allocTaskStrategy + '\'' +
+                ", aclEnable=" + aclEnable +
+                ", accessKey='" + accessKey + '\'' +
+                ", secretKey='" + secretKey + '\'' +
+                ", autoCreateGroupEnable=" + autoCreateGroupEnable +
+                ", clusterName='" + clusterName + '\'' +
+                ", adminExtGroup='" + adminExtGroup + '\'' +
+                ", offsetCommitIntervalMs=" + offsetCommitIntervalMs +
+                '}';
     }
 }
