@@ -41,7 +41,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.commons.collections.CollectionUtils;
+
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -65,6 +65,7 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +114,6 @@ public class WorkerSinkTask extends WorkerTask {
 
     private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 10;
     private static final long PULL_NO_MSG_BACKOFF_MS = 1000 * 3;
-
     private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
     /**stat*/
@@ -164,6 +164,7 @@ public class WorkerSinkTask extends WorkerTask {
         this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
         this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
+        this.errorRecordReporter = errorRecordReporter;
 
     }
 
@@ -261,8 +262,11 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
     public void incPullTPS(String topic, int pullSize) {
-        consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory()
-            .getConsumerStatsManager().incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
+        consumer.getDefaultMQPullConsumerImpl()
+                .getRebalanceImpl()
+                .getmQClientFactory()
+                .getConsumerStatsManager()
+                .incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
     }
 
     private void pullMessageFromQueues() throws InterruptedException {
@@ -274,13 +278,12 @@ public class WorkerSinkTask extends WorkerTask {
         }
         for (Map.Entry<MessageQueue, Long> entry : messageQueuesOffsetMap.entrySet()) {
             if (messageQueuesStateMap.containsKey(entry.getKey())) {
-                log.warn("sink task message queue state is not running, sink task id {}, queue info {}, queue state {}", taskConfig.getString(RuntimeConfigDefine.TASK_ID), JSON.toJSONString(entry.getKey()), JSON.toJSONString(messageQueuesStateMap.get(entry.getKey())));
+                log.warn("sink task message queue state is not running, sink task id {}, queue info {}, queue state {}", id().toString(), JSON.toJSONString(entry.getKey()), JSON.toJSONString(messageQueuesStateMap.get(entry.getKey())));
                 continue;
             }
             log.info("START pullBlockIfNotFound, time started : {}", System.currentTimeMillis());
-
-            if (WorkerTaskState.RUNNING != state.get()) {
-                log.warn("sink task state is not running, sink task id {}, state {}", taskConfig.getString(RuntimeConfigDefine.TASK_ID), state.get().name());
+            if (isStopping()) {
+                log.warn("sink task state is not running, sink task id {}, state {}", id().toString(), state.get().name());
                 break;
             }
             PullResult pullResult = null;
@@ -288,94 +291,74 @@ public class WorkerSinkTask extends WorkerTask {
             try {
                 shouldStopPullMsg();
                 pullResult = consumer.pull(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
+                if (pullResult == null){
+                    continue;
+                }
                 pullMsgErrorCount = 0;
-            } catch (MQClientException e) {
+            } catch (MQClientException | RemotingException | MQBrokerException e) {
                 pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message MQClientException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
-                connectStatsManager.incSinkRecordReadTotalFailNums();
-                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
-                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
-            } catch (RemotingException e) {
-                pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message RemotingException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
-                connectStatsManager.incSinkRecordReadTotalFailNums();
-                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
-                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
-            } catch (MQBrokerException e) {
-                pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message MQBrokerException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
-                connectStatsManager.incSinkRecordReadTotalFailNums();
-                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
-                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
+                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message {}, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getClass().getName(), e.getMessage(), this.state.get(), e);
+                readRecordFail(beginPullMsgTimestamp);
             } catch (InterruptedException e) {
                 pullMsgErrorCount++;
                 log.error(" sink task message queue {}, offset {}, taskconfig {},pull message InterruptedException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
-                connectStatsManager.incSinkRecordReadTotalFailNums();
-                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
-                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
+                readRecordFail(beginPullMsgTimestamp);
                 throw e;
             } catch (Throwable e) {
                 pullMsgErrorCount++;
                 log.error(" sink task message queue {}, offset {}, taskconfig {},pull message Throwable, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), e);
-                connectStatsManager.incSinkRecordReadTotalFailNums();
-                connectStatsManager.incSinkRecordReadFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
-                long errorPullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-                connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
-                connectStatsManager.incSinkRecordReadFailRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), errorPullRT);
+                readRecordFail(beginPullMsgTimestamp);
                 throw e;
             }
-            long currentTime = System.currentTimeMillis();
 
             List<MessageExt> messages = null;
-            log.info("INSIDE pullMessageFromQueues, time elapsed : {}", currentTime - startTimeStamp);
-            if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.FOUND)) {
-                pullNotFountMsgCount = 0;
-                this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
-                messages = pullResult.getMsgFoundList();
-                connectStatsManager.incSinkRecordReadTotalNums(messages.size());
-                connectStatsManager.incSinkRecordReadNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), messages.size());
-                long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-                connectStatsManager.incSinkRecordReadTotalRT(pullRT);
-                connectStatsManager.incSinkRecordReadRT(taskConfig.getString(RuntimeConfigDefine.TASK_ID), pullRT);
-                receiveMessages(messages);
-                if (messageQueuesOffsetMap.containsKey(entry.getKey())) {
-                    messageQueuesOffsetMap.put(entry.getKey(), pullResult.getNextBeginOffset());
-                } else {
-                    log.warn("The consumer may have load balancing, and the current task does not process the message queue,messageQueuesOffsetMap {}, messageQueue {}", JSON.toJSONString(messageQueuesOffsetMap), JSON.toJSONString(entry.getKey()));
-                }
-                try {
-                    consumer.updateConsumeOffset(entry.getKey(), pullResult.getNextBeginOffset());
-                } catch (MQClientException e) {
-                    log.warn("updateConsumeOffset MQClientException, pullResult {}", pullResult, e);
-                }
-            } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.OFFSET_ILLEGAL)) {
-                log.warn("offset illegal, reset offset, message queue {}, pull offset {}, nextBeginOffset {}", JSON.toJSONString(entry.getKey()), entry.getValue(), pullResult.getNextBeginOffset());
-                this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
-            } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.NO_NEW_MSG)) {
-                pullNotFountMsgCount++;
-                log.info("no new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
-            } else if (null != pullResult && pullResult.getPullStatus().equals(PullStatus.NO_MATCHED_MSG)) {
-                log.info("no matched msg, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
-                this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
-            } else {
-                pullNotFountMsgCount++;
-                log.info("unknow pull msg state, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+            log.info("INSIDE pullMessageFromQueues, time elapsed : {}", System.currentTimeMillis() - startTimeStamp);
+            PullStatus status = pullResult.getPullStatus();
+            switch (status){
+                case FOUND:
+                    pullNotFountMsgCount = 0;
+                    this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
+                    messages = pullResult.getMsgFoundList();
+                    recordReadSuccess(messages.size(), beginPullMsgTimestamp);
+                    receiveMessages(messages);
+                    if (messageQueuesOffsetMap.containsKey(entry.getKey())) {
+                        // put offset
+                        messageQueuesOffsetMap.put(entry.getKey(), pullResult.getNextBeginOffset());
+                    } else {
+                        // load balancing
+                        log.warn("The consumer may have load balancing, and the current task does not process the message queue,messageQueuesOffsetMap {}, messageQueue {}", JSON.toJSONString(messageQueuesOffsetMap), JSON.toJSONString(entry.getKey()));
+                    }
+                    try {
+                        consumer.updateConsumeOffset(entry.getKey(), pullResult.getNextBeginOffset());
+                    } catch (MQClientException e) {
+                        log.warn("updateConsumeOffset MQClientException, pullResult {}", pullResult, e);
+                    }
+                    break;
+                case OFFSET_ILLEGAL:
+                    log.warn("Offset illegal, reset offset, message queue {}, pull offset {}, nextBeginOffset {}", JSON.toJSONString(entry.getKey()), entry.getValue(), pullResult.getNextBeginOffset());
+                    this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
+                    break;
+                case NO_NEW_MSG:
+                    pullNotFountMsgCount++;
+                    log.info("No new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+                    break;
+                case NO_MATCHED_MSG:
+                    log.info("no matched msg, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+                    this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
+                    break;
+                default:
+                    pullNotFountMsgCount++;
+                    log.info("unknow pull msg state, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
+                    break;
             }
 
-            AtomicLong atomicLong = connectStatsService.singleSinkTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+            AtomicLong atomicLong = connectStatsService.singleSinkTaskTimesTotal(id().toString());
             if (null != atomicLong) {
                 atomicLong.addAndGet(org.apache.commons.collections4.CollectionUtils.isEmpty(messages) ? 0 : messages.size());
             }
         }
     }
+
 
     private void shouldStopPullMsg() throws InterruptedException {
         if (pullMsgErrorCount == PULL_MSG_ERROR_THRESHOLD) {
@@ -410,26 +393,14 @@ public class WorkerSinkTask extends WorkerTask {
         }
     }
 
-    private void removePauseQueueMessage(MessageQueue messageQueue, List<MessageExt> messages) {
-        if (null != messageQueuesStateMap.get(messageQueue)) {
-            final Iterator<MessageExt> iterator = messages.iterator();
-            while (iterator.hasNext()) {
-                final MessageExt message = iterator.next();
-                String msgId = message.getMsgId();
-                log.info("BrokerName {}, topicName {}, queueId {} is pause, Discard the message {}", messageQueue.getBrokerName(), messageQueue.getTopic(), message.getQueueId(), msgId);
-                iterator.remove();
-            }
-        }
-    }
-
     @Override
     public void close() {
-        try {
-            transformChain.close();
-            sinkTask.stop();
-        } catch (Exception exception) {
-            log.error("Transform close failed, {}", exception);
-        }
+        sinkTask.stop();
+        consumer.shutdown();
+        stopPullMsgLatch.countDown();
+        Utils.closeQuietly(transformChain, "transform chain");
+        Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
+
     }
 
 
@@ -439,28 +410,17 @@ public class WorkerSinkTask extends WorkerTask {
      * @param messages
      */
     private void receiveMessages(List<MessageExt> messages) {
-        List<ConnectRecord> sinkDataEntries = new ArrayList<>(32);
+        List<ConnectRecord> records = new ArrayList<>(32);
         for (MessageExt message : messages) {
             this.retryWithToleranceOperator.consumerRecord(message);
-            ConnectRecord sinkDataEntry = this.retryWithToleranceOperator.execute(()->convertToSinkDataEntry(message), ErrorReporter.Stage.CONVERTER, WorkerSinkTask.class);
-            if (sinkDataEntry != null && !this.retryWithToleranceOperator.failed()) {
-                sinkDataEntries.add(sinkDataEntry);
+            ConnectRecord connectRecord = convertMessages(message);
+            if (connectRecord != null && !this.retryWithToleranceOperator.failed()) {
+                records.add(connectRecord);
             }
             log.info("Received one message success : msgId {}",  message.getMsgId());
         }
-        List<ConnectRecord> connectRecordList = new ArrayList<>(32);
-        for (ConnectRecord connectRecord : sinkDataEntries) {
-            ConnectRecord connectRecord1 = this.transformChain.doTransforms(connectRecord);
-            if (null != connectRecord1) {
-                connectRecordList.add(connectRecord1);
-            }
-        }
-        if (CollectionUtils.isEmpty(connectRecordList)) {
-            log.info("after transforms connectRecordList is null");
-            return;
-        }
         try {
-            sinkTask.put(connectRecordList);
+            sinkTask.put(records);
             return;
         } catch (RetriableException e) {
             log.error("task {} put sink recode RetriableException", this, e.getMessage(), e);
@@ -472,15 +432,14 @@ public class WorkerSinkTask extends WorkerTask {
 
     }
 
-    private ConnectRecord convertToSinkDataEntry(MessageExt message) {
+    private ConnectRecord convertMessages(MessageExt message) {
         Map<String, String> properties = message.getProperties();
-        ConnectRecord sinkDataEntry;
-
+        ConnectRecord record;
         // start convert
         if (recordConverter == null) {
             final byte[] messageBody = message.getBody();
             String s = new String(messageBody);
-            sinkDataEntry = JSON.parseObject(s, ConnectRecord.class);
+            record = JSON.parseObject(s, ConnectRecord.class);
         } else {
             // timestamp
             String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
@@ -493,11 +452,21 @@ public class WorkerSinkTask extends WorkerTask {
             // convert
             SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> recordConverter.toConnectData(message.getTopic(), message.getBody()),
                     ErrorReporter.Stage.CONVERTER, recordConverter.getClass());
-            sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
+            record = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
+            if (retryWithToleranceOperator.failed()) {
+                return null;
+            }
         }
+
+        // Apply the transformations
+        ConnectRecord transformedRecord = transformChain.doTransforms(record);
+        if (transformedRecord == null) {
+            return null;
+        }
+
         // add extension
-        addExtension(properties, sinkDataEntry);
-        return sinkDataEntry;
+        addExtension(properties, record);
+        return record;
     }
 
     private void addExtension(Map<String, String> properties, ConnectRecord sinkDataEntry) {
@@ -543,18 +512,15 @@ public class WorkerSinkTask extends WorkerTask {
                 setQueueOffset();
                 pullMessageFromQueues();
             } catch (RetriableException e) {
-                connectStatsManager.incSinkRecordPutTotalFailNums();
-                connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                readRecordFailNum();
                 log.error("Sink task RetriableException exception", e);
             } catch (InterruptedException e) {
-                connectStatsManager.incSinkRecordPutTotalFailNums();
-                connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                readRecordFailNum();
                 log.error("Sink task InterruptedException exception", e);
             } catch (Throwable e) {
-                state.set(WorkerTaskState.ERROR);
                 log.error(" sink task {},pull message MQClientException, Error {} ", this, e.getMessage(), e);
-                connectStatsManager.incSinkRecordPutTotalFailNums();
-                connectStatsManager.incSinkRecordPutFailNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+                readRecordFailNum();
+                throw e;
             } finally {
                 // record sink read times
                 connectStatsManager.incSinkRecordReadTotalTimes();
@@ -586,6 +552,19 @@ public class WorkerSinkTask extends WorkerTask {
         this.sinkTaskContext.resetOffset(offsets);
     }
 
+
+    private void removePauseQueueMessage(MessageQueue messageQueue, List<MessageExt> messages) {
+        if (null != messageQueuesStateMap.get(messageQueue)) {
+            final Iterator<MessageExt> iterator = messages.iterator();
+            while (iterator.hasNext()) {
+                final MessageExt message = iterator.next();
+                String msgId = message.getMsgId();
+                log.info("BrokerName {}, topicName {}, queueId {} is pause, Discard the message {}", messageQueue.getBrokerName(), messageQueue.getTopic(), message.getQueueId(), msgId);
+                iterator.remove();
+            }
+        }
+    }
+
     /**
      * error record reporter
      * @return
@@ -593,6 +572,41 @@ public class WorkerSinkTask extends WorkerTask {
     public WorkerErrorRecordReporter errorRecordReporter() {
         return errorRecordReporter;
     }
+
+    private void recordReadSuccess(int recordSize, long beginPullMsgTimestamp){
+        long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
+        recordReadNums(recordSize);
+        recordReadRT(pullRT);
+    }
+
+    private void recordReadNums(int size) {
+        connectStatsManager.incSinkRecordReadTotalNums(size);
+        connectStatsManager.incSinkRecordReadNums(id().toString(), size);
+    }
+
+    private void recordReadRT(long pullRT) {
+        connectStatsManager.incSinkRecordReadTotalRT(pullRT);
+        connectStatsManager.incSinkRecordReadRT(id().toString(), pullRT);
+    }
+
+
+
+
+    private void readRecordFail(long beginPullMsgTimestamp){
+        readRecordFailNum();
+        readRecordFailRT(System.currentTimeMillis() - beginPullMsgTimestamp);
+    }
+
+    private void readRecordFailRT(long errorPullRT) {
+        connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
+        connectStatsManager.incSinkRecordReadFailRT(id().toString(), errorPullRT);
+    }
+
+    private void readRecordFailNum() {
+        connectStatsManager.incSinkRecordReadTotalFailNums();
+        connectStatsManager.incSinkRecordReadFailNums(id().toString());
+    }
+
 }
 
 
