@@ -185,10 +185,13 @@ public class WorkerSinkTask extends WorkerTask {
         this.sinkTaskContext.cleanQueuesOffsets();
     }
 
-    private void registTopics() {
+    /**
+     * sub topics
+     */
+    private void registryTopics() {
         Set<String> topics = SinkConnectorConfig.parseTopicList(taskConfig);
         if (org.apache.commons.collections4.CollectionUtils.isEmpty(topics)) {
-            throw new ConnectException("sink connector topics config can be null, please check sink connector config info");
+            throw new ConnectException("Sink connector topics config can be null, please check sink connector config info");
         }
         for (String topic : topics) {
             consumer.registerMessageQueueListener(topic, new MessageQueueListener() {
@@ -201,7 +204,6 @@ public class WorkerSinkTask extends WorkerTask {
                             messageQueuesOffsetMap.remove(key, value);
                         }
                     });
-
                     Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
                     recordPartitions.forEach(key -> {
                         if (key.getPartition().get("topic").equals(topic)) {
@@ -441,10 +443,10 @@ public class WorkerSinkTask extends WorkerTask {
         for (MessageExt message : messages) {
             this.retryWithToleranceOperator.consumerRecord(message);
             ConnectRecord sinkDataEntry = this.retryWithToleranceOperator.execute(()->convertToSinkDataEntry(message), ErrorReporter.Stage.CONVERTER, WorkerSinkTask.class);
-            if (sinkDataEntry != null && !this.retryWithToleranceOperator.failed())
-            sinkDataEntries.add(sinkDataEntry);
-            String msgId = message.getMsgId();
-            log.info("Received one message success : msgId {}", msgId);
+            if (sinkDataEntry != null && !this.retryWithToleranceOperator.failed()) {
+                sinkDataEntries.add(sinkDataEntry);
+            }
+            log.info("Received one message success : msgId {}",  message.getMsgId());
         }
         List<ConnectRecord> connectRecordList = new ArrayList<>(32);
         for (ConnectRecord connectRecord : sinkDataEntries) {
@@ -519,7 +521,7 @@ public class WorkerSinkTask extends WorkerTask {
      */
     @Override
     protected void initializeAndStart() {
-        registTopics();
+        registryTopics();
         try {
             consumer.start();
         } catch (MQClientException e) {
