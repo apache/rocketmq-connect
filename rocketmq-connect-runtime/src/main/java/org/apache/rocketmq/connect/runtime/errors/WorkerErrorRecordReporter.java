@@ -25,7 +25,6 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.common.message.MessageExt;
 
-
 /**
  * worker error record reporter
  */
@@ -35,7 +34,7 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
     private RecordConverter converter;
 
     public WorkerErrorRecordReporter(RetryWithToleranceOperator retryWithToleranceOperator,
-                                     RecordConverter converter) {
+        RecordConverter converter) {
         this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.converter = converter;
     }
@@ -56,18 +55,18 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
         String brokerName = partition.getPartition().containsKey("brokerName") ? String.valueOf(partition.getPartition().get("topic")) : null;
 
         MessageExt consumerRecord = new MessageExt();
-        if (converter != null && converter instanceof RecordConverter){
+        if (converter != null && converter instanceof RecordConverter) {
             byte[] value = converter.fromConnectData(topic, record.getSchema(), record.getData());
             consumerRecord.setBody(value);
             consumerRecord.setBrokerName(brokerName);
             consumerRecord.setQueueId(queueId);
             consumerRecord.setQueueOffset(queueOffset);
-        }else {
+        } else {
             byte[] messageBody = JSON.toJSONString(record).getBytes();
             consumerRecord.setBody(messageBody);
         }
         // add extensions
-        record.getExtensions().keySet().forEach(key->{
+        record.getExtensions().keySet().forEach(key -> {
             consumerRecord.putUserProperty(key, record.getExtensions().getString(key));
         });
         retryWithToleranceOperator.executeFailed(ErrorReporter.Stage.TASK_PUT, SinkTask.class, consumerRecord, error);
