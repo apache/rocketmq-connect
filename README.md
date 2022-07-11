@@ -97,7 +97,7 @@ cat test-sink-file.txt
 
 tail -100f ~/logs/rocketmqconnect/connect_runtime.log
 
-看到以下日志说明f ile sink connector 启动成功了
+看到以下日志说明file sink connector 启动成功了
 
 2019-07-16 11:24:58 INFO pool-7-thread-2 - **Sink task start**, config:{"properties":{"source-record-...
 
