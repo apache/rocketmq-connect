@@ -147,6 +147,11 @@
             <artifactId>commons-cli</artifactId>
             <version>1.2</version>
         </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-core</artifactId>
+            <version>1.7.2.Final</version>
+        </dependency>
 
         <dependency>
             <groupId>mysql</groupId>

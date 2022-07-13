@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.kafka.connect.adaptor.schema;
 
+import com.beust.jcommander.internal.Maps;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.logical.Timestamp;
 import io.openmessaging.connector.api.errors.ConnectException;
@@ -25,7 +26,6 @@ import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Time;
-import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +58,7 @@ public class RocketMQSourceSchemaConverter {
 
     private SchemaBuilder convertKafkaSchema(org.apache.kafka.connect.data.Schema originalSchema) {
         String schemaName = convertSchemaName(originalSchema.name());
+        Map<String, String> parameters = originalSchema.parameters() == null ? new HashMap<>() : originalSchema.parameters();
         switch (originalSchema.type()) {
             case INT8:
                 return SchemaBuilder
@@ -65,70 +66,90 @@ public class RocketMQSourceSchemaConverter {
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case INT16:
                 return SchemaBuilder
                         .int16()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case INT32:
                 return SchemaBuilder
                         .int32()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case INT64:
                 return SchemaBuilder
                         .int64()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case FLOAT32:
                 return SchemaBuilder
                         .float32()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case FLOAT64:
                 return SchemaBuilder
                         .float64()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case BOOLEAN:
                 return SchemaBuilder
                         .bool()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case STRING:
                 return SchemaBuilder.
                         string()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case BYTES:
                 return SchemaBuilder
                         .bytes()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case STRUCT:
                 SchemaBuilder schemaBuilder = SchemaBuilder
                         .struct()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
                 convertStructSchema(schemaBuilder, originalSchema);
                 return schemaBuilder;
             case ARRAY:
@@ -136,7 +157,9 @@ public class RocketMQSourceSchemaConverter {
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             case MAP:
                 return SchemaBuilder.map(
                         convertKafkaSchema(originalSchema.keySchema()).build(),
@@ -144,7 +167,9 @@ public class RocketMQSourceSchemaConverter {
                 ).optional()
                         .name(schemaName)
                         .doc(originalSchema.doc())
-                        .defaultValue(originalSchema.defaultValue());
+                        .defaultValue(originalSchema.defaultValue())
+                        .parameters(parameters)
+                        ;
             default:
                 throw new RuntimeException(" Type not supported: {}" + originalSchema.type());
 
@@ -163,7 +188,8 @@ public class RocketMQSourceSchemaConverter {
             try {
                 Schema schema = field.schema();
                 org.apache.kafka.connect.data.Schema.Type type = schema.type();
-                String schemaName =  convertSchemaName(field.schema().name());
+                String schemaName = convertSchemaName(schema.name());
+                Map<String, String> parameters = schema.parameters() == null ? new HashMap<>() : schema.parameters();
                 switch (type) {
                     case INT8:
                         schemaBuilder.field(
@@ -173,6 +199,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -185,6 +212,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -197,9 +225,11 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
+
                         break;
                     case INT64:
                         schemaBuilder.field(
@@ -209,6 +239,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -221,6 +252,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -233,6 +265,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -245,6 +278,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -257,6 +291,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -269,6 +304,7 @@ public class RocketMQSourceSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.doc())
                                         .defaultValue(schema.defaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
