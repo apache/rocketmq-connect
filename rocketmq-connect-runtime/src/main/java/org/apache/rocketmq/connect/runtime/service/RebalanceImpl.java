@@ -63,7 +63,10 @@ public class RebalanceImpl {
     private final AbstractConnectController connectController;
 
     public RebalanceImpl(Worker worker,
-                         ConfigManagementService configManagementService, ClusterManagementService clusterManagementService, AllocateConnAndTaskStrategy strategy, AbstractConnectController connectController) {
+                         ConfigManagementService configManagementService,
+                         ClusterManagementService clusterManagementService,
+                         AllocateConnAndTaskStrategy strategy,
+                         AbstractConnectController connectController) {
 
         this.worker = worker;
         this.configManagementService = configManagementService;

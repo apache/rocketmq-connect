@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.kafka.connect.adaptor.transforms;
 
 import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.transforms.Transformation;
