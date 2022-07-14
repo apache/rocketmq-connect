@@ -107,8 +107,9 @@ public class RmqMetaReplicator extends SourceConnector {
         }
     }
 
+
     @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
         try {
             replicatorConfig.init(config);
         } catch (IllegalArgumentException e) {
@@ -117,11 +118,7 @@ public class RmqMetaReplicator extends SourceConnector {
         }
         this.configValid = true;
         this.prepare();
-    }
 
-    @Override
-    public void start(ConnectorContext componentContext) {
-        super.start(componentContext);
         log.info("starting...");
         executor.scheduleAtFixedRate(this::refreshConsumerGroups, replicatorConfig.getRefreshInterval(), replicatorConfig.getRefreshInterval(), TimeUnit.SECONDS);
         executor.scheduleAtFixedRate(this::syncSubConfig, replicatorConfig.getRefreshInterval(), replicatorConfig.getRefreshInterval(), TimeUnit.SECONDS);
@@ -132,14 +129,6 @@ public class RmqMetaReplicator extends SourceConnector {
         this.executor.shutdown();
         this.srcMQAdminExt.shutdown();
         this.targetMQAdminExt.shutdown();
-    }
-
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
     }
 
     @Override public Class<? extends Task> taskClass() {
