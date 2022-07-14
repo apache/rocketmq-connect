@@ -101,8 +101,15 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public void start(ConnectorContext componentContext) {
-        super.start(componentContext);
+    public void start(KeyValue config) {
+        try {
+            this.replicatorConfig.init(config);
+        } catch (IllegalArgumentException e) {
+            log.error("RmqSourceReplicator init config error.", e);
+            throw new IllegalArgumentException("RmqSourceReplicator init config error.");
+        }
+        this.configValid = true;
+
         try {
             startMQAdminTools();
         } catch (MQClientException e) {
@@ -158,17 +165,6 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public void init(KeyValue config) {
-        try {
-            this.replicatorConfig.init(config);
-        } catch (IllegalArgumentException e) {
-            log.error("RmqSourceReplicator init config error.", e);
-            throw new IllegalArgumentException("RmqSourceReplicator init config error.");
-        }
-        this.configValid = true;
-    }
-
-    @Override
     public void stop() {
         executor.shutdown();
         this.srcMQAdminExt.shutdown();
@@ -176,18 +172,7 @@ public class RmqSourceReplicator extends SourceConnector {
     }
 
     @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
-
-    @Override
     public Class<? extends Task> taskClass() {
-
         return RmqSourceTask.class;
     }
 
