@@ -181,7 +181,7 @@ public class SourceRecordConverterTest {
         // sourceRecord convert connect Record
         RocketMQSourceSchemaConverter rocketMQSourceSchemaConverter = new RocketMQSourceSchemaConverter(originalRecord.valueSchema());
 
-        io.openmessaging.connector.api.data.Schema schema =rocketMQSourceSchemaConverter.schema();
+        io.openmessaging.connector.api.data.Schema schema = rocketMQSourceSchemaConverter.schema();
         RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
         ConnectRecord connectRecord = new ConnectRecord(
                 new RecordPartition(originalRecord.sourcePartition()),
@@ -198,6 +198,6 @@ public class SourceRecordConverterTest {
         }
         final byte[] messageBody = JSON.toJSONString(connectRecord).getBytes();
         String bodyStr = new String(messageBody, StandardCharsets.UTF_8);
-        ConnectRecord newConnectRecord= JSON.parseObject(bodyStr, ConnectRecord.class);
+        ConnectRecord newConnectRecord = JSON.parseObject(bodyStr, ConnectRecord.class);
     }
 }

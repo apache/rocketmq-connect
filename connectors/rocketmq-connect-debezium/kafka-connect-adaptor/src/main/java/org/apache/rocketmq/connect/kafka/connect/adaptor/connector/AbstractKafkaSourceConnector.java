@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.apache.rocketmq.connect.kafka.connect.adaptor.connector;
 
 import io.openmessaging.KeyValue;
@@ -36,15 +53,17 @@ public abstract class AbstractKafkaSourceConnector extends SourceConnector imple
 
     /**
      * try override start and stop
+     *
      * @return
      */
-    protected org.apache.kafka.connect.source.SourceConnector originalSinkConnector(){
+    protected org.apache.kafka.connect.source.SourceConnector originalSinkConnector() {
         return sourceConnector;
     }
 
     /**
      * Returns a set of configurations for Tasks based on the current configuration,
      * producing at most count configurations.
+     *
      * @param maxTasks maximum number of configurations to generate
      * @return configurations for Tasks
      */
@@ -54,7 +73,7 @@ public abstract class AbstractKafkaSourceConnector extends SourceConnector imple
         List<KeyValue> configs = new ArrayList<>();
         for (Map<String, String> configMaps : groupConnectors) {
             KeyValue keyValue = new DefaultKeyValue();
-            configMaps.forEach((k, v)->{
+            configMaps.forEach((k, v) -> {
                 keyValue.put(k, v);
             });
             configs.add(keyValue);
@@ -64,6 +83,7 @@ public abstract class AbstractKafkaSourceConnector extends SourceConnector imple
 
     /**
      * Start the component
+     *
      * @param config component context
      */
     @Override
@@ -73,7 +93,7 @@ public abstract class AbstractKafkaSourceConnector extends SourceConnector imple
             this.configValue.put(key, config.getString(key));
         });
         setConnectorClass(configValue);
-       taskConfig = new HashMap<>(configValue.config());
+        taskConfig = new HashMap<>(configValue.config());
         // get the source class name from config and create source task from reflection
         try {
             sourceConnector = Class.forName(taskConfig.get(ConnectorConfig.CONNECTOR_CLASS_CONFIG))
@@ -90,9 +110,9 @@ public abstract class AbstractKafkaSourceConnector extends SourceConnector imple
      */
     @Override
     public void stop() {
-        if (sourceConnector != null){
+        if (sourceConnector != null) {
             sourceConnector = null;
-            configValue =  null;
+            configValue = null;
             this.taskConfig = null;
         }
     }

@@ -37,14 +37,16 @@ import java.util.Map;
 public class KafkaSinkSchemaConverter {
     private static Logger logger = LoggerFactory.getLogger(KafkaSinkSchemaConverter.class);
     private static Map<String, String> logicalMapping = new HashMap<>();
+
     static {
-        logicalMapping.put(io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME,Decimal.LOGICAL_NAME);
+        logicalMapping.put(io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME, Decimal.LOGICAL_NAME);
         logicalMapping.put(io.openmessaging.connector.api.data.logical.Date.LOGICAL_NAME, Date.LOGICAL_NAME);
         logicalMapping.put(io.openmessaging.connector.api.data.logical.Time.LOGICAL_NAME, Time.LOGICAL_NAME);
         logicalMapping.put(io.openmessaging.connector.api.data.logical.Timestamp.LOGICAL_NAME, Timestamp.LOGICAL_NAME);
     }
 
     private SchemaBuilder builder;
+
     public KafkaSinkSchemaConverter(Schema schema) {
         builder = convertKafkaSchema(schema);
     }
@@ -55,6 +57,7 @@ public class KafkaSinkSchemaConverter {
 
     /**
      * convert kafka schema
+     *
      * @param originalSchema
      * @return
      */
@@ -151,8 +154,7 @@ public class KafkaSinkSchemaConverter {
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
                         .defaultValue(originalSchema.getDefaultValue())
-                        .parameters(parameters)
-                        ;
+                        .parameters(parameters);
                 convertStructSchema(schemaBuilder, originalSchema);
                 return schemaBuilder;
             case ARRAY:
@@ -192,10 +194,10 @@ public class KafkaSinkSchemaConverter {
 
                 // schema
                 Schema schema = field.getSchema();
-                String schemaName =  convertSchemaName(field.getSchema().getName());
+                String schemaName = convertSchemaName(field.getSchema().getName());
 
                 // field name
-                String fieldName =  field.getName();
+                String fieldName = field.getName();
                 FieldType type = schema.getFieldType();
 
                 Map<String, String> parameters = schema.getParameters() == null ? new HashMap<>() : schema.getParameters();
@@ -337,8 +339,8 @@ public class KafkaSinkSchemaConverter {
     }
 
 
-    private String convertSchemaName(String schemaName){
-        if (logicalMapping.containsKey(schemaName)){
+    private String convertSchemaName(String schemaName) {
+        if (logicalMapping.containsKey(schemaName)) {
             return logicalMapping.get(schemaName);
         }
         return schemaName;

@@ -35,12 +35,13 @@ public class KafkaSinkValueConverter {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaSinkValueConverter.class);
 
-    public Object value(Schema schema,Object data) {
+    public Object value(Schema schema, Object data) {
         return convertKafkaValue(schema, data);
     }
 
     /**
      * convert value
+     *
      * @param targetSchema
      * @param originalValue
      * @return

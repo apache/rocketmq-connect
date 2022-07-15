@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.kafka.connect.adaptor.schema;
 
-import com.beust.jcommander.internal.Maps;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.logical.Timestamp;
 import io.openmessaging.connector.api.errors.ConnectException;
@@ -39,6 +38,7 @@ import java.util.Map;
 public class RocketMQSourceSchemaConverter {
     private static Logger logger = LoggerFactory.getLogger(RocketMQSourceSchemaConverter.class);
     private static Map<String, String> logicalMapping = new HashMap<>();
+
     static {
         logicalMapping.put(Decimal.LOGICAL_NAME, io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME);
         logicalMapping.put(Date.LOGICAL_NAME, io.openmessaging.connector.api.data.logical.Date.LOGICAL_NAME);
@@ -148,8 +148,7 @@ public class RocketMQSourceSchemaConverter {
                         .name(schemaName)
                         .doc(originalSchema.doc())
                         .defaultValue(originalSchema.defaultValue())
-                        .parameters(parameters)
-                        ;
+                        .parameters(parameters);
                 convertStructSchema(schemaBuilder, originalSchema);
                 return schemaBuilder;
             case ARRAY:
@@ -328,8 +327,8 @@ public class RocketMQSourceSchemaConverter {
     }
 
 
-    private String convertSchemaName(String schemaName){
-        if (logicalMapping.containsKey(schemaName)){
+    private String convertSchemaName(String schemaName) {
+        if (logicalMapping.containsKey(schemaName)) {
             return logicalMapping.get(schemaName);
         }
         return schemaName;

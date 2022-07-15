@@ -119,7 +119,7 @@ public class Worker {
 
     private final Plugin plugin;
 
-    private static final int MAX_START_TIMEOUT_MILLS = 5000;
+    private static final int MAX_START_TIMEOUT_MILLS = 1000*60;
 
     private static final long MAX_STOP_TIMEOUT_MILLS = 20000;
 
@@ -541,7 +541,7 @@ public class Worker {
 
             try {
                 if (null != future) {
-                    future.get(1000, TimeUnit.MILLISECONDS);
+                    future.get(1000 * 60, TimeUnit.MILLISECONDS);
                 } else {
                     log.error("[BUG] errorTasks reference not found in taskFutureMap");
                 }
