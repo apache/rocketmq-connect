@@ -22,7 +22,6 @@ import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

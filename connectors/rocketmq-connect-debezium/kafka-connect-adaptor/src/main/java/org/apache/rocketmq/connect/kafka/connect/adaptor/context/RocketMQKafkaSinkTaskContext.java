@@ -58,7 +58,7 @@ public class RocketMQKafkaSinkTaskContext implements SinkTaskContext {
     @Override
     public void offset(Map<TopicPartition, Long> map) {
         Map<RecordPartition, RecordOffset> offsets = new HashMap<>();
-        map.forEach((topicPartition, offset)->{
+        map.forEach((topicPartition, offset) -> {
             offsets.put(convertToRecordPartition(topicPartition), convertToRecordOffset(offset));
         });
         sinkContext.resetOffset(offsets);
@@ -76,7 +76,7 @@ public class RocketMQKafkaSinkTaskContext implements SinkTaskContext {
 
     @Override
     public Set<TopicPartition> assignment() {
-        Set<TopicPartition> topicPartitions =  new HashSet<>();
+        Set<TopicPartition> topicPartitions = new HashSet<>();
         Set<RecordPartition> recordPartitions = sinkContext.assignment();
         recordPartitions.forEach(partition -> {
             topicPartitions.add(convertToTopicPartition(partition.getPartition()));
@@ -87,9 +87,9 @@ public class RocketMQKafkaSinkTaskContext implements SinkTaskContext {
     @Override
     public void pause(TopicPartition... topicPartitions) {
         List<RecordPartition> partitions = new ArrayList<>();
-        for (TopicPartition topicPartition : topicPartitions){
+        for (TopicPartition topicPartition : topicPartitions) {
             RecordPartition recordPartition = convertToRecordPartition(topicPartition);
-            if (recordPartition != null){
+            if (recordPartition != null) {
                 partitions.add(recordPartition);
             }
         }
@@ -99,9 +99,9 @@ public class RocketMQKafkaSinkTaskContext implements SinkTaskContext {
     @Override
     public void resume(TopicPartition... topicPartitions) {
         List<RecordPartition> partitions = new ArrayList<>();
-        for (TopicPartition topicPartition : topicPartitions){
+        for (TopicPartition topicPartition : topicPartitions) {
             RecordPartition recordPartition = convertToRecordPartition(topicPartition);
-            if (recordPartition != null){
+            if (recordPartition != null) {
                 partitions.add(recordPartition);
             }
         }
@@ -121,11 +121,12 @@ public class RocketMQKafkaSinkTaskContext implements SinkTaskContext {
 
     /**
      * convert to kafka topic partition
+     *
      * @param partitionMap
      * @return
      */
     public TopicPartition convertToTopicPartition(Map<String, ?> partitionMap) {
-        if (partitionMap.containsKey(TOPIC) && partitionMap.containsKey(QUEUE_ID)){
+        if (partitionMap.containsKey(TOPIC) && partitionMap.containsKey(QUEUE_ID)) {
             return new TopicPartition(partitionMap.get(TOPIC).toString(), Integer.valueOf(partitionMap.get(QUEUE_ID).toString()));
         }
         return null;
@@ -133,18 +134,19 @@ public class RocketMQKafkaSinkTaskContext implements SinkTaskContext {
 
     /**
      * convert to rocketmq record partition
+     *
      * @param topicPartition
      * @return
      */
     public RecordPartition convertToRecordPartition(TopicPartition topicPartition) {
-        if (topicPartition != null){
-            return new RecordPartition(Collections.singletonMap(topicPartition.topic(),topicPartition.partition()));
+        if (topicPartition != null) {
+            return new RecordPartition(Collections.singletonMap(topicPartition.topic(), topicPartition.partition()));
         }
         return null;
     }
 
     private RecordOffset convertToRecordOffset(long l) {
-        return new RecordOffset(Collections.singletonMap(QUEUE_OFFSET,l));
+        return new RecordOffset(Collections.singletonMap(QUEUE_OFFSET, l));
     }
 
 

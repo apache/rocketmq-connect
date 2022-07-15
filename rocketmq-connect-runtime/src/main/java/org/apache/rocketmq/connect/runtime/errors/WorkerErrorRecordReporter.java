@@ -25,7 +25,6 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.common.message.MessageExt;
 
-
 /**
  * worker error record reporter
  */
@@ -35,7 +34,7 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
     private RecordConverter converter;
 
     public WorkerErrorRecordReporter(RetryWithToleranceOperator retryWithToleranceOperator,
-                                     RecordConverter converter) {
+        RecordConverter converter) {
         this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.converter = converter;
     }

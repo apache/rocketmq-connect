@@ -21,7 +21,6 @@ import io.openmessaging.connector.api.component.task.Task;
 import org.apache.rocketmq.connect.debezium.DebeziumConnector;
 
 
-
 /**
  * debezium mysql connector
  */
@@ -30,6 +29,7 @@ public class DebeziumMysqlConnector extends DebeziumConnector {
 
     /**
      * Return the current connector class
+     *
      * @return task implement class
      */
     @Override
