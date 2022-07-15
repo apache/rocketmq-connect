@@ -18,9 +18,9 @@
 #
 
 {
-  "connector-class":"org.apache.rocketmq.connect.debezium.mysql.DebeziumMysqlConnector",
-  "max-task":"1",
-  "connect-topicname":"debezium-mysql-source",
+  "connector-class": "org.apache.rocketmq.connect.debezium.mysql.DebeziumMysqlConnector",
+  "max-task": "1",
+  "connect-topicname": "debezium-mysql-source",
   "debezium.transforms": "Unwrap",
   "debezium.transforms.Unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
   "debezium.transforms.Unwrap.delete.handling.mode": "drop",
@@ -42,5 +42,5 @@
   "database.include.list": "db-01",
   "snapshot.mode": "when_needed",
 
-  "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+  "source-record-converter": "org.apache.rocketmq.connect.runtime.converter.JsonConverter"
 }
