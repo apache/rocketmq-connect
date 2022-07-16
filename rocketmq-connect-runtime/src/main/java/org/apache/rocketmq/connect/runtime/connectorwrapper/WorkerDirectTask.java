@@ -178,7 +178,6 @@ public class WorkerDirectTask implements WorkerTask {
             public KeyValue configs() {
                 return taskConfig;
             }
-
             @Override
             public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
 

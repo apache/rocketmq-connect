@@ -18,10 +18,10 @@
 package org.apache.rocketmq.connect.debezium;
 
 import com.beust.jcommander.internal.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
@@ -38,10 +38,8 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,9 +47,7 @@ import java.util.UUID;
 /**
  * rocket connect util
  */
-public class ConnectUtil {
-
-    private static final String SYS_TASK_CG_PREFIX = "connect-";
+public class RocketMQConnectUtil {
 
     public static String createGroupName(String prefix) {
         StringBuilder sb = new StringBuilder();
@@ -62,26 +58,46 @@ public class ConnectUtil {
         return sb.toString().replace(".", "-");
     }
 
-    public static String createGroupName(String prefix, String postfix) {
-        return new StringBuilder().append(prefix).append("-").append(postfix).toString();
+    public static String createUniqInstance(String prefix) {
+        return new StringBuffer(prefix).append("-").append(UUID.randomUUID()).toString();
     }
 
-    public static String createInstance(String servers) {
-        String[] serversArray = servers.split(";");
-        List<String> serversList = new ArrayList<String>();
-        for (String server : serversArray) {
-            if (!serversList.contains(server)) {
-                serversList.add(server);
+    private static RPCHook getAclRPCHook(String accessKey, String secretKey) {
+        return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+    }
+
+    /**
+     * init default lite pull consumer
+     *
+     * @param connectConfig
+     * @param topic
+     * @param autoCommit
+     * @return
+     * @throws MQClientException
+     */
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(RocketMqConnectConfig connectConfig, String topic, boolean autoCommit) throws MQClientException {
+        DefaultLitePullConsumer consumer = null;
+        if (Objects.isNull(consumer)) {
+            if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
+                consumer = new DefaultLitePullConsumer(
+                        connectConfig.getRmqConsumerGroup()
+                );
+            } else {
+                consumer = new DefaultLitePullConsumer(
+                        connectConfig.getRmqConsumerGroup(),
+                        getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey())
+                );
             }
         }
-        Collections.sort(serversList);
-        return String.valueOf(serversList.toString().hashCode());
+        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        String uniqueName = Thread.currentThread().getName() + "-" + System.currentTimeMillis() % 1000;
+        consumer.setInstanceName(uniqueName);
+        consumer.setUnitName(uniqueName);
+        consumer.setAutoCommit(autoCommit);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        consumer.subscribe(topic, "*");
+        return consumer;
     }
-
-    public static String createUniqInstance(String prefix) {
-        return new StringBuffer(prefix).append("-").append(UUID.randomUUID().toString()).toString();
-    }
-
 
     public static DefaultMQProducer initDefaultMQProducer(RocketMqConnectConfig connectConfig) {
         RPCHook rpcHook = null;
@@ -91,55 +107,24 @@ public class ConnectUtil {
         DefaultMQProducer producer = new DefaultMQProducer(rpcHook);
         producer.setNamesrvAddr(connectConfig.getNamesrvAddr());
         producer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
-        producer.setProducerGroup(connectConfig.getRmqProducerGroup());
+        producer.setProducerGroup(connectConfig.getRmqConsumerGroup());
         producer.setSendMsgTimeout(connectConfig.getOperationTimeout());
         producer.setLanguage(LanguageCode.JAVA);
         return producer;
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(RocketMqConnectConfig connectConfig) {
-        RPCHook rpcHook = null;
-        if (connectConfig.isAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
-        }
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(rpcHook);
-        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
-        consumer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
-        consumer.setConsumerGroup(connectConfig.getRmqConsumerGroup());
-        consumer.setMaxReconsumeTimes(connectConfig.getRmqMaxRedeliveryTimes());
-        consumer.setConsumerPullTimeoutMillis((long) connectConfig.getRmqMessageConsumeTimeout());
-        consumer.setLanguage(LanguageCode.JAVA);
-        return consumer;
-    }
-
-    public static DefaultMQPushConsumer initDefaultMQPushConsumer(RocketMqConnectConfig connectConfig) {
-        RPCHook rpcHook = null;
-        if (connectConfig.isAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
-        }
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(rpcHook);
-        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
-        consumer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
-        consumer.setConsumerGroup(createGroupName(connectConfig.getRmqConsumerGroup()));
-        consumer.setMaxReconsumeTimes(connectConfig.getRmqMaxRedeliveryTimes());
-        consumer.setConsumeTimeout((long) connectConfig.getRmqMessageConsumeTimeout());
-        consumer.setConsumeThreadMin(connectConfig.getRmqMinConsumeThreadNums());
-        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
-        consumer.setLanguage(LanguageCode.JAVA);
-        return consumer;
-    }
-
     public static DefaultMQAdminExt startMQAdminTool(RocketMqConnectConfig connectConfig) throws MQClientException {
-        RPCHook rpcHook = null;
+        DefaultMQAdminExt admin;
         if (connectConfig.isAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+            admin = new DefaultMQAdminExt(new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey())));
+        } else {
+            admin = new DefaultMQAdminExt();
         }
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        defaultMQAdminExt.setNamesrvAddr(connectConfig.getNamesrvAddr());
-        defaultMQAdminExt.setAdminExtGroup("connector-admin-group");
-        defaultMQAdminExt.setInstanceName(ConnectUtil.createUniqInstance(connectConfig.getNamesrvAddr()));
-        defaultMQAdminExt.start();
-        return defaultMQAdminExt;
+        admin.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        admin.setAdminExtGroup(connectConfig.getRmqConsumerGroup());
+        admin.setInstanceName(RocketMQConnectUtil.createUniqInstance(connectConfig.getNamesrvAddr()));
+        admin.start();
+        return admin;
     }
 
 
@@ -165,7 +150,7 @@ public class ConnectUtil {
         }
     }
 
-    public static boolean isTopicExist(RocketMqConnectConfig connectConfig, String topic) {
+    public static boolean topicExist(RocketMqConnectConfig connectConfig, String topic) {
         DefaultMQAdminExt defaultMQAdminExt = null;
         boolean foundTopicRouteInfo = false;
         try {
@@ -184,7 +169,7 @@ public class ConnectUtil {
         return foundTopicRouteInfo;
     }
 
-    public static Set<String> fetchAllConsumerGroupList(RocketMqConnectConfig connectConfig) {
+    public static Set<String> fetchAllConsumerGroup(RocketMqConnectConfig connectConfig) {
         Set<String> consumerGroupSet = Sets.newHashSet();
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
@@ -230,3 +215,5 @@ public class ConnectUtil {
         return subGroup;
     }
 }
+
+

@@ -37,14 +37,16 @@ import java.util.Map;
 public class KafkaSinkSchemaConverter {
     private static Logger logger = LoggerFactory.getLogger(KafkaSinkSchemaConverter.class);
     private static Map<String, String> logicalMapping = new HashMap<>();
+
     static {
-        logicalMapping.put(io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME,Decimal.LOGICAL_NAME);
+        logicalMapping.put(io.openmessaging.connector.api.data.logical.Decimal.LOGICAL_NAME, Decimal.LOGICAL_NAME);
         logicalMapping.put(io.openmessaging.connector.api.data.logical.Date.LOGICAL_NAME, Date.LOGICAL_NAME);
         logicalMapping.put(io.openmessaging.connector.api.data.logical.Time.LOGICAL_NAME, Time.LOGICAL_NAME);
         logicalMapping.put(io.openmessaging.connector.api.data.logical.Timestamp.LOGICAL_NAME, Timestamp.LOGICAL_NAME);
     }
 
     private SchemaBuilder builder;
+
     public KafkaSinkSchemaConverter(Schema schema) {
         builder = convertKafkaSchema(schema);
     }
@@ -55,11 +57,14 @@ public class KafkaSinkSchemaConverter {
 
     /**
      * convert kafka schema
+     *
      * @param originalSchema
      * @return
      */
     private SchemaBuilder convertKafkaSchema(io.openmessaging.connector.api.data.Schema originalSchema) {
         String schemaName = convertSchemaName(originalSchema.getName());
+        Map<String, String> parameters = originalSchema.getParameters() == null ? new HashMap<>() : originalSchema.getParameters();
+
         switch (originalSchema.getFieldType()) {
             case INT8:
                 return SchemaBuilder
@@ -67,70 +72,89 @@ public class KafkaSinkSchemaConverter {
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case INT16:
                 return SchemaBuilder
                         .int16()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case INT32:
                 return SchemaBuilder
                         .int32()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case INT64:
                 return SchemaBuilder
                         .int64()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case FLOAT32:
                 return SchemaBuilder
                         .float32()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case FLOAT64:
                 return SchemaBuilder
                         .float64()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case BOOLEAN:
                 return SchemaBuilder
                         .bool()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case STRING:
                 return SchemaBuilder.
                         string()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case BYTES:
                 return SchemaBuilder
                         .bytes()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case STRUCT:
                 SchemaBuilder schemaBuilder = SchemaBuilder
                         .struct()
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters);
                 convertStructSchema(schemaBuilder, originalSchema);
                 return schemaBuilder;
             case ARRAY:
@@ -138,7 +162,9 @@ public class KafkaSinkSchemaConverter {
                         .optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             case MAP:
                 return SchemaBuilder.map(
                         convertKafkaSchema(originalSchema.getKeySchema()).build(),
@@ -146,7 +172,9 @@ public class KafkaSinkSchemaConverter {
                 ).optional()
                         .name(schemaName)
                         .doc(originalSchema.getDoc())
-                        .defaultValue(originalSchema.getDefaultValue());
+                        .defaultValue(originalSchema.getDefaultValue())
+                        .parameters(parameters)
+                        ;
             default:
                 throw new RuntimeException(" Type not supported: {}" + originalSchema.getFieldType());
 
@@ -166,12 +194,13 @@ public class KafkaSinkSchemaConverter {
 
                 // schema
                 Schema schema = field.getSchema();
-                String schemaName =  convertSchemaName(field.getSchema().getName());
+                String schemaName = convertSchemaName(field.getSchema().getName());
 
                 // field name
-                String fieldName =  field.getName();
+                String fieldName = field.getName();
                 FieldType type = schema.getFieldType();
 
+                Map<String, String> parameters = schema.getParameters() == null ? new HashMap<>() : schema.getParameters();
 
                 switch (type) {
                     case INT8:
@@ -182,6 +211,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -194,6 +224,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -206,6 +237,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -218,6 +250,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -230,6 +263,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -242,6 +276,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -254,6 +289,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -266,6 +302,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -278,6 +315,7 @@ public class KafkaSinkSchemaConverter {
                                         .name(schemaName)
                                         .doc(schema.getDoc())
                                         .defaultValue(schema.getDefaultValue())
+                                        .parameters(parameters)
                                         .optional()
                                         .build()
                         );
@@ -301,8 +339,8 @@ public class KafkaSinkSchemaConverter {
     }
 
 
-    private String convertSchemaName(String schemaName){
-        if (logicalMapping.containsKey(schemaName)){
+    private String convertSchemaName(String schemaName) {
+        if (logicalMapping.containsKey(schemaName)) {
             return logicalMapping.get(schemaName);
         }
         return schemaName;

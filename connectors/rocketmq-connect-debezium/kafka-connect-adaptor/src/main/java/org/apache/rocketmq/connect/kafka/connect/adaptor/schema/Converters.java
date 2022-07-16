@@ -38,7 +38,7 @@ import java.util.Map;
 public class Converters {
 
 
-    public static ConnectRecord fromSourceRecord(SourceRecord record){
+    public static ConnectRecord fromSourceRecord(SourceRecord record) {
         // sourceRecord convert connect Record
         RocketMQSourceSchemaConverter rocketMQSourceSchemaConverter = new RocketMQSourceSchemaConverter(record.valueSchema());
         io.openmessaging.connector.api.data.Schema schema = rocketMQSourceSchemaConverter.schema();
@@ -58,7 +58,7 @@ public class Converters {
     }
 
 
-    public static ConnectRecord fromSinkRecord(SinkRecord record){
+    public static ConnectRecord fromSinkRecord(SinkRecord record) {
         // sourceRecord convert connect Record
         RocketMQSourceSchemaConverter rocketMQSourceSchemaConverter = new RocketMQSourceSchemaConverter(record.valueSchema());
         io.openmessaging.connector.api.data.Schema schema = rocketMQSourceSchemaConverter.schema();
@@ -78,13 +78,13 @@ public class Converters {
     }
 
 
-
     /**
      * convert rocketmq connect record to sink record
+     *
      * @param record
      * @return
      */
-    public static SinkRecord fromConnectRecord(ConnectRecord record){
+    public static SinkRecord fromConnectRecord(ConnectRecord record) {
         // connect record  convert kafka  sink record
         KafkaSinkSchemaConverter kafkaSinkSchemaConverter = new KafkaSinkSchemaConverter(record.getSchema());
         Schema schema = kafkaSinkSchemaConverter.schema();
@@ -94,7 +94,7 @@ public class Converters {
         Iterator extensions = record.getExtensions().keySet().iterator();
         while (extensions.hasNext()) {
             String key = String.valueOf(extensions.next());
-            headers.add(key, record.getExtensions().getString(key) , null);
+            headers.add(key, record.getExtensions().getString(key), null);
         }
 
         SinkRecord sinkRecord = new SinkRecord(
@@ -112,7 +112,7 @@ public class Converters {
         return sinkRecord;
     }
 
-    public static RecordPartition toRecordPartition(SinkRecord record){
+    public static RecordPartition toRecordPartition(SinkRecord record) {
 
         Map<String, String> recordPartitionMap = new HashMap<>();
         recordPartitionMap.put(RocketMQKafkaSinkTaskContext.TOPIC, record.topic());
@@ -120,7 +120,7 @@ public class Converters {
         return new RecordPartition(recordPartitionMap);
     }
 
-    public static RecordOffset toRecordOffset(SinkRecord record){
+    public static RecordOffset toRecordOffset(SinkRecord record) {
         Map<String, String> recordOffsetMap = new HashMap<>();
         recordOffsetMap.put(RocketMQKafkaSinkTaskContext.QUEUE_OFFSET, record.kafkaOffset() + "");
         return new RecordOffset(recordOffsetMap);
@@ -129,31 +129,35 @@ public class Converters {
 
     /**
      * get topic
+     *
      * @param partition
      * @return
      */
-    public static String topic(RecordPartition partition){
+    public static String topic(RecordPartition partition) {
         return partition.getPartition().get(RocketMQKafkaSinkTaskContext.TOPIC).toString();
     }
 
     /**
      * get partition
+     *
      * @param partition
      * @return
      */
-    public static int partition(RecordPartition partition){
-        if (partition.getPartition().containsKey(RocketMQKafkaSinkTaskContext.QUEUE_ID)){
+    public static int partition(RecordPartition partition) {
+        if (partition.getPartition().containsKey(RocketMQKafkaSinkTaskContext.QUEUE_ID)) {
             return Integer.valueOf(partition.getPartition().get(RocketMQKafkaSinkTaskContext.QUEUE_ID).toString());
         }
         return -1;
     }
+
     /**
      * get offset
+     *
      * @param offset
      * @return
      */
-    public static int offset(RecordOffset offset){
-        if (offset.getOffset().containsKey(RocketMQKafkaSinkTaskContext.QUEUE_OFFSET)){
+    public static int offset(RecordOffset offset) {
+        if (offset.getOffset().containsKey(RocketMQKafkaSinkTaskContext.QUEUE_OFFSET)) {
             return Integer.valueOf(offset.getOffset().get(RocketMQKafkaSinkTaskContext.QUEUE_OFFSET).toString());
         }
         return -1;

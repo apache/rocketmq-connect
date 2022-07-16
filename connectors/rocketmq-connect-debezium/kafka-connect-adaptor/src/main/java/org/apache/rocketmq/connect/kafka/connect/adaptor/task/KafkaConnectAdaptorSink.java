@@ -55,6 +55,7 @@ public abstract class KafkaConnectAdaptorSink extends AbstractKafkaConnectSink {
 
     /**
      * convert ConnectRecord to SinkRecord
+     *
      * @param record
      * @return
      */

@@ -40,19 +40,18 @@ import java.util.Map;
 /**
  * abstract kafka connect
  */
-public abstract class AbstractKafkaConnectSource extends SourceTask implements TaskClassSetter{
+public abstract class AbstractKafkaConnectSource extends SourceTask implements TaskClassSetter {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractKafkaConnectSource.class);
 
     protected TransformationWrapper transformationWrapper;
-    private SourceTaskContext kafkaSourceTaskContext;
-    private org.apache.kafka.connect.source.SourceTask sourceTask;
-    private OffsetStorageReader offsetReader;
-
     /**
      * kafka connect init
      */
     protected ConnectKeyValue configValue;
+    private SourceTaskContext kafkaSourceTaskContext;
+    private org.apache.kafka.connect.source.SourceTask sourceTask;
+    private OffsetStorageReader offsetReader;
 
     @Override
     public List<ConnectRecord> poll() throws InterruptedException {
@@ -74,6 +73,7 @@ public abstract class AbstractKafkaConnectSource extends SourceTask implements T
 
     /**
      * convert transform
+     *
      * @param sourceRecord
      */
     protected abstract SourceRecord transforms(SourceRecord sourceRecord);
@@ -103,7 +103,7 @@ public abstract class AbstractKafkaConnectSource extends SourceTask implements T
 
         // get the source class name from config and create source task from reflection
         try {
-            sourceTask = Class.forName(taskConfig.get(TaskConfig.TASK_CLASS_CONFIG))
+            sourceTask = Class.forName(taskConfig.get(TaskConfig.TASK_CLASS_CONFIG), true, AbstractKafkaConnectSource.class.getClassLoader())
                     .asSubclass(org.apache.kafka.connect.source.SourceTask.class)
                     .getDeclaredConstructor()
                     .newInstance();
@@ -112,7 +112,7 @@ public abstract class AbstractKafkaConnectSource extends SourceTask implements T
         }
 
         offsetReader = new KafkaOffsetStorageReader(
-               sourceTaskContext
+                sourceTaskContext
         );
 
         kafkaSourceTaskContext = new RocketMQKafkaSourceTaskContext(offsetReader, taskConfig);

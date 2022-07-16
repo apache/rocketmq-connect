@@ -30,6 +30,7 @@ import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
+import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.slf4j.Logger;
@@ -68,14 +69,8 @@ public class MemoryConfigManagementServiceImpl implements ConfigManagementServic
     }
 
     @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
-        this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
-            new JsonConverter(),
-            new JsonConverter(ConnectKeyValue.class));
-        this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
-            new JsonConverter(),
-            new ListConverter(ConnectKeyValue.class));
+        this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
+        this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.plugin = plugin;
     }
 

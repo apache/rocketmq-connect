@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
 
+import io.debezium.time.ZonedTimestamp;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
@@ -69,7 +70,9 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1625,6 +1628,16 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
+                case ZonedTimestamp.SCHEMA_NAME:
+                    DateTimeFormatter formatter = ZonedTimestamp.FORMATTER;
+                    LocalDateTime localDateTime=LocalDateTime.parse(value.toString(),formatter);
+                    Long format = localDateTime.toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+                    statement.setTimestamp(index,
+                            new java.sql.Timestamp(format),
+                            DateTimeUtils.getTimeZoneCalendar(timeZone)
+                    );
+                    return true;
+
                 default:
                     return false;
             }

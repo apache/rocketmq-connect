@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.debezium.oracle;
 
-import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import org.apache.rocketmq.connect.debezium.DebeziumConnector;
 
@@ -30,6 +29,7 @@ public class DebeziumOracleConnector extends DebeziumConnector {
 
     /**
      * Return the current connector class
+     *
      * @return task implement class
      */
     @Override

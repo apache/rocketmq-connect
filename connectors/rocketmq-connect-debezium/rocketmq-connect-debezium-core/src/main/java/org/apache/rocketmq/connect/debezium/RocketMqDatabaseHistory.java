@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.debezium;
 
-import com.alibaba.fastjson.JSON;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
 import io.debezium.document.DocumentReader;
@@ -28,10 +27,7 @@ import io.debezium.relational.history.DatabaseHistoryListener;
 import io.debezium.relational.history.HistoryRecord;
 import io.debezium.relational.history.HistoryRecordComparator;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
@@ -45,6 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 
@@ -53,7 +50,6 @@ import java.util.function.Consumer;
  */
 public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractKafkaConnectSource.class);
     public static final Field TOPIC = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "rocketmq.topic")
             .withDisplayName("Database history topic name")
             .withType(ConfigDef.Type.STRING)
@@ -61,7 +57,6 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
             .withImportance(ConfigDef.Importance.HIGH)
             .withDescription("The name of the topic for the database schema history")
             .withValidation(Field::isRequired);
-
     /**
      * rocketmq name srv addr
      */
@@ -72,7 +67,6 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
             .withImportance(ConfigDef.Importance.HIGH)
             .withDescription("Rocketmq name srv addr")
             .withValidation(Field::isRequired);
-
     public static final Field ROCKETMQ_ACL_ENABLE = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "acl.enabled")
             .withDisplayName("Rocketmq acl enabled")
             .withType(ConfigDef.Type.BOOLEAN)
@@ -80,36 +74,26 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
             .withWidth(ConfigDef.Width.LONG)
             .withImportance(ConfigDef.Importance.HIGH)
             .withDescription("Rocketmq acl enabled");
-
     public static final Field ROCKETMQ_ACCESS_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "access.key")
             .withDisplayName("Rocketmq access key")
             .withType(ConfigDef.Type.STRING)
             .withWidth(ConfigDef.Width.LONG)
             .withImportance(ConfigDef.Importance.HIGH)
             .withDescription("Rocketmq access key");
-
     public static final Field ROCKETMQ_SECRET_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "secret.key")
             .withDisplayName("Rocketmq secret key")
             .withType(ConfigDef.Type.STRING)
             .withWidth(ConfigDef.Width.LONG)
             .withImportance(ConfigDef.Importance.HIGH)
             .withDescription("Rocketmq secret key");
-
-    public static final Field CONNECTOR_NAME = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "connector.name")
-            .withDisplayName("Connector name")
-            .withType(ConfigDef.Type.STRING)
-            .withWidth(ConfigDef.Width.LONG)
-            .withImportance(ConfigDef.Importance.HIGH)
-            .withDescription("connector name")
-            .withValidation(Field::isRequired);
-
-
+    private static final Logger log = LoggerFactory.getLogger(AbstractKafkaConnectSource.class);
     private final DocumentReader reader = DocumentReader.defaultReader();
     private String topicName;
     private String dbHistoryName;
     private RocketMqConnectConfig connectConfig;
-    private DefaultMQPushConsumer consumer;
     private DefaultMQProducer producer;
+
+
 
     @Override
     public void configure(
@@ -119,7 +103,6 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
             boolean useCatalogBeforeSchema) {
         super.configure(config, comparator, listener, useCatalogBeforeSchema);
         this.topicName = config.getString(TOPIC);
-
         this.dbHistoryName = config.getString(DatabaseHistory.NAME, UUID.randomUUID().toString());
         log.info("Configure to store the debezium database history {} to rocketmq topic {}",
                 dbHistoryName, topicName);
@@ -132,32 +115,23 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
         super.initializeStorage();
         log.info("try to create history topic: {}!", this.topicName);
         TopicConfig topicConfig = new TopicConfig(this.topicName);
-        ConnectUtil.createTopic(connectConfig, topicConfig);
+        RocketMQConnectUtil.createTopic(connectConfig, topicConfig);
     }
 
     @Override
     public void start() {
         super.start();
         try {
-            // init consumer
-            this.consumer = ConnectUtil.initDefaultMQPushConsumer(connectConfig);
-            Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
-            if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
-                ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
+            Set<String> consumerGroupSet = RocketMQConnectUtil.fetchAllConsumerGroup(connectConfig);
+            if (!consumerGroupSet.contains(connectConfig.getRmqConsumerGroup())) {
+                RocketMQConnectUtil.createSubGroup(connectConfig, connectConfig.getRmqConsumerGroup());
             }
-            this.consumer.subscribe(this.topicName, "*");
-        } catch (MQClientException e) {
-            throw new DatabaseHistoryException(e);
-        }
-
-        this.producer = ConnectUtil.initDefaultMQProducer(connectConfig);
-        try {
+            this.producer = RocketMQConnectUtil.initDefaultMQProducer(connectConfig);
             this.producer.start();
         } catch (MQClientException e) {
             throw new DatabaseHistoryException(e);
         }
     }
-
 
     @Override
     public void stop() {
@@ -165,10 +139,6 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
             if (this.producer != null) {
                 producer.shutdown();
                 this.producer = null;
-            }
-            if (this.consumer != null) {
-                this.consumer.shutdown();
-                this.consumer = null;
             }
         } catch (Exception pe) {
             log.warn("Failed to closing rocketmq client", pe);
@@ -182,34 +152,37 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
      */
     @Override
     protected void recoverRecords(Consumer<HistoryRecord> records) {
-        consumer.registerMessageListener(new MessageListenerConcurrently() {
-            @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
-                msgs.forEach(message -> {
-                    try {
-                        HistoryRecord recordObj = new HistoryRecord(reader.read(message.getBody()));
-                        log.trace("Recovering database history: {}", recordObj);
-                        if (recordObj == null || !recordObj.isValid()) {
-                            log.warn("Skipping invalid database history record '{}'. " +
-                                            "This is often not an issue, but if it happens repeatedly please check the '{}' topic.",
-                                    recordObj, topicName);
-                        } else {
-                            records.accept(recordObj);
-                            log.trace("Recovered database history: {}", recordObj);
-                        }
-                    } catch (IOException e) {
-                        throw new DatabaseHistoryException(e);
-                    }
-                });
-                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-            }
-        });
+        DefaultLitePullConsumer consumer = null;
         try {
+            consumer = RocketMQConnectUtil.initDefaultLitePullConsumer(connectConfig, topicName, false);
             consumer.start();
-        } catch (MQClientException e) {
+            while (true) {
+                List<MessageExt> result = consumer.poll(10000);
+                if (result == null || result.isEmpty()) {
+                    break;
+                }
+                for (MessageExt message : result) {
+                    HistoryRecord recordObj = new HistoryRecord(reader.read(message.getBody()));
+                    log.trace("Recovering database history: {}", recordObj);
+                    if (recordObj == null || !recordObj.isValid()) {
+                        log.warn("Skipping invalid database history record '{}'. " +
+                                        "This is often not an issue, but if it happens repeatedly please check the '{}' topic.",
+                                recordObj, topicName);
+                    } else {
+                        records.accept(recordObj);
+                        log.trace("Recovered database history: {}", recordObj);
+                    }
+                }
+            }
+        } catch (MQClientException ce) {
+            throw new DatabaseHistoryException(ce);
+        } catch (IOException e) {
             throw new DatabaseHistoryException(e);
+        } finally {
+            if (consumer != null) {
+                consumer.shutdown();
+            }
         }
-        log.info("Consumer started.");
     }
 
     @Override
@@ -225,7 +198,7 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
         try {
             Message sourceMessage = new Message();
             sourceMessage.setTopic(this.topicName);
-            final byte[] messageBody = JSON.toJSONString(record).getBytes();
+            final byte[] messageBody = record.toString().getBytes();
             sourceMessage.setBody(messageBody);
             producer.send(sourceMessage);
         } catch (Exception e) {
@@ -242,7 +215,7 @@ public final class RocketMqDatabaseHistory extends AbstractDatabaseHistory {
     @Override
     public boolean storageExists() {
         // check topic is exist
-        return ConnectUtil.isTopicExist(connectConfig, this.topicName);
+        return RocketMQConnectUtil.topicExist(connectConfig, this.topicName);
     }
 
     @Override
