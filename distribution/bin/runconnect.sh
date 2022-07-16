@@ -28,12 +28,12 @@ error_exit ()
 }
 
 
-function check_java_version ()
+check_java_version ()
 {
   _java=$1
-  version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+  version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}' | grep -o '^[0-9.]\+')
   flag="true"
-  if [[ "$version" < "1.7" ]]; then
+  if [[ $(echo "$version < 1.7" | bc) -eq 1 ]]; then
       flag="false"
   fi
 
@@ -44,7 +44,7 @@ function check_java_version ()
   echo $flag
 }
 
-function check_java_opts ()
+check_java_opts ()
 {
   export IFS=" "
   flag="true"
