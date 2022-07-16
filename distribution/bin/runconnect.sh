@@ -31,9 +31,10 @@ error_exit ()
 check_java_version ()
 {
   _java=$1
+  _version=$2
   version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}' | grep -o '^[0-9.]\+')
   flag="true"
-  if [[ $(echo "$version < 1.7" | bc) -eq 1 ]]; then
+  if [[ $(echo "$version < $_version" | bc) -eq 1 ]]; then
       flag="false"
   fi
 
@@ -88,14 +89,20 @@ export LANG=en_US.UTF-8
 
 JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g -XX:PermSize=128m -XX:MaxPermSize=320m"
 JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0 -XX:SurvivorRatio=8 -XX:+DisableExplicitGC"
-JAVA_OPT="${JAVA_OPT} -verbose:gc -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
-JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+JAVA_OPT="${JAVA_OPT} -verbose:gc"
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
 JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=10g"
 JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages -XX:-UseBiasedLocking"
-JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
-JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+if [[ $(check_java_version "$JAVA" "9") == "false" ]]; then
+  JAVA_OPT="${JAVA_OPT} -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
+  JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+  JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
+  JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
+else
+  JAVA_OPT="${JAVA_OPT} -Xlog:gc:/dev/shm/mq_gc_%p.log -Xlog:gc*"
+  JAVA_OPT="${JAVA_OPT} -cp $(find "${BASE_DIR}/lib" -name '*.jar' | sed ':a;N;s/\n/:/;ba;'):${CLASSPATH}"
+fi
 JAVA_OPT="${JAVA_OPT} -DisSyncFlush=false"
 
 #===========================================================================================
@@ -115,7 +122,7 @@ if [[ $(check_java_opts "$JAVA_OPT") == "false" ]]; then
     error_exit "Too small heap mem size or Xms/Xms/Xmn are missing, we need Xms >= 4g, Xmx >= 4g and Xmn >= 2g."
 fi
 
-if [[ $(check_java_version "$JAVA") == "false" ]]; then
+if [[ $(check_java_version "$JAVA" "1.7") == "false" ]]; then
     error_exit "Java version is too low, we need java(x64) 1.7+!"
 fi
 
