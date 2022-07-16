@@ -63,6 +63,10 @@ public abstract class AbstractKafkaConnectSource extends SourceTask implements T
         for (SourceRecord sourceRecord : recordList) {
             // transforms
             SourceRecord transformRecord = transforms(sourceRecord);
+            if (transformRecord == null){
+                log.debug("SourceRecord has been filtered out , record {}", sourceRecord.toString());
+                continue;
+            }
             ConnectRecord processRecord = Converters.fromSourceRecord(transformRecord);
             if (processRecord != null) {
                 records.add(processRecord);
