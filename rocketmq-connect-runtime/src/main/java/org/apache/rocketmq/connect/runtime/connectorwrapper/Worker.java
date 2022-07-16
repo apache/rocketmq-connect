@@ -40,7 +40,6 @@ import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.TaskPositionCommitService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -56,6 +55,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -105,8 +105,8 @@ public class Worker {
     /**
      * A scheduled task to commit source position of source tasks.
      */
-    private final TaskPositionCommitService taskPositionCommitService;
-
+//    private final TaskPositionCommitService taskPositionCommitService;
+    private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
     private final ConnectConfig connectConfig;
     private final Plugin plugin;
 
@@ -130,17 +130,18 @@ public class Worker {
         this.connectConfig = connectConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
-        this.taskPositionCommitService = new TaskPositionCommitService(
-                this,
-                positionManagementService);
+//        this.taskPositionCommitService = new TaskPositionCommitService(
+//                this,
+//                positionManagementService);
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
+        this.sourceTaskOffsetCommitter= Optional.of(new SourceTaskOffsetCommitter(connectConfig));
     }
 
     public void start() {
         workerState = new AtomicReference<>(WorkerState.STARTED);
-        taskPositionCommitService.start();
+//        taskPositionCommitService.start();
         stateMachineService.start();
     }
 
@@ -256,11 +257,13 @@ public class Worker {
     public void stop() {
         workerState.set(WorkerState.TERMINATED);
         try {
+            sourceTaskOffsetCommitter.ifPresent(committer-> committer.close(5000));
             taskExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             log.error("Task termination error.", e);
         }
         stateMachineService.shutdown();
+
     }
 
 
@@ -355,7 +358,6 @@ public class Worker {
      * @param connectorConfig
      */
     private void checkRunningTasks(Map<String, List<ConnectKeyValue>> connectorConfig) {
-        boolean needCommitPosition = false;
         //  STEP 1: check running tasks and put to error status
         for (Runnable runnable : runningTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
@@ -371,6 +373,8 @@ public class Worker {
                 case RUNNING:
                     if (isNeedStop(taskConfig, taskConfigs)) {
                         try {
+                            // remove committer offset
+                            sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
                             workerTask.close();
                         } catch (Exception e) {
                             log.error("workerTask stop exception, workerTask: " + workerTask.currentTaskConfig(), e);
@@ -378,18 +382,13 @@ public class Worker {
                         log.info("Task stopping, connector name {}, config {}", workerTask.id().connector(), workerTask.currentTaskConfig());
                         runningTasks.remove(runnable);
                         stoppingTasks.put(runnable, System.currentTimeMillis());
-                        needCommitPosition = true;
                     }
                     break;
                 default:
                     log.error("[BUG] Illegal State in when checking running tasks, {} is in {} state",
-                            ((WorkerTask) runnable).id().connector(), state.toString());
+                            ((WorkerTask) runnable).id().connector(), state);
                     break;
             }
-        }
-        //If some tasks are closed, synchronize the position.
-        if (needCommitPosition) {
-            taskPositionCommitService.commitTaskPosition();
         }
     }
 
@@ -441,6 +440,8 @@ public class Worker {
                 log.info("[BUG] Stopped Tasks should not throw any exception");
                 e.printStackTrace();
             } finally {
+                // remove committer offset
+                sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
                 future.cancel(true);
                 taskToFutureMap.remove(runnable);
                 stoppedTasks.remove(runnable);
@@ -464,6 +465,9 @@ public class Worker {
             } catch (CancellationException | TimeoutException | InterruptedException e) {
                 log.error("error, {}", e);
             } finally {
+                // remove committer offset
+                sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
+
                 future.cancel(true);
                 workerTask.cleanup();
                 taskToFutureMap.remove(runnable);
@@ -593,6 +597,9 @@ public class Worker {
                                 (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
                         Future future = taskExecutor.submit(workerSourceTask);
+                        // schedule offset committer
+                        sourceTaskOffsetCommitter.ifPresent(committer -> committer.schedule(id, workerSourceTask));
+
                         taskToFutureMap.put(workerSourceTask, future);
                         this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
 

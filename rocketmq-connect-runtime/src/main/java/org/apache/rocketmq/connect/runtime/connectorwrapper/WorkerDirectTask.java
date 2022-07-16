@@ -93,7 +93,7 @@ public class WorkerDirectTask extends WorkerTask {
             sinkTask.put(sinkDataEntries);
             try {
                 if (!MapUtils.isEmpty(map)) {
-                    map.forEach(positionStorageWriter::putPosition);
+                    map.forEach(positionStorageWriter::writeOffset);
                 }
             } catch (Exception e) {
                 log.error("Source task save position info failed.", e);

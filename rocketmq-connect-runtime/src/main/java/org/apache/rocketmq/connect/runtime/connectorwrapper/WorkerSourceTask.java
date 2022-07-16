@@ -58,9 +58,13 @@ import org.slf4j.LoggerFactory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -73,6 +77,8 @@ public class WorkerSourceTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final long SEND_FAILED_BACKOFF_MS = 100;
+    public static final String OFFSET_COMMIT_TIMEOUT_MS_CONFIG = "offset.flush.timeout.ms";
+    public static final long OFFSET_COMMIT_TIMEOUT_MS_DEFAULT = 5000L;
     /**
      * The implements of the source task.
      */
@@ -113,6 +119,10 @@ public class WorkerSourceTask extends WorkerTask {
     private final CountDownLatch stopRequestedLatch;
     private final AtomicReference<Throwable> producerSendException;
     private List<ConnectRecord> toSendRecord;
+
+
+    private volatile RecordOffsetManagement.CommittableOffsets committableOffsets;
+    private final RecordOffsetManagement offsetManagement;
     /**
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
@@ -148,6 +158,8 @@ public class WorkerSourceTask extends WorkerTask {
         this.sourceTaskContext = new WorkerSourceTaskContext(offsetStorageReader, this, taskConfig);
         this.stopRequestedLatch = new CountDownLatch(1);
         this.producerSendException = new AtomicReference<>();
+        this.offsetManagement = new RecordOffsetManagement();
+        this.committableOffsets = RecordOffsetManagement.CommittableOffsets.EMPTY;
     }
 
     private List<ConnectRecord> poll() throws InterruptedException {
@@ -163,6 +175,10 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
+
+
+
+
     @Override
     public void close() {
         producer.shutdown();
@@ -170,6 +186,22 @@ public class WorkerSourceTask extends WorkerTask {
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
     }
+
+    private void updateCommittableOffsets() {
+        RecordOffsetManagement.CommittableOffsets newOffsets = offsetManagement.committableOffsets();
+        synchronized (this) {
+            this.committableOffsets = this.committableOffsets.updatedWith(newOffsets);
+        }
+    }
+
+
+    protected Optional<RecordOffsetManagement.SubmittedPosition> prepareToSendRecord(
+            ConnectRecord record
+    ) {
+        maybeThrowProducerSendException();
+        return Optional.of(this.offsetManagement.submitRecord(record.getPosition()));
+    }
+
 
     /**
      * Send list of sourceDataEntries to MQ.
@@ -186,35 +218,39 @@ public class WorkerSourceTask extends WorkerTask {
                 recordFailed(preTransformRecord);
                 continue;
             }
+            log.trace("{} Appending record to the topic {} , value {}", this, topic,  record.getData());
+            /**prepare to send record*/
+            Optional<RecordOffsetManagement.SubmittedPosition> submittedRecordPosition = prepareToSendRecord(preTransformRecord);
             try {
                 producer.send(sourceMessage, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
+                        // metrics
                         incWriteRecordStat();
-                        // commit record
+                        // commit record for custom
                         recordSent(preTransformRecord, sourceMessage, result);
-                        // record offset writer
-                        RecordPosition position = record.getPosition();
-                        RecordPartition partition = position.getPartition();
-                        if (null != partition && null != position) {
-                            Map<String, String> offsetMap = (Map<String, String>) position.getOffset();
-                            offsetMap.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, String.valueOf(record.getTimestamp()));
-                            positionStorageWriter.putPosition(partition, position.getOffset());
-                        }
+                        // ack record position
+                        submittedRecordPosition.ifPresent(RecordOffsetManagement.SubmittedPosition::ack);
+//                      positionStorageWriter.putPosition(partition, position.getOffset());
                     }
 
                     @Override
                     public void onException(Throwable throwable) {
                         log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
+                        // fail record metrics
                         inWriteRecordFail();
+                        // record send failed
                         recordSendFailed(false, sourceMessage, preTransformRecord, throwable);
                     }
                 });
             } catch (RetriableException e) {
                 log.warn("{} Failed to send record to topic '{}'. Backing off before retrying: ",
                         this, sourceMessage.getTopic(), e);
+                // Intercepted as successfully sent, used to continue sending next time
                 toSendRecord = toSendRecord.subList(processed, toSendRecord.size());
+                // remove pre submit position, for retry
+                submittedRecordPosition.ifPresent(RecordOffsetManagement.SubmittedPosition::remove);
                 return false;
             } catch (MQClientException | RemotingException e) {
                 log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
@@ -436,6 +472,8 @@ public class WorkerSourceTask extends WorkerTask {
     @Override
     protected void execute() {
         while (isRunning()) {
+
+            updateCommittableOffsets();
             if (CollectionUtils.isEmpty(toSendRecord)) {
                 try {
                     prepareToPollTask();
@@ -452,6 +490,13 @@ public class WorkerSourceTask extends WorkerTask {
                     }
                 } catch (InterruptedException e) {
                     // Ignore and allow to exit.
+                }catch (Exception e){
+                    try {
+                        finalOffsetCommit(true);
+                    } catch (Exception offsetException) {
+                        log.error("Failed to commit offsets for already-failing task", offsetException);
+                    }
+                    throw e;
                 } finally {
                     // record source poll times
                     connectStatsManager.incSourceRecordPollTotalTimes();
@@ -461,6 +506,112 @@ public class WorkerSourceTask extends WorkerTask {
             if (null != atomicLong) {
                 atomicLong.addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
             }
+        }
+    }
+
+    private void finalOffsetCommit(boolean b) {
+
+        // It should still be safe to commit offsets since any exception would have
+        // simply resulted in not getting more records but all the existing records should be ok to flush
+        // and commit offsets. Worst case, task.commit() will also throw an exception causing the offset
+        // commit to fail.
+        offsetManagement.awaitAllMessages(
+                OFFSET_COMMIT_TIMEOUT_MS_DEFAULT,
+                TimeUnit.MILLISECONDS
+        );
+        updateCommittableOffsets();
+        commitOffsets();
+    }
+
+    public boolean commitOffsets() {
+        long commitTimeoutMs = OFFSET_COMMIT_TIMEOUT_MS_DEFAULT;
+        log.debug("{} Committing offsets", this);
+
+        long started = System.currentTimeMillis();
+        long timeout = started + commitTimeoutMs;
+
+        RecordOffsetManagement.CommittableOffsets offsetsToCommit;
+        synchronized (this) {
+            offsetsToCommit = this.committableOffsets;
+            this.committableOffsets = RecordOffsetManagement.CommittableOffsets.EMPTY;
+        }
+
+        if (committableOffsets.isEmpty()) {
+            log.debug("{} Either no records were produced by the task since the last offset commit, "
+                            + "or every record has been filtered out by a transformation "
+                            + "or dropped due to transformation or conversion errors.",
+                    this
+            );
+            // We continue with the offset commit process here instead of simply returning immediately
+            // in order to invoke SourceTask::commit and record metrics for a successful offset commit
+        } else {
+            log.info("{} Committing offsets for {} acknowledged messages", this, committableOffsets.numCommittableMessages());
+            if (committableOffsets.hasPending()) {
+                log.debug("{} There are currently {} pending messages spread across {} source partitions whose offsets will not be committed. "
+                                + "The source partition with the most pending messages is {}, with {} pending messages",
+                        this,
+                        committableOffsets.numUncommittableMessages(),
+                        committableOffsets.numDeques(),
+                        committableOffsets.largestDequePartition(),
+                        committableOffsets.largestDequeSize()
+                );
+            } else {
+                log.debug("{} There are currently no pending messages for this offset commit; "
+                                + "all messages dispatched to the task's producer since the last commit have been acknowledged",
+                        this
+                );
+            }
+        }
+
+        // write offset
+        offsetsToCommit.offsets().forEach(positionStorageWriter::writeOffset);
+
+        // begin flush
+        if (!positionStorageWriter.beginFlush()) {
+            // There was nothing in the offsets to process, but we still mark a successful offset commit.
+            long durationMillis = System.currentTimeMillis() - started;
+            log.debug("{} Finished offset commitOffsets successfully in {} ms",
+                    this, durationMillis);
+            commitSourceTask();
+            return true;
+        }
+
+        // Now we can actually flush the offsets to user storage.
+        Future<Void> flushFuture = positionStorageWriter.doFlush((error, key, result) -> {
+            if (error != null) {
+                log.error("{} Failed to flush offsets to storage: ", WorkerSourceTask.this, error);
+            } else {
+                log.trace("{} Finished flushing offsets to storage", WorkerSourceTask.this);
+            }
+        });
+        try {
+            flushFuture.get(Math.max(timeout - System.currentTimeMillis(), 0), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            log.warn("{} Flush of offsets interrupted, cancelling", this);
+            positionStorageWriter.cancelFlush();
+            return false;
+        } catch (ExecutionException e) {
+            log.error("{} Flush of offsets threw an unexpected exception: ", this, e);
+            positionStorageWriter.cancelFlush();
+            return false;
+        } catch (TimeoutException e) {
+            log.error("{} Timed out waiting to flush offsets to storage; will try again on next flush interval with latest offsets", this);
+            positionStorageWriter.cancelFlush();
+            return false;
+        }
+
+        long durationMillis = System.currentTimeMillis() - started;
+        log.debug("{} Finished commitOffsets successfully in {} ms",
+                this, durationMillis);
+        commitSourceTask();
+        return true;
+    }
+
+    protected void commitSourceTask() {
+        try {
+            this.sourceTask.commit();
+        } catch (Throwable t) {
+            log.error("{} Exception thrown while calling task.commit()", this, t);
         }
     }
 
