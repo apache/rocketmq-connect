@@ -30,6 +30,7 @@ import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
@@ -65,13 +66,14 @@ public class WorkerDirectTask extends WorkerTask {
     private final OffsetStorageReader positionStorageReader;
     private final PositionStorageWriter positionStorageWriter;
 
-    public WorkerDirectTask(ConnectorTaskId id,
+    public WorkerDirectTask(ConnectConfig config,
+                            ConnectorTaskId id,
                             SourceTask sourceTask,
                             SinkTask sinkTask,
                             ConnectKeyValue taskConfig,
                             PositionManagementService positionManagementService,
                             AtomicReference<WorkerState> workerState) {
-        super(id, null, taskConfig, null, null, workerState);
+        super(config, id, null, taskConfig, null, null, workerState);
         this.sourceTask = sourceTask;
         this.sinkTask = sinkTask;
         this.positionStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);

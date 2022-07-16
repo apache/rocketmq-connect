@@ -119,7 +119,8 @@ public class WorkerTest {
             RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
             retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
 
-            runnables.add(new WorkerSourceTask(new ConnectorTaskId("TEST-CONN-" + i,i),
+            runnables.add(new WorkerSourceTask(new ConnectConfig(),
+                    new ConnectorTaskId("TEST-CONN-" + i,i),
                 new TestSourceTask(),
                 null,
                 connectKeyValue,

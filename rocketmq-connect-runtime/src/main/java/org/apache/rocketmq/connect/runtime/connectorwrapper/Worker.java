@@ -107,13 +107,9 @@ public class Worker {
      */
 //    private final TaskPositionCommitService taskPositionCommitService;
     private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
-    private final ConnectConfig connectConfig;
+    private final ConnectConfig workerConfig;
     private final Plugin plugin;
 
-
-    private static final int MAX_START_TIMEOUT_MILLS = 1000*60;
-
-    private static final long MAX_STOP_TIMEOUT_MILLS = 20000;
 
     /**
      * Atomic state variable
@@ -123,11 +119,11 @@ public class Worker {
     private final ConnectStatsManager connectStatsManager;
     private final ConnectStatsService connectStatsService;
 
-    public Worker(ConnectConfig connectConfig,
+    public Worker(ConnectConfig workerConfig,
                   PositionManagementService positionManagementService,
                   ConfigManagementService configManagementService,
                   Plugin plugin, AbstractConnectController connectController) {
-        this.connectConfig = connectConfig;
+        this.workerConfig = workerConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
 //        this.taskPositionCommitService = new TaskPositionCommitService(
@@ -136,7 +132,7 @@ public class Worker {
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
-        this.sourceTaskOffsetCommitter= Optional.of(new SourceTaskOffsetCommitter(connectConfig));
+        this.sourceTaskOffsetCommitter= Optional.of(new SourceTaskOffsetCommitter(workerConfig));
     }
 
     public void start() {
@@ -499,7 +495,7 @@ public class Worker {
                     errorTasks.add(runnable);
                     break;
                 case STOPPING:
-                    if (currentTimeMillis - stopTimestamp > MAX_STOP_TIMEOUT_MILLS) {
+                    if (currentTimeMillis - stopTimestamp > workerConfig.getMaxStopTimeoutMills()) {
                         ((WorkerTask) runnable).timeout();
                         stoppingTasks.remove(runnable);
                         errorTasks.add(runnable);
@@ -531,7 +527,7 @@ public class Worker {
                     log.info("[RACE CONDITION] we checked the pending tasks before state turns to PENDING");
                     break;
                 case PENDING:
-                    if (currentTimeMillis - startTimestamp > MAX_START_TIMEOUT_MILLS) {
+                    if (currentTimeMillis - startTimestamp > workerConfig.getMaxStartTimeoutMills()) {
                         ((WorkerTask) runnable).timeout();
                         pendingTasks.remove(runnable);
                         errorTasks.add(runnable);
@@ -587,13 +583,13 @@ public class Worker {
                         Plugin.compareAndSwapLoaders(loader);
                     }
                     if (task instanceof SourceTask) {
-                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
+                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
                         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
-                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(id,
+                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
                                 (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
                         Future future = taskExecutor.submit(workerSourceTask);
@@ -605,17 +601,17 @@ public class Worker {
 
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
-                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorName, keyValue, ++taskId);
-                        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(workerConfig, connectorName, keyValue, ++taskId);
+                        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(workerConfig);
                         if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
-                            ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
+                            ConnectUtil.createSubGroup(workerConfig, consumer.getConsumerGroup());
                         }
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
                         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, connectConfig));
+                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
 
-                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(id,
+                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
                                 (SinkTask) task, loader, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
                                 retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, recordConverter));
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
@@ -658,7 +654,7 @@ public class Worker {
         String sinkTaskClass = keyValue.getString(RuntimeConfigDefine.SINK_TASK_CLASS);
         Task sinkTask = getTask(sinkTaskClass);
 
-        WorkerDirectTask workerDirectTask = new WorkerDirectTask(taskId,
+        WorkerDirectTask workerDirectTask = new WorkerDirectTask(workerConfig, taskId,
                 (SourceTask) sourceTask, (SinkTask) sinkTask, keyValue, positionManagementService, workerState);
 
         Future future = taskExecutor.submit(workerDirectTask);

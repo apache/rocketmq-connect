@@ -69,6 +69,11 @@ public class ConnectConfig {
 
     private int rmqMinConsumeThreadNums = 1;
 
+    private long maxStartTimeoutMills = 1000 * 60 * 3 ;
+
+    private long maxStopTimeoutMills = 1000 * 60;
+
+
     public int getBrokerSuspendMaxTimeMillis() {
         return brokerSuspendMaxTimeMillis;
     }
@@ -140,7 +145,7 @@ public class ConnectConfig {
     /**
      * offset commit interval ms
      */
-    private long offsetCommitIntervalMs = 60000L;
+    private long offsetCommitIntervalMs = 5000L;
 
 
     public String getWorkerId() {
@@ -382,6 +387,22 @@ public class ConnectConfig {
 
     public void setOffsetCommitIntervalMs(long offsetCommitIntervalMs) {
         this.offsetCommitIntervalMs = offsetCommitIntervalMs;
+    }
+
+    public long getMaxStartTimeoutMills() {
+        return maxStartTimeoutMills;
+    }
+
+    public void setMaxStartTimeoutMills(long maxStartTimeoutMills) {
+        this.maxStartTimeoutMills = maxStartTimeoutMills;
+    }
+
+    public long getMaxStopTimeoutMills() {
+        return maxStopTimeoutMills;
+    }
+
+    public void setMaxStopTimeoutMills(long maxStopTimeoutMills) {
+        this.maxStopTimeoutMills = maxStopTimeoutMills;
     }
 
     @Override

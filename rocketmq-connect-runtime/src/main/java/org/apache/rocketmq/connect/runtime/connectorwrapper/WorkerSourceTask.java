@@ -35,11 +35,13 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -49,6 +51,7 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -133,7 +136,8 @@ public class WorkerSourceTask extends WorkerTask {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
     }
 
-    public WorkerSourceTask(ConnectorTaskId id,
+    public WorkerSourceTask(ConnectConfig workerConfig,
+                            ConnectorTaskId id,
                             SourceTask sourceTask,
                             ClassLoader classLoader,
                             ConnectKeyValue taskConfig,
@@ -145,7 +149,7 @@ public class WorkerSourceTask extends WorkerTask {
                             ConnectStatsService connectStatsService,
                             TransformChain<ConnectRecord> transformChain,
                             RetryWithToleranceOperator retryWithToleranceOperator) {
-        super(id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
 
         this.sourceTask = sourceTask;
         this.taskConfig = taskConfig;
@@ -185,6 +189,8 @@ public class WorkerSourceTask extends WorkerTask {
         stopRequestedLatch.countDown();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
+        Utils.closeQuietly(positionStorageWriter, "transform chain");
+
     }
 
     private void updateCommittableOffsets() {
@@ -355,10 +361,6 @@ public class WorkerSourceTask extends WorkerTask {
 
     /**
      * Convert the source record into a producer record.
-     *
-     * @param record the transformed record
-     * @return the producer record which can sent over to Kafka. A null is returned if the input is null or
-     * if an error was encountered during any of the converter stages.
      */
     protected Message convertTransformedRecord(final String topic, ConnectRecord record) {
         if (record == null) {
@@ -419,6 +421,9 @@ public class WorkerSourceTask extends WorkerTask {
         }
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
+        }
+        if (ConnectUtil.isTopicExist(workerConfig, topic)){
+            ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
         }
         return topic;
     }
@@ -498,6 +503,7 @@ public class WorkerSourceTask extends WorkerTask {
                     }
                     throw e;
                 } finally {
+                    finalOffsetCommit(false);
                     // record source poll times
                     connectStatsManager.incSourceRecordPollTotalTimes();
                 }

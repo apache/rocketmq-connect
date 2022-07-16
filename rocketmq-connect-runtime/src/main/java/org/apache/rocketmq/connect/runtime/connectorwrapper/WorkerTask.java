@@ -18,6 +18,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
@@ -34,6 +35,8 @@ public abstract class WorkerTask implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(WorkerTask.class);
     private static final String THREAD_NAME_PREFIX = "task-thread-";
 
+    protected  final ConnectConfig workerConfig;
+
     protected final ConnectorTaskId id;
     protected final ClassLoader loader;
     protected final ConnectKeyValue taskConfig;
@@ -49,7 +52,8 @@ public abstract class WorkerTask implements Runnable {
     protected final TransformChain<ConnectRecord> transformChain;
 
 
-    public WorkerTask(ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState) {
+    public WorkerTask(ConnectConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState) {
+        this.workerConfig = workerConfig;
         this.id = id;
         this.loader = loader;
         this.taskConfig = taskConfig;
@@ -195,6 +199,7 @@ public abstract class WorkerTask implements Runnable {
     }
 
     public void timeout() {
+        log.error("Worker task stop is timeout !!!");
         onFailure(null);
     }
 

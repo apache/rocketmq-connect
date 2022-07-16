@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.common.QueueState;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
@@ -144,7 +145,8 @@ public class WorkerSinkTask extends WorkerTask {
         }
     };
 
-    public WorkerSinkTask(ConnectorTaskId id,
+    public WorkerSinkTask(ConnectConfig workerConfig,
+                          ConnectorTaskId id,
                           SinkTask sinkTask,
                           ClassLoader classLoader,
                           ConnectKeyValue taskConfig,
@@ -156,7 +158,7 @@ public class WorkerSinkTask extends WorkerTask {
                           TransformChain<ConnectRecord> transformChain,
                           RetryWithToleranceOperator retryWithToleranceOperator,
                           WorkerErrorRecordReporter errorRecordReporter) {
-        super(id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
         this.sinkTask = sinkTask;
         this.consumer = consumer;
         this.recordConverter = recordConverter;
