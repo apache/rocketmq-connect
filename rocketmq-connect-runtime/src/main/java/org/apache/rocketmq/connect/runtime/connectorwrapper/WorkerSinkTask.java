@@ -404,7 +404,6 @@ public class WorkerSinkTask extends WorkerTask {
         stopPullMsgLatch.countDown();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
-
     }
 
 
