@@ -449,7 +449,7 @@ public class Worker {
             Future future = taskToFutureMap.get(runnable);
             try {
                 if (null != future) {
-                    future.get(1000, TimeUnit.MILLISECONDS);
+                    future.get( workerConfig.getMaxStopTimeoutMills() , TimeUnit.MILLISECONDS);
                 } else {
                     log.error("[BUG] errorTasks reference not found in taskFutureMap");
                 }
@@ -598,7 +598,7 @@ public class Worker {
 
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
-                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(workerConfig, connectorName, keyValue, taskId.get());
+                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(workerConfig, id, keyValue);
                         Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(workerConfig);
                         if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
                             ConnectUtil.createSubGroup(workerConfig, consumer.getConsumerGroup());
