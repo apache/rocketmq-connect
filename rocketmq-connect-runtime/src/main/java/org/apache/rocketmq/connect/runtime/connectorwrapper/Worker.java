@@ -126,9 +126,6 @@ public class Worker {
         this.workerConfig = workerConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
-//        this.taskPositionCommitService = new TaskPositionCommitService(
-//                this,
-//                positionManagementService);
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
@@ -137,7 +134,6 @@ public class Worker {
 
     public void start() {
         workerState = new AtomicReference<>(WorkerState.STARTED);
-//        taskPositionCommitService.start();
         stateMachineService.start();
     }
 
