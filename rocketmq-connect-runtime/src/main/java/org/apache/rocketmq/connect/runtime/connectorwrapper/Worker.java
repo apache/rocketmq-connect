@@ -647,17 +647,37 @@ public class Worker {
         return newTasks;
     }
 
-    private void createDirectTask(ConnectorTaskId taskId, ConnectKeyValue keyValue) throws Exception {
+    private void createDirectTask(ConnectorTaskId id, ConnectKeyValue keyValue) throws Exception {
         String sourceTaskClass = keyValue.getString(RuntimeConfigDefine.SOURCE_TASK_CLASS);
         Task sourceTask = getTask(sourceTaskClass);
 
         String sinkTaskClass = keyValue.getString(RuntimeConfigDefine.SINK_TASK_CLASS);
         Task sinkTask = getTask(sinkTaskClass);
 
-        WorkerDirectTask workerDirectTask = new WorkerDirectTask(workerConfig, taskId,
-                (SourceTask) sourceTask, (SinkTask) sinkTask, keyValue, positionManagementService, workerState);
+        TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
+        // create retry operator
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id.connector(), keyValue));
+
+        WorkerDirectTask workerDirectTask = new WorkerDirectTask(
+                workerConfig,
+                id,
+                (SourceTask) sourceTask,
+                null,
+                (SinkTask) sinkTask,
+                keyValue,
+                positionManagementService,
+                workerState,
+                connectStatsManager,
+                connectStatsService,
+                transformChain ,
+                retryWithToleranceOperator);
 
         Future future = taskExecutor.submit(workerDirectTask);
+
+        // schedule offset committer
+        sourceTaskOffsetCommitter.ifPresent(committer -> committer.schedule(id, workerDirectTask));
+
         taskToFutureMap.put(workerDirectTask, future);
         this.pendingTasks.put(workerDirectTask, System.currentTimeMillis());
     }

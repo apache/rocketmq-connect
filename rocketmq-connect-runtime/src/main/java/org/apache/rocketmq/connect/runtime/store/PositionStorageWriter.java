@@ -115,9 +115,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
     }
 
     /**
-     * Cancel a flush that has been initiated by {@link #beginFlush}. This should not be called if
-     * {@link #doFlush} has already been invoked. It should be used if an operation performed
-     * between beginFlush and doFlush failed.
+     * Cancel a flush that has been initiated by {@link #beginFlush}.
      */
     public synchronized void cancelFlush() {
         if (isFlushing()) {
@@ -139,13 +137,6 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
      * Closes this stream and releases any system resources associated
      * with it. If the stream is already closed then invoking this
      * method has no effect.
-     *
-     * <p> As noted in {@link AutoCloseable#close()}, cases where the
-     * close may fail require careful attention. It is strongly advised
-     * to relinquish the underlying resources and to internally
-     * <em>mark</em> the {@code Closeable} as closed, prior to throwing
-     * the {@code IOException}.
-     *
      * @throws IOException if an I/O error occurs
      */
     @Override

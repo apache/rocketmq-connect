@@ -80,17 +80,11 @@ public class WorkerSourceTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final long SEND_FAILED_BACKOFF_MS = 100;
-    public static final String OFFSET_COMMIT_TIMEOUT_MS_CONFIG = "offset.flush.timeout.ms";
-    public static final long OFFSET_COMMIT_TIMEOUT_MS_DEFAULT = 5000L;
     /**
      * The implements of the source task.
      */
     private final SourceTask sourceTask;
 
-    /**
-     * The configs of current source task.
-     */
-    private final ConnectKeyValue taskConfig;
     protected final WorkerSourceTaskContext sourceTaskContext;
 
     /**
@@ -152,7 +146,6 @@ public class WorkerSourceTask extends WorkerTask {
         super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
 
         this.sourceTask = sourceTask;
-        this.taskConfig = taskConfig;
         this.offsetStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
         this.positionStorageWriter = new PositionStorageWriter(id.connector(), positionManagementService);
         this.producer = producer;
@@ -168,11 +161,11 @@ public class WorkerSourceTask extends WorkerTask {
 
     private List<ConnectRecord> poll() throws InterruptedException {
         try {
-            List<ConnectRecord> connectRecordList = sourceTask.poll();
-            if (CollectionUtils.isEmpty(connectRecordList)) {
+            List<ConnectRecord> connectRecords = sourceTask.poll();
+            if (CollectionUtils.isEmpty(connectRecords)) {
                 return null;
             }
-            return connectRecordList;
+            return connectRecords;
         } catch (RetriableException e) {
             log.error("Source task RetriableException exception, taskconfig {}", JSON.toJSONString(taskConfig), e);
             return null;
@@ -190,10 +183,9 @@ public class WorkerSourceTask extends WorkerTask {
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(positionStorageWriter, "transform chain");
-
     }
 
-    private void updateCommittableOffsets() {
+    protected void updateCommittableOffsets() {
         RecordOffsetManagement.CommittableOffsets newOffsets = offsetManagement.committableOffsets();
         synchronized (this) {
             this.committableOffsets = this.committableOffsets.updatedWith(newOffsets);
@@ -238,7 +230,7 @@ public class WorkerSourceTask extends WorkerTask {
                         recordSent(preTransformRecord, sourceMessage, result);
                         // ack record position
                         submittedRecordPosition.ifPresent(RecordOffsetManagement.SubmittedPosition::ack);
-//                      positionStorageWriter.putPosition(partition, position.getOffset());
+
                     }
 
                     @Override
@@ -515,14 +507,10 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
-    private void finalOffsetCommit(boolean b) {
+    protected void finalOffsetCommit(boolean b) {
 
-        // It should still be safe to commit offsets since any exception would have
-        // simply resulted in not getting more records but all the existing records should be ok to flush
-        // and commit offsets. Worst case, task.commit() will also throw an exception causing the offset
-        // commit to fail.
         offsetManagement.awaitAllMessages(
-                OFFSET_COMMIT_TIMEOUT_MS_DEFAULT,
+                workerConfig.getOffsetCommitTimeoutMsConfig(),
                 TimeUnit.MILLISECONDS
         );
         updateCommittableOffsets();
@@ -530,7 +518,7 @@ public class WorkerSourceTask extends WorkerTask {
     }
 
     public boolean commitOffsets() {
-        long commitTimeoutMs = OFFSET_COMMIT_TIMEOUT_MS_DEFAULT;
+        long commitTimeoutMs = workerConfig.getOffsetCommitTimeoutMsConfig();
         log.debug("{} Committing offsets", this);
 
         long started = System.currentTimeMillis();

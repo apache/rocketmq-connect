@@ -69,9 +69,14 @@ public class ConnectConfig {
 
     private int rmqMinConsumeThreadNums = 1;
 
+    // task start timeout mills， default 3 minute
     private long maxStartTimeoutMills = 1000 * 60 * 3 ;
 
+    // task stop timeout mills， default 1 minute
     private long maxStopTimeoutMills = 1000 * 60;
+
+    // offset commit timeout
+    private long offsetCommitTimeoutMsConfig = 5000;
 
 
     public int getBrokerSuspendMaxTimeMillis() {
@@ -405,6 +410,14 @@ public class ConnectConfig {
         this.maxStopTimeoutMills = maxStopTimeoutMills;
     }
 
+    public long getOffsetCommitTimeoutMsConfig() {
+        return offsetCommitTimeoutMsConfig;
+    }
+
+    public void setOffsetCommitTimeoutMsConfig(long offsetCommitTimeoutMsConfig) {
+        this.offsetCommitTimeoutMsConfig = offsetCommitTimeoutMsConfig;
+    }
+
     @Override
     public String toString() {
         return "ConnectConfig{" +
@@ -420,6 +433,9 @@ public class ConnectConfig {
                 ", rmqMessageConsumeTimeout=" + rmqMessageConsumeTimeout +
                 ", rmqMaxConsumeThreadNums=" + rmqMaxConsumeThreadNums +
                 ", rmqMinConsumeThreadNums=" + rmqMinConsumeThreadNums +
+                ", maxStartTimeoutMills=" + maxStartTimeoutMills +
+                ", maxStopTimeoutMills=" + maxStopTimeoutMills +
+                ", offsetCommitTimeoutMsConfig=" + offsetCommitTimeoutMsConfig +
                 ", brokerSuspendMaxTimeMillis=" + brokerSuspendMaxTimeMillis +
                 ", clusterStoreTopic='" + clusterStoreTopic + '\'' +
                 ", configStoreTopic='" + configStoreTopic + '\'' +
