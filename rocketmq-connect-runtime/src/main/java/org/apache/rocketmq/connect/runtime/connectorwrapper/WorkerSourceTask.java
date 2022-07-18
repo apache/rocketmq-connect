@@ -182,7 +182,7 @@ public class WorkerSourceTask extends WorkerTask {
         stopRequestedLatch.countDown();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
-        Utils.closeQuietly(positionStorageWriter, "transform chain");
+        Utils.closeQuietly(positionStorageWriter, "position storage writer");
     }
 
     protected void updateCommittableOffsets() {
@@ -230,7 +230,6 @@ public class WorkerSourceTask extends WorkerTask {
                         recordSent(preTransformRecord, sourceMessage, result);
                         // ack record position
                         submittedRecordPosition.ifPresent(RecordOffsetManagement.SubmittedPosition::ack);
-
                     }
 
                     @Override
@@ -570,7 +569,6 @@ public class WorkerSourceTask extends WorkerTask {
             return true;
         }
 
-        // Now we can actually flush the offsets to user storage.
         Future<Void> flushFuture = positionStorageWriter.doFlush((error, key, result) -> {
             if (error != null) {
                 log.error("{} Failed to flush offsets to storage: ", WorkerSourceTask.this, error);

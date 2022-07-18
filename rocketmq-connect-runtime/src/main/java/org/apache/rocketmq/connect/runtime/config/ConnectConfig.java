@@ -76,7 +76,7 @@ public class ConnectConfig {
     private long maxStopTimeoutMills = 1000 * 60;
 
     // offset commit timeout
-    private long offsetCommitTimeoutMsConfig = 5000;
+    private long offsetCommitTimeoutMsConfig = 1000 * 30;
 
 
     public int getBrokerSuspendMaxTimeMillis() {

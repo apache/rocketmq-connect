@@ -116,7 +116,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
      */
     public synchronized void cancelFlush() {
         if (isFlushing()) {
-            // Just recombine the data and place it back in the primary storage
+            // rollback to inited
             toFlush.putAll(data);
             data = toFlush;
             currentFlushId ++;

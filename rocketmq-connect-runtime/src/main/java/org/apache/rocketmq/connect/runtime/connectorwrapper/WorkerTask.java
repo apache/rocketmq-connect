@@ -86,7 +86,7 @@ public abstract class WorkerTask implements Runnable {
      */
     protected abstract void initializeAndStart();
 
-    private void doInitializeAndStart() {
+    public void doInitializeAndStart() {
         state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
         initializeAndStart();
         state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
@@ -121,9 +121,9 @@ public abstract class WorkerTask implements Runnable {
     /**
      * close resources
      */
-    public abstract void close();
+    protected abstract void close();
 
-    private void doClose() {
+    public void doClose() {
         try {
             state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
             close();
@@ -139,8 +139,8 @@ public abstract class WorkerTask implements Runnable {
      */
     public void cleanup() {
         log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
-        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
-                state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
+        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED)
+                || state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
             log.info("Cleaning a task success");
         } else {
             log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");

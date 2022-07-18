@@ -371,7 +371,7 @@ public class Worker {
                         try {
                             // remove committer offset
                             sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
-                            workerTask.close();
+                            workerTask.doClose();
                         } catch (Exception e) {
                             log.error("workerTask stop exception, workerTask: " + workerTask.currentTaskConfig(), e);
                         }
@@ -418,7 +418,7 @@ public class Worker {
             Future future = taskToFutureMap.get(runnable);
             try {
                 if (null != future) {
-                    future.get(1000, TimeUnit.MILLISECONDS);
+                    future.get(workerConfig.getMaxStartTimeoutMills() , TimeUnit.MILLISECONDS);
                 } else {
                     log.error("[BUG] stopped Tasks reference not found in taskFutureMap");
                 }
