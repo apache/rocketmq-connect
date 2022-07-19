@@ -43,17 +43,19 @@ class RecordOffsetManagement {
     final Map<RecordPartition, Deque<SubmittedPosition>> records = new HashMap<>();
     private AtomicInteger numUnackedMessages = new AtomicInteger(0);
     private CountDownLatch messageDrainLatch;
+
     public RecordOffsetManagement() {
     }
 
     /**
      * submit record
+     *
      * @param position
      * @return
      */
-    public SubmittedPosition submitRecord(RecordPosition position){
+    public SubmittedPosition submitRecord(RecordPosition position) {
         SubmittedPosition submittedPosition = new SubmittedPosition(position);
-        records.computeIfAbsent(position.getPartition(), e->new LinkedList<>()).add(submittedPosition);
+        records.computeIfAbsent(position.getPartition(), e -> new LinkedList<>()).add(submittedPosition);
         // ensure thread safety in operation
         synchronized (this) {
             numUnackedMessages.incrementAndGet();
@@ -63,6 +65,7 @@ class RecordOffsetManagement {
 
     /**
      * await all messages
+     *
      * @param timeout
      * @param timeUnit
      * @return
@@ -83,7 +86,6 @@ class RecordOffsetManagement {
     }
 
     /**
-     *
      * @param submittedPositions
      * @return
      */
@@ -147,14 +149,15 @@ class RecordOffsetManagement {
     public class SubmittedPosition {
         private final RecordPosition position;
         private final AtomicBoolean acked;
+
         public SubmittedPosition(RecordPosition position) {
-            this.position =  position;
+            this.position = position;
             acked = new AtomicBoolean(false);
         }
 
 
         /**
-         *  Acknowledge this record; signals that its offset may be safely committed.
+         * Acknowledge this record; signals that its offset may be safely committed.
          */
         public void ack() {
             if (this.acked.compareAndSet(false, true)) {
@@ -164,6 +167,7 @@ class RecordOffsetManagement {
 
         /**
          * remove record
+         *
          * @return
          */
         public boolean remove() {
@@ -257,7 +261,6 @@ class RecordOffsetManagement {
         }
 
 
-
         public boolean isEmpty() {
             return numCommittableMessages == 0 && numUncommittableMessages == 0 && offsets.isEmpty();
         }
@@ -277,7 +280,6 @@ class RecordOffsetManagement {
             );
         }
     }
-
 
 
 }

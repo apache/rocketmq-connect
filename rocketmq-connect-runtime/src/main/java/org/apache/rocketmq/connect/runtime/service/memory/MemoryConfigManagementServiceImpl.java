@@ -24,14 +24,10 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
-import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
-import org.apache.rocketmq.connect.runtime.converter.ListConverter;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
-import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +64,8 @@ public class MemoryConfigManagementServiceImpl implements ConfigManagementServic
     public MemoryConfigManagementServiceImpl() {
     }
 
-    @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
+    @Override
+    public void initialize(ConnectConfig connectConfig, Plugin plugin) {
         this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.plugin = plugin;
@@ -250,7 +247,8 @@ public class MemoryConfigManagementServiceImpl implements ConfigManagementServic
         return this.plugin;
     }
 
-    @Override public StagingMode getStagingMode() {
+    @Override
+    public StagingMode getStagingMode() {
         return StagingMode.STANDALONE;
     }
 }

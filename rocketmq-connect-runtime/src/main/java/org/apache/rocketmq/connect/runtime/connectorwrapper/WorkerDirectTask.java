@@ -102,7 +102,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
 
             retryWithToleranceOperator.sourceRecord(preTransformRecord);
             ConnectRecord record = transformChain.doTransforms(preTransformRecord);
-            if (record == null){
+            if (record == null) {
                 continue;
             }
 
@@ -191,7 +191,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
     /**
      * direct sink task context
      */
-    private class DirectSinkTaskContext implements SinkTaskContext{
+    private class DirectSinkTaskContext implements SinkTaskContext {
 
         /**
          * Get the Connector Name
@@ -276,7 +276,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
     }
 
 
-    private class DirectSourceTaskContext implements SourceTaskContext{
+    private class DirectSourceTaskContext implements SourceTaskContext {
 
         /**
          * Get the OffsetStorageReader for this SourceTask.
@@ -290,6 +290,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
 
         /**
          * Get the Connector Name
+         *
          * @return connector name
          */
         @Override

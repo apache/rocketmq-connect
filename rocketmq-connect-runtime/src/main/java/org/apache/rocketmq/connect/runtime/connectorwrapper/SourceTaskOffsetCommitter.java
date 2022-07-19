@@ -72,7 +72,7 @@ class SourceTaskOffsetCommitter {
     public void schedule(final ConnectorTaskId id, final WorkerSourceTask workerTask) {
         long commitIntervalMs = config.getOffsetCommitIntervalMs();
         ScheduledFuture<?> commitFuture = commitExecutorService.scheduleWithFixedDelay(() -> {
-                commit(workerTask);
+            commit(workerTask);
         }, commitIntervalMs, commitIntervalMs, TimeUnit.MILLISECONDS);
         committers.put(id, commitFuture);
     }

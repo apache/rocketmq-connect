@@ -130,7 +130,7 @@ public class Worker {
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
-        this.sourceTaskOffsetCommitter= Optional.of(new SourceTaskOffsetCommitter(workerConfig));
+        this.sourceTaskOffsetCommitter = Optional.of(new SourceTaskOffsetCommitter(workerConfig));
     }
 
     public void start() {
@@ -250,7 +250,7 @@ public class Worker {
     public void stop() {
         workerState.set(WorkerState.TERMINATED);
         try {
-            sourceTaskOffsetCommitter.ifPresent(committer-> committer.close(5000));
+            sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
             taskExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             log.error("Task termination error.", e);
@@ -415,7 +415,7 @@ public class Worker {
             Future future = taskToFutureMap.get(runnable);
             try {
                 if (null != future) {
-                    future.get(workerConfig.getMaxStartTimeoutMills() , TimeUnit.MILLISECONDS);
+                    future.get(workerConfig.getMaxStartTimeoutMills(), TimeUnit.MILLISECONDS);
                 } else {
                     log.error("[BUG] stopped Tasks reference not found in taskFutureMap");
                 }
@@ -449,7 +449,7 @@ public class Worker {
             Future future = taskToFutureMap.get(runnable);
             try {
                 if (null != future) {
-                    future.get( workerConfig.getMaxStopTimeoutMills() , TimeUnit.MILLISECONDS);
+                    future.get(workerConfig.getMaxStopTimeoutMills(), TimeUnit.MILLISECONDS);
                 } else {
                     log.error("[BUG] errorTasks reference not found in taskFutureMap");
                 }
@@ -667,7 +667,7 @@ public class Worker {
                 workerState,
                 connectStatsManager,
                 connectStatsService,
-                transformChain ,
+                transformChain,
                 retryWithToleranceOperator);
 
         Future future = taskExecutor.submit(workerDirectTask);

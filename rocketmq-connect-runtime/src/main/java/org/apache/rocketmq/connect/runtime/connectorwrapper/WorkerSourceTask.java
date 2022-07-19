@@ -173,9 +173,6 @@ public class WorkerSourceTask extends WorkerTask {
     }
 
 
-
-
-
     @Override
     public void close() {
         producer.shutdown();
@@ -216,7 +213,7 @@ public class WorkerSourceTask extends WorkerTask {
                 recordFailed(preTransformRecord);
                 continue;
             }
-            log.trace("{} Appending record to the topic {} , value {}", this, topic,  record.getData());
+            log.trace("{} Appending record to the topic {} , value {}", this, topic, record.getData());
             /**prepare to send record*/
             Optional<RecordOffsetManagement.SubmittedPosition> submittedRecordPosition = prepareToSendRecord(preTransformRecord);
             try {
@@ -413,7 +410,7 @@ public class WorkerSourceTask extends WorkerTask {
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
         }
-        if (ConnectUtil.isTopicExist(workerConfig, topic)){
+        if (ConnectUtil.isTopicExist(workerConfig, topic)) {
             ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
         }
         return topic;
@@ -486,7 +483,7 @@ public class WorkerSourceTask extends WorkerTask {
                     }
                 } catch (InterruptedException e) {
                     // Ignore and allow to exit.
-                }catch (Exception e){
+                } catch (Exception e) {
                     try {
                         finalOffsetCommit(true);
                     } catch (Exception offsetException) {

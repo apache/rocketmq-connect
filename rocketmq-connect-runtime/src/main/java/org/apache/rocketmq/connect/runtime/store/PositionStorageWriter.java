@@ -51,7 +51,9 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    /** Offset data in Connect format */
+    /**
+     * Offset data in Connect format
+     */
     private Map<ExtendRecordPartition, RecordOffset> data = new HashMap<>();
     private Map<ExtendRecordPartition, RecordOffset> toFlush = null;
 
@@ -76,25 +78,26 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
      */
     @Override
     public void writeOffset(Map<RecordPartition, RecordOffset> positions) {
-        for (Map.Entry<RecordPartition, RecordOffset> offset: positions.entrySet()) {
+        for (Map.Entry<RecordPartition, RecordOffset> offset : positions.entrySet()) {
             writeOffset(offset.getKey(), offset.getValue());
         }
     }
 
 
-    private boolean isFlushing(){
+    private boolean isFlushing() {
         return toFlush != null;
     }
 
     /**
      * begin flush offset
+     *
      * @return
      */
-    public synchronized boolean beginFlush(){
-        if (isFlushing()){
+    public synchronized boolean beginFlush() {
+        if (isFlushing()) {
             throw new ConnectException("PositionStorageWriter is already flushing");
         }
-        if (data.isEmpty()){
+        if (data.isEmpty()) {
             return false;
         }
         this.toFlush = this.data;
@@ -104,6 +107,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
 
     /**
      * do flush offset
+     *
      * @param callback
      */
     public Future doFlush(final DataSynchronizerCallback callback) {
@@ -119,13 +123,13 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
             // rollback to inited
             toFlush.putAll(data);
             data = toFlush;
-            currentFlushId ++;
+            currentFlushId++;
             toFlush = null;
         }
     }
 
-    private Future<Void> sendOffsetFuture(DataSynchronizerCallback callback, long flushId){
-        FutureTask<Void> futureTask =  new FutureTask<Void>(new SendOffsetCallback(callback, flushId));
+    private Future<Void> sendOffsetFuture(DataSynchronizerCallback callback, long flushId) {
+        FutureTask<Void> futureTask = new FutureTask<Void>(new SendOffsetCallback(callback, flushId));
         executorService.submit(futureTask);
         return futureTask;
     }
@@ -134,11 +138,12 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
      * Closes this stream and releases any system resources associated
      * with it. If the stream is already closed then invoking this
      * method has no effect.
+     *
      * @throws IOException if an I/O error occurs
      */
     @Override
     public void close() throws IOException {
-        if (executorService != null){
+        if (executorService != null) {
             executorService.shutdown();
         }
     }
@@ -147,13 +152,15 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
     /**
      * send offset callback
      */
-    private class SendOffsetCallback implements Callable<Void>{
+    private class SendOffsetCallback implements Callable<Void> {
         DataSynchronizerCallback callback;
         long flushId;
-        public SendOffsetCallback(DataSynchronizerCallback callback, long flushId){
+
+        public SendOffsetCallback(DataSynchronizerCallback callback, long flushId) {
             this.callback = callback;
             this.flushId = flushId;
         }
+
         /**
          * Computes a result, or throws an exception if unable to do so.
          *
@@ -164,7 +171,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
         public Void call() throws Exception {
             try {
                 // has been canceled
-                if (flushId != currentFlushId ) {
+                if (flushId != currentFlushId) {
                     return null;
                 }
                 positionManagementService.putPosition(toFlush);
@@ -174,10 +181,10 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
                 // persist finished
                 toFlush = null;
                 currentFlushId++;
-            }catch (Throwable throwable){
+            } catch (Throwable throwable) {
                 // rollback
                 cancelFlush();
-                this.callback.onCompletion(throwable, null , null);
+                this.callback.onCompletion(throwable, null, null);
             }
             return null;
         }

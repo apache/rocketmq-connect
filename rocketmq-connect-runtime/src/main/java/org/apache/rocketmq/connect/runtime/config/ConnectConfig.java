@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.connect.runtime.config;
 
-import java.io.File;
 import org.apache.rocketmq.common.MixAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
 
 import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUNTIME;
 
@@ -69,10 +70,10 @@ public class ConnectConfig {
 
     private int rmqMinConsumeThreadNums = 1;
 
-    // task start timeout mills， default 3 minute
-    private long maxStartTimeoutMills = 1000 * 60 * 3 ;
+    // task start timeout mills, default 3 minute
+    private long maxStartTimeoutMills = 1000 * 60 * 3;
 
-    // task stop timeout mills， default 1 minute
+    // task stop timeout mills, default 1 minute
     private long maxStopTimeoutMills = 1000 * 60;
 
     // offset commit timeout
