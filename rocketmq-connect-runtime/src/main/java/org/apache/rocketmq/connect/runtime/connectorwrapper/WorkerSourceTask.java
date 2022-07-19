@@ -456,7 +456,7 @@ public class WorkerSourceTask extends WorkerTask {
 
     protected void recordPollReturned(int numRecordsInBatch) {
         connectStatsManager.incSourceRecordPollTotalNums(numRecordsInBatch);
-        connectStatsManager.incSourceRecordPollNums(taskConfig.getString(RuntimeConfigDefine.TASK_ID), numRecordsInBatch);
+        connectStatsManager.incSourceRecordPollNums(id().toString()+"", numRecordsInBatch);
     }
 
     /**
@@ -496,7 +496,7 @@ public class WorkerSourceTask extends WorkerTask {
                     connectStatsManager.incSourceRecordPollTotalTimes();
                 }
             }
-            AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(taskConfig.getString(RuntimeConfigDefine.TASK_ID));
+            AtomicLong atomicLong = connectStatsService.singleSourceTaskTimesTotal(id().toString());
             if (null != atomicLong) {
                 atomicLong.addAndGet(toSendRecord == null ? 0 : toSendRecord.size());
             }

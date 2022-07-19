@@ -529,6 +529,7 @@ public class Worker {
                         pendingTasks.remove(runnable);
                         errorTasks.add(runnable);
                     }
+                    break;
                 default:
                     log.error("[BUG] Illegal State in when checking pending tasks, {} is in {} state",
                             ((WorkerTask) runnable).id().connector(), state.toString());
@@ -545,9 +546,9 @@ public class Worker {
      */
     private void startTask(Map<String, List<ConnectKeyValue>> newTasks) throws Exception {
         for (String connectorName : newTasks.keySet()) {
-            AtomicInteger taskId = new AtomicInteger(0);
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
-                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId.get());
+                int taskId = keyValue.getInt(RuntimeConfigDefine.TASK_ID);
+                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
                 String taskType = keyValue.getString(RuntimeConfigDefine.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
                     createDirectTask(id, keyValue);
@@ -619,7 +620,6 @@ public class Worker {
                 } catch (Exception e) {
                     log.error("start worker task exception. config {}" + JSON.toJSONString(keyValue), e);
                 }
-                taskId.incrementAndGet();
             }
         }
     }
