@@ -57,6 +57,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,7 +91,8 @@ public class WorkerSinkTask extends WorkerTask {
     /**
      * A converter to parse sink data entry to object.
      */
-    private RecordConverter recordConverter;
+    private RecordConverter keyConverter;
+    private RecordConverter valueConverter;
 
     private final ConcurrentHashMap<MessageQueue, Long> messageQueuesOffsetMap;
 
@@ -150,7 +152,8 @@ public class WorkerSinkTask extends WorkerTask {
                           SinkTask sinkTask,
                           ClassLoader classLoader,
                           ConnectKeyValue taskConfig,
-                          RecordConverter recordConverter,
+                          RecordConverter keyConverter,
+                          RecordConverter valueConverter,
                           DefaultMQPullConsumer consumer,
                           AtomicReference<WorkerState> workerState,
                           ConnectStatsManager connectStatsManager,
@@ -161,7 +164,8 @@ public class WorkerSinkTask extends WorkerTask {
         super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
         this.sinkTask = sinkTask;
         this.consumer = consumer;
-        this.recordConverter = recordConverter;
+        this.keyConverter = keyConverter;
+        this.valueConverter = valueConverter;
         this.messageQueuesOffsetMap = new ConcurrentHashMap<>(256);
         this.messageQueuesStateMap = new ConcurrentHashMap<>(256);
         this.connectStatsManager = connectStatsManager;
@@ -437,28 +441,24 @@ public class WorkerSinkTask extends WorkerTask {
 
     private ConnectRecord convertMessages(MessageExt message) {
         Map<String, String> properties = message.getProperties();
-        ConnectRecord record;
-        // start convert
-        if (recordConverter == null) {
-            final byte[] messageBody = message.getBody();
-            String s = new String(messageBody);
-            record = JSON.parseObject(s, ConnectRecord.class);
-        } else {
-            // timestamp
-            String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
-            Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
+        // timestamp
+        String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
+        Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
 
-            // partition and offset
-            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
-            RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
+        // partition and offset
+        RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
+        RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
 
-            // convert
-            SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> recordConverter.toConnectData(message.getTopic(), message.getBody()),
-                    ErrorReporter.Stage.CONVERTER, recordConverter.getClass());
-            record = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndValue.schema(), schemaAndValue.value());
-            if (retryWithToleranceOperator.failed()) {
-                return null;
-            }
+        // convert key
+        SchemaAndValue schemaAndKey = retryWithToleranceOperator.execute(() -> keyConverter.toConnectData(message.getTopic(), message.getKeys().getBytes(StandardCharsets.UTF_8)),
+                ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
+
+        // convert value
+        SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> valueConverter.toConnectData(message.getTopic(), message.getBody()),
+                ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
+        ConnectRecord record = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndKey.schema(), schemaAndKey.value(), schemaAndValue.schema(), schemaAndValue.value());
+        if (retryWithToleranceOperator.failed()) {
+            return null;
         }
 
         // Apply the transformations
