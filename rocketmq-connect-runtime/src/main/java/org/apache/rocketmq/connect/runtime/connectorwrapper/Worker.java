@@ -111,7 +111,6 @@ public class Worker {
     private final ConnectConfig workerConfig;
     private final Plugin plugin;
 
-
     /**
      * Atomic state variable
      */
