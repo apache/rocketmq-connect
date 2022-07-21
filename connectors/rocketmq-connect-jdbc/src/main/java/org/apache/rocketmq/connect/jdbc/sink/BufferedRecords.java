@@ -99,6 +99,7 @@ public class BufferedRecords {
             flushed.addAll(flush());
             // re-initialize everything that depends on the record schema
             final SchemaPair schemaPair = new SchemaPair(
+                    record.getKeySchema(),
                     record.getSchema(),
                     record.getExtensions()
             );

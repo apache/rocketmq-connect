@@ -47,7 +47,7 @@
         <assertj.version>2.6.0</assertj.version>
         <mockito.version>2.6.3</mockito.version>
         <!--rocket connect api-->
-        <openmessaging-connector.version>0.1.3</openmessaging-connector.version>
+        <openmessaging-connector.version>0.1.4-SNAPSHOT</openmessaging-connector.version>
         <openmessaging-api.version>0.3.1-alpha</openmessaging-api.version>
 
         <!--fast json-->

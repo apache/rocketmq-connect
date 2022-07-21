@@ -98,6 +98,19 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
                     throw new AssertionError();
                 }
                 break;
+            case RECORD_KEY: {
+                if (schemaPair.keySchema.getFieldType().isPrimitive()) {
+                    assert fieldsMetadata.keyFieldNames.size() == 1;
+                    bindField(index++, schemaPair.keySchema, record.getKey(),
+                            fieldsMetadata.keyFieldNames.iterator().next());
+                } else {
+                    for (String fieldName : fieldsMetadata.keyFieldNames) {
+                        final Field field = schemaPair.keySchema.getField(fieldName);
+                        bindField(index++, field.getSchema(), ((Struct) record.getKey()).get(field), fieldName);
+                    }
+                }
+            }
+            break;
             case RECORD_VALUE: {
                 String jsonData = JSON.toJSONString(record.getData(), SerializerFeature.DisableCircularReferenceDetect);
                 Struct struct = JSON.parseObject(jsonData, Struct.class);
