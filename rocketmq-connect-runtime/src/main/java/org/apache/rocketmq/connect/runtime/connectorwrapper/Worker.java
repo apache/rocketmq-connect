@@ -119,7 +119,7 @@ public class Worker {
 
     private final Plugin plugin;
 
-    private static final int MAX_START_TIMEOUT_MILLS = 1000*60;
+    private static final int MAX_START_TIMEOUT_MILLS = 1000 * 60;
 
     private static final long MAX_STOP_TIMEOUT_MILLS = 20000;
 
