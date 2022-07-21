@@ -57,12 +57,15 @@ public class BufferedRecords {
     private final Connection connection;
 
     private List<ConnectRecord> records = new ArrayList<>();
+    private Schema keySchema;
     private Schema schema;
     private FieldsMetadata fieldsMetadata;
+    private RecordValidator recordValidator;
     private PreparedStatement updatePreparedStatement;
     private PreparedStatement deletePreparedStatement;
     private DatabaseDialect.StatementBinder updateStatementBinder;
     private DatabaseDialect.StatementBinder deleteStatementBinder;
+    private boolean deletesInBatch = false;
 
     public BufferedRecords(
             JdbcSinkConfig config,
@@ -76,6 +79,7 @@ public class BufferedRecords {
         this.dbDialect = dbDialect;
         this.dbStructure = dbStructure;
         this.connection = connection;
+        this.recordValidator = RecordValidator.create(config);
     }
 
     /**
@@ -86,13 +90,32 @@ public class BufferedRecords {
      * @throws SQLException
      */
     public List<ConnectRecord> add(ConnectRecord record) throws SQLException {
+        recordValidator.validate(record);
         final List<ConnectRecord> flushed = new ArrayList<>();
         boolean schemaChanged = false;
-        // check and update schema
-        if (!Objects.equals(schema, record.getSchema())) {
+        if (!Objects.equals(keySchema, record.getKeySchema())) {
+            keySchema = record.getKeySchema();
+            schemaChanged = true;
+        }
+        if (isNull(record.getSchema())) {
+            // For deletes, value and optionally value schema come in as null.
+            // We don't want to treat this as a schema change if key schemas is the same
+            // otherwise we flush unnecessarily.
+            if (config.isDeleteEnabled()) {
+                deletesInBatch = true;
+            }
+        } else if (Objects.equals(schema, record.getSchema())) {
+            if (config.isDeleteEnabled() && deletesInBatch) {
+                // flush so an insert after a delete of same record isn't lost
+                flushed.addAll(flush());
+            }
+        } else {
+            // value schema is not null and has changed. This is a real schema change.
             schema = record.getSchema();
             schemaChanged = true;
         }
+
+
 
         if (schemaChanged || updateStatementBinder == null) {
             // Each batch needs to have the same schemas, so get the buffered records out
@@ -148,6 +171,11 @@ public class BufferedRecords {
                         config.getInsertMode()
                 );
             }
+        }
+
+        // set deletesInBatch if schema value is not null
+        if (isNull(record.getData()) && config.isDeleteEnabled()) {
+            deletesInBatch = true;
         }
 
         records.add(record);
