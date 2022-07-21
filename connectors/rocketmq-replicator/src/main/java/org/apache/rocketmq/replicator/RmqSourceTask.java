@@ -149,12 +149,14 @@ public class RmqSourceTask extends SourceTask {
                         case FOUND: {
                             this.mqOffsetMap.put(taskTopicConfig, pullResult.getNextBeginOffset());
                             List<MessageExt> msgs = pullResult.getMsgFoundList();
-                            List<Field> fields = new ArrayList<>();
-                            Schema schema = new Schema(SchemaEnum.MESSAGE.name(), FieldType.STRING, fields);
-                            schema.getFields().add(new Field(0, FieldName.COMMON_MESSAGE.getKey(), SchemaBuilder.string().build()));
                             for (MessageExt msg : msgs) {
-                                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig),
-                                    Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, new String(msg.getBody(), StandardCharsets.UTF_8));
+                                ConnectRecord connectRecord = new ConnectRecord(
+                                        Utils.offsetKey(taskTopicConfig),
+                                        Utils.offsetValue(pullResult.getNextBeginOffset()),
+                                        System.currentTimeMillis(),
+                                        SchemaBuilder.string().name( FieldName.COMMON_MESSAGE.getKey()).build(),
+                                        new String(msg.getBody(), StandardCharsets.UTF_8)
+                                );
                                 final Map<String, String> properties = msg.getProperties();
                                 final Set<String> keys = properties.keySet();
                                 keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));
