@@ -549,7 +549,7 @@ public class WorkerSinkTask implements WorkerTask {
         List<ConnectRecord> sinkDataEntries = new ArrayList<>(32);
         for (MessageExt message : messages) {
             this.retryWithToleranceOperator.consumerRecord(message);
-            ConnectRecord sinkDataEntry = this.retryWithToleranceOperator.execute(()->convertToSinkDataEntry(message), ErrorReporter.Stage.CONVERTER, WorkerSinkTask.class);
+            ConnectRecord sinkDataEntry = this.retryWithToleranceOperator.execute(() -> convertToSinkDataEntry(message), ErrorReporter.Stage.CONVERTER, WorkerSinkTask.class);
             if (sinkDataEntry != null && !this.retryWithToleranceOperator.failed())
             sinkDataEntries.add(sinkDataEntry);
             String msgId = message.getMsgId();
