@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
@@ -112,9 +110,7 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
             }
             break;
             case RECORD_VALUE: {
-                String jsonData = JSON.toJSONString(record.getData(), SerializerFeature.DisableCircularReferenceDetect);
-                Struct struct = JSON.parseObject(jsonData, Struct.class);
-                struct.setValues(JSON.parseObject(jsonData).getJSONArray("values").toArray());
+                Struct struct = (Struct) record.getData();
                 for (String fieldName : fieldsMetadata.keyFieldNames) {
                     final Field field = schemaPair.schema.getField(fieldName);
                     bindField(index++, field.getSchema(), struct.get(fieldName), fieldName);
@@ -131,9 +127,7 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
             ConnectRecord record,
             int index
     ) throws SQLException {
-        String jsonData = JSON.toJSONString(record.getData(), SerializerFeature.DisableCircularReferenceDetect);
-        Struct struct = JSON.parseObject(jsonData, Struct.class);
-        struct.setValues(JSON.parseObject(jsonData).getJSONArray("values").toArray());
+        Struct struct = (Struct) record.getData();
         for (final String fieldName : fieldsMetadata.nonKeyFieldNames) {
             final Field field = record.getSchema().getField(fieldName);
             bindField(index++, field.getSchema(), struct.get(fieldName), fieldName);
