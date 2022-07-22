@@ -126,6 +126,7 @@ public class WorkerTest {
                 connectKeyValue,
                 new TestPositionManageServiceImpl(),
                 new JsonConverter(),
+                    new JsonConverter(),
                 producer,
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,

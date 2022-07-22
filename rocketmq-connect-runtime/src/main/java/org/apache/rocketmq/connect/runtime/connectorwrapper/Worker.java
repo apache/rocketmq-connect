@@ -27,7 +27,6 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -67,7 +66,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -556,22 +554,26 @@ public class Worker {
                     continue;
                 }
 
+
+                ClassLoader savedLoader = plugin.currentThreadLoader();
                 try {
+
                     String connType = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
                     ClassLoader connectorLoader = plugin.getPluginClassLoader(connType);
-                    ClassLoader loader = Plugin.compareAndSwapLoaders(connectorLoader);
+                    savedLoader = Plugin.compareAndSwapLoaders(connectorLoader);
 
-                    String taskClass = keyValue.getString(RuntimeConfigDefine.TASK_CLASS);
-                    Class taskClazz;
-                    boolean isolationFlag = false;
-                    if (loader instanceof PluginClassLoader) {
-                        taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
-                        isolationFlag = true;
-                    } else {
-                        taskClazz = Class.forName(taskClass);
-                    }
+                    final Class<? extends Task> taskClass = plugin.currentThreadLoader().loadClass(keyValue.getString(RuntimeConfigDefine.TASK_CLASS)).asSubclass(Task.class);
 
-                    final Task task = (Task) taskClazz.getDeclaredConstructor().newInstance();
+//                    Class taskClazz;
+//                    boolean isolationFlag = false;
+//                    if (loader instanceof PluginClassLoader) {
+//                        taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
+//                        isolationFlag = true;
+//                    } else {
+//                        taskClazz = Class.forName(taskClass);
+//                    }
+                    final Task task = plugin.newTask(taskClass);
+
                     final String valueConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_CONVERTER_DEFAULT);
                     final String keyConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER_DEFAULT);
                     // new stance
@@ -588,9 +590,9 @@ public class Worker {
                     keyConverterConfig.put(ConverterConfig.TYPE_CONFIG, ConverterType.KEY.getName());
                     keyConverter.configure(keyConverterConfig);
 
-                    if (isolationFlag) {
-                        Plugin.compareAndSwapLoaders(loader);
-                    }
+//                    if (isolationFlag) {
+//                        Plugin.compareAndSwapLoaders(loader);
+//                    }
                     if (task instanceof SourceTask) {
                         DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
@@ -599,7 +601,7 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
-                                (SourceTask) task, loader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
 
                         Future future = taskExecutor.submit(workerSourceTask);
                         // schedule offset committer
@@ -620,15 +622,14 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
-                                (SinkTask) task, loader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
+                                (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
                                 retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter));
 
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
                     }
-
-                    Plugin.compareAndSwapLoaders(loader);
+                    Plugin.compareAndSwapLoaders(savedLoader);
                 } catch (Exception e) {
                     log.error("start worker task exception. config {}" + JSON.toJSONString(keyValue), e);
                 }
