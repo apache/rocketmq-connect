@@ -58,7 +58,7 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

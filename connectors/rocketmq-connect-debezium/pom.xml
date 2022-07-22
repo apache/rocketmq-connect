@@ -231,11 +231,6 @@
                 <artifactId>rocketmq-remoting</artifactId>
                 <version>${rocketmq.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-openmessaging</artifactId>
-                <version>${rocketmq-openmessaging.version}</version>
-            </dependency>
 
             <!--kafka && kafka connect-->
             <dependency>

@@ -47,7 +47,7 @@ public class KafkaSinkValueConverter {
      * @return
      */
     private Object convertKafkaValue(Schema targetSchema, Object originalValue) {
-        if (targetSchema == null && originalValue == null) {
+        if (targetSchema == null) {
             if (originalValue == null) {
                 return null;
             }

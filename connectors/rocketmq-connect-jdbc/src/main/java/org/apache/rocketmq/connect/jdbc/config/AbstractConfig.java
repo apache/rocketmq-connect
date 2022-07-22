@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.connect.jdbc.config;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import io.openmessaging.KeyValue;
 import org.apache.rocketmq.connect.jdbc.util.QuoteMethod;
 

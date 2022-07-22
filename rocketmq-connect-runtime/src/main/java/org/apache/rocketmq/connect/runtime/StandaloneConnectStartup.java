@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -32,7 +30,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
@@ -40,7 +37,7 @@ import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
 import org.apache.rocketmq.connect.runtime.utils.ServiceProviderUtil;
 import org.slf4j.Logger;

@@ -115,8 +115,6 @@ public class BufferedRecords {
             schemaChanged = true;
         }
 
-
-
         if (schemaChanged || updateStatementBinder == null) {
             // Each batch needs to have the same schemas, so get the buffered records out
             flushed.addAll(flush());
