@@ -56,9 +56,9 @@ public class Converters {
                 new RecordOffset(record.sourceOffset()),
                 record.timestamp(),
                 keySchema,
-                rocketMQSourceValueConverter.value(keySchema, record.key()),
+                record.key() == null ? null : rocketMQSourceValueConverter.value(keySchema, record.key()),
                 valueSchema,
-                rocketMQSourceValueConverter.value(valueSchema, record.value()));
+                record.value() == null ? null : rocketMQSourceValueConverter.value(valueSchema, record.value()));
         Iterator<Header> headers = record.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();
@@ -85,9 +85,9 @@ public class Converters {
                 toRecordOffset(record),
                 record.timestamp(),
                 keySchema,
-                rocketMQSourceValueConverter.value(keySchema, record.key()),
+                record.key() == null ? null : rocketMQSourceValueConverter.value(keySchema, record.key()),
                 valueSchema,
-                rocketMQSourceValueConverter.value(valueSchema, record.value()));
+                record.value() == null ? null :rocketMQSourceValueConverter.value(valueSchema, record.value()));
         Iterator<Header> headers = record.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();
@@ -127,9 +127,9 @@ public class Converters {
                 topic(record.getPosition().getPartition()),
                 partition(record.getPosition().getPartition()),
                 keySchema,
-                sinkValueConverter.value(keySchema, record.getKey()),
+                record.getKey() == null ? null : sinkValueConverter.value(keySchema, record.getKey()),
                 schema,
-                sinkValueConverter.value(schema, record.getData()),
+                record.getData() == null ? null : sinkValueConverter.value(schema, record.getData()),
                 offset(record.getPosition().getOffset()),
                 record.getTimestamp(),
                 TimestampType.NO_TIMESTAMP_TYPE,
