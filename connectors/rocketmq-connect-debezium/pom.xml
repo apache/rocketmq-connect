@@ -184,7 +184,7 @@
         <rocketmq-openmessaging.version>4.3.2</rocketmq-openmessaging.version>
 
         <!--rocketmq connect version-->
-        <openmessaging-connector.version>0.1.4-SNAPSHOT</openmessaging-connector.version>
+        <openmessaging-connector.version>0.1.4</openmessaging-connector.version>
         <openmessaging-api.version>0.3.1-alpha</openmessaging-api.version>
     </properties>
 
