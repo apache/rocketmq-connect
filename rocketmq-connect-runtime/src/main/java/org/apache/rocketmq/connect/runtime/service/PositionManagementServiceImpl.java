@@ -127,7 +127,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     @Override
     public RecordOffset getPosition(ExtendRecordPartition partition) {
-
         return positionStore.get(partition);
     }
 

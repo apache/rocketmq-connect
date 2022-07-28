@@ -46,13 +46,13 @@ import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallba
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConfigManagementServiceImpl implements ConfigManagementService {
+public class ConfigManagementServiceImpl extends AbstractConfigManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-    /**
-     * Current connector configs in the store.
-     */
-    private KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
+//    /**
+//     * Current connector configs in the store.
+//     */
+//    private KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
 
     /**
      * Current task configs in the store.
@@ -196,35 +196,7 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
 
     @Override
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
-        int maxTask = configs.getInt(RuntimeConfigDefine.MAX_TASK, 1);
-        ConnectKeyValue connectConfig = connectorKeyValueStore.get(connectorName);
-        boolean directEnable = Boolean.parseBoolean(connectConfig.getString(RuntimeConfigDefine.CONNECTOR_DIRECT_ENABLE));
-        List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
-        List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
-        for (KeyValue keyValue : taskConfigs) {
-            ConnectKeyValue newKeyValue = new ConnectKeyValue();
-            for (String key : keyValue.keySet()) {
-                newKeyValue.put(key, keyValue.getString(key));
-            }
-            if (directEnable) {
-                newKeyValue.put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.DIRECT.name());
-                newKeyValue.put(RuntimeConfigDefine.SOURCE_TASK_CLASS, connectConfig.getString(RuntimeConfigDefine.SOURCE_TASK_CLASS));
-                newKeyValue.put(RuntimeConfigDefine.SINK_TASK_CLASS, connectConfig.getString(RuntimeConfigDefine.SINK_TASK_CLASS));
-            }
-            newKeyValue.put(RuntimeConfigDefine.TASK_CLASS, connector.taskClass().getName());
-            newKeyValue.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
-
-            newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAME));
-            newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAMES, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAMES));
-            Set<String> connectConfigKeySet = configs.keySet();
-            for (String connectConfigKey : connectConfigKeySet) {
-                if (connectConfigKey.startsWith(RuntimeConfigDefine.TRANSFORMS)) {
-                    newKeyValue.put(connectConfigKey, configs.getString(connectConfigKey));
-                }
-            }
-            converterdConfigs.add(newKeyValue);
-        }
-        putTaskConfigs(connectorName, converterdConfigs);
+        super.recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         sendSynchronizeConfig();
         triggerListener();
     }
@@ -260,7 +232,8 @@ public class ConfigManagementServiceImpl implements ConfigManagementService {
         return result;
     }
 
-    private void putTaskConfigs(String connectorName, List<ConnectKeyValue> configs) {
+    @Override
+    protected void putTaskConfigs(String connectorName, List<ConnectKeyValue> configs) {
 
         List<ConnectKeyValue> exist = taskKeyValueStore.get(connectorName);
         if (null != exist && exist.size() > 0) {

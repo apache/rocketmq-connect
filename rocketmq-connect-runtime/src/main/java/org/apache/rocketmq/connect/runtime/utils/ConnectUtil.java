@@ -288,18 +288,18 @@ public class ConnectUtil {
         return recordPartition;
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, String connectorName, ConnectKeyValue keyValue, Integer taskId) {
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, ConnectorTaskId  id, ConnectKeyValue keyValue) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
         }
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(rpcHook);
-        consumer.setInstanceName(createInstance(connectorName.concat("-").concat(taskId.toString())));
+        consumer.setInstanceName(id.toString());
         String taskGroupId = keyValue.getString("task-group-id");
         if (StringUtils.isNotBlank(taskGroupId)) {
             consumer.setConsumerGroup(taskGroupId);
         } else {
-            consumer.setConsumerGroup(SYS_TASK_CG_PREFIX + connectorName);
+            consumer.setConsumerGroup(SYS_TASK_CG_PREFIX + id.connector());
         }
         if (StringUtils.isNotBlank(connectConfig.getNamesrvAddr())) {
             consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
