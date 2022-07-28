@@ -29,8 +29,6 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 
 public class SinkConnectorConfig extends ConnectConfig {
 
-
-
     public static Set<String> parseTopicList(ConnectKeyValue taskConfig) {
         String messageQueueStr = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
         if (StringUtils.isBlank(messageQueueStr)) {

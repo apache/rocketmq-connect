@@ -15,24 +15,192 @@
  *  limitations under the License.
  */
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
+
+import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Should we use callable here ?
  */
-public interface WorkerTask extends Runnable {
+public abstract class WorkerTask implements Runnable {
 
-    public  WorkerTaskState getState();
+    private static final Logger log = LoggerFactory.getLogger(WorkerTask.class);
+    private static final String THREAD_NAME_PREFIX = "task-thread-";
 
-    public void stop();
+    protected  final ConnectConfig workerConfig;
 
-    public void cleanup();
+    protected final ConnectorTaskId id;
+    protected final ClassLoader loader;
+    protected final ConnectKeyValue taskConfig;
+    /**
+     * Atomic state variable
+     */
+    protected AtomicReference<WorkerTaskState> state;
+    /**
+     * worker state
+     */
+    protected final AtomicReference<WorkerState> workerState;
+    protected final RetryWithToleranceOperator retryWithToleranceOperator;
+    protected final TransformChain<ConnectRecord> transformChain;
 
-    public String getConnectorName();
 
-    public ConnectKeyValue getTaskConfig();
+    public WorkerTask(ConnectConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState) {
+        this.workerConfig = workerConfig;
+        this.id = id;
+        this.loader = loader;
+        this.taskConfig = taskConfig;
+        this.state = new AtomicReference<>(WorkerTaskState.NEW);
+        this.workerState = workerState;
+        this.retryWithToleranceOperator = retryWithToleranceOperator;
+        this.transformChain = transformChain;
+        this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
+    }
 
-    public Object getJsonObject();
+    public ConnectorTaskId id() {
+        return id;
+    }
 
-    public void timeout();
+    public ClassLoader loader() {
+        return loader;
+    }
+
+    /**
+     * Initialize the task for execution.
+     *
+     * @param taskConfig initial configuration
+     */
+    protected void initialize(ConnectKeyValue taskConfig) {
+        // NO-op
+    }
+
+    /**
+     * initinalize and start
+     */
+    protected abstract void initializeAndStart();
+
+    public void doInitializeAndStart() {
+        state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
+        initializeAndStart();
+        state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
+    }
+
+    /**
+     * execute poll and send record
+     */
+    protected abstract void execute();
+
+    private void doExecute() {
+        execute();
+    }
+
+    /**
+     * get state
+     *
+     * @return
+     */
+    public WorkerTaskState getState() {
+        return this.state.get();
+    }
+
+    protected boolean isRunning() {
+        return WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get();
+    }
+
+    protected boolean isStopping() {
+        return !isRunning();
+    }
+
+    /**
+     * close resources
+     */
+    protected abstract void close();
+
+    public void doClose() {
+        try {
+            state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
+            close();
+            state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
+        } catch (Throwable t) {
+            log.error("{} Task threw an uncaught and unrecoverable exception during shutdown", this, t);
+            throw t;
+        }
+    }
+
+    /**
+     * clean up
+     */
+    public void cleanup() {
+        log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
+        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED)
+                || state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
+            log.info("Cleaning a task success");
+        } else {
+            log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
+        }
+    }
+
+
+    public ConnectKeyValue currentTaskConfig() {
+        return taskConfig;
+    }
+
+    /**
+     * current task state
+     *
+     * @return
+     */
+    public CurrentTaskState currentTaskState() {
+        return new CurrentTaskState(id().connector(), taskConfig, state.get());
+    }
+
+
+    private void doRun() throws InterruptedException {
+        try {
+            doInitializeAndStart();
+            // while poll
+            doExecute();
+        } catch (Throwable t) {
+            log.error("{} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted", this, t);
+            throw t;
+        } finally {
+            doClose();
+        }
+    }
+
+    /**
+     * do execute data
+     */
+    @Override
+    public void run() {
+        String savedName = Thread.currentThread().getName();
+        try {
+            Thread.currentThread().setName(THREAD_NAME_PREFIX + id);
+            doRun();
+        } catch (Throwable t) {
+            onFailure(t);
+            throw (Error) t;
+        } finally {
+            Thread.currentThread().setName(savedName);
+        }
+    }
+
+    public void onFailure(Throwable t) {
+        synchronized (this) {
+            state.set(WorkerTaskState.ERROR);
+        }
+    }
+
+    public void timeout() {
+        log.error("Worker task stop is timeout !!!");
+        onFailure(null);
+    }
+
 }

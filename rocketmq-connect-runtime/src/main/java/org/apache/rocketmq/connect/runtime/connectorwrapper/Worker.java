@@ -25,12 +25,37 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordConverter;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
+import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,31 +65,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import io.openmessaging.connector.api.data.RecordConverter;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
-import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
-import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.TaskPositionCommitService;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
-import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A worker to schedule all connectors and tasks in a process.
@@ -78,80 +80,60 @@ public class Worker {
     private Set<WorkerConnector> workingConnectors = new ConcurrentSet<>();
 
     /**
-     * Current running tasks.
+     * Current tasks state.
      */
     private Map<Runnable, Long/*timestamp*/> pendingTasks = new ConcurrentHashMap<>();
-
     private Set<Runnable> runningTasks = new ConcurrentSet<>();
-
-    private Set<Runnable> errorTasks = new ConcurrentSet<>();
-
-    private Set<Runnable> cleanedErrorTasks = new ConcurrentSet<>();
-
     private Map<Runnable, Long/*timestamp*/> stoppingTasks = new ConcurrentHashMap<>();
-
     private Set<Runnable> stoppedTasks = new ConcurrentSet<>();
-
     private Set<Runnable> cleanedStoppedTasks = new ConcurrentSet<>();
+    private Set<Runnable> errorTasks = new ConcurrentSet<>();
+    private Set<Runnable> cleanedErrorTasks = new ConcurrentSet<>();
 
     Map<String, List<ConnectKeyValue>> latestTaskConfigs = new HashMap<>();
     /**
      * Current running tasks to its Future map.
      */
     private Map<Runnable, Future> taskToFutureMap = new ConcurrentHashMap<>();
-
     /**
      * Thread pool for connectors and tasks.
      */
     private final ExecutorService taskExecutor;
-
     /**
      * Position management for source tasks.
      */
     private final PositionManagementService positionManagementService;
-
     /**
      * A scheduled task to commit source position of source tasks.
      */
-    private final TaskPositionCommitService taskPositionCommitService;
-
-    private final ConnectConfig connectConfig;
-
+//    private final TaskPositionCommitService taskPositionCommitService;
+    private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
+    private final ConnectConfig workerConfig;
     private final Plugin plugin;
-
-    private static final int MAX_START_TIMEOUT_MILLS = 1000 * 60;
-
-    private static final long MAX_STOP_TIMEOUT_MILLS = 20000;
 
     /**
      * Atomic state variable
      */
     private AtomicReference<WorkerState> workerState;
-
     private StateMachineService stateMachineService = new StateMachineService();
-
     private final ConnectStatsManager connectStatsManager;
-
     private final ConnectStatsService connectStatsService;
 
-    public Worker(ConnectConfig connectConfig,
+    public Worker(ConnectConfig workerConfig,
                   PositionManagementService positionManagementService,
                   ConfigManagementService configManagementService,
                   Plugin plugin, AbstractConnectController connectController) {
-        this.connectConfig = connectConfig;
+        this.workerConfig = workerConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
-        this.taskPositionCommitService = new TaskPositionCommitService(
-            this,
-            positionManagementService);
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
+        this.sourceTaskOffsetCommitter = Optional.of(new SourceTaskOffsetCommitter(workerConfig));
     }
 
     public void start() {
         workerState = new AtomicReference<>(WorkerState.STARTED);
-        taskPositionCommitService.start();
         stateMachineService.start();
     }
 
@@ -164,7 +146,7 @@ public class Worker {
      * @throws Exception
      */
     public synchronized void startConnectors(Map<String, ConnectKeyValue> connectorConfigs,
-        AbstractConnectController connectController) throws Exception {
+                                             AbstractConnectController connectController) throws Exception {
         Set<WorkerConnector> stoppedConnector = new HashSet<>();
         for (WorkerConnector workerConnector : workingConnectors) {
             try {
@@ -247,11 +229,11 @@ public class Worker {
         for (Runnable runnable : set) {
             ConnectKeyValue taskConfig = null;
             if (runnable instanceof WorkerSourceTask) {
-                taskConfig = ((WorkerSourceTask) runnable).getTaskConfig();
+                taskConfig = ((WorkerSourceTask) runnable).currentTaskConfig();
             } else if (runnable instanceof WorkerSinkTask) {
-                taskConfig = ((WorkerSinkTask) runnable).getTaskConfig();
+                taskConfig = ((WorkerSinkTask) runnable).currentTaskConfig();
             } else if (runnable instanceof WorkerDirectTask) {
-                taskConfig = ((WorkerDirectTask) runnable).getTaskConfig();
+                taskConfig = ((WorkerDirectTask) runnable).currentTaskConfig();
             }
             if (keyValue.equals(taskConfig)) {
                 return true;
@@ -267,19 +249,22 @@ public class Worker {
     public void stop() {
         workerState.set(WorkerState.TERMINATED);
         try {
+            sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
             taskExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             log.error("Task termination error.", e);
         }
         stateMachineService.shutdown();
+
     }
+
 
     public Set<WorkerConnector> getWorkingConnectors() {
         return workingConnectors;
     }
 
     public void setWorkingConnectors(
-        Set<WorkerConnector> workingConnectors) {
+            Set<WorkerConnector> workingConnectors) {
         this.workingConnectors = workingConnectors;
     }
 
@@ -326,83 +311,246 @@ public class Worker {
 
     }
 
+    /**
+     * maintain task state
+     *
+     * @throws Exception
+     */
     public void maintainTaskState() throws Exception {
-
-        Map<String, List<ConnectKeyValue>> taskConfigs = new HashMap<>();
+        Map<String, List<ConnectKeyValue>> connectorConfig = new HashMap<>();
         synchronized (latestTaskConfigs) {
-            taskConfigs.putAll(latestTaskConfigs);
+            connectorConfig.putAll(latestTaskConfigs);
         }
 
-        boolean needCommitPosition = false;
+        //  STEP 1: check running tasks and put to error status
+        checkRunningTasks(connectorConfig);
+
+        // get new Tasks
+        Map<String, List<ConnectKeyValue>> newTasks = newTasks(connectorConfig);
+
+        //  STEP 2: try to create new tasks
+        startTask(newTasks);
+
+        //  STEP 3: check all pending state
+        checkPendingTask();
+
+        //  STEP 4 check stopping tasks
+        checkStoppingTasks();
+
+        //  STEP 5 check error tasks
+        checkErrorTasks();
+
+        //  STEP 6 check errorTasks and stopped tasks
+        checkStoppedTasks();
+    }
+
+    /**
+     * check running task
+     *
+     * @param connectorConfig
+     */
+    private void checkRunningTasks(Map<String, List<ConnectKeyValue>> connectorConfig) {
         //  STEP 1: check running tasks and put to error status
         for (Runnable runnable : runningTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
-            String connectorName = workerTask.getConnectorName();
-            ConnectKeyValue taskConfig = workerTask.getTaskConfig();
-            List<ConnectKeyValue> keyValues = taskConfigs.get(connectorName);
+            String connectorName = workerTask.id().connector();
+            ConnectKeyValue taskConfig = workerTask.currentTaskConfig();
+            List<ConnectKeyValue> taskConfigs = connectorConfig.get(connectorName);
             WorkerTaskState state = ((WorkerTask) runnable).getState();
-
-            if (WorkerTaskState.ERROR == state) {
-                errorTasks.add(runnable);
-                runningTasks.remove(runnable);
-            } else if (WorkerTaskState.RUNNING == state) {
-                boolean needStop = true;
-                if (null != keyValues && keyValues.size() > 0) {
-                    for (ConnectKeyValue keyValue : keyValues) {
-                        if (keyValue.equals(taskConfig)) {
-                            needStop = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (needStop) {
-                    try {
-                        workerTask.stop();
-                    } catch (Exception e) {
-                        log.error("workerTask stop exception, workerTask: " + workerTask.getTaskConfig(), e);
-                    }
-                    log.info("Task stopping, connector name {}, config {}", workerTask.getConnectorName(), workerTask.getTaskConfig());
+            switch (state) {
+                case ERROR:
+                    errorTasks.add(runnable);
                     runningTasks.remove(runnable);
-                    stoppingTasks.put(runnable, System.currentTimeMillis());
-                    needCommitPosition = true;
-                }
-            } else {
-                log.error("[BUG] Illegal State in when checking running tasks, {} is in {} state",
-                    ((WorkerTask) runnable).getConnectorName(), state.toString());
-            }
-        }
-
-        //If some tasks are closed, synchronize the position.
-        if (needCommitPosition) {
-            taskPositionCommitService.commitTaskPosition();
-        }
-
-        // get new Tasks
-        Map<String, List<ConnectKeyValue>> newTasks = new HashMap<>();
-        for (String connectorName : taskConfigs.keySet()) {
-            for (ConnectKeyValue keyValue : taskConfigs.get(connectorName)) {
-                boolean isNewTask = true;
-                if (isConfigInSet(keyValue, runningTasks) || isConfigInSet(keyValue, pendingTasks.keySet()) || isConfigInSet(keyValue, errorTasks)) {
-                    isNewTask = false;
-                }
-                if (isNewTask) {
-                    if (!newTasks.containsKey(connectorName)) {
-                        newTasks.put(connectorName, new ArrayList<>());
+                    break;
+                case RUNNING:
+                    if (isNeedStop(taskConfig, taskConfigs)) {
+                        try {
+                            // remove committer offset
+                            sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
+                            workerTask.doClose();
+                        } catch (Exception e) {
+                            log.error("workerTask stop exception, workerTask: " + workerTask.currentTaskConfig(), e);
+                        }
+                        log.info("Task stopping, connector name {}, config {}", workerTask.id().connector(), workerTask.currentTaskConfig());
+                        runningTasks.remove(runnable);
+                        stoppingTasks.put(runnable, System.currentTimeMillis());
                     }
-                    log.info("Add new tasks,connector name {}, config {}", connectorName, keyValue);
-                    newTasks.get(connectorName).add(keyValue);
-                }
+                    break;
+                default:
+                    log.error("[BUG] Illegal State in when checking running tasks, {} is in {} state",
+                            ((WorkerTask) runnable).id().connector(), state);
+                    break;
             }
         }
+    }
 
-        //  STEP 2: try to create new tasks
-        int taskId = 0;
+    /**
+     * check is need stop
+     *
+     * @param taskConfig
+     * @param keyValues
+     * @return
+     */
+    private boolean isNeedStop(ConnectKeyValue taskConfig, List<ConnectKeyValue> keyValues) {
+        if (CollectionUtils.isEmpty(keyValues)) {
+            return true;
+        }
+        for (ConnectKeyValue keyValue : keyValues) {
+            if (keyValue.equals(taskConfig)) {
+                // not stop
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * check stopped tasks
+     */
+    private void checkStoppedTasks() {
+        for (Runnable runnable : stoppedTasks) {
+            WorkerTask workerTask = (WorkerTask) runnable;
+            workerTask.cleanup();
+            Future future = taskToFutureMap.get(runnable);
+            try {
+                if (null != future) {
+                    future.get(workerConfig.getMaxStartTimeoutMills(), TimeUnit.MILLISECONDS);
+                } else {
+                    log.error("[BUG] stopped Tasks reference not found in taskFutureMap");
+                }
+            } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                log.info("[BUG] Stopped Tasks should not throw any exception");
+                t.printStackTrace();
+            } catch (CancellationException e) {
+                log.info("[BUG] Stopped Tasks throws PrintStackTrace");
+                e.printStackTrace();
+            } catch (TimeoutException e) {
+                log.info("[BUG] Stopped Tasks should not throw any exception");
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                log.info("[BUG] Stopped Tasks should not throw any exception");
+                e.printStackTrace();
+            } finally {
+                // remove committer offset
+                sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
+                future.cancel(true);
+                taskToFutureMap.remove(runnable);
+                stoppedTasks.remove(runnable);
+                cleanedStoppedTasks.add(runnable);
+            }
+        }
+    }
+
+    private void checkErrorTasks() {
+        for (Runnable runnable : errorTasks) {
+            WorkerTask workerTask = (WorkerTask) runnable;
+            Future future = taskToFutureMap.get(runnable);
+            try {
+                if (null != future) {
+                    future.get(workerConfig.getMaxStopTimeoutMills(), TimeUnit.MILLISECONDS);
+                } else {
+                    log.error("[BUG] errorTasks reference not found in taskFutureMap");
+                }
+            } catch (ExecutionException e) {
+                log.error("Execution exception , {}", e);
+            } catch (CancellationException | TimeoutException | InterruptedException e) {
+                log.error("error, {}", e);
+            } finally {
+                // remove committer offset
+                sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
+
+                future.cancel(true);
+                workerTask.cleanup();
+                taskToFutureMap.remove(runnable);
+                errorTasks.remove(runnable);
+                cleanedErrorTasks.add(runnable);
+            }
+        }
+    }
+
+    private void checkStoppingTasks() {
+        for (Map.Entry<Runnable, Long> entry : stoppingTasks.entrySet()) {
+            Runnable runnable = entry.getKey();
+            Long stopTimestamp = entry.getValue();
+            Long currentTimeMillis = System.currentTimeMillis();
+            Future future = taskToFutureMap.get(runnable);
+            WorkerTaskState state = ((WorkerTask) runnable).getState();
+            // exited normally
+            switch (state) {
+                case STOPPED:
+                    // concurrent modification Exception ? Will it pop that in the
+                    if (null == future || !future.isDone()) {
+                        log.error("[BUG] future is null or Stopped task should have its Future.isDone() true, but false");
+                    }
+                    stoppingTasks.remove(runnable);
+                    stoppedTasks.add(runnable);
+                    break;
+                case ERROR:
+                    stoppingTasks.remove(runnable);
+                    errorTasks.add(runnable);
+                    break;
+                case STOPPING:
+                    if (currentTimeMillis - stopTimestamp > workerConfig.getMaxStopTimeoutMills()) {
+                        ((WorkerTask) runnable).timeout();
+                        stoppingTasks.remove(runnable);
+                        errorTasks.add(runnable);
+                    }
+                    break;
+                default:
+                    log.error("[BUG] Illegal State in when checking stopping tasks, {} is in {} state",
+                            ((WorkerTask) runnable).id().connector(), state.toString());
+            }
+        }
+    }
+
+    private void checkPendingTask() {
+        for (Map.Entry<Runnable, Long> entry : pendingTasks.entrySet()) {
+            Runnable runnable = entry.getKey();
+            Long startTimestamp = entry.getValue();
+            Long currentTimeMillis = System.currentTimeMillis();
+            WorkerTaskState state = ((WorkerTask) runnable).getState();
+            switch (state) {
+                case ERROR:
+                    errorTasks.add(runnable);
+                    pendingTasks.remove(runnable);
+                    break;
+                case RUNNING:
+                    runningTasks.add(runnable);
+                    pendingTasks.remove(runnable);
+                    break;
+                case NEW:
+                    log.info("[RACE CONDITION] we checked the pending tasks before state turns to PENDING");
+                    break;
+                case PENDING:
+                    if (currentTimeMillis - startTimestamp > workerConfig.getMaxStartTimeoutMills()) {
+                        ((WorkerTask) runnable).timeout();
+                        pendingTasks.remove(runnable);
+                        errorTasks.add(runnable);
+                    }
+                    break;
+                default:
+                    log.error("[BUG] Illegal State in when checking pending tasks, {} is in {} state",
+                            ((WorkerTask) runnable).id().connector(), state.toString());
+                    break;
+            }
+        }
+    }
+
+    /**
+     * start task
+     *
+     * @param newTasks
+     * @throws Exception
+     */
+    private void startTask(Map<String, List<ConnectKeyValue>> newTasks) throws Exception {
         for (String connectorName : newTasks.keySet()) {
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
+                int taskId = keyValue.getInt(RuntimeConfigDefine.TASK_ID);
+                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
                 String taskType = keyValue.getString(RuntimeConfigDefine.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
-                    createDirectTask(connectorName, keyValue);
+                    createDirectTask(id, keyValue);
                     continue;
                 }
                 try {
@@ -422,7 +570,7 @@ public class Worker {
                     RecordConverter recordConverter = null;
                     if (StringUtils.isNotEmpty(converterClazzName)) {
                         recordConverter = Class.forName(converterClazzName)
-                                .asSubclass(io.openmessaging.connector.api.data.RecordConverter.class)
+                                .asSubclass(RecordConverter.class)
                                 .getDeclaredConstructor()
                                 .newInstance();
                         recordConverter.configure(keyValue.getProperties());
@@ -432,36 +580,36 @@ public class Worker {
                         Plugin.compareAndSwapLoaders(loader);
                     }
                     if (task instanceof SourceTask) {
-
-                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
+                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
                         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
-                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(connectorName,
-                            (SourceTask) task, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+                        WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
+                                (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
-
                         Future future = taskExecutor.submit(workerSourceTask);
+                        // schedule offset committer
+                        sourceTaskOffsetCommitter.ifPresent(committer -> committer.schedule(id, workerSourceTask));
+
                         taskToFutureMap.put(workerSourceTask, future);
                         this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
+
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
-                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorName, keyValue, ++taskId);
-                        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+                        DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(workerConfig, id, keyValue);
+                        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(workerConfig);
                         if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
-                            ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
+                            ConnectUtil.createSubGroup(workerConfig, consumer.getConsumerGroup());
                         }
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
-
                         // create retry operator
                         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, connectConfig));
+                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
 
-
-                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(connectorName,
-                            (SinkTask) task, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
+                        WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
+                                (SinkTask) task, loader, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
                                 retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, recordConverter));
                         Plugin.compareAndSwapLoaders(currentThreadLoader);
                         Future future = taskExecutor.submit(workerSinkTask);
@@ -473,137 +621,59 @@ public class Worker {
                 }
             }
         }
-
-        //  STEP 3: check all pending state
-        for (Map.Entry<Runnable, Long> entry : pendingTasks.entrySet()) {
-            Runnable runnable = entry.getKey();
-            Long startTimestamp = entry.getValue();
-            Long currentTimeMillis = System.currentTimeMillis();
-            WorkerTaskState state = ((WorkerTask) runnable).getState();
-
-            if (WorkerTaskState.ERROR == state) {
-                errorTasks.add(runnable);
-                pendingTasks.remove(runnable);
-            } else if (WorkerTaskState.RUNNING == state) {
-                runningTasks.add(runnable);
-                pendingTasks.remove(runnable);
-            } else if (WorkerTaskState.NEW == state) {
-                log.info("[RACE CONDITION] we checked the pending tasks before state turns to PENDING");
-            } else if (WorkerTaskState.PENDING == state) {
-                if (currentTimeMillis - startTimestamp > MAX_START_TIMEOUT_MILLS) {
-                    ((WorkerTask) runnable).timeout();
-                    pendingTasks.remove(runnable);
-                    errorTasks.add(runnable);
-                }
-            } else {
-                log.error("[BUG] Illegal State in when checking pending tasks, {} is in {} state",
-                    ((WorkerTask) runnable).getConnectorName(), state.toString());
-            }
-        }
-
-        //  STEP 4 check stopping tasks
-        for (Map.Entry<Runnable, Long> entry : stoppingTasks.entrySet()) {
-            Runnable runnable = entry.getKey();
-            Long stopTimestamp = entry.getValue();
-            Long currentTimeMillis = System.currentTimeMillis();
-            Future future = taskToFutureMap.get(runnable);
-            WorkerTaskState state = ((WorkerTask) runnable).getState();
-            // exited normally
-
-            if (WorkerTaskState.STOPPED == state) {
-                // concurrent modification Exception ? Will it pop that in the
-
-                if (null == future || !future.isDone()) {
-                    log.error("[BUG] future is null or Stopped task should have its Future.isDone() true, but false");
-                }
-                stoppingTasks.remove(runnable);
-                stoppedTasks.add(runnable);
-            } else if (WorkerTaskState.ERROR == state) {
-                stoppingTasks.remove(runnable);
-                errorTasks.add(runnable);
-            } else if (WorkerTaskState.STOPPING == state) {
-                if (currentTimeMillis - stopTimestamp > MAX_STOP_TIMEOUT_MILLS) {
-                    ((WorkerTask) runnable).timeout();
-                    stoppingTasks.remove(runnable);
-                    errorTasks.add(runnable);
-                }
-            } else {
-
-                log.error("[BUG] Illegal State in when checking stopping tasks, {} is in {} state",
-                    ((WorkerTask) runnable).getConnectorName(), state.toString());
-            }
-        }
-
-        //  STEP 5 check errorTasks and stopped tasks
-        for (Runnable runnable : errorTasks) {
-            WorkerTask workerTask = (WorkerTask) runnable;
-            Future future = taskToFutureMap.get(runnable);
-
-            try {
-                if (null != future) {
-                    future.get(1000 * 60, TimeUnit.MILLISECONDS);
-                } else {
-                    log.error("[BUG] errorTasks reference not found in taskFutureMap");
-                }
-            } catch (ExecutionException e) {
-                Throwable t = e.getCause();
-                log.error("Execution exception , {}", e);
-            } catch (CancellationException | TimeoutException | InterruptedException e) {
-                log.error("error, {}", e);
-            } finally {
-                future.cancel(true);
-                workerTask.cleanup();
-                taskToFutureMap.remove(runnable);
-                errorTasks.remove(runnable);
-                cleanedErrorTasks.add(runnable);
-
-            }
-        }
-
-        //  STEP 5 check errorTasks and stopped tasks
-        for (Runnable runnable : stoppedTasks) {
-            WorkerTask workerTask = (WorkerTask) runnable;
-            workerTask.cleanup();
-            Future future = taskToFutureMap.get(runnable);
-            try {
-                if (null != future) {
-                    future.get(1000, TimeUnit.MILLISECONDS);
-                } else {
-                    log.error("[BUG] stopped Tasks reference not found in taskFutureMap");
-                }
-            } catch (ExecutionException e) {
-                Throwable t = e.getCause();
-                log.info("[BUG] Stopped Tasks should not throw any exception");
-                t.printStackTrace();
-            } catch (CancellationException e) {
-                log.info("[BUG] Stopped Tasks throws PrintStackTrace");
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                log.info("[BUG] Stopped Tasks should not throw any exception");
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                log.info("[BUG] Stopped Tasks should not throw any exception");
-                e.printStackTrace();
-            } finally {
-                future.cancel(true);
-                taskToFutureMap.remove(runnable);
-                stoppedTasks.remove(runnable);
-                cleanedStoppedTasks.add(runnable);
-            }
-        }
     }
 
-    private void createDirectTask(String connectorName, ConnectKeyValue keyValue) throws Exception {
+    private Map<String, List<ConnectKeyValue>> newTasks(Map<String, List<ConnectKeyValue>> taskConfigs) {
+        Map<String, List<ConnectKeyValue>> newTasks = new HashMap<>();
+        for (String connectorName : taskConfigs.keySet()) {
+            for (ConnectKeyValue keyValue : taskConfigs.get(connectorName)) {
+                boolean isNewTask = true;
+                if (isConfigInSet(keyValue, runningTasks) || isConfigInSet(keyValue, pendingTasks.keySet()) || isConfigInSet(keyValue, errorTasks)) {
+                    isNewTask = false;
+                }
+                if (isNewTask) {
+                    if (!newTasks.containsKey(connectorName)) {
+                        newTasks.put(connectorName, new ArrayList<>());
+                    }
+                    log.info("Add new tasks,connector name {}, config {}", connectorName, keyValue);
+                    newTasks.get(connectorName).add(keyValue);
+                }
+            }
+        }
+        return newTasks;
+    }
+
+    private void createDirectTask(ConnectorTaskId id, ConnectKeyValue keyValue) throws Exception {
         String sourceTaskClass = keyValue.getString(RuntimeConfigDefine.SOURCE_TASK_CLASS);
         Task sourceTask = getTask(sourceTaskClass);
 
         String sinkTaskClass = keyValue.getString(RuntimeConfigDefine.SINK_TASK_CLASS);
         Task sinkTask = getTask(sinkTaskClass);
 
-        WorkerDirectTask workerDirectTask = new WorkerDirectTask(connectorName,
-            (SourceTask) sourceTask, (SinkTask) sinkTask, keyValue, positionManagementService, workerState);
+        TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
+        // create retry operator
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id.connector(), keyValue));
+
+        WorkerDirectTask workerDirectTask = new WorkerDirectTask(
+                workerConfig,
+                id,
+                (SourceTask) sourceTask,
+                null,
+                (SinkTask) sinkTask,
+                keyValue,
+                positionManagementService,
+                workerState,
+                connectStatsManager,
+                connectStatsService,
+                transformChain,
+                retryWithToleranceOperator);
 
         Future future = taskExecutor.submit(workerDirectTask);
+
+        // schedule offset committer
+        sourceTaskOffsetCommitter.ifPresent(committer -> committer.schedule(id, workerDirectTask));
+
         taskToFutureMap.put(workerDirectTask, future);
         this.pendingTasks.put(workerDirectTask, System.currentTimeMillis());
     }
@@ -632,7 +702,6 @@ public class Worker {
         @Override
         public void run() {
             log.info(this.getServiceName() + " service started");
-
             while (!this.isStopped()) {
                 this.waitForRunning(1000);
                 try {
@@ -642,7 +711,6 @@ public class Worker {
                     log.error("RebalanceImpl#StateMachineService start connector or task failed", e);
                 }
             }
-
             log.info(this.getServiceName() + " service end");
         }
 

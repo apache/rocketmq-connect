@@ -75,6 +75,21 @@ public class RetryWithToleranceOperator implements AutoCloseable {
         }
     }
 
+    public synchronized void executeFailed(ErrorReporter.Stage stage,
+                                           Class<?> executingClass,
+                                           ConnectRecord sourceRecord,
+                                           Throwable error) {
+        markAsFailed();
+        context.sourceRecord(sourceRecord);
+        context.currentContext(stage, executingClass);
+        context.error(error);
+        context.report();
+        if (!withinToleranceLimits()) {
+            throw new ConnectException("Tolerance exceeded in Source Worker error handler", error);
+        }
+    }
+
+
     /**
      * Execute the recoverable operation. If the operation is already in a failed state, then simply return
      * with the existing failure.
@@ -232,6 +247,9 @@ public class RetryWithToleranceOperator implements AutoCloseable {
         return this.context.error();
     }
 
+    public ToleranceType getErrorToleranceType() {
+        return toleranceType;
+    }
 
     @Override
     public void close() {

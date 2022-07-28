@@ -150,7 +150,7 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
             }
             messageQueuesStateMap.put(messageQueue, QueueState.PAUSE);
         }
-        this.workerSinkTask.stop();
+        this.workerSinkTask.close();
     }
 
     @Override
