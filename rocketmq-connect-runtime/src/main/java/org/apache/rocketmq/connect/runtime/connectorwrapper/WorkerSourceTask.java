@@ -19,8 +19,6 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.util.IOUtils;
-import com.alibaba.fastjson.util.TypeUtils;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -59,9 +57,6 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.BASE64Encoder;
-
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -363,7 +358,6 @@ public class WorkerSourceTask extends WorkerTask {
         }
         Message sourceMessage = new Message();
         sourceMessage.setTopic(topic);
-
         byte[] key = retryWithToleranceOperator.execute(() -> keyConverter.fromConnectData(topic, record.getKeySchema(), record.getKey()),
                 ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
 
@@ -590,7 +584,6 @@ public class WorkerSourceTask extends WorkerTask {
             positionStorageWriter.cancelFlush();
             return false;
         }
-
         long durationMillis = System.currentTimeMillis() - started;
         log.debug("{} Finished commitOffsets successfully in {} ms",
                 this, durationMillis);

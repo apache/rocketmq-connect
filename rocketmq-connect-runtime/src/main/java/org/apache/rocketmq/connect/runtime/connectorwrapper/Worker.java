@@ -564,14 +564,6 @@ public class Worker {
 
                     final Class<? extends Task> taskClass = plugin.currentThreadLoader().loadClass(keyValue.getString(RuntimeConfigDefine.TASK_CLASS)).asSubclass(Task.class);
 
-//                    Class taskClazz;
-//                    boolean isolationFlag = false;
-//                    if (loader instanceof PluginClassLoader) {
-//                        taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
-//                        isolationFlag = true;
-//                    } else {
-//                        taskClazz = Class.forName(taskClass);
-//                    }
                     final Task task = plugin.newTask(taskClass);
 
                     final String valueConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_CONVERTER_DEFAULT);
@@ -609,6 +601,7 @@ public class Worker {
 
                         taskToFutureMap.put(workerSourceTask, future);
                         this.pendingTasks.put(workerSourceTask, System.currentTimeMillis());
+
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
                         DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(workerConfig, id, keyValue);
@@ -624,7 +617,6 @@ public class Worker {
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
                                 (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
                                 retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter));
-
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
@@ -636,7 +628,6 @@ public class Worker {
             }
         }
     }
-
 
     private Map<String, List<ConnectKeyValue>> newTasks(Map<String, List<ConnectKeyValue>> taskConfigs) {
         Map<String, List<ConnectKeyValue>> newTasks = new HashMap<>();
