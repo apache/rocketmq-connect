@@ -19,7 +19,6 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -51,13 +50,13 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
 import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
+import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +104,8 @@ public class WorkerSourceTask extends WorkerTask {
     /**
      * A converter to parse source data entry to byte[].
      */
-    private final RecordConverter recordConverter;
+    private final RecordConverter keyConverter;
+    private final RecordConverter valueConverter;
 
     /**
      * stat connect
@@ -136,7 +136,8 @@ public class WorkerSourceTask extends WorkerTask {
                             ClassLoader classLoader,
                             ConnectKeyValue taskConfig,
                             PositionManagementService positionManagementService,
-                            RecordConverter recordConverter,
+                            RecordConverter keyConverter,
+                            RecordConverter valueConverter,
                             DefaultMQProducer producer,
                             AtomicReference<WorkerState> workerState,
                             ConnectStatsManager connectStatsManager,
@@ -149,7 +150,8 @@ public class WorkerSourceTask extends WorkerTask {
         this.offsetStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
         this.positionStorageWriter = new PositionStorageWriter(id.connector(), positionManagementService);
         this.producer = producer;
-        this.recordConverter = recordConverter;
+        this.valueConverter = valueConverter;
+        this.keyConverter = keyConverter;
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.sourceTaskContext = new WorkerSourceTaskContext(offsetStorageReader, this, taskConfig);
@@ -356,22 +358,16 @@ public class WorkerSourceTask extends WorkerTask {
         }
         Message sourceMessage = new Message();
         sourceMessage.setTopic(topic);
-        // converter
-        if (recordConverter == null) {
-            final byte[] messageBody = JSON.toJSONString(record, SerializerFeature.DisableCircularReferenceDetect, SerializerFeature.WriteMapNullValue).getBytes();
-            if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-                log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
-            }
-            sourceMessage.setBody(messageBody);
-        } else {
-            byte[] messageBody = retryWithToleranceOperator.execute(() -> recordConverter.fromConnectData(topic, record.getSchema(), record.getData()),
-                    ErrorReporter.Stage.CONVERTER, recordConverter.getClass());
-            if (messageBody.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-                log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
-            }
-            sourceMessage.setBody(messageBody);
-        }
+        byte[] key = retryWithToleranceOperator.execute(() -> keyConverter.fromConnectData(topic, record.getKeySchema(), record.getKey()),
+                ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
 
+        byte[] value = retryWithToleranceOperator.execute(() -> valueConverter.fromConnectData(topic, record.getSchema(), record.getData()),
+                ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
+        if (value.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
+            log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
+        }
+        sourceMessage.setKeys(Base64Util.base64Encode(key));
+        sourceMessage.setBody(value);
         if (retryWithToleranceOperator.failed()) {
             return null;
         }
@@ -588,7 +584,6 @@ public class WorkerSourceTask extends WorkerTask {
             positionStorageWriter.cancelFlush();
             return false;
         }
-
         long durationMillis = System.currentTimeMillis() - started;
         log.debug("{} Finished commitOffsets successfully in {} ms",
                 this, durationMillis);

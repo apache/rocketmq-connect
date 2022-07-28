@@ -49,6 +49,12 @@ public class RocketMQSourceValueConverter {
      * @return
      */
     private Object convertKafkaValue(Schema targetSchema, Object originalValue) {
+        if (targetSchema == null) {
+            if (originalValue == null) {
+                return null;
+            }
+            return  originalValue;
+        }
         switch (targetSchema.getFieldType()) {
             case INT8:
             case INT16:

@@ -47,6 +47,12 @@ public class KafkaSinkValueConverter {
      * @return
      */
     private Object convertKafkaValue(Schema targetSchema, Object originalValue) {
+        if (targetSchema == null) {
+            if (originalValue == null) {
+                return null;
+            }
+            return  originalValue;
+        }
         switch (targetSchema.type()) {
             case INT8:
             case INT16:

@@ -27,7 +27,6 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -35,6 +34,8 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.converter.record.ConverterConfig;
+import org.apache.rocketmq.connect.runtime.converter.record.ConverterType;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
@@ -44,8 +45,8 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.PluginClassLoader;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +66,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -553,32 +553,38 @@ public class Worker {
                     createDirectTask(id, keyValue);
                     continue;
                 }
-                try {
-                    String taskClass = keyValue.getString(RuntimeConfigDefine.TASK_CLASS);
-                    ClassLoader loader = plugin.getPluginClassLoader(taskClass);
-                    final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
-                    Class taskClazz;
-                    boolean isolationFlag = false;
-                    if (loader instanceof PluginClassLoader) {
-                        taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
-                        isolationFlag = true;
-                    } else {
-                        taskClazz = Class.forName(taskClass);
-                    }
-                    final Task task = (Task) taskClazz.getDeclaredConstructor().newInstance();
-                    final String converterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER);
-                    RecordConverter recordConverter = null;
-                    if (StringUtils.isNotEmpty(converterClazzName)) {
-                        recordConverter = Class.forName(converterClazzName)
-                                .asSubclass(RecordConverter.class)
-                                .getDeclaredConstructor()
-                                .newInstance();
-                        recordConverter.configure(keyValue.getProperties());
-                    }
 
-                    if (isolationFlag) {
-                        Plugin.compareAndSwapLoaders(loader);
-                    }
+
+                ClassLoader savedLoader = plugin.currentThreadLoader();
+                try {
+
+                    String connType = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
+                    ClassLoader connectorLoader = plugin.getPluginClassLoader(connType);
+                    savedLoader = Plugin.compareAndSwapLoaders(connectorLoader);
+
+                    final Class<? extends Task> taskClass = plugin.currentThreadLoader().loadClass(keyValue.getString(RuntimeConfigDefine.TASK_CLASS)).asSubclass(Task.class);
+
+                    final Task task = plugin.newTask(taskClass);
+
+                    final String valueConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_CONVERTER_DEFAULT);
+                    final String keyConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER_DEFAULT);
+                    // new stance
+                    RecordConverter valueConverter = Class.forName(valueConverterClazzName).asSubclass(RecordConverter.class).getDeclaredConstructor().newInstance();
+                    RecordConverter keyConverter = Class.forName(keyConverterClazzName).asSubclass(RecordConverter.class).getDeclaredConstructor().newInstance();
+
+                    //value config
+                    Map<String, String> valueConverterConfig = keyValue.originalsWithPrefix(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER,true);
+                    valueConverterConfig.put(ConverterConfig.TYPE_CONFIG, ConverterType.VALUE.getName());
+                    valueConverter.configure(valueConverterConfig);
+
+                    //key config
+                    Map<String, String> keyConverterConfig = keyValue.originalsWithPrefix(RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, true);
+                    keyConverterConfig.put(ConverterConfig.TYPE_CONFIG, ConverterType.KEY.getName());
+                    keyConverter.configure(keyConverterConfig);
+
+//                    if (isolationFlag) {
+//                        Plugin.compareAndSwapLoaders(loader);
+//                    }
                     if (task instanceof SourceTask) {
                         DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
@@ -587,8 +593,8 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
-                                (SourceTask) task, loader, keyValue, positionManagementService, recordConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
-                        Plugin.compareAndSwapLoaders(currentThreadLoader);
+                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+
                         Future future = taskExecutor.submit(workerSourceTask);
                         // schedule offset committer
                         sourceTaskOffsetCommitter.ifPresent(committer -> committer.schedule(id, workerSourceTask));
@@ -609,13 +615,13 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
-                                (SinkTask) task, loader, keyValue, recordConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
-                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, recordConverter));
-                        Plugin.compareAndSwapLoaders(currentThreadLoader);
+                                (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
+                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter));
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
                     }
+                    Plugin.compareAndSwapLoaders(savedLoader);
                 } catch (Exception e) {
                     log.error("start worker task exception. config {}" + JSON.toJSONString(keyValue), e);
                 }

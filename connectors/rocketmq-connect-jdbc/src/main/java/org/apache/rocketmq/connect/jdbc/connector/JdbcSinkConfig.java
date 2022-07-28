@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.jdbc.connector;
 import io.openmessaging.KeyValue;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.exception.ConfigException;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.apache.rocketmq.connect.jdbc.util.TableType;
 
@@ -187,7 +188,7 @@ public class JdbcSinkConfig extends AbstractConfig {
         tableNameFormat = config.getString(TABLE_NAME_FORMAT, TABLE_NAME_FORMAT_DEFAULT).trim();
         tableFromHeader = getBoolean(config, TABLE_NAME_FROM_HEADER, false);
         batchSize = config.getInt(BATCH_SIZE, BATCH_SIZE_DEFAULT);
-        deleteEnabled = getBoolean(config, DELETE_ENABLED, DELETE_ENABLED_DEFAULT);
+
         maxRetries = config.getInt(MAX_RETRIES, MAX_RETRIES_DEFAULT);
         retryBackoffMs = config.getInt(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT);
         autoCreate = getBoolean(config, AUTO_CREATE, AUTO_CREATE_DEFAULT);
@@ -195,9 +196,13 @@ public class JdbcSinkConfig extends AbstractConfig {
         if (Objects.nonNull(config.getString(INSERT_MODE))) {
             insertMode = InsertMode.valueOf(config.getString(INSERT_MODE, INSERT_MODE_DEFAULT).toUpperCase());
         }
-
+        deleteEnabled = getBoolean(config, DELETE_ENABLED, DELETE_ENABLED_DEFAULT);
         pkMode = PrimaryKeyMode.valueOf(config.getString(PK_MODE, PK_MODE_DEFAULT).toUpperCase());
         pkFields = getList(config, PK_FIELDS);
+        if (deleteEnabled && pkMode != PrimaryKeyMode.RECORD_KEY) {
+            throw new ConfigException(
+                    "Primary key mode must be 'record_key' when delete support is enabled");
+        }
         dialectName = config.getString(DIALECT_NAME_CONFIG);
         fieldsWhitelist = new HashSet<>(getList(config, FIELDS_WHITELIST));
         // table white list
@@ -205,6 +210,7 @@ public class JdbcSinkConfig extends AbstractConfig {
         String dbTimeZone = config.getString(DB_TIMEZONE_CONFIG, DB_TIMEZONE_DEFAULT);
         timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
         tableTypes = TableType.parse(getList(config, TABLE_TYPES_CONFIG, TABLE_TYPES_DEFAULT));
+
 
     }
 

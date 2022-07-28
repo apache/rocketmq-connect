@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.connect.jdbc.source.offset;
 
-import com.beust.jcommander.internal.Maps;
+
+import com.google.common.collect.Maps;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;

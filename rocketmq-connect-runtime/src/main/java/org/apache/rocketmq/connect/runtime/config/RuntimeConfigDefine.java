@@ -61,7 +61,10 @@ public class RuntimeConfigDefine {
     /**
      * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */
-    public static final String SOURCE_RECORD_CONVERTER = "source-record-converter";
+    public static final String SOURCE_RECORD_CONVERTER = "value-converter";
+    public static final String SOURCE_RECORD_CONVERTER_DEFAULT = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
+    public static final String SOURCE_RECORD_KEY_CONVERTER = "key-converter";
+    public static final String SOURCE_RECORD_KEY_CONVERTER_DEFAULT = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
 
     public static final String NAMESRV_ADDR = "namesrv-addr";
 

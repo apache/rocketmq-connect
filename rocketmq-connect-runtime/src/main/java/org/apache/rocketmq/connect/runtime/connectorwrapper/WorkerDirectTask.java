@@ -84,6 +84,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
                 positionManagementService,
                 null,
                 null,
+                null,
                 workerState,
                 connectStatsManager,
                 connectStatsService,

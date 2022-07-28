@@ -125,6 +125,26 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         this.properties = properties;
     }
 
+    /**
+     * Gets all original settings with the given prefix.
+     * @param prefix the prefix to use as a filter
+     * @param strip strip the prefix before adding to the output if set true
+     * @return a Map containing the settings with the prefix
+     */
+    public Map<String, String> originalsWithPrefix(String prefix, boolean strip) {
+        Map<String, String> result = new ConcurrentHashMap<>();
+        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+            if (entry.getKey().startsWith(prefix) && entry.getKey().length() > prefix.length()) {
+                if (strip) {
+                    result.put(entry.getKey().substring(prefix.length()), entry.getValue());
+                } else {
+                    result.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return result;
+    }
+
     @Override
     public boolean equals(Object obj) {
 
@@ -145,4 +165,6 @@ public class ConnectKeyValue implements KeyValue, Serializable {
             "properties=" + properties +
             '}';
     }
+
+
 }
