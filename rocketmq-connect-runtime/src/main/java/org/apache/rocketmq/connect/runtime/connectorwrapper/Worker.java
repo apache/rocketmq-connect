@@ -120,9 +120,9 @@ public class Worker {
     private final ConnectStatsService connectStatsService;
 
     public Worker(ConnectConfig workerConfig,
-                  PositionManagementService positionManagementService,
-                  ConfigManagementService configManagementService,
-                  Plugin plugin, AbstractConnectController connectController) {
+        PositionManagementService positionManagementService,
+        ConfigManagementService configManagementService,
+        Plugin plugin, AbstractConnectController connectController) {
         this.workerConfig = workerConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
@@ -146,7 +146,7 @@ public class Worker {
      * @throws Exception
      */
     public synchronized void startConnectors(Map<String, ConnectKeyValue> connectorConfigs,
-                                             AbstractConnectController connectController) throws Exception {
+        AbstractConnectController connectController) throws Exception {
         Set<WorkerConnector> stoppedConnector = new HashSet<>();
         for (WorkerConnector workerConnector : workingConnectors) {
             try {
@@ -258,13 +258,12 @@ public class Worker {
 
     }
 
-
     public Set<WorkerConnector> getWorkingConnectors() {
         return workingConnectors;
     }
 
     public void setWorkingConnectors(
-            Set<WorkerConnector> workingConnectors) {
+        Set<WorkerConnector> workingConnectors) {
         this.workingConnectors = workingConnectors;
     }
 
@@ -378,7 +377,7 @@ public class Worker {
                     break;
                 default:
                     log.error("[BUG] Illegal State in when checking running tasks, {} is in {} state",
-                            ((WorkerTask) runnable).id().connector(), state);
+                        ((WorkerTask) runnable).id().connector(), state);
                     break;
             }
         }
@@ -499,7 +498,7 @@ public class Worker {
                     break;
                 default:
                     log.error("[BUG] Illegal State in when checking stopping tasks, {} is in {} state",
-                            ((WorkerTask) runnable).id().connector(), state.toString());
+                        ((WorkerTask) runnable).id().connector(), state.toString());
             }
         }
     }
@@ -531,7 +530,7 @@ public class Worker {
                     break;
                 default:
                     log.error("[BUG] Illegal State in when checking pending tasks, {} is in {} state",
-                            ((WorkerTask) runnable).id().connector(), state.toString());
+                        ((WorkerTask) runnable).id().connector(), state.toString());
                     break;
             }
         }
@@ -554,7 +553,6 @@ public class Worker {
                     continue;
                 }
 
-
                 ClassLoader savedLoader = plugin.currentThreadLoader();
                 try {
 
@@ -573,7 +571,7 @@ public class Worker {
                     RecordConverter keyConverter = Class.forName(keyConverterClazzName).asSubclass(RecordConverter.class).getDeclaredConstructor().newInstance();
 
                     //value config
-                    Map<String, String> valueConverterConfig = keyValue.originalsWithPrefix(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER,true);
+                    Map<String, String> valueConverterConfig = keyValue.originalsWithPrefix(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, true);
                     valueConverterConfig.put(ConverterConfig.TYPE_CONFIG, ConverterType.VALUE.getName());
                     valueConverter.configure(valueConverterConfig);
 
@@ -593,7 +591,7 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
-                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+                            (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
 
                         Future future = taskExecutor.submit(workerSourceTask);
                         // schedule offset committer
@@ -615,8 +613,8 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
-                                (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
-                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter));
+                            (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
+                            retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter));
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
@@ -662,18 +660,18 @@ public class Worker {
         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id.connector(), keyValue));
 
         WorkerDirectTask workerDirectTask = new WorkerDirectTask(
-                workerConfig,
-                id,
-                (SourceTask) sourceTask,
-                null,
-                (SinkTask) sinkTask,
-                keyValue,
-                positionManagementService,
-                workerState,
-                connectStatsManager,
-                connectStatsService,
-                transformChain,
-                retryWithToleranceOperator);
+            workerConfig,
+            id,
+            (SourceTask) sourceTask,
+            null,
+            (SinkTask) sinkTask,
+            keyValue,
+            positionManagementService,
+            workerState,
+            connectStatsManager,
+            connectStatsService,
+            transformChain,
+            retryWithToleranceOperator);
 
         Future future = taskExecutor.submit(workerDirectTask);
 
