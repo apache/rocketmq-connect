@@ -71,9 +71,9 @@ public class ConnectKeyValueTest {
     @Test
     public void originalsWithPrefixTest() {
         connectKeyValue.put("test1", 1);
-        final Map<String, String> test = connectKeyValue.originalsWithPrefix("test", true);
-        System.out.println(test);
-        final Map<String, String> test1 = connectKeyValue.originalsWithPrefix("test", false);
-        System.out.println(test1);
+        final Map<String, String> map1 = connectKeyValue.originalsWithPrefix("test", true);
+        assert map1.containsKey("1");
+        final Map<String, String> map2 = connectKeyValue.originalsWithPrefix("test", false);
+        assert map2.containsKey("test1");
     }
 }

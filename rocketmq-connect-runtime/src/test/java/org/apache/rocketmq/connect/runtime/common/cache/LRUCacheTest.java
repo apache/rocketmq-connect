@@ -1,6 +1,7 @@
 package org.apache.rocketmq.connect.runtime.common.cache;
 
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +34,7 @@ public class LRUCacheTest {
 
     @Test
     public void putTest() {
-        lruCache.put("key1", "value1");
+        Assertions.assertThatCode(() ->  lruCache.put("key1", "value1")).doesNotThrowAnyException();
     }
 
     @Test
