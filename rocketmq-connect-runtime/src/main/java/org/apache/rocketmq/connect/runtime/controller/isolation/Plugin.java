@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.utils;
+package org.apache.rocketmq.connect.runtime.controller.isolation;
 
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.component.connector.Connector;
@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.reflections.Configuration;
 import org.reflections.Reflections;
 import org.reflections.ReflectionsException;
@@ -164,6 +166,23 @@ public class Plugin extends URLClassLoader {
             return pluginWrapper.getClassLoader();
         }
         return null;
+    }
+
+    public Task newTask(Class<? extends Task> taskClass) {
+        return newPlugin(taskClass);
+    }
+
+    protected static <T> T newPlugin(Class<T> klass) {
+        // KAFKA-8340: The thread classloader is used during static initialization and must be
+        // set to the plugin's classloader during instantiation
+        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
+        try {
+            return klass.getDeclaredConstructor().newInstance();
+        } catch (Throwable t) {
+            throw new ConnectException("Instantiation error", t);
+        } finally {
+            compareAndSwapLoaders(savedLoader);
+        }
     }
 
     public ClassLoader currentThreadLoader() {

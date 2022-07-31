@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.utils;
+package org.apache.rocketmq.connect.runtime.controller.isolation;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -116,6 +116,7 @@ public class PluginUtils {
         + "|org\\.xml\\.sax"
         + "|io\\.openmessaging\\.connector\\.api"
         + "|org\\.slf4j"
+        + "|org\\.apache\\.rocketmq"
         + ")\\..*$"
         + "|io\\.openmessaging\\.KeyValue");
 

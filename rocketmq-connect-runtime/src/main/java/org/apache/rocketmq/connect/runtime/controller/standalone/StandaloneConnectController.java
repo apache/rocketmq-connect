@@ -25,7 +25,7 @@ import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;
 import org.apache.rocketmq.connect.runtime.service.memory.StandaloneRebalanceService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
 
 /**

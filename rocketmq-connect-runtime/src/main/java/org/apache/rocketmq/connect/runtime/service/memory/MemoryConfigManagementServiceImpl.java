@@ -17,7 +17,6 @@
 package org.apache.rocketmq.connect.runtime.service.memory;
 
 
-import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -27,14 +26,12 @@ import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementServi
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
 import java.util.Map;
 /**
  * memory config management service impl for standalone

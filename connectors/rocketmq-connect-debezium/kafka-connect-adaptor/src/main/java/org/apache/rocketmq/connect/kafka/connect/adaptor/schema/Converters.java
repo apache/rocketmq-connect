@@ -40,15 +40,25 @@ public class Converters {
 
     public static ConnectRecord fromSourceRecord(SourceRecord record) {
         // sourceRecord convert connect Record
-        RocketMQSourceSchemaConverter rocketMQSourceSchemaConverter = new RocketMQSourceSchemaConverter(record.valueSchema());
-        io.openmessaging.connector.api.data.Schema schema = rocketMQSourceSchemaConverter.schema();
+        RocketMQSourceSchemaConverter valueSchemaConverter = new RocketMQSourceSchemaConverter(record.valueSchema());
+        io.openmessaging.connector.api.data.Schema valueSchema = valueSchemaConverter.schema();
+
+        io.openmessaging.connector.api.data.Schema keySchema = null;
+        if (record.keySchema() != null) {
+            RocketMQSourceSchemaConverter keySchemaConverter = new RocketMQSourceSchemaConverter(record.keySchema());
+            keySchema = keySchemaConverter.schema();
+        }
+
+
         RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
         ConnectRecord connectRecord = new ConnectRecord(
                 new RecordPartition(record.sourcePartition()),
                 new RecordOffset(record.sourceOffset()),
                 record.timestamp(),
-                schema,
-                rocketMQSourceValueConverter.value(schema, record.value()));
+                keySchema,
+                record.key() == null ? null : rocketMQSourceValueConverter.value(keySchema, record.key()),
+                valueSchema,
+                record.value() == null ? null : rocketMQSourceValueConverter.value(valueSchema, record.value()));
         Iterator<Header> headers = record.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();
@@ -60,15 +70,24 @@ public class Converters {
 
     public static ConnectRecord fromSinkRecord(SinkRecord record) {
         // sourceRecord convert connect Record
-        RocketMQSourceSchemaConverter rocketMQSourceSchemaConverter = new RocketMQSourceSchemaConverter(record.valueSchema());
-        io.openmessaging.connector.api.data.Schema schema = rocketMQSourceSchemaConverter.schema();
+        RocketMQSourceSchemaConverter valueSchemaConverter = new RocketMQSourceSchemaConverter(record.valueSchema());
+        io.openmessaging.connector.api.data.Schema valueSchema = valueSchemaConverter.schema();
+
+        io.openmessaging.connector.api.data.Schema keySchema = null;
+        if (record.keySchema() != null) {
+            RocketMQSourceSchemaConverter keySchemaConverter = new RocketMQSourceSchemaConverter(record.keySchema());
+            keySchema = keySchemaConverter.schema();
+        }
+
         RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
         ConnectRecord connectRecord = new ConnectRecord(
                 toRecordPartition(record),
                 toRecordOffset(record),
                 record.timestamp(),
-                schema,
-                rocketMQSourceValueConverter.value(schema, record.value()));
+                keySchema,
+                record.key() == null ? null : rocketMQSourceValueConverter.value(keySchema, record.key()),
+                valueSchema,
+                record.value() == null ? null :rocketMQSourceValueConverter.value(valueSchema, record.value()));
         Iterator<Header> headers = record.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();
@@ -86,8 +105,15 @@ public class Converters {
      */
     public static SinkRecord fromConnectRecord(ConnectRecord record) {
         // connect record  convert kafka  sink record
-        KafkaSinkSchemaConverter kafkaSinkSchemaConverter = new KafkaSinkSchemaConverter(record.getSchema());
-        Schema schema = kafkaSinkSchemaConverter.schema();
+        KafkaSinkSchemaConverter valueSchemaConverter = new KafkaSinkSchemaConverter(record.getSchema());
+        Schema schema = valueSchemaConverter.schema();
+        // key converter
+        Schema keySchema = null;
+        if (record.getKeySchema() != null){
+            KafkaSinkSchemaConverter keySchemaConverter = new KafkaSinkSchemaConverter(record.getKeySchema());
+            keySchema = keySchemaConverter.schema();
+        }
+
         KafkaSinkValueConverter sinkValueConverter = new KafkaSinkValueConverter();
         // add headers
         Headers headers = new ConnectHeaders();
@@ -100,10 +126,10 @@ public class Converters {
         SinkRecord sinkRecord = new SinkRecord(
                 topic(record.getPosition().getPartition()),
                 partition(record.getPosition().getPartition()),
-                null,
-                null,
+                keySchema,
+                record.getKey() == null ? null : sinkValueConverter.value(keySchema, record.getKey()),
                 schema,
-                sinkValueConverter.value(schema, record.getData()),
+                record.getData() == null ? null : sinkValueConverter.value(schema, record.getData()),
                 offset(record.getPosition().getOffset()),
                 record.getTimestamp(),
                 TimestampType.NO_TIMESTAMP_TYPE,

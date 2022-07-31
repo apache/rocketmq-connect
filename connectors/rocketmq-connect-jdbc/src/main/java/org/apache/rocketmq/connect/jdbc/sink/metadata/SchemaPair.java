@@ -25,15 +25,18 @@ import java.util.Objects;
  * schema pair
  */
 public class SchemaPair {
+    public final Schema keySchema;
     public final Schema schema;
     public final KeyValue extensions;
 
-    public SchemaPair(Schema schema) {
+    public SchemaPair(Schema keySchema, Schema schema) {
+        this.keySchema = keySchema;
         this.schema = schema;
         this.extensions = null;
     }
 
-    public SchemaPair(Schema schema, KeyValue extensions) {
+    public SchemaPair(Schema keySchema, Schema schema, KeyValue extensions) {
+        this.keySchema = keySchema;
         this.schema = schema;
         this.extensions = extensions;
     }

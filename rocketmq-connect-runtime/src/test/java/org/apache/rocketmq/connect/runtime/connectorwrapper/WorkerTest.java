@@ -46,7 +46,7 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -126,6 +126,7 @@ public class WorkerTest {
                 connectKeyValue,
                 new TestPositionManageServiceImpl(),
                 new JsonConverter(),
+                    new JsonConverter(),
                 producer,
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,

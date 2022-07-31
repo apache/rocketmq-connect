@@ -184,7 +184,7 @@
         <rocketmq-openmessaging.version>4.3.2</rocketmq-openmessaging.version>
 
         <!--rocketmq connect version-->
-        <openmessaging-connector.version>0.1.3</openmessaging-connector.version>
+        <openmessaging-connector.version>0.1.4</openmessaging-connector.version>
         <openmessaging-api.version>0.3.1-alpha</openmessaging-api.version>
     </properties>
 
@@ -230,11 +230,6 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-remoting</artifactId>
                 <version>${rocketmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-openmessaging</artifactId>
-                <version>${rocketmq-openmessaging.version}</version>
             </dependency>
 
             <!--kafka && kafka connect-->
