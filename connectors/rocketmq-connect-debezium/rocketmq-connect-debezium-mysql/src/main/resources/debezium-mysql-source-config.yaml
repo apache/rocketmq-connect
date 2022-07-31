@@ -1,0 +1,46 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+{
+  "connector-class": "org.apache.rocketmq.connect.debezium.mysql.DebeziumMysqlConnector",
+  "max-task": "1",
+  "connect-topicname": "debezium-mysql-source",
+  "debezium.transforms": "Unwrap",
+  "debezium.transforms.Unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+  "debezium.transforms.Unwrap.delete.handling.mode": "drop",
+
+  "database.history.skip.unparseable.ddl": true,
+  "database.history.name.srv.addr": "localhost:9876",
+  "database.history.rocketmq.topic": "db-history-topic-02",
+  "database.history.store.only.monitored.tables.ddl": true,
+
+  "database.user": "*******",
+  "include.schema.changes": false,
+  "database.server.name": "test-server-02",
+  "database.port": 3306,
+  "database.hostname": "**********",
+  "database.connectionTimeZone": "Asia/Shanghai",
+  "database.password": "********",
+  "table.include.list": "db-01.table",
+  "max.batch.size": 50,
+  "database.include.list": "db-01",
+  "snapshot.mode": "when_needed",
+
+  "source-record-converter": "org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+}

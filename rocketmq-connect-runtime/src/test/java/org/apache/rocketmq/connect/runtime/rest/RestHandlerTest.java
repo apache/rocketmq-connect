@@ -22,7 +22,7 @@ import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -49,13 +49,16 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
+import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -94,7 +97,7 @@ public class RestHandlerTest {
     private SourceTask sourceTask;
 
     @Mock
-    private Converter converter;
+    private RecordConverter converter;
 
     @Mock
     private PositionManagementServiceImpl positionManagementServiceImpl;
@@ -206,8 +209,17 @@ public class RestHandlerTest {
             }
         };
         TransformChain<ConnectRecord> transformChain = new TransformChain<ConnectRecord>(new DefaultKeyValue(), new Plugin(new ArrayList<>()));
-        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask("testConnectorName1", sourceTask, connectKeyValue, positionManagementServiceImpl, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain);
-        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask("testConnectorName2", sourceTask, connectKeyValue1, positionManagementServiceImpl, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain);
+        // create retry operator
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("testConnectorName1", connectKeyValue));
+
+        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new ConnectConfig(),new ConnectorTaskId("testConnectorName1", 1), sourceTask,null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator);
+
+        // create retry operator
+        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
+        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters("testConnectorName2", connectKeyValue));
+
+        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new ConnectConfig(), new ConnectorTaskId("testConnectorName2", 1), sourceTask,null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator02);
         workerTasks = new HashSet<Runnable>() {
             {
                 add(workerSourceTask1);

@@ -19,7 +19,7 @@ package org.apache.rocketmq.connect.jdbc.connector;
 
 import java.util.List;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.internal.DefaultKeyValue;
@@ -30,6 +30,9 @@ import org.slf4j.LoggerFactory;
 
 import io.openmessaging.KeyValue;
 
+/**
+ * jdbc source connector
+ */
 public class JdbcSourceConnector extends SourceConnector {
     private static final Logger log = LoggerFactory.getLogger(JdbcSourceConnector.class);
     private JdbcSourceConfig jdbcSourceConfig;
@@ -49,28 +52,20 @@ public class JdbcSourceConnector extends SourceConnector {
     }
 
     /**
-     * Init the component
+     * Start the component
      *
-     * @param config
+     * @param config component context
      */
     @Override
-    public void init(KeyValue config) {
-        if (config.containsKey("connect-topicname")) {
-            config.put("connect-topicname", "");
-        }
+    public void start(KeyValue config) {
         originalConfig = config;
     }
 
+
     @Override
     public void stop() {
-    }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
+        this.originalConfig = null;
+        this.jdbcSourceConfig = null;
     }
 
     /**

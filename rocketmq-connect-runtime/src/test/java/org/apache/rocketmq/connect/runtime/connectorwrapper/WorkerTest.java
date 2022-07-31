@@ -38,11 +38,15 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnect
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -110,15 +114,24 @@ public class WorkerTest {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
             connectKeyValue.getProperties().put("key1", "TEST-TASK-" + i + "1");
             connectKeyValue.getProperties().put("key2", "TEST-TASK-" + i + "2");
-            runnables.add(new WorkerSourceTask("TEST-CONN-" + i,
+
+            // create retry operator
+            RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
+            retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
+
+            runnables.add(new WorkerSourceTask(new ConnectConfig(),
+                    new ConnectorTaskId("TEST-CONN-" + i,i),
                 new TestSourceTask(),
+                null,
                 connectKeyValue,
                 new TestPositionManageServiceImpl(),
-                new TestConverter(),
+                new JsonConverter(),
+                    new JsonConverter(),
                 producer,
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,
-                transformChain));
+                transformChain,
+                retryWithToleranceOperator));
         }
         worker.setWorkingTasks(runnables);
         assertThat(worker.getWorkingTasks().size()).isEqualTo(3);
@@ -180,7 +193,7 @@ public class WorkerTest {
             } else {
                 workerSinkTask = (WorkerSinkTask) runnable;
             }
-            String connectorName = null != workerSourceTask ? workerSourceTask.getConnectorName() : workerSinkTask.getConnectorName();
+            String connectorName = null != workerSourceTask ? workerSourceTask.id().connector() : workerSinkTask.id().connector();
             assertThat(connectorName).isIn("TEST-CONN-0", "TEST-CONN-1", "TEST-CONN-2", "TEST-CONN-3");
         }
     }

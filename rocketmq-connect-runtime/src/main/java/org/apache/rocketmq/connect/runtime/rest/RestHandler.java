@@ -239,7 +239,7 @@ public class RestHandler {
     private Set<Object> convertWorkerTaskToString(Set<Runnable> tasks) {
         Set<Object> result = new HashSet<>();
         for (Runnable task : tasks) {
-            result.add(((WorkerTask) task).getJsonObject());
+            result.add(((WorkerTask) task).currentTaskState());
         }
         return result;
     }

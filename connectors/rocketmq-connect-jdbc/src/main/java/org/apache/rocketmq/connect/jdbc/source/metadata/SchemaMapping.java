@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.jdbc.source.metadata;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
@@ -54,21 +55,21 @@ public final class SchemaMapping {
         // describe columns
         Map<ColumnId, ColumnDefinition> colDefins = dialect.describeColumns(conn, tableId, metadata);
         Map<String, DatabaseDialect.ColumnConverter> colConvertersByFieldName = new LinkedHashMap<>();
-        Schema builder = SchemaBuilder.struct().name(schemaName).build();
-        builder.setFields(new ArrayList<>());
+        SchemaBuilder builder = SchemaBuilder.struct().name(schemaName);
 
         int columnNumber = 0;
         for (ColumnDefinition colDefn : colDefins.values()) {
-            String fieldName = dialect.addFieldToSchema(colDefn, builder, columnNumber);
+            ++columnNumber;
+            String fieldName = dialect.addFieldToSchema(colDefn, builder);
             if (fieldName == null) {
                 continue;
             }
-            Field field = builder.getField(fieldName);
-            ColumnMapping mapping = new ColumnMapping(colDefn, ++columnNumber, field);
+            Field field = builder.field(fieldName);
+            ColumnMapping mapping = new ColumnMapping(colDefn, columnNumber, field);
             DatabaseDialect.ColumnConverter converter = dialect.createColumnConverter(mapping);
             colConvertersByFieldName.put(fieldName, converter);
         }
-        return new SchemaMapping(builder, colConvertersByFieldName);
+        return new SchemaMapping(builder.build(), colConvertersByFieldName);
     }
 
     private final Schema schema;
@@ -146,11 +147,11 @@ public final class SchemaMapping {
          * @throws IOException
          */
         public void setField(
-                Object[] payload,
+                Struct payload,
                 ResultSet resultSet
         ) throws SQLException, IOException {
             Object value = this.converter.convert(resultSet);
-            payload[field.getIndex()] = value;
+            payload.put(field, value);
         }
 
         @Override

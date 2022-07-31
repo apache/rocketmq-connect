@@ -80,14 +80,6 @@ public class FcSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(FcConstant.REGION_ID_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.ACCESS_KEY_ID_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.ACCESS__KEY_SECRET_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.ACCOUNT_ID_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.SERVICE_NAME_CONSTANT))
-            || StringUtils.isBlank(config.getString(FcConstant.FUNCTION_NAME_CONSTANT))) {
-            throw new RuntimeException("fc required parameter is null !");
-        }
         try {
             GetServiceRequest getServiceRequest = new GetServiceRequest(config.getString(FcConstant.SERVICE_NAME_CONSTANT));
             getServiceRequest.setQualifier(config.getString(FcConstant.QUALIFIER_CONSTANT));

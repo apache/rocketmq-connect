@@ -62,19 +62,8 @@ public class MetaSourceTask extends SourceTask {
     }
 
     @Override
-    public void validate(KeyValue config) {
-
-    }
-
-    @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
         ConfigUtil.load(config, this.config);
-    }
-
-    @Override
-    public void start(SourceTaskContext sourceTaskContext) {
-        super.start(sourceTaskContext);
-
         try {
             this.srcMQAdminExt = Utils.startMQAdminTool(this.config);
         } catch (MQClientException e) {
@@ -92,16 +81,6 @@ public class MetaSourceTask extends SourceTask {
             started = false;
         }
         srcMQAdminExt.shutdown();
-    }
-
-    @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
     }
 
     @Override public List<ConnectRecord> poll() {

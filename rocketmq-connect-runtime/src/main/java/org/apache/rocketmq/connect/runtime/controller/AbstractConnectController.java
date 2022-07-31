@@ -26,7 +26,7 @@ import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,11 +52,6 @@ public abstract class AbstractConnectController implements ConnectController {
      * Position management of source tasks.
      */
     protected final PositionManagementService positionManagementService;
-
-    /**
-     * Offset management of sink tasks.
-     */
-    protected final PositionManagementService offsetManagementService;
 
     /**
      * Manage the online info of the cluster.
@@ -90,8 +85,7 @@ public abstract class AbstractConnectController implements ConnectController {
             ConnectConfig connectConfig,
             ClusterManagementService clusterManagementService,
             ConfigManagementService configManagementService,
-            PositionManagementService positionManagementService,
-            PositionManagementService offsetManagementService
+            PositionManagementService positionManagementService
     ) {
         // set config
         this.connectConfig = connectConfig;
@@ -104,7 +98,6 @@ public abstract class AbstractConnectController implements ConnectController {
         this.clusterManagementService = clusterManagementService;
         this.configManagementService = configManagementService;
         this.positionManagementService = positionManagementService;
-        this.offsetManagementService = offsetManagementService;
         this.worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, this);
         this.restHandler = new RestHandler(this);
     }
@@ -115,7 +108,6 @@ public abstract class AbstractConnectController implements ConnectController {
         clusterManagementService.start();
         configManagementService.start();
         positionManagementService.start();
-        offsetManagementService.start();
         worker.start();
         connectStatsService.start();
     }
@@ -133,10 +125,6 @@ public abstract class AbstractConnectController implements ConnectController {
 
         if (positionManagementService != null) {
             positionManagementService.stop();
-        }
-
-        if (offsetManagementService != null) {
-            offsetManagementService.stop();
         }
 
         if (clusterManagementService != null) {

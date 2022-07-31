@@ -1,13 +1,12 @@
 package org.apache.rocketmq.connect.http.sink;
 
-import org.apache.rocketmq.connect.http.sink.common.OkHttpUtils;
-import org.apache.rocketmq.connect.http.sink.constant.HttpConstant;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.http.sink.common.OkHttpUtils;
+import org.apache.rocketmq.connect.http.sink.constant.HttpConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +42,6 @@ public class HttpSinkTask extends SinkTask {
 
     @Override
     public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(HttpConstant.URL_CONSTANT))) {
-            throw new RuntimeException("http required parameter is null !");
-        }
     }
 
     @Override

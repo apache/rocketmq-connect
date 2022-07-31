@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.connect.jdbc.config;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 import io.openmessaging.KeyValue;
 import org.apache.rocketmq.connect.jdbc.util.QuoteMethod;
 
@@ -129,7 +129,7 @@ public abstract class AbstractConfig {
     }
 
     protected Boolean getBoolean(KeyValue config, String key, Boolean defaultValue) {
-        return config.containsKey(key) ? Boolean.getBoolean(config.getString(key)) : defaultValue;
+        return config.containsKey(key) ? Boolean.parseBoolean(config.getString(key)) : defaultValue;
     }
 
 }

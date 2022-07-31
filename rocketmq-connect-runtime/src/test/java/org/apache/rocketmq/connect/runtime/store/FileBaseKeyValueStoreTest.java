@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.store;
 
 import java.util.HashMap;
+
 import org.apache.rocketmq.connect.runtime.converter.ByteConverter;
 import org.junit.Test;
 

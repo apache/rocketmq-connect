@@ -26,7 +26,7 @@ import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;
 import org.apache.rocketmq.connect.runtime.service.RebalanceService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +57,9 @@ public class DistributedConnectController extends AbstractConnectController {
                                          DistributedConfig connectConfig,
                                          ClusterManagementService clusterManagementService,
                                          ConfigManagementService configManagementService,
-                                         PositionManagementService positionManagementService,
-                                         PositionManagementService offsetManagementService) {
+                                         PositionManagementService positionManagementService) {
 
-        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService, offsetManagementService);
+        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.rebalanceService = new RebalanceService(rebalanceImpl, configManagementService, clusterManagementService);
@@ -90,15 +89,6 @@ public class DistributedConnectController extends AbstractConnectController {
             }
 
         }, 1000, this.connectConfig.getPositionPersistInterval(), TimeUnit.MILLISECONDS);
-
-        // Persist offset information of sink tasks.
-        scheduledExecutorService.scheduleAtFixedRate(() -> {
-            try {
-                this.offsetManagementService.persist();
-            } catch (Exception e) {
-                log.error("schedule persist offset error.", e);
-            }
-        }, 1000, this.connectConfig.getOffsetPersistInterval(), TimeUnit.MILLISECONDS);
 
     }
 

@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.file;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.slf4j.Logger;
@@ -37,20 +36,23 @@ public class FilterTransform implements Transform<ConnectRecord> {
         return record;
     }
 
-    @Override public void validate(KeyValue config) {
 
-    }
-
-    @Override public void init(KeyValue config) {
+    /**
+     * Start the component
+     *
+     * @param config component context
+     */
+    @Override
+    public void start(KeyValue config) {
         this.keyValue = config;
         log.info("transform config {}", this.keyValue);
     }
 
-    @Override public void start(ComponentContext componentContext) {
-
-    }
-
-    @Override public void stop() {
+    /**
+     * Stop the component.
+     */
+    @Override
+    public void stop() {
 
     }
 }

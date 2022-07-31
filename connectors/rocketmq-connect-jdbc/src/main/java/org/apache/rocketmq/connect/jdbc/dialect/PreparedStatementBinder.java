@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
@@ -97,11 +96,24 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
                     throw new AssertionError();
                 }
                 break;
+            case RECORD_KEY: {
+                if (schemaPair.keySchema.getFieldType().isPrimitive()) {
+                    assert fieldsMetadata.keyFieldNames.size() == 1;
+                    bindField(index++, schemaPair.keySchema, record.getKey(),
+                            fieldsMetadata.keyFieldNames.iterator().next());
+                } else {
+                    for (String fieldName : fieldsMetadata.keyFieldNames) {
+                        final Field field = schemaPair.keySchema.getField(fieldName);
+                        bindField(index++, field.getSchema(), ((Struct) record.getKey()).get(field), fieldName);
+                    }
+                }
+            }
+            break;
             case RECORD_VALUE: {
-                Object[] data = JSONArray.parseArray(JSON.toJSONString(record.getData())).stream().toArray();
+                Struct struct = (Struct) record.getData();
                 for (String fieldName : fieldsMetadata.keyFieldNames) {
                     final Field field = schemaPair.schema.getField(fieldName);
-                    bindField(index++, field.getSchema(), data[field.getIndex()], fieldName);
+                    bindField(index++, field.getSchema(), struct.get(fieldName), fieldName);
                 }
             }
             break;
@@ -115,9 +127,10 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
             ConnectRecord record,
             int index
     ) throws SQLException {
+        Struct struct = (Struct) record.getData();
         for (final String fieldName : fieldsMetadata.nonKeyFieldNames) {
             final Field field = record.getSchema().getField(fieldName);
-            bindField(index++, field.getSchema(), ((Object[]) record.getData())[field.getIndex()], fieldName);
+            bindField(index++, field.getSchema(), struct.get(fieldName), fieldName);
         }
         return index;
     }

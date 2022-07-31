@@ -33,7 +33,7 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
@@ -122,8 +122,8 @@ public class ConfigManagementServiceImplTest {
             }
         }).when(producer).send(any(Message.class), any(SendCallback.class));
 
-        configManagementService = new ConfigManagementServiceImpl(connectConfig, plugin);
-
+        configManagementService = new ConfigManagementServiceImpl();
+        configManagementService.initialize(connectConfig, plugin);
         final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("connectorKeyValueStore");
         connectorKeyValueStoreField.setAccessible(true);
         connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);

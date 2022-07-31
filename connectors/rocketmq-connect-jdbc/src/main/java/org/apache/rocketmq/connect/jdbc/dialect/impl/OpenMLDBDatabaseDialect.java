@@ -16,13 +16,24 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
 
-import lombok.SneakyThrows;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.logical.Date;
+import io.openmessaging.connector.api.data.logical.Time;
+import io.openmessaging.connector.api.data.logical.Timestamp;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.dialect.DropOptions;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.DatabaseDialectProvider;
+import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
+import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
+import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.apache.rocketmq.connect.jdbc.util.IdentifierRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.List;
 
 
 /**
@@ -36,8 +47,7 @@ public class OpenMLDBDatabaseDialect extends GenericDatabaseDialect {
      * The provider for {@link OpenMLDBDatabaseDialect}.
      */
     public static class Provider extends DatabaseDialectProvider {
-        @SneakyThrows
-        public Provider() {
+        public Provider() throws ClassNotFoundException {
             super(OpenMLDBDatabaseDialect.class.getSimpleName(), "openmldb");
             Class.forName("com._4paradigm.openmldb.jdbc.SQLDriver");
         }
@@ -55,6 +65,97 @@ public class OpenMLDBDatabaseDialect extends GenericDatabaseDialect {
      */
     public OpenMLDBDatabaseDialect(AbstractConfig config) {
         super(config, new IdentifierRules(".", "`", "`"));
+    }
+
+
+    @Override
+    protected String currentTimestampDatabaseQuery() {
+        return null;
+    }
+
+    @Override
+    protected String getSqlType(SinkRecordField field) {
+        if (field.schemaName() != null) {
+            String schema = field.schemaName();
+            switch (schema) {
+                case Timestamp.LOGICAL_NAME:
+                    return "TIMESTAMP";
+
+                case Date.LOGICAL_NAME:
+                case Time.LOGICAL_NAME:
+                    return "DATE";
+            }
+        }
+
+        switch (field.schemaType()) {
+            case INT32:
+                return "INT";
+            case INT64:
+                return "BIGINT";
+            case FLOAT32:
+                return "FLOAT";
+            case FLOAT64:
+                return "DOUBLE";
+            case BOOLEAN:
+                return "BOOL";
+            case STRING:
+                return "VARCHAR";
+            default:
+                return super.getSqlType(field);
+        }
+    }
+
+    @Override
+    public String buildCreateTableStatement(TableId table, Collection<SinkRecordField> fields) {
+        List<String> pkFieldNames = this.extractPrimaryKeyFieldNames(fields);
+        if (!pkFieldNames.isEmpty()) {
+            throw new UnsupportedOperationException("pk is unsupported in openmldb");
+        } else {
+            return super.buildCreateTableStatement(table, fields);
+        }
+    }
+
+    @Override
+    protected void writeColumnSpec(ExpressionBuilder builder, SinkRecordField f) {
+        builder.appendColumnName(f.name());
+        builder.append(" ");
+        String sqlType = this.getSqlType(f);
+        builder.append(sqlType);
+        if (f.defaultValue() != null) {
+            builder.append(" DEFAULT ");
+            this.formatColumnValue(builder, f.schemaType(), f.defaultValue());
+        } else if (!this.isColumnOptional(f)) {
+            builder.append(" NOT NULL");
+        }
+
+    }
+
+    @Override
+    public String buildDropTableStatement(TableId table, DropOptions options) {
+        ExpressionBuilder builder = this.expressionBuilder();
+        builder.append("DROP TABLE ");
+        builder.append(table);
+        return builder.toString();
+    }
+
+    @Override
+    public List<String> buildAlterTable(TableId table, Collection<SinkRecordField> fields) {
+        throw new UnsupportedOperationException("alter is unsupported");
+    }
+
+    @Override
+    public String buildUpdateStatement(TableId table, Collection<ColumnId> keyColumns, Collection<ColumnId> nonKeyColumns) {
+        throw new UnsupportedOperationException("update is unsupported");
+    }
+
+    @Override
+    public String buildDeleteStatement(TableId table, Collection<ColumnId> keyColumns) {
+        throw new UnsupportedOperationException("delete is unsupported");
+    }
+
+    @Override
+    protected Integer getSqlTypeForSchema(Schema schema) {
+        return 0;
     }
 
 

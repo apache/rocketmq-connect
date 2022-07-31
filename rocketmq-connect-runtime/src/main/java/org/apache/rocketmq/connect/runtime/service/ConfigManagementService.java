@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
 /**
  * Interface for config manager. Contains connector configs and task configs. All worker in a cluster should keep the
@@ -104,6 +104,8 @@ public interface ConfigManagementService {
      */
     void registerListener(ConnectorConfigUpdateListener listener);
 
+    void initialize(ConnectConfig connectConfig, Plugin plugin);
+
     interface ConnectorConfigUpdateListener {
 
         /**
@@ -113,4 +115,6 @@ public interface ConfigManagementService {
     }
 
     Plugin getPlugin();
+
+    StagingMode getStagingMode();
 }

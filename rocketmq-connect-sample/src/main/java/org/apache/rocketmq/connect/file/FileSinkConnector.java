@@ -37,21 +37,20 @@ public class FileSinkConnector extends SinkConnector {
         }
     }
 
-    @Override public void init(KeyValue config) {
+    /**
+     * Start the component
+     *
+     * @param config component context
+     */
+    @Override
+    public void start(KeyValue config) {
         this.config = config;
     }
 
     @Override public void stop() {
-
+        this.config = null;
     }
 
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
-    }
 
     @Override public Class<? extends Task> taskClass() {
         return FileSinkTask.class;

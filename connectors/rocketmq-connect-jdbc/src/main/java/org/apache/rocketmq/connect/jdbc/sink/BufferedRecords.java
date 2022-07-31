@@ -22,12 +22,11 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.impl.GenericDatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.dialect.impl.OpenMLDBDatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
+import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
-import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
-import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,12 +57,15 @@ public class BufferedRecords {
     private final Connection connection;
 
     private List<ConnectRecord> records = new ArrayList<>();
+    private Schema keySchema;
     private Schema schema;
     private FieldsMetadata fieldsMetadata;
+    private RecordValidator recordValidator;
     private PreparedStatement updatePreparedStatement;
     private PreparedStatement deletePreparedStatement;
     private DatabaseDialect.StatementBinder updateStatementBinder;
     private DatabaseDialect.StatementBinder deleteStatementBinder;
+    private boolean deletesInBatch = false;
 
     public BufferedRecords(
             JdbcSinkConfig config,
@@ -77,6 +79,7 @@ public class BufferedRecords {
         this.dbDialect = dbDialect;
         this.dbStructure = dbStructure;
         this.connection = connection;
+        this.recordValidator = RecordValidator.create(config);
     }
 
     /**
@@ -87,10 +90,27 @@ public class BufferedRecords {
      * @throws SQLException
      */
     public List<ConnectRecord> add(ConnectRecord record) throws SQLException {
+        recordValidator.validate(record);
         final List<ConnectRecord> flushed = new ArrayList<>();
         boolean schemaChanged = false;
-        // check and update schema
-        if (!Objects.equals(schema, record.getSchema())) {
+        if (!Objects.equals(keySchema, record.getKeySchema())) {
+            keySchema = record.getKeySchema();
+            schemaChanged = true;
+        }
+        if (isNull(record.getSchema())) {
+            // For deletes, value and optionally value schema come in as null.
+            // We don't want to treat this as a schema change if key schemas is the same
+            // otherwise we flush unnecessarily.
+            if (config.isDeleteEnabled()) {
+                deletesInBatch = true;
+            }
+        } else if (Objects.equals(schema, record.getSchema())) {
+            if (config.isDeleteEnabled() && deletesInBatch) {
+                // flush so an insert after a delete of same record isn't lost
+                flushed.addAll(flush());
+            }
+        } else {
+            // value schema is not null and has changed. This is a real schema change.
             schema = record.getSchema();
             schemaChanged = true;
         }
@@ -100,6 +120,7 @@ public class BufferedRecords {
             flushed.addAll(flush());
             // re-initialize everything that depends on the record schema
             final SchemaPair schemaPair = new SchemaPair(
+                    record.getKeySchema(),
                     record.getSchema(),
                     record.getExtensions()
             );
@@ -150,6 +171,11 @@ public class BufferedRecords {
             }
         }
 
+        // set deletesInBatch if schema value is not null
+        if (isNull(record.getData()) && config.isDeleteEnabled()) {
+            deletesInBatch = true;
+        }
+
         records.add(record);
         if (records.size() >= config.getBatchSize()) {
             flushed.addAll(flush());
@@ -181,7 +207,7 @@ public class BufferedRecords {
         );
         if (totalUpdateCount.filter(total -> total != expectedCount).isPresent()
                 && config.getInsertMode() == JdbcSinkConfig.InsertMode.INSERT) {
-            if (dbDialect.name().equals(GenericDatabaseDialect.DialectName.generateDialectName(OpenMLDBDatabaseDialect.class)) && totalUpdateCount.get() == 0) {
+            if (dbDialect.name().equals(GenericDatabaseDialect.DialectName.generateDialectName(dbDialect.getDialectClass())) && totalUpdateCount.get() == 0) {
                 // openMLDB execute success result 0; do nothing
             } else {
                 throw new ConnectException(

@@ -28,11 +28,18 @@ class TestTask implements Task {
 
     }
 
-    @Override public void init(KeyValue config) {
+    /**
+     * Init the component
+     *
+     * @param context component context
+     */
+    @Override
+    public void init(ComponentContext context) {
 
     }
 
-    @Override public void start(ComponentContext componentContext) {
+
+    @Override public void start(KeyValue config) {
 
     }
 
@@ -40,11 +47,4 @@ class TestTask implements Task {
 
     }
 
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
-    }
 }

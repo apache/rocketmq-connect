@@ -19,7 +19,6 @@ package org.apache.rocketmq.connect.file;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
-import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
@@ -60,7 +59,12 @@ public class FileSinkTask extends SinkTask {
         outputStream.flush();
     }
 
-    @Override public void start(SinkTaskContext sinkTaskContext) {
+    @Override public void validate(KeyValue config) {
+
+    }
+
+    @Override public void start(KeyValue config) {
+        this.config = config;
         fileConfig = new FileConfig();
         fileConfig.load(config);
         if (fileConfig.getFilename() == null || fileConfig.getFilename().isEmpty()) {
@@ -68,35 +72,20 @@ public class FileSinkTask extends SinkTask {
         } else {
             try {
                 outputStream = new PrintStream(
-                    Files.newOutputStream(Paths.get(fileConfig.getFilename()), StandardOpenOption.CREATE, StandardOpenOption.APPEND),
-                    false,
-                    StandardCharsets.UTF_8.name());
+                        Files.newOutputStream(Paths.get(fileConfig.getFilename()), StandardOpenOption.CREATE, StandardOpenOption.APPEND),
+                        false,
+                        StandardCharsets.UTF_8.name());
             } catch (IOException e) {
                 throw new ConnectException("Couldn't find or create file '" + fileConfig.getFilename() + "' for FileStreamSinkTask", e);
             }
         }
-    }
 
-    @Override public void validate(KeyValue config) {
-
-    }
-
-    @Override public void init(KeyValue config) {
-        this.config = config;
     }
 
     @Override public void stop() {
         if (outputStream != null && outputStream != System.out) {
             outputStream.close();
         }
-    }
-
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
     }
 
     private String logFilename() {
