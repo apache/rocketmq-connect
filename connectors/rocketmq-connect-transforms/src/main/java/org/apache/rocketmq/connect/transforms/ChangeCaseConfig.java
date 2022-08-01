@@ -14,28 +14,41 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+package org.apache.rocketmq.connect.transforms;
 
-package org.apache.kafka.connect.transforms;
 
+import com.google.common.base.CaseFormat;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
-import io.openmessaging.connector.api.data.ConnectRecord;
 
+public class ChangeCaseConfig {
+  public final CaseFormat from;
+  public final CaseFormat to;
 
-/**
- * extract field
- * @param <>
- */
-public abstract class ExtractField<R extends ConnectRecord> extends BaseTransformation<R> {
+  public static final String FROM_CONFIG = "from";
+  static final String FROM_DOC = "The format to move from ";
+  public static final String TO_CONFIG = "to";
+  static final String TO_DOC = "";
 
-    @Override
-    public R doTransform(R r) {
-        return null;
-    }
+  public ChangeCaseConfig(KeyValue config) {
+    String fromConfig = config.getString(FROM_CONFIG);
+    this.from = CaseFormat.valueOf(fromConfig);
+    String toConfig = config.getString(TO_CONFIG);
+    this.to = CaseFormat.valueOf(toConfig);
+  }
 
-    @Override
-    public void stop() {
+  /**
+   * from
+   * @return
+   */
+  public CaseFormat from(){
+    return this.from;
+  }
 
-    }
-
+  /**
+   * to
+   * @return
+   */
+  public CaseFormat to(){
+    return this.to;
+  }
 }

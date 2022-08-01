@@ -14,27 +14,28 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.apache.kafka.connect.transforms;
+package org.apache.rocketmq.connect.transforms.test;
 
-import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
+import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import org.junit.Before;
 
-/**
- * regex router
- * @param <R>
- */
-public abstract class RegexRouter<R extends ConnectRecord> extends  BaseTransformation<R> {
+public abstract class TransformationTest {
+  final boolean isKey;
+  final static String TOPIC = "test";
+  
+  protected TransformationTest(boolean isKey) {
+    this.isKey = isKey;
+  }
+
+  protected abstract Transform<ConnectRecord> create();
+
+  Transform<ConnectRecord> transformation;
+
+  @Before
+  public void before() {
+    this.transformation = create();
+  }
 
 
-    @Override
-    public R doTransform(R r) {
-        return null;
-    }
-
-
-    @Override
-    public void stop() {
-
-    }
 }

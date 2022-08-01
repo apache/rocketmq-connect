@@ -14,27 +14,24 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-package org.apache.kafka.connect.transforms;
-
+package org.apache.rocketmq.connect.transforms;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
-import io.openmessaging.connector.api.data.ConnectRecord;
 
 /**
- * @param <R>
+ * set maximum precision config
  */
-public abstract class Flatten<R extends ConnectRecord> extends  BaseTransformation<R> {
+public class SetMaximumPrecisionConfig {
+  public static final String MAX_PRECISION_CONFIG = "precision.max";
+  static final String MAX_PRECISION_DOC = "The maximum precision allowed.";
 
-    @Override
-    public R doTransform(R r) {
-        return null;
-    }
+  private final int maxPrecision;
 
+  public SetMaximumPrecisionConfig(KeyValue config) {
+    this.maxPrecision = config.getInt(MAX_PRECISION_CONFIG);
+  }
 
-    @Override
-    public void stop() {
-
-    }
+  public int maxPrecision(){
+    return maxPrecision;
+  }
 }
