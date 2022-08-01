@@ -72,7 +72,7 @@ public class AssertStruct {
                         BigDecimal expectedDecimal = (BigDecimal)castAndVerify(BigDecimal.class, expected, expectedField, true);
                         BigDecimal actualDecimal = (BigDecimal)castAndVerify(BigDecimal.class, actual, expectedField, false);
                         Assertions.assertEquals(expectedDecimal, actualDecimal, prefix + expectedField.getName() + " does not match.");
-                    } else if (!Timestamp.LOGICAL_NAME.equals(expectedField.getSchema().getName()) && !"org.apache.kafka.connect.data.Date".equals(expectedField.getSchema().getName()) && !Time.LOGICAL_NAME.equals(expectedField.getSchema().getName())) {
+                    } else if (!Timestamp.LOGICAL_NAME.equals(expectedField.getSchema().getName()) && !io.openmessaging.connector.api.data.logical.Date.LOGICAL_NAME.equals(expectedField.getSchema().getName()) && !Time.LOGICAL_NAME.equals(expectedField.getSchema().getName())) {
                         switch(expectedField.getSchema().getFieldType()) {
                         case ARRAY:
                             List<Object> expectedArray = (List)castAndVerify(List.class, expected, expectedField, true);
