@@ -25,7 +25,6 @@ import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.data.logical.Decimal;
 import io.openmessaging.internal.DefaultKeyValue;
-import org.apache.rocketmq.connect.transforms.PatternRenameConfig;
 import org.apache.rocketmq.connect.transforms.SetMaximumPrecision;
 import org.apache.rocketmq.connect.transforms.SetMaximumPrecisionConfig;
 import org.apache.rocketmq.connect.transforms.util.SchemaUtil;
