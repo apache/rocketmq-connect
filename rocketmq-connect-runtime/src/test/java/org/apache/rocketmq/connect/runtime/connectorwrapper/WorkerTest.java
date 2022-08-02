@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -56,6 +58,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class WorkerTest {
@@ -93,6 +96,7 @@ public class WorkerTest {
 
     @Before
     public void init() {
+        when(plugin.currentThreadLoader()).thenReturn(Thread.currentThread().getContextClassLoader());
         connectConfig = new ConnectConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
@@ -118,20 +122,21 @@ public class WorkerTest {
             // create retry operator
             RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
             retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
-
-            runnables.add(new WorkerSourceTask(new ConnectConfig(),
-                    new ConnectorTaskId("TEST-CONN-" + i,i),
+            final WorkerSourceTask task = new WorkerSourceTask(new ConnectConfig(),
+                new ConnectorTaskId("TEST-CONN-" + i, i),
                 new TestSourceTask(),
                 null,
                 connectKeyValue,
                 new TestPositionManageServiceImpl(),
                 new JsonConverter(),
-                    new JsonConverter(),
+                new JsonConverter(),
                 producer,
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,
                 transformChain,
-                retryWithToleranceOperator));
+                retryWithToleranceOperator);
+           runnables.add(task);
+
         }
         worker.setWorkingTasks(runnables);
         assertThat(worker.getWorkingTasks().size()).isEqualTo(3);
@@ -140,7 +145,8 @@ public class WorkerTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() throws InterruptedException {
+        TimeUnit.SECONDS.sleep(2);
         worker.stop();
         TestUtils.deleteFile(new File(System.getProperty("user.home") + File.separator + "testConnectorStore"));
     }
@@ -172,6 +178,14 @@ public class WorkerTest {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
             connectKeyValue.getProperties().put("key1", "TEST-CONN-" + i + "1");
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
+            if (i == 1) {
+                // start direct task
+                connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.DIRECT.name());
+                connectKeyValue.getProperties().put(RuntimeConfigDefine.SOURCE_TASK_CLASS, TestSourceTask.class.getName());
+                connectKeyValue.getProperties().put(RuntimeConfigDefine.SINK_TASK_CLASS, TestSinkTask.class.getName());
+            } else {
+                connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.SOURCE.name());
+            }
             connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_CLASS, TestSourceTask.class.getName());
             connectKeyValue.getProperties().put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, TestConverter.class.getName());
             connectKeyValue.getProperties().put(RuntimeConfigDefine.NAMESRV_ADDR, "127.0.0.1:9876");
