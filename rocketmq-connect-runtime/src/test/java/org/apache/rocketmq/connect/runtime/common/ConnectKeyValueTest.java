@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.runtime.common;
 
 import io.openmessaging.KeyValue;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 
@@ -26,6 +27,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ConnectKeyValueTest {
+
+    private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
 
     @Test
     public void testKeyValueOperations() {
@@ -60,5 +63,17 @@ public class ConnectKeyValueTest {
         assertTrue(keyValue.containsKey("LongKey"));
         assertTrue(keyValue.containsKey("DoubleKey"));
 
+        assertEquals(0, keyValue.getInt("test1"));
+        assertEquals(0L, keyValue.getLong("test1"));
+        assertEquals(0D, keyValue.getDouble("test1"), 0);
+    }
+
+    @Test
+    public void originalsWithPrefixTest() {
+        connectKeyValue.put("test1", 1);
+        final Map<String, String> map1 = connectKeyValue.originalsWithPrefix("test", true);
+        assert map1.containsKey("1");
+        final Map<String, String> map2 = connectKeyValue.originalsWithPrefix("test", false);
+        assert map2.containsKey("test1");
     }
 }
