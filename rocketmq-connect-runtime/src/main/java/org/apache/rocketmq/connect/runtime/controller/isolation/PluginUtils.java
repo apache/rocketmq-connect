@@ -122,6 +122,16 @@ public class PluginUtils {
         + ")\\..*$"
         + "|io\\.openmessaging\\.KeyValue");
 
+
+    // If the base interface or class that will be used to identify Connect plugins resides within
+    // the same java package as the plugins that need to be loaded in isolation (and thus are
+    // added to the INCLUDE pattern), then this base interface or class needs to be excluded in the
+    // regular expression pattern
+    private static final Pattern INCLUDE = Pattern.compile("^(?:"
+            + "|org\\.apache\\.rocketmq\\.connect"
+            + ")\\..*$");
+
+
     private static final DirectoryStream.Filter<Path> PLUGIN_PATH_FILTER = new DirectoryStream
         .Filter<Path>() {
         @Override
@@ -170,7 +180,7 @@ public class PluginUtils {
      * @return true if this class should be loaded in isolation, false otherwise.
      */
     public static boolean shouldLoadInIsolation(String name) {
-        return !(BLACKLIST.matcher(name).matches());
+        return !(BLACKLIST.matcher(name).matches() && !INCLUDE.matcher(name).matches());
     }
     /**
      * Verify whether a given plugin's alias matches another alias in a collection of plugins.

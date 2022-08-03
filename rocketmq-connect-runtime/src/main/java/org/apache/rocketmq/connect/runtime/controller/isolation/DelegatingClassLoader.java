@@ -58,7 +58,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 /**
  * Delegating class Loader
@@ -124,9 +123,9 @@ public class DelegatingClassLoader extends URLClassLoader {
      * @return
      */
     public PluginClassLoader pluginClassLoader(String name) {
-        if (!PluginUtils.shouldLoadInIsolation(name)) {
-            return null;
-        }
+//        if (!PluginUtils.shouldLoadInIsolation(name)) {
+//            return null;
+//        }
         SortedMap<PluginWrapper<?>, ClassLoader> inner = pluginLoaders.get(name);
         if (inner == null) {
             return null;
@@ -261,8 +260,6 @@ public class DelegatingClassLoader extends URLClassLoader {
     }
 
     private void loadJdbcDrivers(final ClassLoader loader) {
-        // Apply here what java.sql.DriverManager does to discover and register classes
-        // implementing the java.sql.Driver interface.
         AccessController.doPrivileged(
                 new PrivilegedAction<Void>() {
                     @Override
