@@ -27,6 +27,7 @@
         <module>rocketmq-connect-runtime</module>
         <module>rocketmq-connect-cli</module>
         <module>distribution</module>
+        <module>transforms</module>
     </modules>
     <name>RocketMQ Connect</name>
 
