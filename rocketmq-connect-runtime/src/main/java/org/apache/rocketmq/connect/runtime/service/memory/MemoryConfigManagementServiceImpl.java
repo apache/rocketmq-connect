@@ -130,7 +130,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         }
 
         String connectorClass = configs.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-        ClassLoader classLoader = plugin.getPluginClassLoader(connectorClass);
+        ClassLoader classLoader = plugin.delegatingLoader().pluginClassLoader(connectorClass);
         Class clazz;
         if (null != classLoader) {
             clazz = Class.forName(connectorClass, true, classLoader);

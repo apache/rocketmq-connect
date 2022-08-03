@@ -17,8 +17,14 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Objects;
 
 /**
  *  common utils
@@ -50,5 +56,68 @@ public class Utils {
                 log.warn("Failed to close {} with type {}", name, closeable.getClass().getName(), t);
             }
         }
+    }
+
+    /**
+     * Instantiate the class
+     */
+    public static <T> T newInstance(Class<T> c) {
+        if (c == null) {
+            throw new ConnectException("class cannot be null");
+        }
+        try {
+            return c.getDeclaredConstructor().newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new ConnectException("Could not find a public no-argument constructor for " + c.getName(), e);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw new ConnectException("Could not instantiate class " + c.getName(), e);
+        }
+    }
+
+    public static <T> String join(T[] strs, String separator) {
+        return join(Arrays.asList(strs), separator);
+    }
+
+    public static <T> String join(Collection<T> collection, String separator) {
+        Objects.requireNonNull(collection);
+        StringBuilder sb = new StringBuilder();
+        Iterator<T> iter = collection.iterator();
+        while (iter.hasNext()) {
+            sb.append(iter.next());
+            if (iter.hasNext()) {
+                sb.append(separator);
+            }
+        }
+        return sb.toString();
+    }
+
+
+    /**
+     * Look up a class by name.
+     */
+    public static <T> Class<? extends T> loadClass(String klass, Class<T> base) throws ClassNotFoundException {
+        return Class.forName(klass, true, Utils.getContextCurrentClassLoader()).asSubclass(base);
+    }
+
+    /**
+     * Get current classLoader
+     */
+    public static ClassLoader getCurrentClassLoader() {
+        return Utils.class.getClassLoader();
+    }
+
+
+    /**
+     * get context current class loader
+     * @return
+     */
+    public static ClassLoader getContextCurrentClassLoader() {
+        // use thread classloader first
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl == null) {
+            return getCurrentClassLoader();
+        }
+        return cl;
+
     }
 }

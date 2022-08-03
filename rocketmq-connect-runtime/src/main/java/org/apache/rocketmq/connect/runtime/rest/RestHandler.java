@@ -47,8 +47,12 @@ public class RestHandler {
 
     private static final String TASK_CONFIGS = "taskConfigs";
 
+    /** connector plugin resource */
+    private ConnectorPluginsResource pluginsResource;
     public RestHandler(AbstractConnectController connectController) {
         this.connectController = connectController;
+        pluginsResource = new ConnectorPluginsResource(connectController);
+
         Javalin app = Javalin.create();
         app.enableCaseSensitiveUrls();
         app = app.start(connectController.getConnectConfig().getHttpPort());
@@ -70,7 +74,13 @@ public class RestHandler {
         app.get("/getConfigInfo", this::getConfigInfo);
         app.get("/getAllocatedConnectors", this::getAllocatedConnectors);
         app.get("/getAllocatedTasks", this::getAllocatedTasks);
-        app.get("/plugin/reload", this::reloadPlugins);
+
+        /**plugin resource handler*/
+        app.get("/plugin/reload", context -> pluginsResource.reloadPlugins(context));
+        app.get("/plugin/list", context -> pluginsResource.listConnectorPlugins(context));
+        app.get("/plugin/config", context -> pluginsResource.getConnectorConfigDef(context));
+        app.get("/plugin/config/validate", context -> pluginsResource.validateConfigs(context));
+
     }
 
 
@@ -244,8 +254,4 @@ public class RestHandler {
         return result;
     }
 
-    private void reloadPlugins(Context context) {
-        connectController.getConfigManagementService().getPlugin().initPlugin();
-        context.result("success");
-    }
 }
