@@ -107,7 +107,7 @@ public class RuntimeConfigDefine {
     };
 
     /**
-     * Maximum allowed message size in bytes, the default vaule is 4M.
+     * Maximum allowed message size in bytes, the default value is 4M.
      */
     public static final int MAX_MESSAGE_SIZE = Integer.parseInt(System.getProperty("rocketmq.runtime.max.message.size", "4194304"));
 
