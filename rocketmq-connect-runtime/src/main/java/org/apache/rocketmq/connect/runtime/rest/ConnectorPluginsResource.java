@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import io.javalin.Context;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginType;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginWrapper;
@@ -32,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ConnectorPluginsResource {
