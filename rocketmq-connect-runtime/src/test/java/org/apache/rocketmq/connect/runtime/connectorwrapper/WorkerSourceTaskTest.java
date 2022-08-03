@@ -18,24 +18,27 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
-import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -49,51 +52,56 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 
 @RunWith(MockitoJUnitRunner.class)
-public class WorkerSinkTaskTest {
+public class WorkerSourceTaskTest {
 
-    private WorkerSinkTask workerSinkTask;
+    private WorkerSourceTask workerSourceTask;
 
-    private ConnectConfig connectConfig = new ConnectConfig();
+    private ConnectConfig connectConfig;
 
-    private ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector", 1);
+    private ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector" ,1);
 
-    private SinkTask sinkTask = new TestSinkTask();
+    private SourceTask sourceTask = new TestSourceTask();
 
     private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
 
+    private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
+
     private RecordConverter recordConverter = new TestConverter();
 
-    private DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer();
+    @Mock
+    private DefaultMQProducer defaultMQProducer;
 
     private AtomicReference<WorkerState> workerState = new AtomicReference<>(WorkerState.STARTED);
 
-    private ConnectStatsManager connectStatsManager = new ConnectStatsManager(connectConfig);
+    private ConnectStatsManager connectStatsManager;
 
     private ConnectStatsService connectStatsService = new ConnectStatsService();
+
+    private TransformChain<ConnectRecord> transformChain;
 
     private KeyValue keyValue = new DefaultKeyValue();
 
     @Mock
     private Plugin plugin;
 
-    private TransformChain<ConnectRecord> transformChain;
-
     private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL);
-
-    private WorkerErrorRecordReporter workerErrorRecordReporter;
 
     ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
     @Before
-    public void before() {
+    public void before() throws MQClientException, InterruptedException {
+        connectConfig = new ConnectConfig();
+        connectConfig.setNamesrvAddr("127.0.0.1:9876");
+        connectStatsManager = new ConnectStatsManager(connectConfig);
         connectKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, "TEST_TOPIC");
         keyValue.put(RuntimeConfigDefine.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
-        workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
-        workerSinkTask = new WorkerSinkTask(connectConfig, connectorTaskId, sinkTask, WorkerSinkTaskTest.class.getClassLoader(), connectKeyValue,
-            recordConverter, recordConverter, defaultMQPullConsumer, workerState, connectStatsManager, connectStatsService,
-            transformChain, retryWithToleranceOperator, workerErrorRecordReporter);
+        workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),
+            connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
+            connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+        NameServerMocker.startByDefaultConf(9876, 10911);
+        ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
     }
 
     @After
@@ -102,9 +110,9 @@ public class WorkerSinkTaskTest {
     }
 
     @Test
-    public void executeTest() throws InterruptedException {
-        Assertions.assertThatCode(() -> executorService.submit(() -> workerSinkTask.run())).doesNotThrowAnyException();
+    public void runTest() throws InterruptedException {
+        Assertions.assertThatCode(() -> executorService.submit(() -> workerSourceTask.run())).doesNotThrowAnyException();
         TimeUnit.SECONDS.sleep(5);
-        workerSinkTask.close();
+        workerSourceTask.close();
     }
 }
