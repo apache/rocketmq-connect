@@ -90,7 +90,7 @@ public class Plugin extends URLClassLoader {
         builder.setClassLoaders(new ClassLoader[] {loader});
         builder.addUrls(urls);
         builder.setScanners(new SubTypesScanner());
-        builder.useParallelExecutor();
+        builder.setParallel(true);
         Reflections reflections = new PluginReflections(builder);
         getPlugin(reflections, Connector.class, loader);
         getPlugin(reflections, Task.class, loader);
@@ -116,18 +116,6 @@ public class Plugin extends URLClassLoader {
 
         public PluginReflections(Configuration configuration) {
             super(configuration);
-        }
-
-        @Override
-        protected void scan(URL url) {
-            try {
-                super.scan(url);
-            } catch (ReflectionsException e) {
-                Logger log = Reflections.log;
-                if (log != null && log.isWarnEnabled()) {
-                    log.warn("Scan url error. ignoring the exception and continuing", e);
-                }
-            }
         }
     }
 
