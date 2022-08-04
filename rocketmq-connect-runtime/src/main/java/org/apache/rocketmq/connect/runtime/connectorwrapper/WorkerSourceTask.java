@@ -217,9 +217,8 @@ public class WorkerSourceTask extends WorkerTask {
             /**prepare to send record*/
             Optional<RecordOffsetManagement.SubmittedPosition> submittedRecordPosition = prepareToSendRecord(preTransformRecord);
             try {
-                MessageQueueSelector selector = new MessageQueueSelectorByRoundRobin();
-                selector = StringUtils.isEmpty(sourceMessage.getKeys()) ? selector : new SelectMessageQueueByHash();
-                producer.send(sourceMessage, selector, sourceMessage.getKeys(), new SendCallback() {
+
+                SendCallback callback =  new SendCallback() {
                     @Override
                     public void onSuccess(SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
@@ -239,7 +238,17 @@ public class WorkerSourceTask extends WorkerTask {
                         // record send failed
                         recordSendFailed(false, sourceMessage, preTransformRecord, throwable);
                     }
-                });
+                };
+
+                if (StringUtils.isEmpty(sourceMessage.getKeys())) {
+                    // Round robin
+                    producer.send(sourceMessage, callback);
+                } else {
+                    // partition ordering；
+                    // At the same time, ensure that the data is pulled in an orderly manner, which needs to be guaranteed by sourceTask in the business
+                    producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys(), callback);
+                }
+
             } catch (RetriableException e) {
                 log.warn("{} Failed to send record to topic '{}'. Backing off before retrying: ",
                     this, sourceMessage.getTopic(), e);
