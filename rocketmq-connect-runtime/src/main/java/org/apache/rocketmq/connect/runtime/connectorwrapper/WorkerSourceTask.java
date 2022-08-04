@@ -32,7 +32,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
@@ -244,7 +243,7 @@ public class WorkerSourceTask extends WorkerTask {
                     // Round robin
                     producer.send(sourceMessage, callback);
                 } else {
-                    // partition ordering；
+                    // Partition message ordering,
                     // At the same time, ensure that the data is pulled in an orderly manner, which needs to be guaranteed by sourceTask in the business
                     producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys(), callback);
                 }
