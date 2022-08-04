@@ -105,6 +105,7 @@ public abstract class AbstractConnectController implements ConnectController {
 
     @Override
     public void start() {
+        clusterManagementService.initialize(connectConfig);
         clusterManagementService.start();
         configManagementService.start();
         positionManagementService.start();
