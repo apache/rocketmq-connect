@@ -32,8 +32,10 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -215,7 +217,9 @@ public class WorkerSourceTask extends WorkerTask {
             /**prepare to send record*/
             Optional<RecordOffsetManagement.SubmittedPosition> submittedRecordPosition = prepareToSendRecord(preTransformRecord);
             try {
-                producer.send(sourceMessage, new SendCallback() {
+                MessageQueueSelector selector = new MessageQueueSelectorByRoundRobin();
+                selector = StringUtils.isEmpty(sourceMessage.getKeys()) ? selector : new SelectMessageQueueByHash();
+                producer.send(sourceMessage, selector, sourceMessage.getKeys(), new SendCallback() {
                     @Override
                     public void onSuccess(SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
