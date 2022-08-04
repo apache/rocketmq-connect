@@ -52,14 +52,4 @@ public class Utils {
         }
     }
 
-
-
-    public static int toPositive(int number) {
-        return number & 0x7fffffff;
-    }
-
-
-    public static void main(String[] args) {
-        System.out.println( Utils.toPositive(200));
-    }
 }
