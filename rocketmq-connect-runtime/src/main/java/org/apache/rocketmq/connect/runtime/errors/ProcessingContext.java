@@ -71,8 +71,6 @@ class ProcessingContext implements AutoCloseable {
     }
 
     /**
-     * Set the record consumed from Kafka in a sink connector.
-     *
      * @param consumedMessage the record
      */
     public void consumerRecord(MessageExt consumedMessage) {
@@ -80,9 +78,7 @@ class ProcessingContext implements AutoCloseable {
         reset();
     }
 
-    /**
-     * @return the record consumed from Kafka. could be null
-     */
+
     public MessageExt consumerRecord() {
         return consumedMessage;
     }
@@ -96,7 +92,6 @@ class ProcessingContext implements AutoCloseable {
 
     /**
      * Set the source record being processed in the connect pipeline.
-     *
      * @param record the source record
      */
     public void sourceRecord(ConnectRecord record) {
