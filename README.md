@@ -351,12 +351,12 @@ CONNECT_HOME=${user path}/rocketmq-connect/distribution
 ###集群模式启动Connect Worker
 
 Main Class配置
-org.apache.rocketmq.connect.runtime.StandaloneConnectStartup
+org.apache.rocketmq.connect.runtime.DistributedConnectStartup
 
 
 Program arguments配置
 
--c  ${user path}/rocketmq-connect/distribution/conf/connect-standalone.conf
+-c  ${user path}/rocketmq-connect/distribution/conf/connect-distributed.conf
 
 Environment variables配置
 
