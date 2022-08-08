@@ -111,6 +111,11 @@ public class ConnectConfig {
     private String offsetStoreTopic = "connector-offset-topic";
 
     /**
+     * Default topic to send/consume offset change message.
+     */
+    private String connectStatusTopic = "connect-status-topic";
+
+    /**
      * Http port for REST API.
      */
     private int httpPort = 8081;
@@ -314,6 +319,14 @@ public class ConnectConfig {
         this.offsetStoreTopic = offsetStoreTopic;
     }
 
+    public String getConnectStatusTopic() {
+        return connectStatusTopic;
+    }
+
+    public void setConnectStatusTopic(String connectStatusTopic) {
+        this.connectStatusTopic = connectStatusTopic;
+    }
+
     public String getConnectClusterId() {
         return connectClusterId;
     }
@@ -442,6 +455,7 @@ public class ConnectConfig {
                 ", configStoreTopic='" + configStoreTopic + '\'' +
                 ", positionStoreTopic='" + positionStoreTopic + '\'' +
                 ", offsetStoreTopic='" + offsetStoreTopic + '\'' +
+                ", connectStatusTopic='" + connectStatusTopic + '\'' +
                 ", httpPort=" + httpPort +
                 ", positionPersistInterval=" + positionPersistInterval +
                 ", offsetPersistInterval=" + offsetPersistInterval +

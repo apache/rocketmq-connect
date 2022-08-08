@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
+import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
 
 public class TransferUtils {
 
@@ -115,5 +117,6 @@ public class TransferUtils {
         res.setTaskConfigs(transferedTasksConfigs);
         return res;
     }
+
 
 }

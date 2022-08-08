@@ -33,6 +33,8 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.converter.record.ConverterConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.ConverterType;
@@ -41,6 +43,7 @@ import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -52,6 +55,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -60,6 +65,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,6 +79,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class Worker {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+
+    public static final long CONNECTOR_GRACEFUL_SHUTDOWN_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(5);
 
     /**
      * Current running connectors.
@@ -103,10 +111,7 @@ public class Worker {
      * Position management for source tasks.
      */
     private final PositionManagementService positionManagementService;
-    /**
-     * A scheduled task to commit source position of source tasks.
-     */
-//    private final TaskPositionCommitService taskPositionCommitService;
+
     private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
     private final ConnectConfig workerConfig;
     private final Plugin plugin;
@@ -118,11 +123,17 @@ public class Worker {
     private StateMachineService stateMachineService = new StateMachineService();
     private final ConnectStatsManager connectStatsManager;
     private final ConnectStatsService connectStatsService;
+    private final WrapperStatusListener statusListener;
+
+    private final ConcurrentMap<String, WorkerConnector> connectors = new ConcurrentHashMap<>();
+    private final ExecutorService executor;
 
     public Worker(ConnectConfig workerConfig,
-        PositionManagementService positionManagementService,
-        ConfigManagementService configManagementService,
-        Plugin plugin, AbstractConnectController connectController) {
+                  PositionManagementService positionManagementService,
+                  ConfigManagementService configManagementService,
+                  Plugin plugin,
+                  AbstractConnectController connectController,
+                  StateManagementService stateManagementService) {
         this.workerConfig = workerConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
         this.positionManagementService = positionManagementService;
@@ -130,6 +141,8 @@ public class Worker {
         this.connectStatsManager = connectController.getConnectStatsManager();
         this.connectStatsService = connectController.getConnectStatsService();
         this.sourceTaskOffsetCommitter = Optional.of(new SourceTaskOffsetCommitter(workerConfig));
+        this.statusListener = new WrapperStatusListener(stateManagementService, workerConfig.getWorkerId());
+        this.executor = Executors.newCachedThreadPool();
     }
 
     public void start() {
@@ -137,7 +150,171 @@ public class Worker {
         stateMachineService.start();
     }
 
+
     /**
+     * Stop asynchronously a collection of connectors that belong to this worker and await their
+     * termination.
+     *
+     * @param ids the collection of connectors to be stopped.
+     */
+    public void stopAndAwaitConnectors(Collection<String> ids) {
+        stopConnectors(ids);
+        awaitStopConnectors(ids);
+    }
+
+    /**
+     * Stop a connector that belongs to this worker and await its termination.
+     *
+     * @param connName the name of the connector to be stopped.
+     */
+    public void stopAndAwaitConnector(String connName) {
+        stopConnector(connName);
+        awaitStopConnectors(Collections.singletonList(connName));
+    }
+
+
+    private void awaitStopConnector(String connName, long timeout) {
+            WorkerConnector connector = connectors.remove(connName);
+            if (connector == null) {
+                log.warn("Ignoring await stop request for non-present connector {}", connName);
+                return;
+            }
+
+            if (!connector.awaitShutdown(timeout)) {
+                log.error("Connector '{}' failed to properly shut down, has become unresponsive, and "
+                        + "may be consuming external resources. Correct the configuration for "
+                        + "this connector or remove the connector. After fixing the connector, it "
+                        + "may be necessary to restart this worker to release any consumed "
+                        + "resources.", connName);
+                connector.cancel();
+            } else {
+                log.debug("Graceful stop of connector {} succeeded.", connName);
+            }
+    }
+
+    private void awaitStopConnectors(Collection<String> ids) {
+        long now = System.currentTimeMillis();
+        long deadline = now + CONNECTOR_GRACEFUL_SHUTDOWN_TIMEOUT_MS;
+        for (String id : ids) {
+            long remaining = Math.max(0, deadline - System.currentTimeMillis());
+            awaitStopConnector(id, remaining);
+        }
+    }
+
+    /**
+     * Stop asynchronously all the worker's connectors and await their termination.
+     */
+    public void stopAndAwaitConnectors() {
+        stopAndAwaitConnectors(new ArrayList<>(connectors.keySet()));
+    }
+
+
+    /**
+     * stop connectors
+     * @param ids
+     */
+    private void stopConnectors(Collection<String> ids){
+        for (String connectorName : ids) {
+            stopConnector(connectorName);
+        }
+    }
+
+    /**
+     * Stop a connector managed by this worker.
+     * @param connName the connector name.
+     */
+    private void stopConnector(String connName) {
+        WorkerConnector workerConnector = connectors.get(connName);
+        log.info("Stopping connector {}", connName);
+        if (workerConnector == null) {
+            log.warn("Ignoring stop request for unowned connector {}", connName);
+            return;
+        }
+        workerConnector.shutdown();
+    }
+
+
+    /**
+     * check and stop connectors
+     * @param assigns
+     */
+    private void checkAndStopConnectors(Collection<String> assigns) {
+        if (assigns.isEmpty()) {
+            // delete all
+            assigns = connectors.keySet();
+        }
+        for (String connectorName : assigns) {
+            if (!assigns.contains(connectorName)) {
+                stopAndAwaitConnector(connectorName);
+            }
+        }
+    }
+
+
+    /**
+     * check and reconfigure connectors
+     * @param assigns
+     */
+    private void checkAndReconfigureConnectors(Map<String, ConnectKeyValue> assigns) {
+        if (assigns == null || assigns.isEmpty()){
+            return;
+        }
+        for (String connectName : assigns.keySet()) {
+            WorkerConnector connector = connectors.get(connectName);
+            ConnectKeyValue oldConfig = connector.getKeyValue();
+            ConnectKeyValue newConfig = assigns.get(connectName);
+            if (!oldConfig.equals(newConfig)){
+                connector.reconfigure(newConfig);
+            }
+        }
+    }
+
+
+
+
+
+    /**
+     * check and transition  to connectors
+     * @param assigns
+     */
+    private void checkAndTransitionToConnectors(Map<String, ConnectKeyValue> assigns){
+        if (assigns == null || assigns.isEmpty()){
+            return;
+        }
+        for (String connectName : assigns.keySet()) {
+            WorkerConnector connector = connectors.get(connectName);
+            ConnectKeyValue oldConfig = connector.getKeyValue();
+            ConnectKeyValue newConfig = assigns.get(connectName);
+            if (oldConfig.getTargetState() != newConfig.getTargetState()){
+                // update connector target state
+                connector.transitionTo(newConfig.getTargetState(), null);
+            }
+        }
+    }
+
+
+    /**
+     * check and new connectors
+     * @param assigns
+     */
+    private Map<String, ConnectKeyValue> checkAndNewConnectors(Map<String, ConnectKeyValue> assigns) {
+        if (assigns == null || assigns.isEmpty()){
+            return new HashMap<>();
+        }
+
+        Map<String, ConnectKeyValue> newConnectors = new HashMap<>();
+        for (String connectName : assigns.keySet()) {
+            if (!connectors.containsKey(connectName)){
+                newConnectors.put(connectName, assigns.get(connectName));
+            }
+        }
+        return newConnectors;
+    }
+
+
+    /**
+     *  assign connector
+     *
      * Start a collection of connectors with the given configs. If a connector is already started with the same configs,
      * it will not start again. If a connector is already started but not contained in the new configs, it will stop.
      *
@@ -146,67 +323,47 @@ public class Worker {
      * @throws Exception
      */
     public synchronized void startConnectors(Map<String, ConnectKeyValue> connectorConfigs,
-        AbstractConnectController connectController) throws Exception {
-        Set<WorkerConnector> stoppedConnector = new HashSet<>();
-        for (WorkerConnector workerConnector : workingConnectors) {
-            try {
-                String connectorName = workerConnector.getConnectorName();
-                ConnectKeyValue keyValue = connectorConfigs.get(connectorName);
-                if (null == keyValue || 0 != keyValue.getInt(RuntimeConfigDefine.CONFIG_DELETED)) {
-                    workerConnector.stop();
-                    log.info("Connector {} stop", workerConnector.getConnectorName());
-                    stoppedConnector.add(workerConnector);
-                } else if (!keyValue.equals(workerConnector.getKeyValue())) {
-                    workerConnector.reconfigure(keyValue);
-                }
-            } catch (Exception e) {
-                log.error("stop or reconfigure connector error, connectName: " + workerConnector.getConnectorName(), e);
-            }
-        }
-        workingConnectors.removeAll(stoppedConnector);
+                                             AbstractConnectController connectController) throws Exception {
 
-        if (null == connectorConfigs || 0 == connectorConfigs.size()) {
-            return;
-        }
-        Map<String, ConnectKeyValue> newConnectors = new HashMap<>();
-        for (String connectorName : connectorConfigs.keySet()) {
-            boolean isNewConnector = true;
-            for (WorkerConnector workerConnector : workingConnectors) {
-                if (workerConnector.getConnectorName().equals(connectorName)) {
-                    isNewConnector = false;
-                    break;
-                }
-            }
-            if (isNewConnector) {
-                newConnectors.put(connectorName, connectorConfigs.get(connectorName));
-            }
-        }
+        // Step 1: Check and stop connectors
+        checkAndStopConnectors(connectorConfigs.keySet());
 
+        // Step 2: Check config update
+        checkAndReconfigureConnectors(connectorConfigs);
+
+        // Step 3： check and transition to connectors
+        checkAndTransitionToConnectors(connectorConfigs);
+
+        // Step 4： check new
+        Map<String, ConnectKeyValue> newConnectors = checkAndNewConnectors(connectorConfigs);
+
+        //Step 5： start connectors
         for (String connectorName : newConnectors.keySet()) {
+            ClassLoader savedLoader = plugin.currentThreadLoader();
             try {
                 ConnectKeyValue keyValue = newConnectors.get(connectorName);
                 String connectorClass = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
                 ClassLoader loader = plugin.getPluginClassLoader(connectorClass);
+                savedLoader = Plugin.compareAndSwapLoaders(loader);
                 final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
-                Class clazz;
-                boolean isolationFlag = false;
-                if (loader instanceof PluginClassLoader) {
-                    clazz = ((PluginClassLoader) loader).loadClass(connectorClass, false);
-                    isolationFlag = true;
-                } else {
-                    clazz = Class.forName(connectorClass);
-                }
+                Class clazz = currentThreadLoader.loadClass(connectorClass);
                 final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
-                WorkerConnector workerConnector = new WorkerConnector(connectorName, connector, connectorConfigs.get(connectorName), new DefaultConnectorContext(connectorName, connectController));
-                if (isolationFlag) {
-                    Plugin.compareAndSwapLoaders(loader);
-                }
-                workerConnector.initialize();
-                workerConnector.start();
+                WorkerConnector workerConnector = new WorkerConnector(
+                        connectorName,
+                        connector,
+                        connectorConfigs.get(connectorName),
+                        new DefaultConnectorContext(connectorName, connectController),
+                        statusListener,
+                        savedLoader
+                );
+                // initinal target state
+                workerConnector.transitionTo(keyValue.getTargetState(), null);
+                executor.submit(workerConnector);
                 log.info("Connector {} start", workerConnector.getConnectorName());
-                Plugin.compareAndSwapLoaders(currentThreadLoader);
-                this.workingConnectors.add(workerConnector);
+                Plugin.compareAndSwapLoaders(savedLoader);
+                this.connectors.put(connectorName,workerConnector);
             } catch (Exception e) {
+                Plugin.compareAndSwapLoaders(savedLoader);
                 log.error("worker connector start exception. workerName: " + connectorName, e);
             }
         }
@@ -251,12 +408,36 @@ public class Worker {
         try {
             sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
             taskExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
+            // stop and await connectors
+            if (!connectors.isEmpty()) {
+                log.warn("Shutting down connectors {} uncleanly; herder should have shut down connectors before the Worker is stopped", connectors.keySet());
+                stopAndAwaitConnectors();
+            }
+            executor.shutdown();
+
         } catch (InterruptedException e) {
             log.error("Task termination error.", e);
         }
         stateMachineService.shutdown();
 
     }
+
+    /**
+     * get connectors
+     * @return
+     */
+    public Set<String> allocatedConnectors(){
+        return new HashSet<>(connectors.keySet());
+    }
+
+    /**
+     * get connectors
+     * @return
+     */
+    public Map<String, List<ConnectKeyValue>> allocatedTasks(){
+        return latestTaskConfigs;
+    }
+
 
     public Set<WorkerConnector> getWorkingConnectors() {
         return workingConnectors;
@@ -373,6 +554,11 @@ public class Worker {
                         log.info("Task stopping, connector name {}, config {}", workerTask.id().connector(), workerTask.currentTaskConfig());
                         runningTasks.remove(runnable);
                         stoppingTasks.put(runnable, System.currentTimeMillis());
+                    } else {
+                        // reset target state
+                        if (connectors.containsKey(connectorName)) {
+                            workerTask.transitionTo(connectors.get(connectorName).getKeyValue().getTargetState());
+                        }
                     }
                     break;
                 default:
@@ -458,7 +644,6 @@ public class Worker {
             } finally {
                 // remove committer offset
                 sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
-
                 future.cancel(true);
                 workerTask.cleanup();
                 taskToFutureMap.remove(runnable);
@@ -591,7 +776,7 @@ public class Worker {
                         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
-                            (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+                            (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, statusListener);
 
                         Future future = taskExecutor.submit(workerSourceTask);
                         // schedule offset committer
@@ -614,7 +799,7 @@ public class Worker {
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
                             (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
-                            retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter));
+                            retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter), statusListener);
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
@@ -671,7 +856,8 @@ public class Worker {
             connectStatsManager,
             connectStatsService,
             transformChain,
-            retryWithToleranceOperator);
+            retryWithToleranceOperator,
+            statusListener);
 
         Future future = taskExecutor.submit(workerDirectTask);
 
@@ -723,6 +909,35 @@ public class Worker {
             return StateMachineService.class.getSimpleName();
         }
     }
+
+
+    /**
+     * connector state
+     */
+    public class ConnectorState {
+        private final TargetState state;
+        private final boolean deleted;
+
+        public ConnectorState(ConnectKeyValue config) {
+            if (config == null){
+                deleted = true;
+                state = null;
+            } else {
+                deleted = (0 != config.getInt(RuntimeConfigDefine.CONFIG_DELETED));
+                state = config.containsKey(RuntimeConfigDefine.TARGET_STATE) ? TargetState.valueOf(config.getString(RuntimeConfigDefine.TARGET_STATE)) : TargetState.STARTED;
+            }
+        }
+
+        public TargetState state() {
+            return state;
+        }
+
+        public boolean isDeleted() {
+            return deleted;
+
+        }
+    }
+
 
     public enum TaskType {
         SOURCE,

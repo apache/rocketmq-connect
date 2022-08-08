@@ -22,11 +22,13 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.memory.StandaloneRebalanceService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
+import java.util.Collection;
 
 /**
  * Connect controller to access and control all resource in runtime.
@@ -39,9 +41,9 @@ public class StandaloneConnectController extends AbstractConnectController {
                                        StandaloneConfig connectConfig,
                                        ClusterManagementService clusterManagementService,
                                        ConfigManagementService configManagementService,
-                                       PositionManagementService positionManagementService) {
-
-        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService);
+                                       PositionManagementService positionManagementService,
+                                       StateManagementService stateManagementService) {
+        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService, stateManagementService);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.rebalanceService = new StandaloneRebalanceService(rebalanceImpl, configManagementService, clusterManagementService);

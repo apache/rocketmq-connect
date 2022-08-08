@@ -42,6 +42,7 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
@@ -142,8 +143,9 @@ public class WorkerSourceTask extends WorkerTask {
         ConnectStatsManager connectStatsManager,
         ConnectStatsService connectStatsService,
         TransformChain<ConnectRecord> transformChain,
-        RetryWithToleranceOperator retryWithToleranceOperator) {
-        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
+        RetryWithToleranceOperator retryWithToleranceOperator,
+        WrapperStatusListener statusListener) {
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
 
         this.sourceTask = sourceTask;
         this.offsetStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
@@ -453,8 +455,22 @@ public class WorkerSourceTask extends WorkerTask {
     @Override
     protected void execute() {
         while (isRunning()) {
-
             updateCommittableOffsets();
+
+            if (shouldPause()) {
+                onPause();
+                try {
+                    // wait unpause
+                    if (awaitUnpause()) {
+                        onResume();
+                    }
+                    continue;
+                } catch (InterruptedException e) {
+                    // do exception
+                }
+            }
+
+
             if (CollectionUtils.isEmpty(toSendRecord)) {
                 try {
                     prepareToPollTask();

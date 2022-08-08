@@ -97,14 +97,14 @@ public class WorkerTest {
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setNamesrvAddr("localhost:9876");
-        worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController);
+        worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, null);
 
         Set<WorkerConnector> workingConnectors = new HashSet<>();
         for (int i = 0; i < 3; i++) {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
             connectKeyValue.getProperties().put("key1", "TEST-CONN-" + i + "1");
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
-            workingConnectors.add(new WorkerConnector("TEST-CONN-" + i, new TestConnector(), connectKeyValue, connectorContext));
+            workingConnectors.add(new WorkerConnector("TEST-CONN-" + i, new TestConnector(), connectKeyValue, connectorContext, null, null));
         }
         worker.setWorkingConnectors(workingConnectors);
         assertThat(worker.getWorkingConnectors().size()).isEqualTo(3);
@@ -131,7 +131,7 @@ public class WorkerTest {
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,
                 transformChain,
-                retryWithToleranceOperator));
+                retryWithToleranceOperator, null));
         }
         worker.setWorkingTasks(runnables);
         assertThat(worker.getWorkingTasks().size()).isEqualTo(3);

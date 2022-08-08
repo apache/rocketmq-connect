@@ -20,6 +20,11 @@ package org.apache.rocketmq.connect.runtime.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Objects;
+
 /**
  *  common utils
  */
@@ -51,4 +56,36 @@ public class Utils {
             }
         }
     }
+
+
+    /**
+     * Create a string representation of an array joined by the given separator
+     * @param strs The array of items
+     * @param separator The separator
+     * @return The string representation.
+     */
+    public static <T> String join(T[] strs, String separator) {
+        return join(Arrays.asList(strs), separator);
+    }
+
+    /**
+     * Create a string representation of a collection joined by the given separator
+     * @param collection The list of items
+     * @param separator The separator
+     * @return The string representation.
+     */
+    public static <T> String join(Collection<T> collection, String separator) {
+        Objects.requireNonNull(collection);
+        StringBuilder sb = new StringBuilder();
+        Iterator<T> iter = collection.iterator();
+        while (iter.hasNext()) {
+            sb.append(iter.next());
+            if (iter.hasNext()) {
+                sb.append(separator);
+            }
+        }
+        return sb.toString();
+    }
+
+
 }

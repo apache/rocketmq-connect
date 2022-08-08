@@ -17,18 +17,34 @@
 
 package org.apache.rocketmq.connect.runtime.controller;
 
+import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.rest.RestHandler;
+import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorInfo;
+import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorType;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -58,6 +74,13 @@ public abstract class AbstractConnectController implements ConnectController {
      */
     protected final ClusterManagementService clusterManagementService;
 
+
+    /**
+     * Manage the online task status of the cluster
+     */
+    protected final StateManagementService stateManagementService;
+
+
     /**
      * A worker to schedule all connectors and tasks assigned to current process.
      */
@@ -85,7 +108,8 @@ public abstract class AbstractConnectController implements ConnectController {
             ConnectConfig connectConfig,
             ClusterManagementService clusterManagementService,
             ConfigManagementService configManagementService,
-            PositionManagementService positionManagementService
+            PositionManagementService positionManagementService,
+            StateManagementService stateManagementService
     ) {
         // set config
         this.connectConfig = connectConfig;
@@ -98,7 +122,8 @@ public abstract class AbstractConnectController implements ConnectController {
         this.clusterManagementService = clusterManagementService;
         this.configManagementService = configManagementService;
         this.positionManagementService = positionManagementService;
-        this.worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, this);
+        this.stateManagementService = stateManagementService;
+        this.worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, this, stateManagementService);
         this.restHandler = new RestHandler(this);
     }
 
@@ -161,4 +186,96 @@ public abstract class AbstractConnectController implements ConnectController {
         return connectStatsService;
     }
 
+
+    /**
+     * Pause the connector. This call will asynchronously suspend processing by the connector and all
+     * of its tasks.
+     *
+     * @param connector name of the connector
+     */
+    public void pauseConnector(String connector) {
+        configManagementService.pauseConnector(connector);
+    }
+
+    /**
+     * Resume the connector. This call will asynchronously start the connector and its tasks (if
+     * not started already).
+     *
+     * @param connector name of the connector
+     */
+    public void resumeConnector(String connector) {
+        configManagementService.resumeConnector(connector);
+    }
+
+
+
+
+    /**
+     * Get a list of connectors currently running in this cluster.
+     * @return A list of connector names
+     */
+    public Collection<String> connectors() {
+        return configManagementService.snapshot().connectors();
+    }
+
+    public Collection<String> allocatedConnectors(){
+        return worker.allocatedConnectors();
+    }
+
+    public Map<String, List<ConnectKeyValue>> allocatedTasks(){
+        return worker.allocatedTasks();
+    }
+
+    public ConnectorStateInfo connectorStatus(String connName) {
+        ConnectorStatus connector = stateManagementService.get(connName);
+        if (connector == null) {
+            throw new ConnectException("No status found for connector " + connName);
+        }
+        Collection<TaskStatus> tasks = stateManagementService.getAll(connName);
+
+        ConnectorStateInfo.ConnectorState connectorState = new ConnectorStateInfo.ConnectorState(
+                connector.getId(), connector.getWorkerId(), connector.getTrace());
+        List<ConnectorStateInfo.TaskState> taskStates = new ArrayList<>();
+
+        for (TaskStatus status : tasks) {
+            taskStates.add(new ConnectorStateInfo.TaskState(status.getId().task(),
+                    status.getState().toString(), status.getWorkerId(), status.getTrace()));
+        }
+
+        Collections.sort(taskStates);
+        Map<String, String> conf = rawConfig(connName);
+        return new ConnectorStateInfo(connName, connectorState, taskStates,
+                conf == null ? ConnectorType.UNKNOWN : connectorTypeForClass(conf.get(RuntimeConfigDefine.CONNECTOR_CLASS)));
+    }
+
+
+    protected synchronized Map<String, String> rawConfig(String connName) {
+        return configManagementService.snapshot().rawConnectorConfig(connName);
+    }
+
+    /**
+     * Get the definition and status of a connector.
+     * @param connector name of the connector
+     */
+    public ConnectorInfo connectorInfo(String connector){
+        final ClusterConfigState configState = configManagementService.snapshot();
+        if (!configState.contains(connector)) {
+            return null;
+        }
+        Map<String, String> config = configState.rawConnectorConfig(connector);
+        return new ConnectorInfo(
+                connector,
+                config,
+                configState.tasks(connector),
+                connectorTypeForClass(config.get(RuntimeConfigDefine.CONNECTOR_CLASS))
+        );
+    }
+
+    /**
+     * Retrieves ConnectorType for the corresponding connector class
+     * @param connClass class of the connector
+     */
+    public ConnectorType connectorTypeForClass(String connClass) {
+        return null;
+    }
 }

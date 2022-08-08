@@ -194,7 +194,7 @@ public class ConfigManagementServiceImplTest {
         assertNotNull(connectKeyValue);
         assertNotNull(connectKeyValues);
 
-        configManagementService.removeConnectorConfig(connectorName);
+        configManagementService.deleteConnectorConfig(connectorName);
 
         connectorConfigs = configManagementService.getConnectorConfigs();
         connectKeyValue = connectorConfigs.get(connectorName);

@@ -41,7 +41,7 @@ public class ConnectorTaskId implements Serializable, Comparable<ConnectorTaskId
         return connector;
     }
 
-    @JSONField
+    @JSONField(name = "task")
     public int task() {
         return task;
     }

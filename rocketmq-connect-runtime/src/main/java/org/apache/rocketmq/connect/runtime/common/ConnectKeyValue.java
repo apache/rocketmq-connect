@@ -18,6 +18,8 @@
 package org.apache.rocketmq.connect.runtime.common;
 
 import io.openmessaging.KeyValue;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Default Implements of {@link KeyValue} for runtime, which can be parsed by fastJson.
  */
 public class ConnectKeyValue implements KeyValue, Serializable {
+
+    private TargetState targetState = TargetState.STARTED;
 
     /**
      * All data are reserved in this map.
@@ -145,6 +149,14 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         return result;
     }
 
+    public TargetState getTargetState() {
+        return targetState;
+    }
+
+    public void setTargetState(TargetState targetState) {
+        this.targetState = targetState;
+    }
+
     @Override
     public boolean equals(Object obj) {
 
@@ -154,6 +166,7 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         }
         return false;
     }
+
 
     @Override
     public int hashCode() {

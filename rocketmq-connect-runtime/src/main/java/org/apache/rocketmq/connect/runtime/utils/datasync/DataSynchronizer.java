@@ -17,6 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.connect.runtime.utils.Callback;
+
+import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.MAX_MESSAGE_SIZE;
+
 /**
  * Synchronize data between workers in a same cluster.
  * @param <K>
@@ -40,4 +46,12 @@ public interface DataSynchronizer<K, V> {
      * @param value
      */
     void send(K key, V value);
+
+    /**
+     * send data to all workers
+     * @param key
+     * @param value
+     * @param callback
+     */
+    void send(K key, V value, Callback callback);
 }

@@ -45,6 +45,7 @@ import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
@@ -70,6 +71,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static java.util.Collections.singleton;
 
 
 /**
@@ -160,8 +163,9 @@ public class WorkerSinkTask extends WorkerTask {
                           ConnectStatsService connectStatsService,
                           TransformChain<ConnectRecord> transformChain,
                           RetryWithToleranceOperator retryWithToleranceOperator,
-                          WorkerErrorRecordReporter errorRecordReporter) {
-        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
+                          WorkerErrorRecordReporter errorRecordReporter,
+                          WrapperStatusListener statusListener) {
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
         this.sinkTask = sinkTask;
         this.consumer = consumer;
         this.keyConverter = keyConverter;
@@ -487,6 +491,7 @@ public class WorkerSinkTask extends WorkerTask {
         }
         sinkDataEntry.addExtension(keyValue);
     }
+
 
     /**
      * initinalize and start

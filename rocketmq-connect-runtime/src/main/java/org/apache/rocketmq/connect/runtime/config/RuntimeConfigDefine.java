@@ -59,6 +59,11 @@ public class RuntimeConfigDefine {
     public static final String CONFIG_DELETED = "config-deleted";
 
     /**
+     * Whether the current config is deleted.
+     */
+    public static final String TARGET_STATE = "target-state";
+
+    /**
      * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */
     public static final String SOURCE_RECORD_CONVERTER = "value-converter";
