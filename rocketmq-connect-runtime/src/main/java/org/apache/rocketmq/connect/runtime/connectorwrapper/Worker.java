@@ -922,35 +922,6 @@ public class Worker {
         }
     }
 
-
-    /**
-     * connector state
-     */
-    public class ConnectorState {
-        private final TargetState state;
-        private final boolean deleted;
-
-        public ConnectorState(ConnectKeyValue config) {
-            if (config == null){
-                deleted = true;
-                state = null;
-            } else {
-                deleted = (0 != config.getInt(RuntimeConfigDefine.CONFIG_DELETED));
-                state = config.containsKey(RuntimeConfigDefine.TARGET_STATE) ? TargetState.valueOf(config.getString(RuntimeConfigDefine.TARGET_STATE)) : TargetState.STARTED;
-            }
-        }
-
-        public TargetState state() {
-            return state;
-        }
-
-        public boolean isDeleted() {
-            return deleted;
-
-        }
-    }
-
-
     public enum TaskType {
         SOURCE,
         SINK,
