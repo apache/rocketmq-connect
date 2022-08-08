@@ -168,7 +168,7 @@ public class Plugin {
                 klass = pluginClassFromConfig(config, classPropertyName, RecordConverter.class, delegatingLoader.converters());
                 break;
             case PLUGINS:
-                String converterClassOrAlias = config.getClass(classPropertyName).getName();
+                String converterClassOrAlias = Utils.getClass(config,classPropertyName).getName();
                 try {
                     klass = pluginClass(delegatingLoader, converterClassOrAlias, RecordConverter.class);
                 } catch (ClassNotFoundException e) {
@@ -253,7 +253,7 @@ public class Plugin {
             Class<U> pluginClass,
             Collection<PluginWrapper<U>> plugins
     ) {
-        Class<?> klass = config.getClass(propertyName);
+        Class<?> klass = Utils.getClass(config, propertyName);
         if (pluginClass.isAssignableFrom(klass)) {
             return (Class<? extends U>) klass;
         }

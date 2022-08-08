@@ -18,6 +18,8 @@
 package org.apache.rocketmq.connect.runtime.utils;
 
 import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +93,6 @@ public class Utils {
         return sb.toString();
     }
 
-
     /**
      * Look up a class by name.
      */
@@ -119,5 +120,23 @@ public class Utils {
         }
         return cl;
 
+    }
+
+    /**
+     * get class
+     * @param key
+     * @return
+     */
+    public static Class<?> getClass(ConnectKeyValue config,final String key) {
+        if (!config.containsKey(key) || StringUtils.isEmpty(config.getString(key))) {
+            throw new ConnectException("");
+        }
+        ClassLoader contextCurrentClassLoader = Utils.getContextCurrentClassLoader();
+        try {
+            Class<?> klass = contextCurrentClassLoader.loadClass(config.getString(key).trim());
+            return Class.forName(klass.getName(), true, contextCurrentClassLoader);
+        } catch (ClassNotFoundException e) {
+            throw new ConnectException("Expected a Class instance or class name. key ["+ key+"], value ["+config.getString(key)+"]");
+        }
     }
 }

@@ -111,25 +111,6 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         return properties.containsKey(key) ? getString(key) : defaultValue;
     }
 
-
-    /**
-     * get class
-     * @param key
-     * @return
-     */
-    public Class<?> getClass(final String key) {
-        if (!containsKey(key) || StringUtils.isEmpty(getString(key))) {
-            throw new ConnectException("");
-        }
-        ClassLoader contextCurrentClassLoader = Utils.getContextCurrentClassLoader();
-        try {
-            Class<?> klass = contextCurrentClassLoader.loadClass(getString(key).trim());
-            return Class.forName(klass.getName(), true, contextCurrentClassLoader);
-        } catch (ClassNotFoundException e) {
-            throw new ConnectException("Expected a Class instance or class name. key ["+ key+"], value ["+getString(key)+"]");
-        }
-    }
-
     @Override
     public Set<String> keySet() {
         return properties.keySet();
