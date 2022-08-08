@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -225,6 +227,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      */
     @Override
     public void pauseConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw  new ConnectException("Connector ["+connectorName+"] does not exist");
+        }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.PAUSED);
@@ -237,6 +242,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      */
     @Override
     public void resumeConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw  new ConnectException("Connector ["+connectorName+"] does not exist");
+        }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.STARTED);

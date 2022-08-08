@@ -49,8 +49,8 @@ public class RestHandler {
         app.enableCaseSensitiveUrls();
         app = app.start(connectController.getConnectConfig().getHttpPort());
         app.get("/getClusterInfo", this::getClusterInfo);
-        app.get("/listConnectors", this::listConnectors);
 
+        app.get("/connectors/list", this::listConnectors);
         app.get("/connectors/stopAll", this::handleStopAllConnector);
         app.get("/connectors/pauseAll", this::handlePauseAllConnector);
         app.get("/connectors/resumeAll", this::handleResumeAllConnector);
@@ -154,13 +154,13 @@ public class RestHandler {
 
 
     private void handlePauseConnector(Context context) {
-        String connector = context.pathParam("connector");
+        String connector = context.pathParam("connectorName");
         connectController.pauseConnector(connector);
         context.result("success");
     }
 
     private void handleResumeConnector(Context context) {
-        String connector = context.pathParam("connector");
+        String connector = context.pathParam("connectorName");
         connectController.resumeConnector(connector);
         context.result("success");
     }

@@ -135,7 +135,7 @@ public class StateManagementServiceImpl implements StateManagementService {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName,connectorStatus)->{
-            // send
+            // send status
             put(connectorStatus);
         });
 
@@ -158,6 +158,12 @@ public class StateManagementServiceImpl implements StateManagementService {
         connectorStatusStore.persist();
         taskStatusStore.persist();
         dataSynchronizer.stop();
+    }
+
+    @Override
+    public void persist() {
+        connectorStatusStore.persist();
+        taskStatusStore.persist();
     }
 
     /**

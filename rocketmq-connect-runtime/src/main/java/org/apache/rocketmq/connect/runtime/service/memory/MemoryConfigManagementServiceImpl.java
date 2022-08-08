@@ -18,6 +18,7 @@ package org.apache.rocketmq.connect.runtime.service.memory;
 
 
 import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -44,8 +45,6 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
      * All listeners to trigger while config change.
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
-
-    private Plugin plugin;
 
     public MemoryConfigManagementServiceImpl() {
     }
@@ -126,6 +125,9 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
      */
     @Override
     public void pauseConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw  new ConnectException("Connector ["+connectorName+"] does not exist");
+        }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.PAUSED);
@@ -135,11 +137,13 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
 
     /**
      * resume connector
-     *
      * @param connectorName
      */
     @Override
     public void resumeConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw  new ConnectException("Connector ["+connectorName+"] does not exist");
+        }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.STARTED);

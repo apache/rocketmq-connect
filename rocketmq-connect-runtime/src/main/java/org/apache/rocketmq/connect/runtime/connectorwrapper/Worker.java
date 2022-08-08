@@ -263,6 +263,10 @@ public class Worker {
             return;
         }
         for (String connectName : assigns.keySet()) {
+            if (!connectors.containsKey(connectName)) {
+                // new
+                continue;
+            }
             WorkerConnector connector = connectors.get(connectName);
             ConnectKeyValue oldConfig = connector.getKeyValue();
             ConnectKeyValue newConfig = assigns.get(connectName);
@@ -285,6 +289,10 @@ public class Worker {
             return;
         }
         for (String connectName : assigns.keySet()) {
+            if (!connectors.containsKey(connectName)) {
+                // new
+                continue;
+            }
             WorkerConnector connector = connectors.get(connectName);
             ConnectKeyValue oldConfig = connector.getKeyValue();
             ConnectKeyValue newConfig = assigns.get(connectName);

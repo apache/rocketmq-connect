@@ -105,4 +105,11 @@ public interface StateManagementService {
      * @return
      */
     StagingMode getStagingMode();
+
+    /**
+     * Persist all the configs in a store.
+     */
+    default void persist(){
+
+    }
 }

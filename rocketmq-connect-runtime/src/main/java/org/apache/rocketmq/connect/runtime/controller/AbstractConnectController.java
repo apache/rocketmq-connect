@@ -133,8 +133,9 @@ public abstract class AbstractConnectController implements ConnectController {
         clusterManagementService.start();
         configManagementService.start();
         positionManagementService.start();
-        worker.start();
         connectStatsService.start();
+        stateManagementService.start();
+        worker.start();
     }
 
     @Override
@@ -154,6 +155,9 @@ public abstract class AbstractConnectController implements ConnectController {
 
         if (clusterManagementService != null) {
             clusterManagementService.stop();
+        }
+        if (stateManagementService != null) {
+            stateManagementService.stop();
         }
 
     }
@@ -207,9 +211,6 @@ public abstract class AbstractConnectController implements ConnectController {
         configManagementService.resumeConnector(connector);
     }
 
-
-
-
     /**
      * Get a list of connectors currently running in this cluster.
      * @return A list of connector names
@@ -234,14 +235,19 @@ public abstract class AbstractConnectController implements ConnectController {
         Collection<TaskStatus> tasks = stateManagementService.getAll(connName);
 
         ConnectorStateInfo.ConnectorState connectorState = new ConnectorStateInfo.ConnectorState(
-                connector.getId(), connector.getWorkerId(), connector.getTrace());
+                connector.getState().toString(), connector.getWorkerId(), connector.getTrace());
         List<ConnectorStateInfo.TaskState> taskStates = new ArrayList<>();
 
         for (TaskStatus status : tasks) {
-            taskStates.add(new ConnectorStateInfo.TaskState(status.getId().task(),
-                    status.getState().toString(), status.getWorkerId(), status.getTrace()));
+            taskStates.add(
+                    new ConnectorStateInfo.TaskState(
+                            status.getId().task(),
+                            status.getState().toString(),
+                            status.getWorkerId(),
+                            status.getTrace()
+                    )
+            );
         }
-
         Collections.sort(taskStates);
         Map<String, String> conf = rawConfig(connName);
         return new ConnectorStateInfo(connName, connectorState, taskStates,
@@ -276,6 +282,21 @@ public abstract class AbstractConnectController implements ConnectController {
      * @param connClass class of the connector
      */
     public ConnectorType connectorTypeForClass(String connClass) {
-        return null;
+        return ConnectorType.from(loadConnector(connClass));
+    }
+
+    private Class loadConnector(String connectorClass) {
+        try{
+            ClassLoader classLoader = plugin.getPluginClassLoader(connectorClass);
+            Class clazz;
+            if (null != classLoader) {
+                clazz = Class.forName(connectorClass, true, classLoader);
+            } else {
+                clazz = Class.forName(connectorClass);
+            }
+            return clazz;
+        }catch (Exception ex){
+            throw new ConnectException(ex);
+        }
     }
 }
