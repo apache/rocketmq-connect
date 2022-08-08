@@ -128,6 +128,8 @@ public class Worker {
     private final ConcurrentMap<String, WorkerConnector> connectors = new ConcurrentHashMap<>();
     private final ExecutorService executor;
 
+    private final ConfigManagementService configManagementService;
+
     public Worker(ConnectConfig workerConfig,
                   PositionManagementService positionManagementService,
                   ConfigManagementService configManagementService,
@@ -136,6 +138,7 @@ public class Worker {
                   StateManagementService stateManagementService) {
         this.workerConfig = workerConfig;
         this.taskExecutor = Executors.newCachedThreadPool(new DefaultThreadFactory("task-Worker-Executor-"));
+        this.configManagementService = configManagementService;
         this.positionManagementService = positionManagementService;
         this.plugin = plugin;
         this.connectStatsManager = connectController.getConnectStatsManager();
@@ -555,9 +558,10 @@ public class Worker {
                         runningTasks.remove(runnable);
                         stoppingTasks.put(runnable, System.currentTimeMillis());
                     } else {
-                        // reset target state
-                        if (connectors.containsKey(connectorName)) {
-                            workerTask.transitionTo(connectors.get(connectorName).getKeyValue().getTargetState());
+                        // set target state
+                        TargetState targetState = configManagementService.snapshot().targetState(connectorName);
+                        if (targetState != null) {
+                            workerTask.transitionTo(targetState);
                         }
                     }
                     break;
