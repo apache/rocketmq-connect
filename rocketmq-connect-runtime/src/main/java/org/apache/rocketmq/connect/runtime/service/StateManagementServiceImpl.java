@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * status management service
+ * State management service
  */
 public class StateManagementServiceImpl implements StateManagementService {
 
