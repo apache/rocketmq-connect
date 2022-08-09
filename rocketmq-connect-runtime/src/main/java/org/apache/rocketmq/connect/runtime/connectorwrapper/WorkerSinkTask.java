@@ -97,7 +97,7 @@ public class WorkerSinkTask extends WorkerTask {
      */
     private final Map<MessageQueue, Long> lastCommittedOffsets;
     private final Map<MessageQueue, Long> currentOffsets;
-    private final Map<MessageQueue, Long> commitingOffsets;
+    private final Map<MessageQueue, Long> originalOffsets;
     private final Set<MessageQueue> messageQueues;
 
     private final List<ConnectRecord> messageBatch;
@@ -172,7 +172,7 @@ public class WorkerSinkTask extends WorkerTask {
         // cache commit offset
         this.lastCommittedOffsets = new ConcurrentHashMap<>();
         this.currentOffsets = new ConcurrentHashMap<>();
-        this.commitingOffsets = new ConcurrentHashMap<>();
+        this.originalOffsets = new ConcurrentHashMap<>();
         this.messageBatch =  new ArrayList<>();
 
         // commit
@@ -451,11 +451,13 @@ public class WorkerSinkTask extends WorkerTask {
      * @param messages
      */
     private void receiveMessages(List<MessageExt> messages) {
-        commitingOffsets.clear();
+        if(!this.messageBatch.isEmpty()){
+            originalOffsets.clear();
+        }
         for (MessageExt message : messages) {
             this.retryWithToleranceOperator.consumerRecord(message);
             ConnectRecord connectRecord = convertMessages(message);
-            commitingOffsets.put(
+            originalOffsets.put(
                     new MessageQueue(message.getTopic(), message.getBrokerName(), message.getQueueId()),
                     message.getQueueOffset() + 1
             );
@@ -466,7 +468,7 @@ public class WorkerSinkTask extends WorkerTask {
         }
         try {
             sinkTask.put(new ArrayList<>(messageBatch));
-            currentOffsets.putAll(commitingOffsets);
+            currentOffsets.putAll(originalOffsets);
             messageBatch.clear();
 
             if (!shouldPause()) {
