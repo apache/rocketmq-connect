@@ -502,7 +502,15 @@ public class WorkerSinkTask extends WorkerTask {
         // convert value
         SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> valueConverter.toConnectData(message.getTopic(), message.getBody()),
                 ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
-        ConnectRecord record = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndKey.schema(), schemaAndKey.value(), schemaAndValue.schema(), schemaAndValue.value());
+        ConnectRecord record = new ConnectRecord(
+                recordPartition,
+                recordOffset,
+                timestamp,
+                schemaAndKey == null? null: schemaAndKey.schema(),
+                schemaAndKey == null? null: schemaAndKey.value(),
+                schemaAndValue.schema(),
+                schemaAndValue.value()
+        );
         if (retryWithToleranceOperator.failed()) {
             return null;
         }
@@ -546,8 +554,6 @@ public class WorkerSinkTask extends WorkerTask {
         // sub topics
         try {
             for (String topic : topics) {
-                consumer.setPullBatchSize(MAX_MESSAGE_NUM);
-                consumer.subscribe(topic, "*");
                 consumer.setMessageQueueListener(new MessageQueueListener() {
                     @Override
                     public void messageQueueChanged(String subTopic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
@@ -586,6 +592,8 @@ public class WorkerSinkTask extends WorkerTask {
 
                     }
                 });
+                consumer.setPullBatchSize(MAX_MESSAGE_NUM);
+                consumer.subscribe(topic, "*");
             }
             consumer.start();
         } catch(MQClientException e){

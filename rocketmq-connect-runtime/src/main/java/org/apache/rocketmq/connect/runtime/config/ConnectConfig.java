@@ -146,7 +146,7 @@ public class ConnectConfig {
     /**
      * offset commit interval ms
      */
-    private long offsetCommitIntervalMs = 5000L;
+    private long offsetCommitIntervalMs = 1000L * 30;
 
 
 
