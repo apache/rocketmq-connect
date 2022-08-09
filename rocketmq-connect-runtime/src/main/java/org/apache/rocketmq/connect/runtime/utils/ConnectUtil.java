@@ -25,12 +25,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -258,6 +260,19 @@ public class ConnectUtil {
         return recordPartition;
     }
 
+    /**
+     * convert to message queue
+     * @param recordPartition
+     * @return
+     */
+    public static MessageQueue convertToMessageQueue(RecordPartition recordPartition) {
+        Map<String, ?> partion = recordPartition.getPartition();
+        String topic = partion.get("topic").toString();
+        String brokerName = partion.get("brokerName").toString();
+        int queueId = partion.containsKey("queueId") ? Integer.parseInt(partion.get("queueId").toString()) :0;
+        return new MessageQueue(topic, brokerName, queueId);
+    }
+
     public static RecordOffset convertToRecordOffset(Long offset) {
         Map<String, String> offsetMap = new HashMap<>();
         offsetMap.put(QUEUE_OFFSET, offset + "");
@@ -286,6 +301,37 @@ public class ConnectUtil {
         map.put("queueId", queueId + "");
         RecordPartition recordPartition = new RecordPartition(map);
         return recordPartition;
+    }
+
+    /**
+     * init default lite pull consumer
+     *
+     * @param connectConfig
+     * @return
+     * @throws MQClientException
+     */
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(ConnectConfig connectConfig, ConnectorTaskId  id, ConnectKeyValue keyValue) throws MQClientException {
+        DefaultLitePullConsumer consumer = null;
+        String groupId = keyValue.getString(RuntimeConfigDefine.TASK_GROUP_ID);
+        if (StringUtils.isBlank(groupId)) {
+            groupId = SYS_TASK_CG_PREFIX + id.connector();
+        }
+        if (Objects.isNull(consumer)) {
+            if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
+                consumer = new DefaultLitePullConsumer(groupId);
+            } else {
+                consumer = new DefaultLitePullConsumer(groupId, getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+            }
+        }
+        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        String uniqueName = Thread.currentThread().getName() + "-" + System.currentTimeMillis() % 1000;
+        consumer.setInstanceName(uniqueName);
+        consumer.setUnitName(uniqueName);
+        return consumer;
+    }
+
+    private static RPCHook getAclRPCHook(String accessKey, String secretKey) {
+        return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
     }
 
     public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, ConnectorTaskId  id, ConnectKeyValue keyValue) {

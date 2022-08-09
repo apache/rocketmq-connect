@@ -38,6 +38,8 @@ public class RuntimeConfigDefine {
 
     public static final String TASK_ID = "task-id";
 
+    public static final String TASK_GROUP_ID = "task-group-id";
+
     public static final String TASK_TYPE = "task-type";
 
     public static final String SOURCE_TASK_CLASS = "source-task-class";

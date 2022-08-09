@@ -30,18 +30,15 @@ import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
-import org.apache.rocketmq.client.consumer.PullResult;
-import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
-import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
@@ -55,24 +52,21 @@ import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static java.util.Collections.singleton;
+import java.util.stream.Collectors;
 
 
 /**
@@ -81,6 +75,7 @@ import static java.util.Collections.singleton;
 public class WorkerSinkTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+
     /**
      * The implements of the sink task.
      */
@@ -89,7 +84,7 @@ public class WorkerSinkTask extends WorkerTask {
     /**
      * A RocketMQ consumer to pull message from MQ.
      */
-    private final DefaultMQPullConsumer consumer;
+    private final DefaultLitePullConsumer consumer;
 
     /**
      * A converter to parse sink data entry to object.
@@ -97,30 +92,19 @@ public class WorkerSinkTask extends WorkerTask {
     private RecordConverter keyConverter;
     private RecordConverter valueConverter;
 
-    private final ConcurrentHashMap<MessageQueue, Long> messageQueuesOffsetMap;
+    /**
+     * cache offset
+     */
+    private final Map<MessageQueue, Long> lastCommittedOffsets;
+    private final Map<MessageQueue, Long> currentOffsets;
+    private final Map<MessageQueue, Long> commitingOffsets;
+    private final Set<MessageQueue> messageQueues;
 
-    private final ConcurrentHashMap<MessageQueue, QueueState> messageQueuesStateMap;
-
-    private static final Integer TIMEOUT = 3 * 1000;
-
+    private final List<ConnectRecord> messageBatch;
     private static final Integer MAX_MESSAGE_NUM = 32;
-
-    private static final String COMMA = ",";
-    private static final String SEMICOLON = ";";
-
-    public static final String OFFSET_COMMIT_TIMEOUT_MS_CONFIG = "offset.flush.timeout.ms";
-
-    private long nextCommitTime = 0;
 
     private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
 
-    private long pullMsgErrorCount = 0;
-
-    private long pullNotFountMsgCount = 0;
-
-    private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 10;
-    private static final long PULL_NO_MSG_BACKOFF_MS = 1000 * 3;
-    private static final long PULL_MSG_ERROR_THRESHOLD = 16;
 
     /**
      * stat
@@ -131,6 +115,15 @@ public class WorkerSinkTask extends WorkerTask {
     private final CountDownLatch stopPullMsgLatch;
     private WorkerSinkTaskContext sinkTaskContext;
     private WorkerErrorRecordReporter errorRecordReporter;
+
+    /**
+     * for commit
+     */
+    private long nextCommit;
+    private int commitSeqno;
+    private long commitStarted;
+    private boolean committing;
+
 
 
     public static final String BROKER_NAME = "brokerName";
@@ -157,7 +150,7 @@ public class WorkerSinkTask extends WorkerTask {
                           ConnectKeyValue taskConfig,
                           RecordConverter keyConverter,
                           RecordConverter valueConverter,
-                          DefaultMQPullConsumer consumer,
+                          DefaultLitePullConsumer consumer,
                           AtomicReference<WorkerState> workerState,
                           ConnectStatsManager connectStatsManager,
                           ConnectStatsService connectStatsService,
@@ -170,240 +163,277 @@ public class WorkerSinkTask extends WorkerTask {
         this.consumer = consumer;
         this.keyConverter = keyConverter;
         this.valueConverter = valueConverter;
-        this.messageQueuesOffsetMap = new ConcurrentHashMap<>(256);
-        this.messageQueuesStateMap = new ConcurrentHashMap<>(256);
+        this.messageQueues = new HashSet<>();
         this.connectStatsManager = connectStatsManager;
         this.connectStatsService = connectStatsService;
         this.stopPullMsgLatch = new CountDownLatch(1);
         this.sinkTaskContext = new WorkerSinkTaskContext(taskConfig, this, consumer);
         this.errorRecordReporter = errorRecordReporter;
+        // cache commit offset
+        this.lastCommittedOffsets = new ConcurrentHashMap<>();
+        this.currentOffsets = new ConcurrentHashMap<>();
+        this.commitingOffsets = new ConcurrentHashMap<>();
+        this.messageBatch =  new ArrayList<>();
 
+        // commit
+        this.nextCommit = System.currentTimeMillis() + workerConfig.getOffsetCommitIntervalMs();
+        this.committing = false;
+        this.commitSeqno = 0;
+        this.commitStarted = -1;
     }
 
-    private void setQueueOffset() {
-        Map<MessageQueue, Long> messageQueueOffsetMap = this.sinkTaskContext.queuesOffsets();
-        if (org.apache.commons.collections4.MapUtils.isEmpty(messageQueueOffsetMap)) {
-            return;
+
+
+    protected void iteration() {
+        final long offsetCommitIntervalMs = workerConfig.getOffsetCommitIntervalMs();
+        long now = System.currentTimeMillis();
+        // check committing
+        if (!committing && now >= nextCommit) {
+            commitOffsets(now, false);
+            nextCommit = now + offsetCommitIntervalMs;
         }
-        for (Map.Entry<MessageQueue, Long> entry : messageQueueOffsetMap.entrySet()) {
-            if (messageQueuesOffsetMap.containsKey(entry.getKey())) {
-                this.messageQueuesOffsetMap.put(entry.getKey(), entry.getValue());
-                try {
-                    consumer.updateConsumeOffset(entry.getKey(), entry.getValue());
-                } catch (MQClientException e) {
-                    log.warn("updateConsumeOffset MQClientException, messageQueue {}, offset {}", JSON.toJSONString(entry.getKey()), entry.getValue(), e);
-                }
-            }
+
+        final long commitTimeoutMs = commitStarted + workerConfig.getOffsetCommitTimeoutMsConfig();
+
+        // Check for timed out commits
+        if (committing && now >= commitTimeoutMs) {
+            log.warn("{} Commit of offsets timed out", this);
+            committing = false;
         }
-        this.sinkTaskContext.cleanQueuesOffsets();
+
+        // And process messages
+        long timeoutMs = Math.max(nextCommit - now, 0);
+        poll(timeoutMs);
+    }
+
+
+    @Override
+    public void transitionTo(TargetState state) {
+        super.transitionTo(state);
+    }
+
+
+    // resume all consumer topic queue
+    private void resumeAll() {
+        consumer.resume(messageQueues);
+    }
+
+    //pause all consumer topic queue
+    private void pauseAll() {
+        consumer.pause(messageQueues);
     }
 
     /**
-     * sub topics
+     * commit offset
+     * @param now
+     * @param closing
      */
-    private void registryTopics() {
-        Set<String> topics = SinkConnectorConfig.parseTopicList(taskConfig);
-        if (org.apache.commons.collections4.CollectionUtils.isEmpty(topics)) {
-            throw new ConnectException("Sink connector topics config can be null, please check sink connector config info");
-        }
-        for (String topic : topics) {
-            consumer.registerMessageQueueListener(topic, new MessageQueueListener() {
-                @Override
-                public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-                    log.info("messageQueueChanged, old messageQueuesOffsetMap {}", JSON.toJSONString(messageQueuesOffsetMap));
-                    WorkerSinkTask.this.preCommit(true);
-                    messageQueuesOffsetMap.forEach((key, value) -> {
-                        if (key.getTopic().equals(topic)) {
-                            messageQueuesOffsetMap.remove(key, value);
-                        }
-                    });
-                    Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
-                    recordPartitions.forEach(key -> {
-                        if (key.getPartition().get("topic").equals(topic)) {
-                            waitRemoveQueueMetaDatas.add(key);
-                        }
-                    });
-                    recordPartitions.removeAll(waitRemoveQueueMetaDatas);
-                    for (MessageQueue messageQueue : mqDivided) {
-                        messageQueuesOffsetMap.put(messageQueue, consumeFromOffset(messageQueue, taskConfig));
-                        RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueue);
-                        recordPartitions.add(recordPartition);
-                    }
-                    log.info("messageQueueChanged, new messageQueuesOffsetMap {}", JSON.toJSONString(messageQueuesOffsetMap));
-                }
-            });
-        }
+    private void commitOffsets(long now, boolean closing) {
+        commitOffsets(now, closing, messageQueues);
     }
 
-    public long consumeFromOffset(MessageQueue messageQueue, ConnectKeyValue taskConfig) {
-        //-1 when started
-        long offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
-        if (offset < 0) {
-            //query from broker
-            offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
+    private void commitOffsets(long now, boolean closing, Set<MessageQueue> messageQueues) {
+        log.trace("Committing offsets for queues {}", messageQueues);
+
+        Map<MessageQueue, Long> offsetsToCommit = currentOffsets.entrySet()
+                .stream()
+                .filter(e -> messageQueues.contains(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (offsetsToCommit.isEmpty()) {
+            return;
         }
 
-        String consumeFromWhere = taskConfig.getString("consume-from-where");
-        if (StringUtils.isBlank(consumeFromWhere)) {
-            consumeFromWhere = "CONSUME_FROM_LAST_OFFSET";
-        }
+        committing = true;
+        commitSeqno += 1;
+        commitStarted = now;
 
-        if (offset < 0) {
-            for (int i = 0; i < 3; i++) {
-                try {
-                    if (consumeFromWhere.equals("CONSUME_FROM_FIRST_OFFSET")) {
-                        offset = consumer.minOffset(messageQueue);
-                    } else {
-                        offset = consumer.maxOffset(messageQueue);
-                    }
-                    break;
-                } catch (MQClientException e) {
-                    log.error("get max offset MQClientException", e);
-                    if (i == 3) {
-                        throw new ConnectException("get max offset MQClientException", e);
-                    }
-                    continue;
-                }
-            }
-        }
-        //make sure
-        if (offset < 0) {
-            offset = 0;
-        }
-        return offset;
-    }
+        Map<MessageQueue, Long> lastCommittedOffsetsForPartitions = this.lastCommittedOffsets.entrySet()
+                .stream()
+                .filter(e -> offsetsToCommit.containsKey(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    public void incPullTPS(String topic, int pullSize) {
-        consumer.getDefaultMQPullConsumerImpl()
-                .getRebalanceImpl()
-                .getmQClientFactory()
-                .getConsumerStatsManager()
-                .incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
-    }
+        final Map<MessageQueue, Long> taskResetOffsets  = new ConcurrentHashMap<>();
+        Map<RecordPartition, RecordOffset>  taskProvidedRecordOffset = new ConcurrentHashMap<>();
+        try {
+            log.trace("{} Calling task.preCommit with current offsets: {}", this, offsetsToCommit);
 
-    private void pullMessageFromQueues() throws InterruptedException {
-        long startTimeStamp = System.currentTimeMillis();
-        log.info("START pullMessageFromQueues, time started : {}", startTimeStamp);
-        if (org.apache.commons.collections4.MapUtils.isEmpty(messageQueuesOffsetMap)) {
-            log.info("messageQueuesOffsetMap is null, : {}", startTimeStamp);
-            stopPullMsgLatch.await(PULL_MSG_ERROR_BACKOFF_MS, TimeUnit.MILLISECONDS);
-        }
-        for (Map.Entry<MessageQueue, Long> entry : messageQueuesOffsetMap.entrySet()) {
-            if (messageQueuesStateMap.containsKey(entry.getKey())) {
-                log.warn("sink task message queue state is not running, sink task id {}, queue info {}, queue state {}", id().toString(), JSON.toJSONString(entry.getKey()), JSON.toJSONString(messageQueuesStateMap.get(entry.getKey())));
-                continue;
-            }
-            log.info("START pullBlockIfNotFound, time started : {}", System.currentTimeMillis());
-            if (isStopping()) {
-                log.warn("sink task state is not running, sink task id {}, state {}", id().toString(), state.get().name());
-                break;
-            }
-            PullResult pullResult = null;
-            final long beginPullMsgTimestamp = System.currentTimeMillis();
-            try {
-                shouldStopPullMsg();
-                pullResult = consumer.pull(entry.getKey(), "*", entry.getValue(), MAX_MESSAGE_NUM);
-                if (pullResult == null) {
-                    continue;
-                }
-                pullMsgErrorCount = 0;
-            } catch (MQClientException | RemotingException | MQBrokerException e) {
-                pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message {}, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getClass().getName(), e.getMessage(), this.state.get(), e);
-                readRecordFail(beginPullMsgTimestamp);
-            } catch (InterruptedException e) {
-                pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message InterruptedException, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), this.state.get(), e);
-                readRecordFail(beginPullMsgTimestamp);
-                throw e;
-            } catch (Throwable e) {
-                pullMsgErrorCount++;
-                log.error(" sink task message queue {}, offset {}, taskconfig {},pull message Throwable, Error {}, taskState {}", JSON.toJSONString(entry.getKey()), JSON.toJSONString(entry.getValue()), JSON.toJSONString(taskConfig), e.getMessage(), e);
-                readRecordFail(beginPullMsgTimestamp);
-                throw e;
+            Map<RecordPartition, RecordOffset>  queueCommitOffset =  new ConcurrentHashMap<>();
+            for (Map.Entry<MessageQueue, Long> messageQueueOffset : offsetsToCommit.entrySet()) {
+                RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueueOffset.getKey());
+                RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(messageQueueOffset.getValue());
+                queueCommitOffset.put(recordPartition, recordOffset);
             }
 
-            List<MessageExt> messages = null;
-            log.info("INSIDE pullMessageFromQueues, time elapsed : {}", System.currentTimeMillis() - startTimeStamp);
-            PullStatus status = pullResult.getPullStatus();
-            switch (status) {
-                case FOUND:
-                    pullNotFountMsgCount = 0;
-                    this.incPullTPS(entry.getKey().getTopic(), pullResult.getMsgFoundList().size());
-                    messages = pullResult.getMsgFoundList();
-                    recordReadSuccess(messages.size(), beginPullMsgTimestamp);
-                    receiveMessages(messages);
-                    if (messageQueuesOffsetMap.containsKey(entry.getKey())) {
-                        // put offset
-                        messageQueuesOffsetMap.put(entry.getKey(), pullResult.getNextBeginOffset());
-                    } else {
-                        // load balancing
-                        log.warn("The consumer may have load balancing, and the current task does not process the message queue,messageQueuesOffsetMap {}, messageQueue {}", JSON.toJSONString(messageQueuesOffsetMap), JSON.toJSONString(entry.getKey()));
-                    }
+            // pre commit
+            taskProvidedRecordOffset = sinkTask.preCommit(queueCommitOffset);
+
+            for (Map.Entry<RecordPartition, RecordOffset> entry : taskProvidedRecordOffset.entrySet()){
+                taskResetOffsets.put(ConnectUtil.convertToMessageQueue(entry.getKey()),ConnectUtil.convertToOffset(entry.getValue()));
+            }
+
+        } catch (Throwable t) {
+            if (closing) {
+                log.warn("{} Offset commit failed", this);
+            } else {
+                log.error("{} Offset commit failed, reset to last committed offsets", this, t);
+                for (Map.Entry<MessageQueue, Long> entry : lastCommittedOffsetsForPartitions.entrySet()) {
+                    log.debug("{} Rewinding topic queue {} to offset {}", this, entry.getKey(), entry.getValue());
                     try {
-                        consumer.updateConsumeOffset(entry.getKey(), pullResult.getNextBeginOffset());
-                    } catch (MQClientException e) {
-                        log.warn("updateConsumeOffset MQClientException, pullResult {}", pullResult, e);
-                    }
-                    break;
-                case OFFSET_ILLEGAL:
-                    log.warn("Offset illegal, reset offset, message queue {}, pull offset {}, nextBeginOffset {}", JSON.toJSONString(entry.getKey()), entry.getValue(), pullResult.getNextBeginOffset());
-                    this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
-                    break;
-                case NO_NEW_MSG:
-                    pullNotFountMsgCount++;
-                    log.info("No new message, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
-                    break;
-                case NO_MATCHED_MSG:
-                    log.info("no matched msg, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
-                    this.sinkTaskContext.resetOffset(ConnectUtil.convertToRecordPartition(entry.getKey()), ConnectUtil.convertToRecordOffset(pullResult.getNextBeginOffset()));
-                    break;
-                default:
-                    pullNotFountMsgCount++;
-                    log.info("unknow pull msg state, pullResult {}, message queue {}, pull offset {}", JSON.toJSONString(pullResult), JSON.toJSONString(entry.getKey()), entry.getValue());
-                    break;
+                        consumer.seek(entry.getKey(), entry.getValue());
+                    } catch (MQClientException e) {}
+                }
+                //
+                currentOffsets.putAll(lastCommittedOffsetsForPartitions);
+            }
+            onCommitCompleted(t, commitSeqno, null);
+            return;
+        } finally {
+            if (closing) {
+                log.trace("{} Closing the task before committing the offsets: {}", this, offsetsToCommit);
+                sinkTask.flush(taskProvidedRecordOffset);
+            }
+        }
+
+        if (taskResetOffsets.isEmpty()) {
+            log.debug("{} Skipping offset commit, task opted-out by returning no offsets from preCommit", this);
+            onCommitCompleted(null, commitSeqno, null);
+            return;
+        }
+
+        //get all assign topic queue
+        Collection<MessageQueue> allAssignedTopicQueues = this.messageQueues;
+        // committable offsets
+        final Map<MessageQueue, Long> committableOffsets = new HashMap<>(lastCommittedOffsetsForPartitions);
+        for (Map.Entry<MessageQueue, Long> taskResetOffsetEntry : taskResetOffsets.entrySet()) {
+
+            // task reset offset
+            final MessageQueue queue = taskResetOffsetEntry.getKey();
+            final Long taskResetOffset = taskResetOffsetEntry.getValue();
+
+            if (committableOffsets.containsKey(queue)) {
+                long currentOffset = offsetsToCommit.get(queue);
+                if (currentOffset >= taskResetOffset ) {
+                    committableOffsets.put(queue, taskResetOffset);
+                }
+            } else if (!allAssignedTopicQueues.contains(queue)) {
+                log.warn("{} Ignoring invalid task provided offset {}/{} -- partition not assigned, assignment={}",
+                        this, queue, taskResetOffset, allAssignedTopicQueues);
+            } else {
+                log.debug("{} Ignoring task provided offset {}/{} -- partition not requested, requested={}",
+                        this, queue, taskResetOffset, committableOffsets.keySet());
             }
 
-            AtomicLong atomicLong = connectStatsService.singleSinkTaskTimesTotal(id().toString());
-            if (null != atomicLong) {
-                atomicLong.addAndGet(org.apache.commons.collections4.CollectionUtils.isEmpty(messages) ? 0 : messages.size());
-            }
+        }
+
+        if (committableOffsets.equals(lastCommittedOffsetsForPartitions)) {
+            log.debug("{} Skipping offset commit, no change since last commit", this);
+            onCommitCompleted(null, commitSeqno, null);
+            return;
+        }
+        doCommitSync(committableOffsets, commitSeqno);
+    }
+
+    /**
+     * do commi
+     * @param offsets
+     * @param seqno
+     */
+    private void doCommitSync(Map<MessageQueue, Long> offsets, int seqno) {
+        log.debug("{} Committing offsets synchronously using sequence number {}: {}", this, seqno, offsets);
+        try {
+            offsets.forEach((queue, offset)->{
+                consumer.getOffsetStore().updateOffset(queue, offset, false);
+            });
+            onCommitCompleted(null, seqno, offsets);
+        } catch (Exception e) {
+            onCommitCompleted(e, seqno, offsets);
         }
     }
 
+    /**
+     * commit
+     * @param error
+     * @param seqno
+     * @param committedOffsets
+     */
+    private void onCommitCompleted(Throwable error, long seqno, Map<MessageQueue, Long> committedOffsets) {
+        if (commitSeqno != seqno) {
+            log.debug("{} Received out of order commit callback for sequence number {}, but most recent sequence number is {}",
+                    this, seqno, commitSeqno);
+        } else {
+            long durationMillis = System.currentTimeMillis() - commitStarted;
+            if (error != null) {
+                log.error("{} Commit of offsets threw an unexpected exception for sequence number {}: {}",
+                        this, seqno, committedOffsets, error);
 
-    private void shouldStopPullMsg() throws InterruptedException {
-        if (pullMsgErrorCount == PULL_MSG_ERROR_THRESHOLD) {
-            log.error("Accumulative error {} times, stop pull msg for {} ms", pullMsgErrorCount, PULL_MSG_ERROR_BACKOFF_MS);
-            stopPullMsgLatch.await(PULL_MSG_ERROR_BACKOFF_MS, TimeUnit.MILLISECONDS);
-            pullMsgErrorCount = 0;
-        }
-        if (pullNotFountMsgCount >= PULL_MSG_ERROR_THRESHOLD) {
-            log.error("pull not found msg {} times, stop pull msg for {} ms", pullNotFountMsgCount, PULL_NO_MSG_BACKOFF_MS);
-            stopPullMsgLatch.await(PULL_NO_MSG_BACKOFF_MS, TimeUnit.MILLISECONDS);
-            pullNotFountMsgCount = 0;
-        }
-    }
-
-    private void preCommit(boolean isForce) {
-        long commitInterval = taskConfig.getLong(OFFSET_COMMIT_TIMEOUT_MS_CONFIG, 1000);
-        if (nextCommitTime <= 0) {
-            long now = System.currentTimeMillis();
-            nextCommitTime = now + commitInterval;
-        }
-        if (isForce || nextCommitTime < System.currentTimeMillis()) {
-            Map<RecordPartition, RecordOffset> queueMetaDataLongMap = new HashMap<>(512);
-            if (messageQueuesOffsetMap.size() > 0) {
-                for (Map.Entry<MessageQueue, Long> messageQueueLongEntry : messageQueuesOffsetMap.entrySet()) {
-                    RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueueLongEntry.getKey());
-                    RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(messageQueueLongEntry.getValue());
-                    queueMetaDataLongMap.put(recordPartition, recordOffset);
+            } else {
+                log.debug("{} Finished offset commit successfully in {} ms for sequence number {}: {}",
+                        this, durationMillis, seqno, committedOffsets);
+                if (committedOffsets != null) {
+                    log.trace("{} Adding to last committed offsets: {}", this, committedOffsets);
+                    lastCommittedOffsets.putAll(committedOffsets);
+                    log.debug("{} Last committed offsets are now {}", this, committedOffsets);
                 }
             }
-            sinkTask.preCommit(queueMetaDataLongMap);
-            nextCommitTime = 0;
+            committing = false;
         }
     }
+
+
+
+    /**
+     * Poll for new messages with the given timeout. Should only be invoked by the worker thread.
+     */
+    protected void poll(long timeoutMs) {
+        rewind();
+        log.trace("{} Polling consumer with timeout {} ms", this, timeoutMs);
+        List<MessageExt> msgs = pollConsumer(timeoutMs);
+        assert messageBatch.isEmpty() || msgs.isEmpty();
+        log.trace("{} Polling returned {} messages", this, msgs.size());
+        receiveMessages(msgs);
+    }
+
+    /**
+     * reset offset by custom
+     */
+    private void rewind() {
+        Map<MessageQueue, Long> offsets = sinkTaskContext.queuesOffsets();
+        if (offsets.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<MessageQueue, Long> entry: offsets.entrySet()) {
+            MessageQueue queue = entry.getKey();
+            Long offset = entry.getValue();
+            if (offset != null) {
+                log.trace("{} Rewind {} to offset {}", this, queue, offset);
+                try {
+                    consumer.seek(queue, offset);
+                    lastCommittedOffsets.put(queue, offset);
+                    currentOffsets.put(queue, offset);
+                } catch (MQClientException e) {
+                    // NO-op
+                }
+            } else {
+                log.warn("{} Cannot rewind {} to null offset", this, queue);
+            }
+        }
+        sinkTaskContext.cleanQueuesOffsets();
+    }
+
+    /**
+     * poll consumer
+     * @param timeoutMs
+     * @return
+     */
+    private List<MessageExt> pollConsumer(long timeoutMs) {
+        final long beginPullMsgTimestamp = System.currentTimeMillis();
+        List<MessageExt> msgs = consumer.poll(timeoutMs);
+        // metrics
+        recordReadSuccess(msgs.size(), beginPullMsgTimestamp);
+        return msgs;
+    }
+
 
     @Override
     public void close() {
@@ -421,26 +451,36 @@ public class WorkerSinkTask extends WorkerTask {
      * @param messages
      */
     private void receiveMessages(List<MessageExt> messages) {
-        List<ConnectRecord> records = new ArrayList<>(32);
+        commitingOffsets.clear();
         for (MessageExt message : messages) {
             this.retryWithToleranceOperator.consumerRecord(message);
             ConnectRecord connectRecord = convertMessages(message);
+            commitingOffsets.put(
+                    new MessageQueue(message.getTopic(), message.getBrokerName(), message.getQueueId()),
+                    message.getQueueOffset() + 1
+            );
             if (connectRecord != null && !this.retryWithToleranceOperator.failed()) {
-                records.add(connectRecord);
+                messageBatch.add(connectRecord);
             }
             log.info("Received one message success : msgId {}", message.getMsgId());
         }
         try {
-            sinkTask.put(records);
-            return;
+            sinkTask.put(new ArrayList<>(messageBatch));
+            currentOffsets.putAll(commitingOffsets);
+            messageBatch.clear();
+
+            if (!shouldPause()) {
+                resumeAll();
+            }
         } catch (RetriableException e) {
             log.error("task {} put sink recode RetriableException", this, e.getMessage(), e);
+            // pause all consumer wait for put data
+            pauseAll();
             throw e;
         } catch (Throwable t) {
             log.error("task {} put sink recode Throwable", this, t.getMessage(), t);
             throw t;
         }
-
     }
 
     private ConnectRecord convertMessages(MessageExt message) {
@@ -465,7 +505,7 @@ public class WorkerSinkTask extends WorkerTask {
             return null;
         }
 
-        // Apply the transformations
+        // apply the transformations
         ConnectRecord transformedRecord = transformChain.doTransforms(record);
         if (transformedRecord == null) {
             return null;
@@ -492,21 +532,104 @@ public class WorkerSinkTask extends WorkerTask {
         sinkDataEntry.addExtension(keyValue);
     }
 
-
     /**
      * initinalize and start
      */
     @Override
     protected void initializeAndStart() {
-        registryTopics();
+        Set<String> topics = SinkConnectorConfig.parseTopicList(taskConfig);
+        if (org.apache.commons.collections4.CollectionUtils.isEmpty(topics)) {
+            throw new ConnectException("Sink connector topics config can be null, please check sink connector config info");
+        }
+        // sub topics
         try {
+            for (String topic : topics) {
+                consumer.setPullBatchSize(MAX_MESSAGE_NUM);
+                consumer.subscribe(topic, "*");
+                consumer.setMessageQueueListener(new MessageQueueListener() {
+                    @Override
+                    public void messageQueueChanged(String subTopic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+                        // listener message queue changed
+                        log.info("Message queue changed start, old message queues offset {}", JSON.toJSONString(messageQueues));
+
+                        // remove message queue
+                        Set<MessageQueue> removeQueues = new HashSet<>();
+                        messageQueues.forEach(messageQueue -> {
+                            if (messageQueue.getTopic().equals(subTopic)) {
+                                removeQueues.add(messageQueue);
+                            }
+                        });
+                        messageQueues.removeAll(removeQueues);
+
+                        // remove record partitions
+                        Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
+                        recordPartitions.forEach(key -> {
+                            if (key.getPartition().get(TOPIC).equals(subTopic)) {
+                                waitRemoveQueueMetaDatas.add(key);
+                            }
+                        });
+                        recordPartitions.removeAll(waitRemoveQueueMetaDatas);
+
+                        // add record partitions
+                        for (MessageQueue messageQueue : mqDivided) {
+                            messageQueues.add(messageQueue);
+                            // init queue offset
+                            long offset = consumeFromOffset(messageQueue, taskConfig);
+                            lastCommittedOffsets.put(messageQueue, offset);
+                            currentOffsets.put(messageQueue, offset);
+                            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueue);
+                            recordPartitions.add(recordPartition);
+                        }
+                        log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
+
+                    }
+                });
+            }
             consumer.start();
-        } catch (MQClientException e) {
+        } catch(MQClientException e){
+            throw new ConnectException(e);
         }
         log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
         sinkTask.init(sinkTaskContext);
         sinkTask.start(taskConfig);
+        log.info("{} Sink task finished initialization and start", this);
     }
+    /**
+     * consume fro offset
+     * @param messageQueue
+     * @param taskConfig
+     */
+    public long consumeFromOffset(MessageQueue messageQueue, ConnectKeyValue taskConfig) {
+
+        String consumeFromWhere = taskConfig.getString("consume-from-where");
+        if (StringUtils.isBlank(consumeFromWhere)) {
+            consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name();
+        }
+        try {
+            switch (ConsumeFromWhere.valueOf(consumeFromWhere)) {
+                case CONSUME_FROM_LAST_OFFSET:
+                    consumer.seekToEnd(messageQueue);
+                    break;
+                case CONSUME_FROM_FIRST_OFFSET:
+                    consumer.seekToBegin(messageQueue);
+                    break;
+                default:
+                   break;
+            }
+        } catch (MQClientException e) {
+            throw new ConnectException(e);
+        }
+        //-1 when started
+        long offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
+        if (offset < 0) {
+            //query from broker
+            offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
+        }
+        log.info("Consume {} from {}",messageQueue, offset);
+        return offset < 0 ? 0 : offset;
+    }
+
+
 
     /**
      * execute poll and send record
@@ -516,17 +639,29 @@ public class WorkerSinkTask extends WorkerTask {
         while (isRunning()) {
             // this method can block up to 3 minutes long
             try {
-                preCommit(false);
-                setQueueOffset();
-                pullMessageFromQueues();
-            } catch (RetriableException e) {
+                while (!isStopping()) {
+                    if (shouldPause()) {
+                        // pause
+                        pauseAll();
+                        onPause();
+                        try {
+                            // wait unpause
+                            if (awaitUnpause()) {
+                                resumeAll();
+                                onResume();
+                            }
+                            continue;
+                        } catch (InterruptedException e) {
+                            // do exception
+                        }
+                    }
+                    iteration();
+                }
+            }catch (RetriableException e){
+                log.error(" Sink task {}, pull message RetriableException, Error {} ", this, e.getMessage(), e);
                 readRecordFailNum();
-                log.error("Sink task RetriableException exception", e);
-            } catch (InterruptedException e) {
-                readRecordFailNum();
-                log.error("Sink task InterruptedException exception", e);
             } catch (Throwable e) {
-                log.error(" sink task {},pull message MQClientException, Error {} ", this, e.getMessage(), e);
+                log.error(" Sink task {}, pull message Throwable, Error {} ", this, e.getMessage(), e);
                 readRecordFailNum();
                 throw e;
             } finally {
@@ -541,41 +676,9 @@ public class WorkerSinkTask extends WorkerTask {
         return recordPartitions;
     }
 
-    /**
-     * Reset the consumer offset for the given queue.
-     *
-     * @param recordPartition the queue to reset offset.
-     * @param recordOffset    the offset to reset to.
-     */
-    public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
-        this.sinkTaskContext.resetOffset(recordPartition, recordOffset);
-    }
-
-    /**
-     * Reset the consumer offsets for the given queue.
-     *
-     * @param offsets the map of offsets for queuename.
-     */
-    public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
-        this.sinkTaskContext.resetOffset(offsets);
-    }
-
-
-    private void removePauseQueueMessage(MessageQueue messageQueue, List<MessageExt> messages) {
-        if (null != messageQueuesStateMap.get(messageQueue)) {
-            final Iterator<MessageExt> iterator = messages.iterator();
-            while (iterator.hasNext()) {
-                final MessageExt message = iterator.next();
-                String msgId = message.getMsgId();
-                log.info("BrokerName {}, topicName {}, queueId {} is pause, Discard the message {}", messageQueue.getBrokerName(), messageQueue.getTopic(), message.getQueueId(), msgId);
-                iterator.remove();
-            }
-        }
-    }
 
     /**
      * error record reporter
-     *
      * @return
      */
     public WorkerErrorRecordReporter errorRecordReporter() {
