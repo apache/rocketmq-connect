@@ -92,7 +92,6 @@ public abstract class AbstractConnectController implements ConnectController {
     protected final RestHandler restHandler;
 
 
-
     protected final Plugin plugin;
 
     protected final ConnectStatsManager connectStatsManager;
