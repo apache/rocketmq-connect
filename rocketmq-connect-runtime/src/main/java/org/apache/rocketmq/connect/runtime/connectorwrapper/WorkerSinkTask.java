@@ -717,7 +717,7 @@ public class WorkerSinkTask extends WorkerTask {
 
         //-1 when started
         long offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
-        if (0 >= offset) {
+        if (0 > offset) {
             //query from broker
             offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
         }
