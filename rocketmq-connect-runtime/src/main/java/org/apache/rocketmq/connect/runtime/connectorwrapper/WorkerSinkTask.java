@@ -105,7 +105,7 @@ public class WorkerSinkTask extends WorkerTask {
 
     private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
 
-
+    private MessageQueueListener messageQueueListener = null;
     /**
      * stat
      */
@@ -451,7 +451,7 @@ public class WorkerSinkTask extends WorkerTask {
      * @param messages
      */
     private void receiveMessages(List<MessageExt> messages) {
-        if(!this.messageBatch.isEmpty()){
+        if(messageBatch.isEmpty()){
             originalOffsets.clear();
         }
         for (MessageExt message : messages) {
@@ -554,9 +554,16 @@ public class WorkerSinkTask extends WorkerTask {
         // sub topics
         try {
             for (String topic : topics) {
+                consumer.setPullBatchSize(MAX_MESSAGE_NUM);
+                consumer.subscribe(topic, "*");
+                if (messageQueueListener == null){
+                    messageQueueListener = consumer.getMessageQueueListener();
+                }
                 consumer.setMessageQueueListener(new MessageQueueListener() {
                     @Override
                     public void messageQueueChanged(String subTopic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+                        // update assign message queue
+                        messageQueueListener.messageQueueChanged(subTopic, mqAll, mqDivided);
                         // listener message queue changed
                         log.info("Message queue changed start, old message queues offset {}", JSON.toJSONString(messageQueues));
 
@@ -592,8 +599,6 @@ public class WorkerSinkTask extends WorkerTask {
 
                     }
                 });
-                consumer.setPullBatchSize(MAX_MESSAGE_NUM);
-                consumer.subscribe(topic, "*");
             }
             consumer.start();
         } catch(MQClientException e){

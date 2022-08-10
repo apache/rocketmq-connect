@@ -361,7 +361,9 @@ public class WorkerSourceTask extends WorkerTask {
         if (value.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
             log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
         }
-        sourceMessage.setKeys(Base64Util.base64Encode(key));
+        if (key != null){
+            sourceMessage.setKeys(Base64Util.base64Encode(key));
+        }
         sourceMessage.setBody(value);
         if (retryWithToleranceOperator.failed()) {
             return null;
