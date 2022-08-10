@@ -68,6 +68,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singleton;
+
 
 /**
  * A wrapper of {@link SinkTask} for runtime.
@@ -123,6 +125,7 @@ public class WorkerSinkTask extends WorkerTask {
     private int commitSeqno;
     private long commitStarted;
     private boolean committing;
+    private boolean pausedForRetry;
 
 
 
@@ -180,6 +183,8 @@ public class WorkerSinkTask extends WorkerTask {
         this.committing = false;
         this.commitSeqno = 0;
         this.commitStarted = -1;
+        // pause for retry
+        this.pausedForRetry = false;
     }
 
 
@@ -215,7 +220,11 @@ public class WorkerSinkTask extends WorkerTask {
 
     // resume all consumer topic queue
     private void resumeAll() {
-        consumer.resume(messageQueues);
+        for (MessageQueue queue : messageQueues) {
+            if (!sinkTaskContext.getPausedQueues().contains(queue)) {
+                consumer.resume(singleton(queue));
+            }
+        }
     }
 
     //pause all consumer topic queue
@@ -472,11 +481,16 @@ public class WorkerSinkTask extends WorkerTask {
             messageBatch.clear();
 
             if (!shouldPause()) {
-                resumeAll();
+                if (pausedForRetry){
+                    resumeAll();
+                    pausedForRetry = false;
+                }
+
             }
         } catch (RetriableException e) {
             log.error("task {} put sink recode RetriableException", this, e.getMessage(), e);
             // pause all consumer wait for put data
+            pausedForRetry = true;
             pauseAll();
             throw e;
         } catch (Throwable t) {
@@ -652,26 +666,26 @@ public class WorkerSinkTask extends WorkerTask {
     @Override
     protected void execute() {
         while (isRunning()) {
-            // this method can block up to 3 minutes long
             try {
-                while (!isStopping()) {
-                    if (shouldPause()) {
-                        // pause
-                        pauseAll();
-                        onPause();
-                        try {
-                            // wait unpause
-                            if (awaitUnpause()) {
+                if (shouldPause()) {
+                    // pause
+                    pauseAll();
+                    onPause();
+                    try {
+                        // wait unpause
+                        if (awaitUnpause()) {
+                            // check paused for retry
+                            if (!pausedForRetry){
                                 resumeAll();
                                 onResume();
                             }
-                            continue;
-                        } catch (InterruptedException e) {
-                            // do exception
                         }
+                        continue;
+                    } catch (InterruptedException e) {
+                        // do exception
                     }
-                    iteration();
                 }
+                iteration();
             }catch (RetriableException e){
                 log.error(" Sink task {}, pull message RetriableException, Error {} ", this, e.getMessage(), e);
                 readRecordFailNum();

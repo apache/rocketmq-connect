@@ -73,6 +73,10 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
         this.messageQueuesOffset = new ConcurrentHashMap<>();
     }
 
+    public Set<MessageQueue> getPausedQueues() {
+        return pausedQueues;
+    }
+
     @Override
     public ErrorRecordReporter errorRecordReporter() {
         return workerSinkTask.errorRecordReporter();
