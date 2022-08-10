@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.eclipse.jetty.http.HttpStatus;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -45,6 +46,7 @@ public class RestHandler {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private final  String CONNECTOR_NAME = "connectorName";
+    private final  String TASK_NAME = "task";
     private final AbstractConnectController connectController;
 
     public RestHandler(AbstractConnectController connectController) {
@@ -62,6 +64,8 @@ public class RestHandler {
         app.get("/getAllocatedTasks", this::getAllocatedTasks);
         app.get("/connectors/:connectorName/config", this::handleQueryConnectorConfig);
         app.get("/connectors/:connectorName/status", this::handleQueryConnectorStatus);
+        app.get("/connectors/:connectorName/tasks", this::getTaskConfigs);
+        app.get("/connectors/:connectorName/tasks/task/status", this::getTaskStatus);
 
         // create
         app.get("/connectors/:connectorName", this::handleCreateConnector);
@@ -166,6 +170,41 @@ public class RestHandler {
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
+
+
+    public void getTaskConfigs(Context context) {
+        if (context.anyFormParamNull(CONNECTOR_NAME)){
+            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
+            return;
+        }
+        String connector = context.pathParam(CONNECTOR_NAME);
+        try{
+            context.json(new HttpResponse<>(context.status(),connectController.taskConfigs(connector)));
+        }catch (Exception ex) {
+            log.error("Get task configs failed .", ex);
+            context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
+        }
+    }
+
+
+
+
+    public void getTaskStatus(Context context) {
+        if (context.anyFormParamNull(CONNECTOR_NAME, TASK_NAME)){
+            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name and task id cannot be empty"));
+            return;
+        }
+        try {
+            String connector= context.pathParam(CONNECTOR_NAME);
+            Integer task = Integer.valueOf(context.pathParam(TASK_NAME));
+            context.json(new HttpResponse<>(context.status(), connectController.taskStatus(new ConnectorTaskId(connector, task))));
+        }catch (Exception ex){
+            log.error("Get task status failed .", ex);
+            context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
+        }
+    }
+
+
 
     private void handleStopConnector(Context context) {
         if (context.anyFormParamNull(CONNECTOR_NAME)){

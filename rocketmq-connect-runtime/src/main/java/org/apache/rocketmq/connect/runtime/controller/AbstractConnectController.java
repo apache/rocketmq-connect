@@ -29,6 +29,7 @@ import org.apache.rocketmq.connect.runtime.rest.RestHandler;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorType;
+import org.apache.rocketmq.connect.runtime.rest.entities.TaskInfo;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -37,6 +38,7 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,6 +202,8 @@ public abstract class AbstractConnectController implements ConnectController {
         return clusterManagementService.getAllAliveWorkers();
     }
 
+
+
     /**
      * add connector
      * @param connectorName
@@ -305,6 +309,32 @@ public abstract class AbstractConnectController implements ConnectController {
                 connectorTypeForClass(config.get(RuntimeConfigDefine.CONNECTOR_CLASS))
         );
     }
+
+    /**
+     * task configs
+     * @param connName
+     * @return
+     */
+    public List<TaskInfo> taskConfigs(final String connName){
+        ClusterConfigState configState = configManagementService.snapshot();
+        List<TaskInfo> result = new ArrayList<>();
+        for (int i = 0; i < configState.taskCount(connName); i++) {
+            ConnectorTaskId id = new ConnectorTaskId(connName, i);
+            result.add(new TaskInfo(id, configState.rawTaskConfig(id)));
+        }
+        return result;
+    }
+
+    public ConnectorStateInfo.TaskState taskStatus(ConnectorTaskId id) {
+        TaskStatus status = stateManagementService.get(id);
+
+        if (status == null) {
+            throw new ConnectException("No status found for task " + id);
+        }
+        return new ConnectorStateInfo.TaskState(id.task(), status.getState().toString(),
+                status.getWorkerId(), status.getTrace());
+    }
+
 
     /**
      * Retrieves ConnectorType for the corresponding connector class
