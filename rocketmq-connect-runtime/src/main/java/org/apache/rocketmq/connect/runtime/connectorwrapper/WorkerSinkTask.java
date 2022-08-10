@@ -321,19 +321,24 @@ public class WorkerSinkTask extends WorkerTask {
 
             // task reset offset
             final MessageQueue queue = taskResetOffsetEntry.getKey();
-            final Long taskResetOffset = taskResetOffsetEntry.getValue();
+            final Long taskOffset = taskResetOffsetEntry.getValue();
 
             if (committableOffsets.containsKey(queue)) {
+                // current offset
                 long currentOffset = offsetsToCommit.get(queue);
-                if (currentOffset >= taskResetOffset ) {
-                    committableOffsets.put(queue, taskResetOffset);
+                if (currentOffset >= taskOffset ) {
+                    committableOffsets.put(queue, taskOffset);
+                } else {
+                    log.warn("{} Ignoring invalid task provided offset {}/{} -- not yet consumed, taskOffset={} currentOffset={}",
+                            this, queue, taskOffset, taskOffset, currentOffset);
                 }
             } else if (!allAssignedTopicQueues.contains(queue)) {
+                // reblance remove
                 log.warn("{} Ignoring invalid task provided offset {}/{} -- partition not assigned, assignment={}",
-                        this, queue, taskResetOffset, allAssignedTopicQueues);
+                        this, queue, taskOffset, allAssignedTopicQueues);
             } else {
                 log.debug("{} Ignoring task provided offset {}/{} -- partition not requested, requested={}",
-                        this, queue, taskResetOffset, committableOffsets.keySet());
+                        this, queue, taskOffset, committableOffsets.keySet());
             }
 
         }
@@ -584,34 +589,16 @@ public class WorkerSinkTask extends WorkerTask {
                         // listener message queue changed
                         log.info("Message queue changed start, old message queues offset {}", JSON.toJSONString(messageQueues));
 
-                        // remove message queue
-                        Set<MessageQueue> removeQueues = new HashSet<>();
-                        messageQueues.forEach(messageQueue -> {
-                            if (messageQueue.getTopic().equals(subTopic)) {
-                                removeQueues.add(messageQueue);
-                            }
-                        });
-                        messageQueues.removeAll(removeQueues);
-
-                        // remove record partitions
-                        Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
-                        recordPartitions.forEach(key -> {
-                            if (key.getPartition().get(TOPIC).equals(subTopic)) {
-                                waitRemoveQueueMetaDatas.add(key);
-                            }
-                        });
-                        recordPartitions.removeAll(waitRemoveQueueMetaDatas);
-
-                        // add record partitions
-                        for (MessageQueue messageQueue : mqDivided) {
-                            messageQueues.add(messageQueue);
-                            // init queue offset
-                            long offset = consumeFromOffset(messageQueue, taskConfig);
-                            lastCommittedOffsets.put(messageQueue, offset);
-                            currentOffsets.put(messageQueue, offset);
-                            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueue);
-                            recordPartitions.add(recordPartition);
+                        if (isStopping()) {
+                            log.trace("Skipping partition revocation callback as task has already been stopped");
+                            return;
                         }
+                        // remove and close message queue
+                        removeAndCloseMessageQueue(topic, mqDivided);
+
+                        // add new message queue
+                        assignMessageQueue(mqDivided);
+                        rewind();
                         log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
 
                     }
@@ -626,6 +613,101 @@ public class WorkerSinkTask extends WorkerTask {
         sinkTask.start(taskConfig);
         log.info("{} Sink task finished initialization and start", this);
     }
+
+    /**
+     * remove and close message queue
+     * @param queues
+     */
+    public void removeAndCloseMessageQueue(String topic, Set<MessageQueue> queues){
+        Set<MessageQueue> removeMessageQueues;
+        if (queues == null){
+            removeMessageQueues = new HashSet<>();
+            for (MessageQueue messageQueue : messageQueues){
+                if (messageQueue.getTopic().equals(topic)){
+                    removeMessageQueues.add(messageQueue);
+                }
+            }
+        }
+        // filter not contains in messageQueues
+        removeMessageQueues = messageQueues.stream().filter(messageQueue -> !queues.contains(messageQueue)).collect(Collectors.toSet());
+        if (removeMessageQueues == null || removeMessageQueues.isEmpty()){
+            return;
+        }
+        // start remove
+        messageQueues.removeAll(removeMessageQueues);
+
+        // remove record partitions
+        Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
+        recordPartitions.forEach(key -> {
+            if (key.getPartition().get(TOPIC).equals(topic)) {
+                waitRemoveQueueMetaDatas.add(key);
+            }
+        });
+        recordPartitions.removeAll(waitRemoveQueueMetaDatas);
+
+        // closePartitions
+        closeMessageQueues(removeMessageQueues, false);
+    }
+
+    /**
+     * remove offset from currentOffsets、lastCommittedOffsets
+     * remove message from messageBatch
+     * @param queues
+     * @param lost
+     */
+    private void closeMessageQueues(Set<MessageQueue> queues, boolean lost) {
+
+        if (!lost) {
+            commitOffsets(System.currentTimeMillis(), true, queues);
+        } else {
+            log.trace("{} Closing the task as partitions have been lost: {}", this, queues);
+            currentOffsets.keySet().removeAll(queues);
+        }
+        lastCommittedOffsets.keySet().removeAll(queues);
+
+        messageBatch.removeIf(record -> {
+            MessageQueue messageQueue = ConnectUtil.convertToMessageQueue(record.getPosition().getPartition());
+            return queues.contains(messageQueue);
+        });
+    }
+
+    public void assignMessageQueue(Set<MessageQueue> queues){
+        if (queues == null){
+            return;
+        }
+        Set<MessageQueue> newMessageQueues = queues.stream().filter(messageQueue -> !messageQueues.contains(messageQueue)).collect(Collectors.toSet());
+
+        // add record queues
+        messageQueues.addAll(newMessageQueues);
+        for (MessageQueue messageQueue : newMessageQueues) {
+            // init queue offset
+            long offset = consumeFromOffset(messageQueue, taskConfig);
+            lastCommittedOffsets.put(messageQueue, offset);
+            currentOffsets.put(messageQueue, offset);
+            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueue);
+            recordPartitions.add(recordPartition);
+        }
+        boolean wasPausedForRedelivery = pausedForRetry;
+        pausedForRetry = wasPausedForRedelivery && !messageBatch.isEmpty();
+        if (pausedForRetry) {
+            pauseAll();
+        } else {
+            if (pausedForRetry) {
+                resumeAll();
+            }
+            sinkTaskContext.getPausedQueues().retainAll(queues);
+            if (shouldPause()) {
+                pauseAll();
+            } else if (!sinkTaskContext.getPausedQueues().isEmpty()) {
+                consumer.pause(sinkTaskContext.getPausedQueues());
+            }
+        }
+        log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
+
+    }
+
+
+
     /**
      * consume fro offset
      * @param messageQueue
