@@ -65,6 +65,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -78,6 +79,8 @@ public class WorkerSinkTask extends WorkerTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
+    private static final Integer MAX_MESSAGE_NUM = 32;
+    private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 5;
     /**
      * The implements of the sink task.
      */
@@ -103,7 +106,7 @@ public class WorkerSinkTask extends WorkerTask {
     private final Set<MessageQueue> messageQueues;
 
     private final List<ConnectRecord> messageBatch;
-    private static final Integer MAX_MESSAGE_NUM = 32;
+
 
     private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
 
@@ -630,30 +633,34 @@ public class WorkerSinkTask extends WorkerTask {
      */
     public long consumeFromOffset(MessageQueue messageQueue, ConnectKeyValue taskConfig) {
 
-        String consumeFromWhere = taskConfig.getString("consume-from-where");
-        if (StringUtils.isBlank(consumeFromWhere)) {
-            consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name();
-        }
-        try {
-            switch (ConsumeFromWhere.valueOf(consumeFromWhere)) {
-                case CONSUME_FROM_LAST_OFFSET:
-                    consumer.seekToEnd(messageQueue);
-                    break;
-                case CONSUME_FROM_FIRST_OFFSET:
-                    consumer.seekToBegin(messageQueue);
-                    break;
-                default:
-                   break;
-            }
-        } catch (MQClientException e) {
-            throw new ConnectException(e);
-        }
         //-1 when started
         long offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY);
-        if (offset < 0) {
+        if (0 >= offset) {
             //query from broker
             offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
         }
+
+        if (offset < 0 ){
+            String consumeFromWhere = taskConfig.getString("consume-from-where");
+            if (StringUtils.isBlank(consumeFromWhere)) {
+                consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name();
+            }
+            try {
+                switch (ConsumeFromWhere.valueOf(consumeFromWhere)) {
+                    case CONSUME_FROM_LAST_OFFSET:
+                        consumer.seekToEnd(messageQueue);
+                        break;
+                    case CONSUME_FROM_FIRST_OFFSET:
+                        consumer.seekToBegin(messageQueue);
+                        break;
+                    default:
+                        break;
+                }
+            } catch (MQClientException e) {
+                throw new ConnectException(e);
+            }
+        }
+
         log.info("Consume {} from {}",messageQueue, offset);
         return offset < 0 ? 0 : offset;
     }
@@ -667,6 +674,13 @@ public class WorkerSinkTask extends WorkerTask {
     protected void execute() {
         while (isRunning()) {
             try {
+                long startTimeStamp = System.currentTimeMillis();
+                log.info("START pullMessageFromQueues, time started : {}", startTimeStamp);
+                if (messageQueues.size() == 0) {
+                    log.info("messageQueuesOffsetMap is null, : {}", startTimeStamp);
+                    stopPullMsgLatch.await(PULL_MSG_ERROR_BACKOFF_MS, TimeUnit.MILLISECONDS);
+                    continue;
+                }
                 if (shouldPause()) {
                     // pause
                     pauseAll();
@@ -686,9 +700,11 @@ public class WorkerSinkTask extends WorkerTask {
                     }
                 }
                 iteration();
-            }catch (RetriableException e){
+            }catch (RetriableException e) {
                 log.error(" Sink task {}, pull message RetriableException, Error {} ", this, e.getMessage(), e);
                 readRecordFailNum();
+            }catch (InterruptedException interruptedException){
+                //NO-op
             } catch (Throwable e) {
                 log.error(" Sink task {}, pull message Throwable, Error {} ", this, e.getMessage(), e);
                 readRecordFailNum();

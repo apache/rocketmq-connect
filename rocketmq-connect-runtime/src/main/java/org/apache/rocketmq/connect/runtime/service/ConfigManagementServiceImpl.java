@@ -199,7 +199,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         dataSynchronizer.send(CONNECTOR_KEY(connectorName), configs);
-        return "Put connector succeeded.";
+        return connectorName;
     }
 
 

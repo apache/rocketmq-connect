@@ -189,6 +189,36 @@ public abstract class AbstractConnectController implements ConnectController {
         return connectStatsService;
     }
 
+    /**
+     * reload plugins
+     */
+    public void reloadPlugins(){
+         configManagementService.getPlugin().initPlugin();
+    }
+
+    public List<String> aliveWorkers(){
+        return clusterManagementService.getAllAliveWorkers();
+    }
+
+    /**
+     * add connector
+     * @param connectorName
+     * @param configs
+     * @return
+     * @throws Exception
+     */
+    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception {
+        return configManagementService.putConnectorConfig(connectorName,configs);
+    }
+
+    /**
+     * Remove the connector with the specified connector name in the cluster.
+     *
+     * @param connectorName
+     */
+    public void deleteConnectorConfig(String connectorName){
+        configManagementService.deleteConnectorConfig(connectorName);
+    }
 
     /**
      * Pause the connector. This call will asynchronously suspend processing by the connector and all

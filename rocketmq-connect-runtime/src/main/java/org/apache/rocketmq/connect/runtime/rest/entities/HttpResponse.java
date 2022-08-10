@@ -17,31 +17,51 @@
 package org.apache.rocketmq.connect.runtime.rest.entities;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * http response
+ * http response entity
  * @param <T>
  */
 public class HttpResponse<T> {
-    private final int status;
-    private final Map<String, String> headers;
-    private final T body;
 
-    public HttpResponse(int status, Map<String, String> headers, T body) {
+    /**
+     * org.apache.http.HttpStatus
+     */
+    private int status;
+    private T body;
+
+    public HttpResponse(int status, T body) {
         this.status = status;
-        this.headers = headers;
         this.body = body;
     }
 
-    public int status() {
+    public int getStatus() {
         return status;
     }
 
-    public Map<String, String> headers() {
-        return headers;
+    public void setStatus(int status) {
+        this.status = status;
     }
 
-    public T body() {
+    public T getBody() {
         return body;
+    }
+
+    public void setBody(T body) {
+        this.body = body;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof HttpResponse)) return false;
+        HttpResponse<?> that = (HttpResponse<?>) o;
+        return status == that.status && Objects.equals(body, that.body);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(status, body);
     }
 }

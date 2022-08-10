@@ -102,7 +102,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         final Connector connector = super.loadConnector(configs);
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
-        return "Put connector succeeded.";
+        return connectorName;
     }
 
     @Override
