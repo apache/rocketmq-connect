@@ -67,7 +67,7 @@
     </build>
 
     <properties>
-        <rocketmq.version>4.7.0</rocketmq.version>
+        <rocketmq.version>4.7.1</rocketmq.version>
         <openmessaging.connector.version>0.1.3</openmessaging.connector.version>
         <junit.version>4.13.1</junit.version>
         <mockito.version>3.2.4</mockito.version>
