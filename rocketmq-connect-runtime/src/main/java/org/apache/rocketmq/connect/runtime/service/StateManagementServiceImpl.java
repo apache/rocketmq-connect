@@ -155,13 +155,29 @@ public class StateManagementServiceImpl implements StateManagementService {
     @Override
     public void stop() {
         sendOnlineConfig();
+        prePersist();
         connectorStatusStore.persist();
         taskStatusStore.persist();
         dataSynchronizer.stop();
     }
 
+    /**
+     * pre persist
+     */
+    private void prePersist() {
+        connAndTaskStatus.getConnectors().forEach((connectName,connectorStatus)->{
+            connectorStatusStore.put(connectName,connectorStatus.get());
+            Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
+            taskStatusStore.put(connectName, new ArrayList<>());
+            cacheTaskStatus.forEach((taskId,taskStatus)->{
+                taskStatusStore.get(connectName).add(taskStatus.get());
+            });
+        });
+    }
+
     @Override
     public void persist() {
+        prePersist();
         connectorStatusStore.persist();
         taskStatusStore.persist();
     }

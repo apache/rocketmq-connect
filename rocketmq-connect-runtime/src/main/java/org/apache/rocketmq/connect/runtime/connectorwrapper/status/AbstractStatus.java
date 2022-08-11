@@ -37,7 +37,7 @@ public abstract class AbstractStatus<T> {
     private String workerId;
     private Long generation;
     private String trace;
-
+    public AbstractStatus(){}
     public AbstractStatus(T id,
                           State state,
                           String workerId,

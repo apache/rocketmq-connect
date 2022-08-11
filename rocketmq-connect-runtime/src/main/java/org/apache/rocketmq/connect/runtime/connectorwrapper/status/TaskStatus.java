@@ -6,7 +6,7 @@ import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
  * task state
  */
 public class TaskStatus extends AbstractStatus<ConnectorTaskId> {
-
+    public TaskStatus(){}
     public TaskStatus(ConnectorTaskId id, State state, String workerId, Long generation) {
         super(id, state, workerId, generation, null);
     }

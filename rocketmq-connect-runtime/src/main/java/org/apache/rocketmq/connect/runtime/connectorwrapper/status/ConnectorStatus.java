@@ -22,6 +22,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.status;
  */
 public class ConnectorStatus extends AbstractStatus<String> {
 
+    public ConnectorStatus(){}
     public ConnectorStatus(String id, State state, String workerId, Long generation) {
         super(id, state, workerId, generation, null);
     }
