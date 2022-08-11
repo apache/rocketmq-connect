@@ -689,17 +689,20 @@ public class WorkerSinkTask extends WorkerTask {
         }
         boolean wasPausedForRedelivery = pausedForRetry;
         pausedForRetry = wasPausedForRedelivery && !messageBatch.isEmpty();
+        //Paused for retry. When the subscribed MessageQueue changes, it needs to pause again
         if (pausedForRetry) {
             pauseAll();
         } else {
+            // Paused for retry. If the data has been written through the plug-in, all queues can be resumed
             if (pausedForRetry) {
                 resumeAll();
             }
+            // intersection
             sinkTaskContext.getPausedQueues().retainAll(queues);
-            if (shouldPause()) {
-                pauseAll();
-            } else if (!sinkTaskContext.getPausedQueues().isEmpty()) {
-                consumer.pause(sinkTaskContext.getPausedQueues());
+            if (!shouldPause()) {
+                if (!sinkTaskContext.getPausedQueues().isEmpty()) {
+                    consumer.pause(sinkTaskContext.getPausedQueues());
+                }
             }
         }
         log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
