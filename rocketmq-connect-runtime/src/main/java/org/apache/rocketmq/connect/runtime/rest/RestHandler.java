@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.runtime.rest;
 
 import com.alibaba.fastjson.JSON;
-import io.javalin.Context;
 import io.javalin.Javalin;
 
 import java.util.Collection;
@@ -27,6 +26,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import io.javalin.core.validation.Validator;
+import io.javalin.http.Context;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.eclipse.jetty.http.HttpStatus;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
@@ -52,7 +54,6 @@ public class RestHandler {
     public RestHandler(AbstractConnectController connectController) {
         this.connectController = connectController;
         Javalin app = Javalin.create();
-        app.enableCaseSensitiveUrls();
         app = app.start(connectController.getConnectConfig().getHttpPort());
 
         // cluster
@@ -62,22 +63,22 @@ public class RestHandler {
         app.get("/connectors/list", this::listConnectors);
         app.get("/getAllocatedConnectors", this::getAllocatedConnectors);
         app.get("/getAllocatedTasks", this::getAllocatedTasks);
-        app.get("/connectors/:connectorName/config", this::handleQueryConnectorConfig);
-        app.get("/connectors/:connectorName/status", this::handleQueryConnectorStatus);
-        app.get("/connectors/:connectorName/tasks", this::getTaskConfigs);
-        app.get("/connectors/:connectorName/tasks/task/status", this::getTaskStatus);
+        app.get("/connectors/{connectorName}/config", this::handleQueryConnectorConfig);
+        app.get("/connectors/{connectorName}/status", this::handleQueryConnectorStatus);
+        app.get("/connectors/{connectorName}/tasks", this::getTaskConfigs);
+        app.get("/connectors/{connectorName}/tasks/{task}/status", this::getTaskStatus);
 
         // create
-        app.get("/connectors/:connectorName", this::handleCreateConnector);
-        app.post("/connectors/:connectorName", this::handleCreateConnector);
+        app.get("/connectors/{connectorName}", this::handleCreateConnector);
+        app.post("/connectors/{connectorName}", this::handleCreateConnector);
 
         // stop connector
-        app.get("/connectors/:connectorName/stop", this::handleStopConnector);
+        app.get("/connectors/{connectorName}/stop", this::handleStopConnector);
         app.get("/connectors/stopAll", this::handleStopAllConnector);
 
         // pause & resume
-        app.get("/connectors/:connectorName/pause", this::handlePauseConnector);
-        app.get("/connectors/:connectorName/resume", this::handleResumeConnector);
+        app.get("/connectors/{connectorName}/pause", this::handlePauseConnector);
+        app.get("/connectors/{connectorName}/resume", this::handleResumeConnector);
         app.get("/connectors/pauseAll", this::handlePauseAllConnector);
         app.get("/connectors/resumeAll", this::handleResumeAllConnector);
 
@@ -144,10 +145,6 @@ public class RestHandler {
     }
 
     private void handleQueryConnectorConfig(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
-            return;
-        }
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             context.json(new HttpResponse<>(context.status(), connectController.connectorInfo(connectorName)));
@@ -158,10 +155,6 @@ public class RestHandler {
     }
 
     private void handleQueryConnectorStatus(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
-            return;
-        }
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             context.json(new HttpResponse<>(context.status(), connectController.connectorStatus(connectorName)));
@@ -173,10 +166,6 @@ public class RestHandler {
 
 
     public void getTaskConfigs(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
-            return;
-        }
         String connector = context.pathParam(CONNECTOR_NAME);
         try{
             context.json(new HttpResponse<>(context.status(),connectController.taskConfigs(connector)));
@@ -190,10 +179,6 @@ public class RestHandler {
 
 
     public void getTaskStatus(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME, TASK_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name and task id cannot be empty"));
-            return;
-        }
         try {
             String connector= context.pathParam(CONNECTOR_NAME);
             Integer task = Integer.valueOf(context.pathParam(TASK_NAME));
@@ -207,10 +192,6 @@ public class RestHandler {
 
 
     private void handleStopConnector(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
-            return;
-        }
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             connectController.deleteConnectorConfig(connectorName);
@@ -241,8 +222,10 @@ public class RestHandler {
 
 
     private void handlePauseConnector(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
+        Validator<String> validator = context.queryParamAsClass(CONNECTOR_NAME, String.class)
+                .check(n -> StringUtils.isBlank(n), "Connector name cannot be empty");
+        if (validator.hasValue()) {
+            context.json(new ErrorMessage(context.status(), validator.get()));
             return;
         }
         String connectorName = context.pathParam(CONNECTOR_NAME);
@@ -257,8 +240,10 @@ public class RestHandler {
     }
 
     private void handleResumeConnector(Context context) {
-        if (context.anyFormParamNull(CONNECTOR_NAME)){
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Connector name cannot be empty"));
+        Validator<String> validator = context.queryParamAsClass(CONNECTOR_NAME, String.class)
+                .check(n -> StringUtils.isBlank(n), "Connector name cannot be empty");
+        if (validator.hasValue()) {
+            context.json(new ErrorMessage(context.status(), validator.get()));
             return;
         }
         String connectorName = context.pathParam(CONNECTOR_NAME);

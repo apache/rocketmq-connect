@@ -94,29 +94,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     private final String configManagePrefix = "ConfigManage";
 
-    public ConfigManagementServiceImpl() {
-    }
-
-    public ConfigManagementServiceImpl(ConnectConfig connectConfig, Plugin plugin) {
-        this.connectorConfigUpdateListener = new HashSet<>();
-        this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
-            connectConfig.getConfigStoreTopic(),
-            ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId()),
-            new ConfigChangeCallback(),
-            new JsonConverter(),
-            new ConnectKeyValueConverter());
-        this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
-            new JsonConverter(),
-            new JsonConverter(ConnectKeyValue.class));
-        this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
-            new JsonConverter(),
-            new ListConverter(ConnectKeyValue.class));
-        this.plugin = plugin;
-        this.prepare(connectConfig);
-    }
-
     @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
         this.connectorConfigUpdateListener = new HashSet<>();
         this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
@@ -124,7 +101,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
                 ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId()),
                 new ConfigChangeCallback(),
                 new JsonConverter(),
-                new ConnAndTaskConfigConverter());
+                new ConnectKeyValueConverter());
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
                 FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
                 new JsonConverter(),
@@ -134,6 +111,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
                 new JsonConverter(),
                 new ListConverter(ConnectKeyValue.class));
         this.plugin = plugin;
+        this.prepare(connectConfig);
     }
 
 

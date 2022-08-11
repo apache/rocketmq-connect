@@ -54,17 +54,7 @@ public class RuntimeConfigDefine {
      * Last updated time of the configuration.
      */
     public static final String UPDATE_TIMESTAMP = "update-timestamp";
-
-    /**
-     * Whether the current config is deleted.
-     */
-    public static final String CONFIG_DELETED = "config-deleted";
-
-    /**
-     * Whether the current config is deleted.
-     */
-    public static final String TARGET_STATE = "target-state";
-
+    
     /**
      * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */
