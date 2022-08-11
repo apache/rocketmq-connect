@@ -295,16 +295,19 @@ public class Worker {
             }
             WorkerConnector connector = connectors.get(connectName);
             ConnectKeyValue newConfig = assigns.get(connectName);
-            connector.transitionTo(newConfig.getTargetState(), new Callback<TargetState>() {
-                @Override
-                public void onCompletion(Throwable error, TargetState result) {
-                    if (error != null) {
-                        log.error(error.getMessage());
-                    } else {
-                        log.info("Connector {} set target state {} successed!!", connectName, result);
+            ConnectKeyValue oldConfig = connector.getKeyValue();
+            if (oldConfig.getTargetState() != newConfig.getTargetState()){
+                connector.transitionTo(newConfig.getTargetState(), new Callback<TargetState>() {
+                    @Override
+                    public void onCompletion(Throwable error, TargetState result) {
+                        if (error != null) {
+                            log.error(error.getMessage());
+                        } else {
+                            log.info("Connector {} set target state {} successed!!", connectName, result);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     }
 
