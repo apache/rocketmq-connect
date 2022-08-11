@@ -80,7 +80,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
 
 
     @Override
-    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception {
+    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
         ConnectKeyValue exist = connectorKeyValueStore.get(connectorName);
         if (null != exist) {
             Long updateTimestamp = exist.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);

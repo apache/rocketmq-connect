@@ -68,7 +68,7 @@ public interface ConfigManagementService {
      * @return
      * @throws Exception
      */
-    String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception;
+    String putConnectorConfig(String connectorName, ConnectKeyValue configs) ;
 
     /**
      * Remove the connector with the specified connector name in the cluster.

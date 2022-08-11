@@ -149,7 +149,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
 
     @Override
-    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception {
+    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
         ConnectKeyValue exist = connectorKeyValueStore.get(connectorName);
         // update version
         if (null != exist) {
