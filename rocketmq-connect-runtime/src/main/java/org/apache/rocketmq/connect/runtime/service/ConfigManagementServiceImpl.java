@@ -170,9 +170,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         }
         configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
         configs.setTargetState(TargetState.STARTED);
-//        final Connector connector = super.loadConnector(configs);
-//        connectorKeyValueStore.put(connectorName, configs);
-//        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         dataSynchronizer.send(CONNECTOR_KEY(connectorName), configs);
         return connectorName;
     }
