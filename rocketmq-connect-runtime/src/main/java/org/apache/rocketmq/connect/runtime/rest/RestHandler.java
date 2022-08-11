@@ -26,9 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import io.javalin.core.validation.Validator;
 import io.javalin.http.Context;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.eclipse.jetty.http.HttpStatus;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
@@ -61,8 +59,8 @@ public class RestHandler {
 
         // query
         app.get("/connectors/list", this::listConnectors);
-        app.get("/getAllocatedConnectors", this::getAllocatedConnectors);
-        app.get("/getAllocatedTasks", this::getAllocatedTasks);
+        app.get("/allocated/connectors", this::getAllocatedConnectors);
+        app.get("/allocated/tasks", this::getAllocatedTasks);
         app.get("/connectors/{connectorName}/config", this::handleQueryConnectorConfig);
         app.get("/connectors/{connectorName}/status", this::handleQueryConnectorStatus);
         app.get("/connectors/{connectorName}/tasks", this::getTaskConfigs);
@@ -74,13 +72,13 @@ public class RestHandler {
 
         // stop connector
         app.get("/connectors/{connectorName}/stop", this::handleStopConnector);
-        app.get("/connectors/stopAll", this::handleStopAllConnector);
+        app.get("/connectors/stop/all", this::handleStopAllConnector);
 
         // pause & resume
         app.get("/connectors/{connectorName}/pause", this::handlePauseConnector);
         app.get("/connectors/{connectorName}/resume", this::handleResumeConnector);
-        app.get("/connectors/pauseAll", this::handlePauseAllConnector);
-        app.get("/connectors/resumeAll", this::handleResumeAllConnector);
+        app.get("/connectors/pause/all", this::handlePauseAllConnector);
+        app.get("/connectors/resume/all", this::handleResumeAllConnector);
 
         // plugin
         app.get("/plugin/reload", this::reloadPlugins);
@@ -136,8 +134,8 @@ public class RestHandler {
         }
 
         try {
-            String connectName = connectController.putConnectorConfig(connectorName, configs);
-            context.json(new HttpResponse<>(context.status(), connectController.connectorInfo(connectName)));
+            connectController.putConnectorConfig(connectorName, configs);
+            context.json(new HttpResponse<>(context.status(), keyValue));
         } catch (Exception e) {
             log.error("Create connector failed .", e);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, e.getMessage()));
@@ -212,8 +210,7 @@ public class RestHandler {
             for (String connector : connectors) {
                 connectController.deleteConnectorConfig(connector);
             }
-            context.result("success");
-            context.json(new HttpResponse<>(context.status(), connectors.size()+" connectors are deleted"));
+            context.json(new HttpResponse<>(context.status(), connectors +" connectors are deleted"));
         } catch (Exception ex) {
             log.error("Delete all connector failed {} , {}.",connectors, ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));

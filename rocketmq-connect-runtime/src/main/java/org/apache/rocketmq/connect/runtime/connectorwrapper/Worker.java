@@ -295,19 +295,18 @@ public class Worker {
             }
             WorkerConnector connector = connectors.get(connectName);
             ConnectKeyValue newConfig = assigns.get(connectName);
-            ConnectKeyValue oldConfig = connector.getKeyValue();
-            if (oldConfig.getTargetState() != newConfig.getTargetState()){
-                connector.transitionTo(newConfig.getTargetState(), new Callback<TargetState>() {
-                    @Override
-                    public void onCompletion(Throwable error, TargetState result) {
-                        if (error != null) {
-                            log.error(error.getMessage());
-                        } else {
+            connector.transitionTo(newConfig.getTargetState(), new Callback<TargetState>() {
+                @Override
+                public void onCompletion(Throwable error, TargetState result) {
+                    if (error != null) {
+                        log.error(error.getMessage());
+                    } else {
+                        if (newConfig.getTargetState() != result) {
                             log.info("Connector {} set target state {} successed!!", connectName, result);
                         }
                     }
-                });
-            }
+                }
+            });
         }
     }
 
@@ -374,6 +373,16 @@ public class Worker {
                 );
                 // initinal target state
                 executor.submit(workerConnector);
+                workerConnector.transitionTo(keyValue.getTargetState(), new Callback<TargetState>() {
+                    @Override
+                    public void onCompletion(Throwable error, TargetState result) {
+                        if (error != null){
+                            log.error(error.getMessage());
+                        } else {
+                            log.info("Start connector {} and set target state {} successed!!", connectorName, result);
+                        }
+                    }
+                });
                 log.info("Connector {} start", workerConnector.getConnectorName());
                 Plugin.compareAndSwapLoaders(savedLoader);
                 this.connectors.put(connectorName,workerConnector);
