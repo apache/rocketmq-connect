@@ -31,6 +31,7 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,20 +90,25 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             }
         }
         if (configs.equals(exist)) {
-            return "Connector with same config already exist.";
+            throw new ConnectException("Connector with same config already exist.");
         }
 
         Long currentTimestamp = System.currentTimeMillis();
         configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
         for (String requireConfig : RuntimeConfigDefine.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
-                return "Request config key: " + requireConfig;
+                throw new ConnectException("Request config key: " + requireConfig);
             }
         }
-        final Connector connector = super.loadConnector(configs);
-        connectorKeyValueStore.put(connectorName, configs);
-        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
-        return connectorName;
+
+        try {
+            Connector connector = super.loadConnector(configs);
+            connectorKeyValueStore.put(connectorName, configs);
+            recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
+            return connectorName;
+        } catch (Exception e) {
+           throw new ConnectException(e);
+        }
     }
 
     @Override
