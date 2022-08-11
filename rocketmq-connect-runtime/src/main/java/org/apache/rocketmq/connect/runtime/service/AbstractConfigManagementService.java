@@ -115,7 +115,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     @Override
     public ClusterConfigState snapshot() {
-        if (taskKeyValueStore == null || connectorKeyValueStore == null){
+        if (taskKeyValueStore == null && connectorKeyValueStore == null){
             return ClusterConfigState.EMPTY;
         }
         Map<String, Integer> connectorTaskCounts = new HashMap<>();

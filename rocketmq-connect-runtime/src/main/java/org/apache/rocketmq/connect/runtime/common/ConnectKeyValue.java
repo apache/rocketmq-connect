@@ -28,9 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Default Implements of {@link KeyValue} for runtime, which can be parsed by fastJson.
  */
-public class ConnectKeyValue implements KeyValue, Serializable {
+public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
 
-    private TargetState targetState = TargetState.STARTED;
+    private TargetState targetState;
 
     /**
      * All data are reserved in this map.
@@ -159,7 +159,6 @@ public class ConnectKeyValue implements KeyValue, Serializable {
 
     @Override
     public boolean equals(Object obj) {
-
         if (obj != null && obj.getClass() == this.getClass()) {
             ConnectKeyValue keyValue = (ConnectKeyValue) obj;
             return this.properties.equals(keyValue.getProperties());
@@ -173,11 +172,25 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         return properties.hashCode();
     }
 
-    @Override public String toString() {
+
+    @Override
+    public Object clone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Override
+    public String toString() {
         return "ConnectKeyValue{" +
             "properties=" + properties +
             '}';
     }
+
+
 
 
 }

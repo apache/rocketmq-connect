@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.converter;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.data.Converter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -36,7 +37,7 @@ public class ConnectKeyValueConverter implements Converter<ConnectKeyValue> {
     @Override
     public byte[] objectToByte(ConnectKeyValue config) {
         try {
-            return TransferUtils.keyValueToString(config).getBytes("UTF-8");
+            return JSON.toJSONString(config).getBytes("UTF-8");
         } catch (Exception e) {
             log.error("ConnectKeyValueConverter#objectToByte failed", e);
         }
@@ -48,7 +49,7 @@ public class ConnectKeyValueConverter implements Converter<ConnectKeyValue> {
 
         try {
             String jsonString = new String(bytes, "UTF-8");
-            return TransferUtils.stringToKeyValue(jsonString);
+            return JSON.parseObject(jsonString, ConnectKeyValue.class);
         } catch (UnsupportedEncodingException e) {
             log.error("ConnAndTaskConfigConverter#byteToObject failed", e);
         }

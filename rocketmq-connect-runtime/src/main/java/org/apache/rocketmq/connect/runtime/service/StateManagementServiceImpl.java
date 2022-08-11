@@ -64,12 +64,12 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     private DataSynchronizer<String, String> dataSynchronizer;
     /**
-     * Current connector configs in the store.
+     * Current connector status in the store.
      */
     protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
 
     /**
-     * Current connector configs in the store.
+     * Current task status in the store.
      */
     protected KeyValueStore<String, List<TaskStatus>> taskStatusStore;
     protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
@@ -176,11 +176,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         sendConnectorStatus(status, false);
     }
     /**
-     * Safely set the state of the connector to the given value. What is
-     * considered "safe" depends on the implementation, but basically it
-     * means that the store can provide higher assurance that another worker
-     * hasn't concurrently written any conflicting data.
-     *
      * @param status the status of the connector
      */
     @Override

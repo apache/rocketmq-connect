@@ -43,12 +43,15 @@ public class WorkerConnector implements Runnable  {
     private static final String THREAD_NAME_PREFIX = "connector-thread-";
 
     private enum State {
-        INIT,    // initial state before startup
-        STOPPED, // the connector has been stopped/paused.
-        STARTED, // the connector has been started/resumed.
-        FAILED,  // the connector has failed (no further transitions are possible after this state)
+        // initial state before startup
+        INIT,
+        // the connector has been stopped/paused.
+        STOPPED,
+        // the connector has been started/resumed.
+        STARTED,
+        // the connector has failed (no further transitions are possible after this state)
+        FAILED,
     }
-
 
     /**
      * Name of the worker connector.
@@ -74,7 +77,8 @@ public class WorkerConnector implements Runnable  {
     private final AtomicReference<TargetState> pendingTargetStateChange;
     private final AtomicReference<Callback<TargetState>> pendingStateChangeCallback;
 
-    private volatile boolean stopping;  // indicates whether the Worker has asked the connector to stop
+    // stop status
+    private volatile boolean stopping;
     private State state;
 
     private final CountDownLatch shutdownLatch;
@@ -168,8 +172,7 @@ public class WorkerConnector implements Runnable  {
             }
             synchronized (this) {
                 if (pendingTargetStateChange.get() != null || stopping) {
-                    // An update occurred before we entered the synchronized block; no big deal,
-                    // just start the loop again until we've handled everything
+                    // NO-op
                 } else {
                     try {
                         wait();
@@ -227,21 +230,17 @@ public class WorkerConnector implements Runnable  {
     }
 
 
-    @SuppressWarnings("fallthrough")
     private void pause() {
         try {
             switch (state) {
                 case STOPPED:
                     return;
-
                 case STARTED:
                     connector.stop();
-                    // fall through
                 case INIT:
                     statusListener.onPause(connectorName);
                     this.state = State.STOPPED;
                     break;
-
                 default:
                     throw new IllegalArgumentException("Cannot pause connector in state " + state);
             }
@@ -394,9 +393,6 @@ public class WorkerConnector implements Runnable  {
     }
 
     public synchronized void cancel() {
-        // Proactively update the status of the connector to UNASSIGNED since this connector
-        // instance is being abandoned and we won't update the status on its behalf any more
-        // after this since a new instance may be started soon
         statusListener.onShutdown(connectorName);
     }
 

@@ -27,6 +27,8 @@ import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -56,6 +58,8 @@ public abstract class WorkerTask implements Runnable {
 
     // send status
     private final TaskStatus.Listener statusListener;
+
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
     public WorkerTask(ConnectConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener) {
         this.workerConfig = workerConfig;
@@ -147,6 +151,20 @@ public abstract class WorkerTask implements Runnable {
     }
 
     /**
+     * Wait for this task to finish stopping.
+     *
+     * @param timeoutMs time in milliseconds to await stop
+     * @return true if successful, false if the timeout was reached
+     */
+    public boolean awaitStop(long timeoutMs) {
+        try {
+            return shutdownLatch.await(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            return false;
+        }
+    }
+
+    /**
      * clean up
      */
     public void cleanup() {
@@ -219,6 +237,7 @@ public abstract class WorkerTask implements Runnable {
         } finally {
             Thread.currentThread().setName(savedName);
             Plugin.compareAndSwapLoaders(savedLoader);
+            shutdownLatch.countDown();
         }
     }
 
@@ -239,7 +258,7 @@ public abstract class WorkerTask implements Runnable {
     protected boolean awaitUnpause() throws InterruptedException {
         synchronized (this) {
             while (targetState == TargetState.PAUSED) {
-                if (!isStopping()) {
+                if (isStopping()) {
                     return false;
                 }
                 this.wait();

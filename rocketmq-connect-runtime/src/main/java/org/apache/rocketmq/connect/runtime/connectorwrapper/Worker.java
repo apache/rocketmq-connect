@@ -46,6 +46,7 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -294,12 +295,17 @@ public class Worker {
                 continue;
             }
             WorkerConnector connector = connectors.get(connectName);
-            ConnectKeyValue oldConfig = connector.getKeyValue();
             ConnectKeyValue newConfig = assigns.get(connectName);
-            if (oldConfig.getTargetState() != newConfig.getTargetState()){
-                // update connector target state
-                connector.transitionTo(newConfig.getTargetState(), null);
-            }
+            connector.transitionTo(newConfig.getTargetState(), new Callback<TargetState>() {
+                @Override
+                public void onCompletion(Throwable error, TargetState result) {
+                    if (error != null) {
+                        log.error(error.getMessage());
+                    } else {
+                        log.info("Connector {} set target state {} successed!!", connectName, result);
+                    }
+                }
+            });
         }
     }
 
@@ -342,13 +348,10 @@ public class Worker {
         // Step 2: Check config update
         checkAndReconfigureConnectors(connectorConfigs);
 
-        // Step 3： check and transition to connectors
-        checkAndTransitionToConnectors(connectorConfigs);
-
-        // Step 4： check new
+        // Step 3： check new
         Map<String, ConnectKeyValue> newConnectors = checkAndNewConnectors(connectorConfigs);
 
-        //Step 5： start connectors
+        //Step 4： start connectors
         for (String connectorName : newConnectors.keySet()) {
             ClassLoader savedLoader = plugin.currentThreadLoader();
             try {
@@ -368,7 +371,6 @@ public class Worker {
                         savedLoader
                 );
                 // initinal target state
-                workerConnector.transitionTo(keyValue.getTargetState(), null);
                 executor.submit(workerConnector);
                 log.info("Connector {} start", workerConnector.getConnectorName());
                 Plugin.compareAndSwapLoaders(savedLoader);
@@ -378,6 +380,9 @@ public class Worker {
                 log.error("worker connector start exception. workerName: " + connectorName, e);
             }
         }
+
+        // Step 3： check and transition to connectors
+        checkAndTransitionToConnectors(connectorConfigs);
     }
 
     /**
@@ -415,22 +420,39 @@ public class Worker {
      * so we can view history tasks
      */
     public void stop() {
-        workerState.set(WorkerState.TERMINATED);
-        try {
-            sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
-            taskExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS);
-            // stop and await connectors
-            if (!connectors.isEmpty()) {
-                log.warn("Shutting down connectors {} uncleanly; herder should have shut down connectors before the Worker is stopped", connectors.keySet());
-                stopAndAwaitConnectors();
-            }
-            executor.shutdown();
 
-        } catch (InterruptedException e) {
-            log.error("Task termination error.", e);
+        // stop and await connectors
+        if (!connectors.isEmpty()) {
+            log.warn("Shutting down connectors {} uncleanly; herder should have shut down connectors before the Worker is stopped", connectors.keySet());
+            stopAndAwaitConnectors();
         }
-        stateMachineService.shutdown();
+        executor.shutdown();
 
+        // stop connectors
+        workerState.set(WorkerState.TERMINATED);
+        Set<Runnable> runningTasks = this.runningTasks;
+        for (Runnable task: runningTasks){
+            awaitStopTask((WorkerTask) task, 5000);
+        }
+        taskExecutor.shutdown();
+
+        // close offset committer
+        sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
+
+        stateMachineService.shutdown();
+    }
+
+    private void awaitStopTask(WorkerTask task, long timeout) {
+        if (task == null) {
+            log.warn("Ignoring await stop request for non-present task {}", task.id());
+            return;
+        }
+        if (!task.awaitStop(timeout)) {
+            log.error("Graceful stop of task {} failed.", task.id());
+            task.doClose();
+        } else {
+            log.debug("Graceful stop of task {} succeeded.", task.id());
+        }
     }
 
     /**

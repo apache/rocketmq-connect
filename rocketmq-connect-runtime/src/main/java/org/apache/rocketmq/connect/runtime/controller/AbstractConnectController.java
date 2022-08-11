@@ -299,7 +299,7 @@ public abstract class AbstractConnectController implements ConnectController {
     public ConnectorInfo connectorInfo(String connector){
         final ClusterConfigState configState = configManagementService.snapshot();
         if (!configState.contains(connector)) {
-            return null;
+            throw new ConnectException("Connector["+connector+"] does not exist");
         }
         Map<String, String> config = configState.rawConnectorConfig(connector);
         return new ConnectorInfo(

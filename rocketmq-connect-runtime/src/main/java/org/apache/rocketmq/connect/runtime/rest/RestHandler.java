@@ -222,12 +222,6 @@ public class RestHandler {
 
 
     private void handlePauseConnector(Context context) {
-        Validator<String> validator = context.queryParamAsClass(CONNECTOR_NAME, String.class)
-                .check(n -> StringUtils.isBlank(n), "Connector name cannot be empty");
-        if (validator.hasValue()) {
-            context.json(new ErrorMessage(context.status(), validator.get()));
-            return;
-        }
         String connectorName = context.pathParam(CONNECTOR_NAME);
         try {
             connectController.pauseConnector(connectorName);
@@ -240,12 +234,6 @@ public class RestHandler {
     }
 
     private void handleResumeConnector(Context context) {
-        Validator<String> validator = context.queryParamAsClass(CONNECTOR_NAME, String.class)
-                .check(n -> StringUtils.isBlank(n), "Connector name cannot be empty");
-        if (validator.hasValue()) {
-            context.json(new ErrorMessage(context.status(), validator.get()));
-            return;
-        }
         String connectorName = context.pathParam(CONNECTOR_NAME);
         try {
             connectController.resumeConnector(connectorName);
