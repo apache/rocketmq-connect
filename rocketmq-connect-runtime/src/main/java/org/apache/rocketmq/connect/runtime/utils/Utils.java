@@ -57,7 +57,6 @@ public class Utils {
         }
     }
 
-
     /**
      * Create a string representation of an array joined by the given separator
      * @param strs The array of items
@@ -86,6 +85,4 @@ public class Utils {
         }
         return sb.toString();
     }
-
-
 }
