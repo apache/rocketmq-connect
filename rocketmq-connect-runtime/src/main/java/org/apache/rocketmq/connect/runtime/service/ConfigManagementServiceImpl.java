@@ -160,12 +160,12 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         }
 
         if (configs.equals(exist)) {
-            return "Connector with same config already exist.";
+            throw new ConnectException("Connector with same config already exist.");
         }
 
         for (String requireConfig : RuntimeConfigDefine.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
-                return "Request config key: " + requireConfig;
+                throw new ConnectException("Request config key: " + requireConfig);
             }
         }
         configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());

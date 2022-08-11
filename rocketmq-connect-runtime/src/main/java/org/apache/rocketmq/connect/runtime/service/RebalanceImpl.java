@@ -98,7 +98,6 @@ public class RebalanceImpl {
             }
         }
 
-
         // exculde delete connector
         Map<String, ConnectKeyValue> curConnectorConfigs = configManagementService.getConnectorConfigs();
         log.info("Current ConnectorConfigs : " + curConnectorConfigs);
