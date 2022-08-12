@@ -246,7 +246,7 @@ public class StateManagementServiceImpl implements StateManagementService {
                                                     final ConnAndTaskStatus.CacheEntry<V> entry,
                                                     final boolean safeWrite) {
         synchronized (this) {
-            if (safeWrite && !entry.canWriteSafely(status)) {
+            if (safeWrite && !entry.canWrite(status)) {
                 return;
             }
         }
@@ -374,7 +374,7 @@ public class StateManagementServiceImpl implements StateManagementService {
     private void readTaskStatus(String key, TaskStatus status) {
         ConnectorTaskId id = parseConnectorTaskId(key);
         if (id == null) {
-            log.warn("Discarding record with invalid task status key {}", key);
+            log.warn("Receive record with invalid task status key {}", key);
             return;
         }
 
@@ -424,6 +424,5 @@ public class StateManagementServiceImpl implements StateManagementService {
             }
         }
     }
-
 
 }

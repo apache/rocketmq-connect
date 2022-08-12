@@ -206,10 +206,14 @@ public class WorkerSinkTask extends WorkerTask {
             log.warn("{} Commit of offsets timed out", this);
             committing = false;
         }
-
         // And process messages
         long timeoutMs = Math.max(nextCommit - now, 0);
-        poll(timeoutMs);
+        //  pre reset commit
+        preCommit();
+        List<MessageExt> msgs = pollConsumer(timeoutMs);
+        assert messageBatch.isEmpty() || msgs.isEmpty();
+        log.info("{} Polling returned {} messages", this, msgs.size());
+        receiveMessages(msgs);
     }
 
 
@@ -244,7 +248,7 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
     private void commitOffsets(long now, boolean closing, Set<MessageQueue> messageQueues) {
-        log.trace("Committing offsets for queues {}", messageQueues);
+        log.trace("Start commit offsets {}", messageQueues);
 
         Map<MessageQueue, Long> offsetsToCommit = currentOffsets.entrySet()
                 .stream()
@@ -259,91 +263,101 @@ public class WorkerSinkTask extends WorkerTask {
         commitSeqno += 1;
         commitStarted = now;
 
-        Map<MessageQueue, Long> lastCommittedOffsetsForPartitions = this.lastCommittedOffsets.entrySet()
+        Map<MessageQueue, Long> lastCommittedQueuesOffsets = this.lastCommittedOffsets.entrySet()
                 .stream()
                 .filter(e -> offsetsToCommit.containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        final Map<MessageQueue, Long> taskResetOffsets = new ConcurrentHashMap<>();
-        Map<RecordPartition, RecordOffset> taskProvidedRecordOffset = new ConcurrentHashMap<>();
+        Map<MessageQueue, Long> taskProvidedOffsets = new ConcurrentHashMap<>();
+        Map<RecordPartition, RecordOffset> taskProvidedRecordOffsets = new ConcurrentHashMap<>();
         try {
-            log.trace("{} Calling task.preCommit with current offsets: {}", this, offsetsToCommit);
-
-            Map<RecordPartition, RecordOffset> queueCommitOffset = new ConcurrentHashMap<>();
+            log.info(" Call task.preCommit reset offset : {}", offsetsToCommit);
+            Map<RecordPartition, RecordOffset> recordOffsetsToCommit = new ConcurrentHashMap<>();
             for (Map.Entry<MessageQueue, Long> messageQueueOffset : offsetsToCommit.entrySet()) {
                 RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueueOffset.getKey());
                 RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(messageQueueOffset.getValue());
-                queueCommitOffset.put(recordPartition, recordOffset);
+                recordOffsetsToCommit.put(recordPartition, recordOffset);
             }
 
             // pre commit
-            taskProvidedRecordOffset = sinkTask.preCommit(queueCommitOffset);
-
-            for (Map.Entry<RecordPartition, RecordOffset> entry : taskProvidedRecordOffset.entrySet()) {
-                taskResetOffsets.put(ConnectUtil.convertToMessageQueue(entry.getKey()), ConnectUtil.convertToOffset(entry.getValue()));
+            taskProvidedRecordOffsets = sinkTask.preCommit(recordOffsetsToCommit);
+            // task provided commit offset
+            for (Map.Entry<RecordPartition, RecordOffset> entry : taskProvidedRecordOffsets.entrySet()) {
+                taskProvidedOffsets.put(ConnectUtil.convertToMessageQueue(entry.getKey()), ConnectUtil.convertToOffset(entry.getValue()));
             }
 
         } catch (Throwable t) {
             if (closing) {
-                log.warn("{} Offset commit failed", this);
+                log.warn(" {} Offset commit failed {}", this);
             } else {
                 log.error("{} Offset commit failed, reset to last committed offsets", this, t);
-                for (Map.Entry<MessageQueue, Long> entry : lastCommittedOffsetsForPartitions.entrySet()) {
-                    log.debug("{} Rewinding topic queue {} to offset {}", this, entry.getKey(), entry.getValue());
+                for (Map.Entry<MessageQueue, Long> entry : lastCommittedQueuesOffsets.entrySet()) {
                     try {
                         consumer.seek(entry.getKey(), entry.getValue());
                     } catch (MQClientException e) {
                     }
                 }
-                //
-                currentOffsets.putAll(lastCommittedOffsetsForPartitions);
+                currentOffsets.putAll(lastCommittedQueuesOffsets);
             }
             onCommitCompleted(t, commitSeqno, null);
             return;
         } finally {
             if (closing) {
                 log.trace("{} Closing the task before committing the offsets: {}", this, offsetsToCommit);
-                sinkTask.flush(taskProvidedRecordOffset);
+                sinkTask.flush(taskProvidedRecordOffsets);
             }
         }
-
-        if (taskResetOffsets.isEmpty()) {
+        if (taskProvidedOffsets.isEmpty()) {
             log.debug("{} Skipping offset commit, task opted-out by returning no offsets from preCommit", this);
             onCommitCompleted(null, commitSeqno, null);
             return;
         }
+        compareAndCommit(offsetsToCommit, lastCommittedQueuesOffsets, taskProvidedOffsets);
+    }
 
-        //get all assign topic queue
-        Collection<MessageQueue> allAssignedTopicQueues = this.messageQueues;
+    /**
+     * compare and commit
+     *
+     * @param offsetsToCommit
+     * @param lastCommittedQueuesOffsets
+     * @param taskProvidedOffsets
+     */
+    private void compareAndCommit(Map<MessageQueue, Long> offsetsToCommit, Map<MessageQueue, Long> lastCommittedQueuesOffsets, Map<MessageQueue, Long> taskProvidedOffsets) {
+
+        //Get all assign topic message queue
+        Collection<MessageQueue> assignedTopicQueues = this.messageQueues;
         // committable offsets
-        final Map<MessageQueue, Long> committableOffsets = new HashMap<>(lastCommittedOffsetsForPartitions);
-        for (Map.Entry<MessageQueue, Long> taskResetOffsetEntry : taskResetOffsets.entrySet()) {
+        final Map<MessageQueue, Long> committableOffsets = new HashMap<>(lastCommittedQueuesOffsets);
+        for (Map.Entry<MessageQueue, Long> taskProvidedOffsetsEntry : taskProvidedOffsets.entrySet()) {
 
-            // task reset offset
-            final MessageQueue queue = taskResetOffsetEntry.getKey();
-            final Long taskOffset = taskResetOffsetEntry.getValue();
+            // task provided offset
+            final MessageQueue queue = taskProvidedOffsetsEntry.getKey();
+            final Long taskProvidedOffset = taskProvidedOffsetsEntry.getValue();
+
+            //check reblance remove
+            if (!assignedTopicQueues.contains(queue)) {
+                log.warn("{} After rebalancing, the MessageQueue is removed from the current consumer {}/{} , assignment={}",
+                        this, queue, taskProvidedOffset, assignedTopicQueues);
+                continue;
+            }
+
+            if (!committableOffsets.containsKey(queue)) {
+                log.debug("{} The MessageQueue provided by the task is not subscribed {}/{} , requested={}",
+                        this, queue, taskProvidedOffset, committableOffsets.keySet());
+                continue;
+            }
 
             if (committableOffsets.containsKey(queue)) {
                 // current offset
                 long currentOffset = offsetsToCommit.get(queue);
-                if (currentOffset >= taskOffset) {
-                    committableOffsets.put(queue, taskOffset);
-                } else {
-                    log.warn("{} Ignoring invalid task provided offset {}/{} -- not yet consumed, taskOffset={} currentOffset={}",
-                            this, queue, taskOffset, taskOffset, currentOffset);
+                // compare and set
+                if (currentOffset >= taskProvidedOffset) {
+                    committableOffsets.put(queue, taskProvidedOffset);
                 }
-            } else if (!allAssignedTopicQueues.contains(queue)) {
-                // reblance remove
-                log.warn("{} Ignoring invalid task provided offset {}/{} -- partition not assigned, assignment={}",
-                        this, queue, taskOffset, allAssignedTopicQueues);
-            } else {
-                log.debug("{} Ignoring task provided offset {}/{} -- partition not requested, requested={}",
-                        this, queue, taskOffset, committableOffsets.keySet());
             }
-
         }
 
-        if (committableOffsets.equals(lastCommittedOffsetsForPartitions)) {
+        if (committableOffsets.equals(lastCommittedQueuesOffsets)) {
             log.debug("{} Skipping offset commit, no change since last commit", this);
             onCommitCompleted(null, commitSeqno, null);
             return;
@@ -352,7 +366,7 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
     /**
-     * do commi
+     * do commit
      *
      * @param offsets
      * @param seqno
@@ -361,7 +375,7 @@ public class WorkerSinkTask extends WorkerTask {
         log.debug("{} Committing offsets synchronously using sequence number {}: {}", this, seqno, offsets);
         try {
             offsets.forEach((queue, offset) -> {
-                consumer.getOffsetStore().updateOffset(queue, offset, false);
+                consumer.getOffsetStore().updateOffset(queue, offset, true);
             });
             onCommitCompleted(null, seqno, offsets);
         } catch (Exception e) {
@@ -378,44 +392,27 @@ public class WorkerSinkTask extends WorkerTask {
      */
     private void onCommitCompleted(Throwable error, long seqno, Map<MessageQueue, Long> committedOffsets) {
         if (commitSeqno != seqno) {
-            log.debug("{} Received out of order commit callback for sequence number {}, but most recent sequence number is {}",
-                    this, seqno, commitSeqno);
-        } else {
-            long durationMillis = System.currentTimeMillis() - commitStarted;
-            if (error != null) {
-                log.error("{} Commit of offsets threw an unexpected exception for sequence number {}: {}",
-                        this, seqno, committedOffsets, error);
-
-            } else {
-                log.debug("{} Finished offset commit successfully in {} ms for sequence number {}: {}",
-                        this, durationMillis, seqno, committedOffsets);
-                if (committedOffsets != null) {
-                    log.trace("{} Adding to last committed offsets: {}", this, committedOffsets);
-                    lastCommittedOffsets.putAll(committedOffsets);
-                    log.debug("{} Last committed offsets are now {}", this, committedOffsets);
-                }
-            }
-            committing = false;
+            return;
         }
-    }
+        if (error != null) {
+            log.error("{} An exception was thrown when committing commit offset, sequence number {}: {}",
+                    this, seqno, committedOffsets, error);
 
-
-    /**
-     * Poll for new messages with the given timeout. Should only be invoked by the worker thread.
-     */
-    protected void poll(long timeoutMs) {
-        rewind();
-        log.trace("{} Polling consumer with timeout {} ms", this, timeoutMs);
-        List<MessageExt> msgs = pollConsumer(timeoutMs);
-        assert messageBatch.isEmpty() || msgs.isEmpty();
-        log.trace("{} Polling returned {} messages", this, msgs.size());
-        receiveMessages(msgs);
+        } else {
+            log.debug("{} Finished offset commit successfully in {} ms for sequence number {}: {}",
+                    this, System.currentTimeMillis() - commitStarted, seqno, committedOffsets);
+            if (committedOffsets != null) {
+                lastCommittedOffsets.putAll(committedOffsets);
+                log.debug("{} Last committed offsets are now {}", this, committedOffsets);
+            }
+        }
+        committing = false;
     }
 
     /**
      * reset offset by custom
      */
-    private void rewind() {
+    private void preCommit() {
         Map<MessageQueue, Long> offsets = sinkTaskContext.queuesOffsets();
         if (offsets.isEmpty()) {
             return;
@@ -432,8 +429,6 @@ public class WorkerSinkTask extends WorkerTask {
                 } catch (MQClientException e) {
                     // NO-op
                 }
-            } else {
-                log.warn("{} Cannot rewind {} to null offset", this, queue);
             }
         }
         sinkTaskContext.cleanQueuesOffsets();
@@ -600,7 +595,7 @@ public class WorkerSinkTask extends WorkerTask {
 
                         // add new message queue
                         assignMessageQueue(mqDivided);
-                        rewind();
+                        preCommit();
                         log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
 
                     }
@@ -648,7 +643,7 @@ public class WorkerSinkTask extends WorkerTask {
         });
         recordPartitions.removeAll(waitRemoveQueueMetaDatas);
 
-        // closePartitions
+        // clean message queues offset
         closeMessageQueues(removeMessageQueues, false);
     }
 

@@ -115,7 +115,7 @@ public class ConnAndTaskStatus {
         }
 
         /**
-         * f it has been deleted, it is meaningless to send it again
+         * if it has been deleted, it is meaningless to send it again
          */
         public void delete() {
             this.deleted = true;
@@ -125,7 +125,7 @@ public class ConnAndTaskStatus {
             return deleted;
         }
 
-        public boolean canWriteSafely(T status) {
+        public boolean canWrite(T status) {
             return value == null
                     || value.getWorkerId().equals(status.getWorkerId())
                     || status.getGeneration() >= value.getGeneration();

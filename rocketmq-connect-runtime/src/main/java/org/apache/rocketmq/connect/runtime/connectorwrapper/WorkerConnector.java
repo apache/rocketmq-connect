@@ -43,13 +43,9 @@ public class WorkerConnector implements Runnable  {
     private static final String THREAD_NAME_PREFIX = "connector-thread-";
 
     private enum State {
-        // initial state before startup
         INIT,
-        // the connector has been stopped/paused.
         STOPPED,
-        // the connector has been started/resumed.
         STARTED,
-        // the connector has failed (no further transitions are possible after this state)
         FAILED,
     }
 
@@ -74,8 +70,8 @@ public class WorkerConnector implements Runnable  {
 
     private final ClassLoader classloader;
 
-    private final AtomicReference<TargetState> pendingTargetStateChange;
-    private final AtomicReference<Callback<TargetState>> pendingStateChangeCallback;
+    private final AtomicReference<TargetState> targetStateChange;
+    private final AtomicReference<Callback<TargetState>> targetStateChangeCallback;
 
     // stop status
     private volatile boolean stopping;
@@ -95,8 +91,8 @@ public class WorkerConnector implements Runnable  {
         this.context = context;
         this.statusListener = statusListener;
         this.classloader = classloader;
-        this.pendingTargetStateChange = new AtomicReference<>();
-        this.pendingStateChangeCallback = new AtomicReference<>();
+        this.targetStateChange = new AtomicReference<>();
+        this.targetStateChangeCallback = new AtomicReference<>();
         this.state = State.INIT;
         this.shutdownLatch = new CountDownLatch(1);
         this.stopping = false;
@@ -131,16 +127,6 @@ public class WorkerConnector implements Runnable  {
         }
     }
 
-    /**
-     * When an object implementing interface <code>Runnable</code> is used
-     * to create a thread, starting the thread causes the object's
-     * <code>run</code> method to be called in that separately executing
-     * thread.
-     * <p>
-     * The general contract of the method <code>run</code> is that it may
-     * take any action whatsoever.
-     * @see Thread#run()
-     */
     @Override
     public void run() {
         try  {
@@ -164,22 +150,19 @@ public class WorkerConnector implements Runnable  {
             TargetState newTargetState;
             Callback<TargetState> stateChangeCallback;
             synchronized (this) {
-                newTargetState = pendingTargetStateChange.getAndSet(null);
-                stateChangeCallback = pendingStateChangeCallback.getAndSet(null);
+                newTargetState = targetStateChange.getAndSet(null);
+                stateChangeCallback = this.targetStateChangeCallback.getAndSet(null);
             }
             if (newTargetState != null && !stopping) {
                 doTransitionTo(newTargetState, stateChangeCallback);
             }
             synchronized (this) {
-                if (pendingTargetStateChange.get() != null || stopping) {
-                    // NO-op
-                } else {
-                    try {
-                        wait();
-                    } catch (InterruptedException e) {
-                        // We'll pick up any potential state changes at the top of the loop
-                    }
+                if (targetStateChange.get() != null || stopping) {
+                    continue;
                 }
+                try {
+                    wait();
+                } catch (InterruptedException e) {}
             }
         }
         doShutdown();
@@ -191,13 +174,11 @@ public class WorkerConnector implements Runnable  {
             switch (state) {
                 case STARTED:
                     return false;
-
                 case INIT:
                 case STOPPED:
                     connector.start(keyValue);
                     this.state = State.STARTED;
                     return true;
-
                 default:
                     throw new IllegalArgumentException("Cannot start connector in state " + state);
             }
@@ -224,11 +205,6 @@ public class WorkerConnector implements Runnable  {
             statusListener.onStartup(connectorName);
         }
     }
-
-    public boolean isRunning() {
-        return state == State.STARTED;
-    }
-
 
     private void pause() {
         try {
@@ -263,8 +239,8 @@ public class WorkerConnector implements Runnable  {
 
     void doShutdown() {
         try {
-            TargetState preEmptedState = pendingTargetStateChange.getAndSet(null);
-            Callback<TargetState> stateChangeCallback = pendingStateChangeCallback.getAndSet(null);
+            TargetState preEmptedState = targetStateChange.getAndSet(null);
+            Callback<TargetState> stateChangeCallback = this.targetStateChangeCallback.getAndSet(null);
             if (stateChangeCallback != null) {
                 stateChangeCallback.onCompletion(
                         new ConnectException(
@@ -302,8 +278,8 @@ public class WorkerConnector implements Runnable  {
         Callback<TargetState> preEmptedStateChangeCallback;
         TargetState preEmptedState;
         synchronized (this) {
-            preEmptedStateChangeCallback = pendingStateChangeCallback.getAndSet(stateChangeCallback);
-            preEmptedState = pendingTargetStateChange.getAndSet(targetState);
+            preEmptedStateChangeCallback = this.targetStateChangeCallback.getAndSet(stateChangeCallback);
+            preEmptedState = targetStateChange.getAndSet(targetState);
             notify();
         }
         if (preEmptedStateChangeCallback != null) {
