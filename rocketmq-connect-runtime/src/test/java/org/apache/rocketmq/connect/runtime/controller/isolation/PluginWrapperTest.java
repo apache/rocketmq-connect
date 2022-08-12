@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class PluginWrapperTest {
 
-    private PluginWrapper pluginWrapper = new PluginWrapper(TestPath.class, TestPath.class.getClassLoader());
+    private PluginWrapper pluginWrapper = new PluginWrapper(TestPath.class,"1.0", TestPath.class.getClassLoader());
 
     @Test
     public void getClassLoaderTest() {
@@ -31,12 +31,12 @@ public class PluginWrapperTest {
 
     @Test
     public void fromTest() {
-        final PluginWrapper.PluginType from = PluginWrapper.PluginType.from(PluginWrapper.PluginType.SOURCE.getClass());
+        final PluginType from = PluginType.from(PluginType.SOURCE.getClass());
         Assertions.assertThat(from).isNotNull();
 
-        Assertions.assertThat(PluginWrapper.PluginType.SOURCE.simpleName()).isNotEmpty();
+        Assertions.assertThat(PluginType.SOURCE.simpleName()).isNotEmpty();
 
-        Assertions.assertThat(PluginWrapper.PluginType.SOURCE.toString()).isNotEmpty();
+        Assertions.assertThat(PluginType.SOURCE.toString()).isNotEmpty();
 
     }
 }

@@ -25,8 +25,6 @@ import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
  */
 public interface ClusterManagementService {
 
-    Long WORKER_TIME_OUT = 30 * 1000L;
-
     void initialize(ConnectConfig connectConfig);
 
     /**
@@ -69,8 +67,16 @@ public interface ClusterManagementService {
      */
     void registerListener(WorkerStatusListener listener);
 
+    /**
+     * get current run worker
+     * @return
+     */
     String getCurrentWorker();
 
+    /**
+     * staging mode
+     * @return
+     */
     StagingMode getStagingMode();
 
     interface WorkerStatusListener {

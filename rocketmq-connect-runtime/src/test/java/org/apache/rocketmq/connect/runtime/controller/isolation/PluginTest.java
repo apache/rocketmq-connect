@@ -35,7 +35,7 @@ public class PluginTest {
     }
 
     @Test
-    public void initPluginTest() {
-        Assertions.assertThatCode(() -> plugin.initPlugin()).doesNotThrowAnyException();
+    public void initLoadersTest() {
+        Assertions.assertThatCode(() -> plugin.initLoaders()).doesNotThrowAnyException();
     }
 }
