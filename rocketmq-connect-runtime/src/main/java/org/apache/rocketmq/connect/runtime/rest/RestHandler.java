@@ -48,8 +48,13 @@ public class RestHandler {
     private final String TASK_NAME = "task";
     private final AbstractConnectController connectController;
 
+    /** connector plugin resource */
+    private ConnectorPluginsResource pluginsResource;
+
     public RestHandler(AbstractConnectController connectController) {
         this.connectController = connectController;
+        pluginsResource = new ConnectorPluginsResource(connectController);
+
         Javalin app = Javalin.create();
         app = app.start(connectController.getConnectConfig().getHttpPort());
 
@@ -80,7 +85,11 @@ public class RestHandler {
         app.get("/connectors/resume/all", this::handleResumeAllConnector);
 
         // plugin
-        app.get("/plugin/reload", this::reloadPlugins);
+        app.get("/plugin/reload", context -> pluginsResource.reloadPlugins(context));
+        app.get("/plugin/list", context -> pluginsResource.listPlugins(context));
+        app.get("/plugin/list/connectors", context -> pluginsResource.listConnectorPlugins(context));
+        app.get("/plugin/config", context -> pluginsResource.getConnectorConfigDef(context));
+        app.get("/plugin/config/validate", context -> pluginsResource.validateConfigs(context));
     }
 
 
@@ -270,16 +279,6 @@ public class RestHandler {
             context.json(new HttpResponse<>(context.status(), conns.size() + " connectors are resumed"));
         } catch (Exception ex) {
             log.error("Pause all connector failed {} , {}.", conns, ex);
-            context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
-        }
-    }
-
-    private void reloadPlugins(Context context) {
-        try {
-            connectController.reloadPlugins();
-            context.json(new HttpResponse<>(context.status(), "Plugin reload succeeded"));
-        } catch (Exception ex) {
-            log.error("Reload plugin failed .", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }

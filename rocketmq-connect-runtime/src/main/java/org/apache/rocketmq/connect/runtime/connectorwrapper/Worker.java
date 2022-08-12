@@ -26,6 +26,7 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -36,9 +37,6 @@ import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
-import org.apache.rocketmq.connect.runtime.converter.record.ConverterConfig;
-import org.apache.rocketmq.connect.runtime.converter.record.ConverterType;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
@@ -51,6 +49,7 @@ import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -361,11 +360,11 @@ public class Worker {
             try {
                 ConnectKeyValue keyValue = newConnectors.get(connectorName);
                 String connectorClass = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-                ClassLoader loader = plugin.getPluginClassLoader(connectorClass);
-                savedLoader = Plugin.compareAndSwapLoaders(loader);
-                final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
-                Class clazz = currentThreadLoader.loadClass(connectorClass);
-                final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
+                ClassLoader connectorLoader = plugin.delegatingLoader().pluginClassLoader(connectorClass);
+                savedLoader = Plugin.compareAndSwapLoaders(connectorLoader);
+
+                // instance connector
+                final Connector connector = plugin.newConnector(connectorClass);
                 WorkerConnector workerConnector = new WorkerConnector(
                         connectorName,
                         connector,
@@ -392,6 +391,9 @@ public class Worker {
             } catch (Exception e) {
                 Plugin.compareAndSwapLoaders(savedLoader);
                 log.error("worker connector start exception. workerName: " + connectorName, e);
+            } finally {
+                // compare and swap
+                Plugin.compareAndSwapLoaders(savedLoader);
             }
         }
 
@@ -790,34 +792,32 @@ public class Worker {
 
                 ClassLoader savedLoader = plugin.currentThreadLoader();
                 try {
-
                     String connType = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-                    ClassLoader connectorLoader = plugin.getPluginClassLoader(connType);
+                    ClassLoader connectorLoader = plugin.delegatingLoader().connectorLoader(connType);
                     savedLoader = Plugin.compareAndSwapLoaders(connectorLoader);
-
+                    // new task
                     final Class<? extends Task> taskClass = plugin.currentThreadLoader().loadClass(keyValue.getString(RuntimeConfigDefine.TASK_CLASS)).asSubclass(Task.class);
-
                     final Task task = plugin.newTask(taskClass);
 
-                    final String valueConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_CONVERTER_DEFAULT);
-                    final String keyConverterClazzName = keyValue.getString(RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER_DEFAULT);
-                    // new stance
-                    RecordConverter valueConverter = Class.forName(valueConverterClazzName).asSubclass(RecordConverter.class).getDeclaredConstructor().newInstance();
-                    RecordConverter keyConverter = Class.forName(keyConverterClazzName).asSubclass(RecordConverter.class).getDeclaredConstructor().newInstance();
+                    /**
+                     * create key/value converter
+                     */
+                    RecordConverter valueConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter keyConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
 
-                    //value config
-                    Map<String, String> valueConverterConfig = keyValue.originalsWithPrefix(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, true);
-                    valueConverterConfig.put(ConverterConfig.TYPE_CONFIG, ConverterType.VALUE.getName());
-                    valueConverter.configure(valueConverterConfig);
+                    if (keyConverter == null) {
+                        keyConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, Plugin.ClassLoaderUsage.PLUGINS);
+                        log.info("Set up the key converter {} for task {} using the worker config", keyConverter.getClass(), id);
+                    } else {
+                        log.info("Set up the key converter {} for task {} using the connector config", keyConverter.getClass(), id);
+                    }
+                    if (valueConverter == null) {
+                        valueConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, Plugin.ClassLoaderUsage.PLUGINS);
+                        log.info("Set up the value converter {} for task {} using the worker config", valueConverter.getClass(), id);
+                    } else {
+                        log.info("Set up the value converter {} for task {} using the connector config", valueConverter.getClass(), id);
+                    }
 
-                    //key config
-                    Map<String, String> keyConverterConfig = keyValue.originalsWithPrefix(RuntimeConfigDefine.SOURCE_RECORD_KEY_CONVERTER, true);
-                    keyConverterConfig.put(ConverterConfig.TYPE_CONFIG, ConverterType.KEY.getName());
-                    keyConverter.configure(keyConverterConfig);
-
-//                    if (isolationFlag) {
-//                        Plugin.compareAndSwapLoaders(loader);
-//                    }
                     if (task instanceof SourceTask) {
                         DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
@@ -857,6 +857,7 @@ public class Worker {
                     Plugin.compareAndSwapLoaders(savedLoader);
                 } catch (Exception e) {
                     log.error("start worker task exception. config {}" + JSON.toJSONString(keyValue), e);
+                    Plugin.compareAndSwapLoaders(savedLoader);
                 }
             }
         }
@@ -918,23 +919,23 @@ public class Worker {
         this.pendingTasks.put(workerDirectTask, System.currentTimeMillis());
     }
 
-    private Task getTask(String taskClass) throws Exception {
-        ClassLoader loader = plugin.getPluginClassLoader(taskClass);
-        final ClassLoader currentThreadLoader = plugin.currentThreadLoader();
-        Class taskClazz;
-        boolean isolationFlag = false;
-        if (loader instanceof PluginClassLoader) {
-            taskClazz = ((PluginClassLoader) loader).loadClass(taskClass, false);
-            isolationFlag = true;
-        } else {
-            taskClazz = Class.forName(taskClass);
+    private Task getTask(String taskClass) {
+        ClassLoader savedLoader = plugin.currentThreadLoader();
+        Task task = null;
+        try {
+            // Get plugin loader
+            ClassLoader taskLoader = plugin.delegatingLoader().pluginClassLoader(taskClass);
+            // Compare and set current loader
+            savedLoader = Plugin.compareAndSwapLoaders(taskLoader);
+            // load class
+            Class taskClazz = Utils.getContextCurrentClassLoader().loadClass(taskClass).asSubclass(Task.class);
+            // new task
+            task = plugin.newTask(taskClazz);
+        } catch (Exception ex) {
+            throw new ConnectException("Create direct task failure", ex);
+        } finally {
+            Plugin.compareAndSwapLoaders(savedLoader);
         }
-        final Task task = (Task) taskClazz.getDeclaredConstructor().newInstance();
-        if (isolationFlag) {
-            Plugin.compareAndSwapLoaders(loader);
-        }
-
-        Plugin.compareAndSwapLoaders(currentThreadLoader);
         return task;
     }
 

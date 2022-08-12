@@ -21,6 +21,9 @@ import java.net.URLClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ *  A custom classloader dedicated to loading Connect plugin classes in classloading isolation.
+ */
 public class PluginClassLoader extends URLClassLoader {
     private static final Logger log = LoggerFactory.getLogger(PluginClassLoader.class);
     private final URL pluginLocation;

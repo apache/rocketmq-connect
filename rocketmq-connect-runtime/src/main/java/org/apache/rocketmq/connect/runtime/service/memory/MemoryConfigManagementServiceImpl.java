@@ -98,15 +98,10 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
                 throw new ConnectException("Request config key: " + requireConfig);
             }
         }
-
-        try {
-            Connector connector = super.loadConnector(configs);
-            connectorKeyValueStore.put(connectorName, configs);
-            recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
-            return connectorName;
-        } catch (Exception e) {
-            throw new ConnectException(e);
-        }
+        Connector connector = super.loadConnector(configs);
+        connectorKeyValueStore.put(connectorName, configs);
+        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
+        return connectorName;
     }
 
     @Override

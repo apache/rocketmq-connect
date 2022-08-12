@@ -129,7 +129,6 @@ public class StandaloneConnectStartup {
                 }
             }
             Plugin plugin = new Plugin(pluginPaths);
-            plugin.initPlugin();
 
             ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.STANDALONE);
             clusterManagementService.initialize(connectConfig);

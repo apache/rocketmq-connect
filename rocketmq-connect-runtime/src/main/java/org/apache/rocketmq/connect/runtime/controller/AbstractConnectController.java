@@ -196,7 +196,7 @@ public abstract class AbstractConnectController implements ConnectController {
      * reload plugins
      */
     public void reloadPlugins() {
-        configManagementService.getPlugin().initPlugin();
+        configManagementService.getPlugin().initLoaders();
     }
 
     public List<String> aliveWorkers() {
@@ -346,21 +346,10 @@ public abstract class AbstractConnectController implements ConnectController {
      * @param connClass class of the connector
      */
     public ConnectorType connectorTypeForClass(String connClass) {
-        return ConnectorType.from(loadConnector(connClass));
+        return ConnectorType.from(plugin.newConnector(connClass).getClass());
     }
 
-    private Class loadConnector(String connectorClass) {
-        try {
-            ClassLoader classLoader = plugin.getPluginClassLoader(connectorClass);
-            Class clazz;
-            if (null != classLoader) {
-                clazz = Class.forName(connectorClass, true, classLoader);
-            } else {
-                clazz = Class.forName(connectorClass);
-            }
-            return clazz;
-        } catch (Exception ex) {
-            throw new ConnectException(ex);
-        }
+    public Plugin plugin() {
+        return this.plugin;
     }
 }

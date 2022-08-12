@@ -425,12 +425,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private boolean mergeConnectConfig(String connectName, ConnectKeyValue connectKeyValue) {
         if (!connectorKeyValueStore.containsKey(connectName)) {
             connectorKeyValueStore.put(connectName, connectKeyValue);
-            try {
-                recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP), connectKeyValue);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return true;
+            recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP), connectKeyValue);
         }
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectName);
         // config update
@@ -439,11 +434,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
             Long newUpdateTime = connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
                 connectorKeyValueStore.put(connectName, connectKeyValue);
-                try {
-                    recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), newUpdateTime, connectKeyValue);
-                } catch (Exception e) {
-                    throw new ConnectException(e);
-                }
+                recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), newUpdateTime, connectKeyValue);
             }
             return true;
         }

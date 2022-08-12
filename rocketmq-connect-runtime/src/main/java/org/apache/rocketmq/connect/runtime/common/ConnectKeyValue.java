@@ -129,6 +129,14 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.properties = properties;
     }
 
+
+    /**
+     * Gets all original settings with the given prefix.
+     */
+    public Map<String, String> originalsWithPrefix(String prefix) {
+        return originalsWithPrefix(prefix, true);
+    }
+
     /**
      * Gets all original settings with the given prefix.
      * @param prefix the prefix to use as a filter

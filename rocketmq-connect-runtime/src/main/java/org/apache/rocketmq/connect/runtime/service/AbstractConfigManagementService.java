@@ -96,16 +96,9 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
 
     @NotNull
-    protected Connector loadConnector(ConnectKeyValue configs) throws ClassNotFoundException, InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException, NoSuchMethodException {
+    protected Connector loadConnector(ConnectKeyValue configs) {
         String connectorClass = configs.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-        ClassLoader classLoader = plugin.getPluginClassLoader(connectorClass);
-        Class clazz;
-        if (null != classLoader) {
-            clazz = Class.forName(connectorClass, true, classLoader);
-        } else {
-            clazz = Class.forName(connectorClass);
-        }
-        final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
+        Connector connector = plugin.newConnector(connectorClass);
         connector.validate(configs);
         connector.start(configs);
         return connector;
