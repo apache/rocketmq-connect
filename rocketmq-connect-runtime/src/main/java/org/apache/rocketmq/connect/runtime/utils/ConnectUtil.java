@@ -20,15 +20,6 @@ package org.apache.rocketmq.connect.runtime.utils;
 import com.beust.jcommander.internal.Sets;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -55,6 +46,16 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
@@ -262,6 +263,7 @@ public class ConnectUtil {
 
     /**
      * convert to message queue
+     *
      * @param recordPartition
      * @return
      */
@@ -269,7 +271,7 @@ public class ConnectUtil {
         Map<String, ?> partion = recordPartition.getPartition();
         String topic = partion.get("topic").toString();
         String brokerName = partion.get("brokerName").toString();
-        int queueId = partion.containsKey("queueId") ? Integer.parseInt(partion.get("queueId").toString()) :0;
+        int queueId = partion.containsKey("queueId") ? Integer.parseInt(partion.get("queueId").toString()) : 0;
         return new MessageQueue(topic, brokerName, queueId);
     }
 
@@ -293,7 +295,6 @@ public class ConnectUtil {
     }
 
 
-
     public static RecordPartition convertToRecordPartition(String topic, String brokerName, int queueId) {
         Map<String, String> map = new HashMap<>();
         map.put("topic", topic);
@@ -310,7 +311,7 @@ public class ConnectUtil {
      * @return
      * @throws MQClientException
      */
-    public static DefaultLitePullConsumer initDefaultLitePullConsumer(ConnectConfig connectConfig, ConnectorTaskId  id, ConnectKeyValue keyValue) throws MQClientException {
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(ConnectConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue) throws MQClientException {
         DefaultLitePullConsumer consumer = null;
         String groupId = keyValue.getString(RuntimeConfigDefine.TASK_GROUP_ID);
         if (StringUtils.isBlank(groupId)) {
@@ -334,7 +335,7 @@ public class ConnectUtil {
         return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, ConnectorTaskId  id, ConnectKeyValue keyValue) {
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));

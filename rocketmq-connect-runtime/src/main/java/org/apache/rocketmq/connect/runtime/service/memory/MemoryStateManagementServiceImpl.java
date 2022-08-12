@@ -51,7 +51,7 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
     @Override
     public void initialize(ConnectConfig config) {
         this.tasks = new Table<>();
-        this.connectors =  new ConcurrentHashMap<>();
+        this.connectors = new ConcurrentHashMap<>();
     }
 
     /**
@@ -82,6 +82,7 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
             connectors.put(status.getId(), status);
         }
     }
+
     /**
      * Safely set the state of the connector to the given value. What is
      * considered "safe" depends on the implementation, but basically it
@@ -126,6 +127,7 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
 
     /**
      * Get the current state of the task.
+     *
      * @param id the id of the task
      * @return the state or null if there is none
      */
@@ -142,11 +144,12 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
      */
     @Override
     public synchronized ConnectorStatus get(String connector) {
-         return connectors.get(connector);
+        return connectors.get(connector);
     }
 
     /**
      * Get the states of all tasks for the given connector.
+     *
      * @param connector the connector name
      * @return a map from task ids to their respective status
      */

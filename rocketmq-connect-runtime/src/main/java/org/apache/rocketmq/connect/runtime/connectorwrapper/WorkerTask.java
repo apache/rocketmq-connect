@@ -39,7 +39,7 @@ public abstract class WorkerTask implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(WorkerTask.class);
     private static final String THREAD_NAME_PREFIX = "task-thread-";
 
-    protected  final ConnectConfig workerConfig;
+    protected final ConnectConfig workerConfig;
 
     protected final ConnectorTaskId id;
     protected final ClassLoader loader;
@@ -126,10 +126,10 @@ public abstract class WorkerTask implements Runnable {
     }
 
     protected boolean isStopping() {
-        return  WorkerTaskState.ERROR == state.get()
+        return WorkerTaskState.ERROR == state.get()
                 || WorkerTaskState.STOPPING == state.get()
                 || WorkerTaskState.STOPPED == state.get()
-                ||  WorkerTaskState.TERMINATED == state.get() ;
+                || WorkerTaskState.TERMINATED == state.get();
     }
 
     /**
@@ -243,6 +243,7 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * should pause
+     *
      * @return
      */
     public boolean shouldPause() {
@@ -270,6 +271,7 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * change task target state
+     *
      * @param state
      */
     public void transitionTo(TargetState state) {

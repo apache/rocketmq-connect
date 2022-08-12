@@ -18,14 +18,6 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.Connector;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
@@ -34,23 +26,27 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
-import org.apache.rocketmq.connect.runtime.converter.ConnAndTaskConfigConverter;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.converter.ConnectKeyValueConverter;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.ListConverter;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
-import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ConfigManagementServiceImpl extends AbstractConfigManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
@@ -91,7 +87,8 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     private final String configManagePrefix = "ConfigManage";
 
-    @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
+    @Override
+    public void initialize(ConnectConfig connectConfig, Plugin plugin) {
         this.connectorConfigUpdateListener = new HashSet<>();
         this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
                 connectConfig.getConfigStoreTopic(),
@@ -112,9 +109,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     }
 
 
-
     /**
      * Preparation before startup
+     *
      * @param connectConfig
      */
     private void prepare(ConnectConfig connectConfig) {
@@ -175,7 +172,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     }
 
 
-
     @Override
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
         super.recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
@@ -183,6 +179,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * delete config
+     *
      * @param connectorName
      */
     @Override
@@ -206,6 +203,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * resume connector
+     *
      * @param connectorName
      */
     @Override
@@ -218,12 +216,13 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * copy and write new config
+     *
      * @param connectorName
      * @return
      */
-    private ConnectKeyValue copyAndWriteNewConfig(String connectorName){
+    private ConnectKeyValue copyAndWriteNewConfig(String connectorName) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
-            throw new ConnectException("Connector ["+connectorName+"] does not exist");
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
 
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
@@ -243,6 +242,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * remove and add
+     *
      * @param connectorName
      * @param configs
      */
@@ -285,11 +285,11 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private void triggerSendMessage() {
         ConnAndTaskConfigs configs = new ConnAndTaskConfigs();
         configs.setConnectorConfigs(connectorKeyValueStore.getKVMap());
-        connectorKeyValueStore.getKVMap().forEach((connectName, connectKeyValue)->{
+        connectorKeyValueStore.getKVMap().forEach((connectName, connectKeyValue) -> {
             dataSynchronizer.send(CONNECTOR_KEY(connectName), connectKeyValue);
         });
-        taskKeyValueStore.getKVMap().forEach((connectName,taskConfigs)->{
-            taskConfigs.forEach(taskConfig->{
+        taskKeyValueStore.getKVMap().forEach((connectName, taskConfigs) -> {
+            taskConfigs.forEach(taskConfig -> {
                 ConnectorTaskId taskId = new ConnectorTaskId(connectName, taskConfig.getInt(RuntimeConfigDefine.TASK_ID));
                 dataSynchronizer.send(TASK_KEY(taskId), taskConfig);
             });
@@ -316,7 +316,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
                     return;
                 }
                 processTaskConfigRecord(taskId, value);
-            }else if (key.startsWith(DELETE_CONNECTOR_PREFIX)){
+            } else if (key.startsWith(DELETE_CONNECTOR_PREFIX)) {
                 // delete connector
                 String connectorName = key.substring(DELETE_CONNECTOR_PREFIX.length());
                 processDeleteConnectorRecord(connectorName, value);
@@ -328,16 +328,17 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * process deleted
+     *
      * @param connectorName
      * @param value
      */
     private void processDeleteConnectorRecord(String connectorName, ConnectKeyValue value) {
-        if (!connectorKeyValueStore.containsKey(connectorName)){
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
             return;
         }
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
         // config update
-        if (!value.equals(oldConfig)){
+        if (!value.equals(oldConfig)) {
             Long oldUpdateTime = oldConfig.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             Long newUpdateTime = value.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
@@ -353,6 +354,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * process task config record
+     *
      * @param taskId
      * @param value
      */
@@ -362,11 +364,12 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * process connector config record
+     *
      * @param connectorName
      * @param value
      */
     private void processConnectorConfigRecord(String connectorName, ConnectKeyValue value) {
-        if (mergeConnectConfig(connectorName, value)){
+        if (mergeConnectConfig(connectorName, value)) {
             // reblance
             triggerListener();
         }
@@ -375,16 +378,17 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * process target state record
+     *
      * @param connectorName
      * @param value
      */
     private void processTargetStateRecord(String connectorName, ConnectKeyValue value) {
-        if (!connectorKeyValueStore.containsKey(connectorName)){
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
             return;
         }
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
         // config update
-        if (!value.equals(oldConfig)){
+        if (!value.equals(oldConfig)) {
             Long oldUpdateTime = oldConfig.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             Long newUpdateTime = value.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
@@ -413,12 +417,13 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     /**
      * Merge new received configs with the configs in memory.
+     *
      * @param connectName
      * @param connectKeyValue
      * @return
      */
     private boolean mergeConnectConfig(String connectName, ConnectKeyValue connectKeyValue) {
-        if (!connectorKeyValueStore.containsKey(connectName)){
+        if (!connectorKeyValueStore.containsKey(connectName)) {
             connectorKeyValueStore.put(connectName, connectKeyValue);
             try {
                 recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP), connectKeyValue);
@@ -429,20 +434,20 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         }
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectName);
         // config update
-        if (!connectKeyValue.equals(oldConfig)){
+        if (!connectKeyValue.equals(oldConfig)) {
             Long oldUpdateTime = oldConfig.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             Long newUpdateTime = connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
                 connectorKeyValueStore.put(connectName, connectKeyValue);
                 try {
-                    recomputeTaskConfigs(connectName, loadConnector(connectKeyValue),newUpdateTime, connectKeyValue);
+                    recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), newUpdateTime, connectKeyValue);
                 } catch (Exception e) {
                     throw new ConnectException(e);
                 }
             }
             return true;
         }
-        return  false;
+        return false;
     }
 
     @Override
@@ -450,7 +455,8 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         return this.plugin;
     }
 
-    @Override public StagingMode getStagingMode() {
+    @Override
+    public StagingMode getStagingMode() {
         return StagingMode.DISTRIBUTED;
     }
 }

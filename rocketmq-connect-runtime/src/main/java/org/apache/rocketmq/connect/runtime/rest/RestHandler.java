@@ -19,6 +19,18 @@ package org.apache.rocketmq.connect.runtime.rest;
 
 import com.alibaba.fastjson.JSON;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerTask;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.rest.entities.ErrorMessage;
+import org.apache.rocketmq.connect.runtime.rest.entities.HttpResponse;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.eclipse.jetty.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,27 +38,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import io.javalin.http.Context;
-import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.eclipse.jetty.http.HttpStatus;
-import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerTask;
-import org.apache.rocketmq.connect.runtime.rest.entities.ErrorMessage;
-import org.apache.rocketmq.connect.runtime.rest.entities.HttpResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * A rest handler to process http request.
  */
 public class RestHandler {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-    private final  String CONNECTOR_NAME = "connectorName";
-    private final  String TASK_NAME = "task";
+    private final String CONNECTOR_NAME = "connectorName";
+    private final String TASK_NAME = "task";
     private final AbstractConnectController connectController;
 
     public RestHandler(AbstractConnectController connectController) {
@@ -87,6 +86,7 @@ public class RestHandler {
 
     /**
      * get cluster info
+     *
      * @param context
      */
     private void getClusterInfo(Context context) {
@@ -95,10 +95,11 @@ public class RestHandler {
 
     /**
      * list all connectors
+     *
      * @param context
      */
     private void listConnectors(Context context) {
-        try{
+        try {
             Map<String, Map<String, Object>> out = new HashMap<>();
             for (String connector : connectController.connectors()) {
                 Map<String, Object> connectorExpansions = new HashMap<>();
@@ -107,7 +108,7 @@ public class RestHandler {
                 out.put(connector, connectorExpansions);
             }
             context.json(new HttpResponse<>(context.status(), out));
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             log.error("List all connectors failed. ", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
@@ -123,7 +124,7 @@ public class RestHandler {
             arg = context.req.getParameter("config");
         }
         if (arg == null) {
-            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400,"Failed! query param 'config' is required "));
+            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Failed! query param 'config' is required "));
             return;
         }
         log.info("connect config: {}", arg);
@@ -146,7 +147,7 @@ public class RestHandler {
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             context.json(new HttpResponse<>(context.status(), connectController.connectorInfo(connectorName)));
-        }catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Get connector config failed .", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
@@ -156,7 +157,7 @@ public class RestHandler {
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             context.json(new HttpResponse<>(context.status(), connectController.connectorStatus(connectorName)));
-        }catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Get connector status failed .", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
@@ -165,35 +166,32 @@ public class RestHandler {
 
     public void getTaskConfigs(Context context) {
         String connector = context.pathParam(CONNECTOR_NAME);
-        try{
-            context.json(new HttpResponse<>(context.status(),connectController.taskConfigs(connector)));
-        }catch (Exception ex) {
+        try {
+            context.json(new HttpResponse<>(context.status(), connectController.taskConfigs(connector)));
+        } catch (Exception ex) {
             log.error("Get task configs failed .", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
 
 
-
-
     public void getTaskStatus(Context context) {
         try {
-            String connector= context.pathParam(CONNECTOR_NAME);
+            String connector = context.pathParam(CONNECTOR_NAME);
             Integer task = Integer.valueOf(context.pathParam(TASK_NAME));
             context.json(new HttpResponse<>(context.status(), connectController.taskStatus(new ConnectorTaskId(connector, task))));
-        }catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Get task status failed .", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
 
 
-
     private void handleStopConnector(Context context) {
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             connectController.deleteConnectorConfig(connectorName);
-            context.json(new HttpResponse<>(context.status(), "Connector ["+ connectorName +"] deleted successfully"));
+            context.json(new HttpResponse<>(context.status(), "Connector [" + connectorName + "] deleted successfully"));
         } catch (Exception e) {
             log.error("Stop connector failed .", e);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, e.getMessage()));
@@ -210,9 +208,9 @@ public class RestHandler {
             for (String connector : connectors) {
                 connectController.deleteConnectorConfig(connector);
             }
-            context.json(new HttpResponse<>(context.status(), connectors +" connectors are deleted"));
+            context.json(new HttpResponse<>(context.status(), connectors + " connectors are deleted"));
         } catch (Exception ex) {
-            log.error("Delete all connector failed {} , {}.",connectors, ex);
+            log.error("Delete all connector failed {} , {}.", connectors, ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
@@ -222,9 +220,9 @@ public class RestHandler {
         String connectorName = context.pathParam(CONNECTOR_NAME);
         try {
             connectController.pauseConnector(connectorName);
-            context.json(new HttpResponse<>(context.status(), "Connector ["+ connectorName +"] paused successfully"));
-        }catch (Exception ex) {
-            log.error("Pause connector failed {} , {}.",connectorName, ex);
+            context.json(new HttpResponse<>(context.status(), "Connector [" + connectorName + "] paused successfully"));
+        } catch (Exception ex) {
+            log.error("Pause connector failed {} , {}.", connectorName, ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
 
@@ -234,9 +232,9 @@ public class RestHandler {
         String connectorName = context.pathParam(CONNECTOR_NAME);
         try {
             connectController.resumeConnector(connectorName);
-            context.json(new HttpResponse<>(context.status(), "Connector ["+ connectorName +"] resumed successfully"));
-        } catch (Exception ex){
-            log.error("Resume connector failed {} , {}.",connectorName, ex);
+            context.json(new HttpResponse<>(context.status(), "Connector [" + connectorName + "] resumed successfully"));
+        } catch (Exception ex) {
+            log.error("Resume connector failed {} , {}.", connectorName, ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
@@ -249,11 +247,11 @@ public class RestHandler {
             return;
         }
         try {
-            conns.forEach(conn->{
+            conns.forEach(conn -> {
                 connectController.pauseConnector(conn);
             });
-            context.json(new HttpResponse<>(context.status(), conns.size()+" connectors are suspended"));
-        }catch (Exception ex){
+            context.json(new HttpResponse<>(context.status(), conns.size() + " connectors are suspended"));
+        } catch (Exception ex) {
             log.error("Pause all connector failed {} , {}.", conns, ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
@@ -265,22 +263,22 @@ public class RestHandler {
             context.json(new HttpResponse<>(context.status(), "No connector needs to be resumed, please add connector first"));
             return;
         }
-        try{
-            conns.forEach(conn->{
+        try {
+            conns.forEach(conn -> {
                 connectController.resumeConnector(conn);
             });
-            context.json(new HttpResponse<>(context.status(), conns.size()+" connectors are resumed"));
+            context.json(new HttpResponse<>(context.status(), conns.size() + " connectors are resumed"));
         } catch (Exception ex) {
-            log.error("Pause all connector failed {} , {}.",conns, ex);
+            log.error("Pause all connector failed {} , {}.", conns, ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
 
     private void reloadPlugins(Context context) {
-        try{
+        try {
             connectController.reloadPlugins();
             context.json(new HttpResponse<>(context.status(), "Plugin reload succeeded"));
-        } catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Reload plugin failed .", ex);
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
@@ -291,12 +289,12 @@ public class RestHandler {
     private void getAllocatedConnectors(Context context) {
         try {
             Set<WorkerConnector> workerConnectors = connectController.getWorker().getWorkingConnectors();
-            Map<String, Map<String,String>> connectors = new HashMap<>();
+            Map<String, Map<String, String>> connectors = new HashMap<>();
             for (WorkerConnector workerConnector : workerConnectors) {
                 connectors.put(workerConnector.getConnectorName(), workerConnector.getKeyValue().getProperties());
             }
             context.json(new HttpResponse<>(context.status(), connectors));
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
         }
     }
@@ -313,10 +311,10 @@ public class RestHandler {
 
             Map<String, Object> formatter = new HashMap<>();
             formatter.put("pendingTasks", convertWorkerTaskToString(connectController.getWorker().getPendingTasks()));
-            formatter.put("runningTasks",  convertWorkerTaskToString(connectController.getWorker().getWorkingTasks()));
-            formatter.put("stoppingTasks",  convertWorkerTaskToString(connectController.getWorker().getStoppingTasks()));
-            formatter.put("stoppedTasks",  convertWorkerTaskToString(allStoppedTasks));
-            formatter.put("errorTasks",  convertWorkerTaskToString(allErrorTasks));
+            formatter.put("runningTasks", convertWorkerTaskToString(connectController.getWorker().getWorkingTasks()));
+            formatter.put("stoppingTasks", convertWorkerTaskToString(connectController.getWorker().getStoppingTasks()));
+            formatter.put("stoppedTasks", convertWorkerTaskToString(allStoppedTasks));
+            formatter.put("errorTasks", convertWorkerTaskToString(allErrorTasks));
             context.json(new HttpResponse<>(context.status(), formatter));
         } catch (Exception ex) {
             context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));

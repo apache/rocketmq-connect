@@ -18,14 +18,13 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.Connector;
-
-import java.util.List;
-import java.util.Map;
-
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for config manager. Contains connector configs and task configs. All worker in a cluster should keep the
@@ -68,7 +67,7 @@ public interface ConfigManagementService {
      * @return
      * @throws Exception
      */
-    String putConnectorConfig(String connectorName, ConnectKeyValue configs) ;
+    String putConnectorConfig(String connectorName, ConnectKeyValue configs);
 
     /**
      * Remove the connector with the specified connector name in the cluster.
@@ -79,12 +78,14 @@ public interface ConfigManagementService {
 
     /**
      * pause connector
+     *
      * @param connectorName
      */
     void pauseConnector(String connectorName);
 
     /**
      * resume connector
+     *
      * @param connectorName
      */
     void resumeConnector(String connectorName);

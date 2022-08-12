@@ -41,7 +41,7 @@ public class ConnAndTaskStatus {
      */
     private Map<String, CacheEntry<ConnectorStatus>> connectors;
 
-    public ConnAndTaskStatus(){
+    public ConnAndTaskStatus() {
         tasks = new Table<>();
         connectors = new ConcurrentHashMap<>();
     }

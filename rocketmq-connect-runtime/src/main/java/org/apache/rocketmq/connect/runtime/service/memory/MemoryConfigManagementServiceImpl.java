@@ -24,10 +24,10 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +105,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
             return connectorName;
         } catch (Exception e) {
-           throw new ConnectException(e);
+            throw new ConnectException(e);
         }
     }
 
@@ -130,7 +130,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     @Override
     public void pauseConnector(String connectorName) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
-            throw  new ConnectException("Connector ["+connectorName+"] does not exist");
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
@@ -141,12 +141,13 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
 
     /**
      * resume connector
+     *
      * @param connectorName
      */
     @Override
     public void resumeConnector(String connectorName) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
-            throw  new ConnectException("Connector ["+connectorName+"] does not exist");
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());

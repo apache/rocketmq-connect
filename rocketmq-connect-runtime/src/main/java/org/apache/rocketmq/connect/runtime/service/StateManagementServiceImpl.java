@@ -134,14 +134,14 @@ public class StateManagementServiceImpl implements StateManagementService {
     private synchronized void sendOnlineConfig() {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
-        connectorStatusMap.forEach((connectorName,connectorStatus)->{
+        connectorStatusMap.forEach((connectorName, connectorStatus) -> {
             // send status
             put(connectorStatus);
         });
 
         /** task status map */
         Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
-        taskStatusMap.forEach((connectorName, taskStatusList)->{
+        taskStatusMap.forEach((connectorName, taskStatusList) -> {
             taskStatusList.forEach(taskStatus -> {
                 // send status
                 put(taskStatus);
@@ -165,11 +165,11 @@ public class StateManagementServiceImpl implements StateManagementService {
      * pre persist
      */
     private void prePersist() {
-        connAndTaskStatus.getConnectors().forEach((connectName,connectorStatus)->{
-            connectorStatusStore.put(connectName,connectorStatus.get());
+        connAndTaskStatus.getConnectors().forEach((connectName, connectorStatus) -> {
+            connectorStatusStore.put(connectName, connectorStatus.get());
             Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
             taskStatusStore.put(connectName, new ArrayList<>());
-            cacheTaskStatus.forEach((taskId,taskStatus)->{
+            cacheTaskStatus.forEach((taskId, taskStatus) -> {
                 taskStatusStore.get(connectName).add(taskStatus.get());
             });
         });
@@ -191,6 +191,7 @@ public class StateManagementServiceImpl implements StateManagementService {
     public void put(ConnectorStatus status) {
         sendConnectorStatus(status, false);
     }
+
     /**
      * @param status the status of the connector
      */
@@ -253,7 +254,7 @@ public class StateManagementServiceImpl implements StateManagementService {
         dataSynchronizer.send(key, JSON.toJSONString(status), new Callback() {
             @Override
             public void onCompletion(Throwable error, Object result) {
-                if (error != null){
+                if (error != null) {
                     log.error("Failed to write status update", error);
                 }
             }
@@ -263,12 +264,13 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     /**
      * Get the current state of the task.
+     *
      * @param id the id of the task
      * @return the state or null if there is none
      */
     @Override
     public TaskStatus get(ConnectorTaskId id) {
-        return connAndTaskStatus.getTasks().get(id.connector(),id.task()).get();
+        return connAndTaskStatus.getTasks().get(id.connector(), id.task()).get();
     }
 
     /**
@@ -284,6 +286,7 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     /**
      * Get the states of all tasks for the given connector.
+     *
      * @param connector the connector name
      * @return a map from task ids to their respective status
      */
@@ -335,6 +338,7 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     /**
      * read connector status
+     *
      * @param key
      * @param status
      */
@@ -352,16 +356,18 @@ public class StateManagementServiceImpl implements StateManagementService {
         }
         synchronized (this) {
             log.trace("Received connector {} status update {}", connector, status);
-            ConnAndTaskStatus.CacheEntry<ConnectorStatus> entry =connAndTaskStatus.getOrAdd(connector);
+            ConnAndTaskStatus.CacheEntry<ConnectorStatus> entry = connAndTaskStatus.getOrAdd(connector);
             entry.put(status);
         }
     }
+
     private String parseConnectorStatusKey(String key) {
         return key.substring(CONNECTOR_STATUS_PREFIX.length());
     }
 
     /**
      * read task status
+     *
      * @param key
      * @param status
      */
@@ -380,7 +386,7 @@ public class StateManagementServiceImpl implements StateManagementService {
 
         synchronized (this) {
             log.trace("Received task {} status update {}", id, status);
-            ConnAndTaskStatus.CacheEntry<TaskStatus> entry =connAndTaskStatus.getOrAdd(id);
+            ConnAndTaskStatus.CacheEntry<TaskStatus> entry = connAndTaskStatus.getOrAdd(id);
             entry.put(status);
         }
     }
@@ -402,6 +408,7 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     /**
      * remove connector
+     *
      * @param connector
      */
     private synchronized void remove(String connector) {

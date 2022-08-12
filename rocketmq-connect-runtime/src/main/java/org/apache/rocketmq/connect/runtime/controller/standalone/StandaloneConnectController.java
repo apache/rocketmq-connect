@@ -28,8 +28,6 @@ import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskS
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
-import java.util.Collection;
-
 /**
  * Connect controller to access and control all resource in runtime.
  */

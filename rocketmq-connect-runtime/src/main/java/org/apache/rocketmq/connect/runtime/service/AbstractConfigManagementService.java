@@ -55,7 +55,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
 
 
-
     @Override
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
         int maxTask = configs.getInt(RuntimeConfigDefine.MAX_TASK, 1);
@@ -115,14 +114,14 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     @Override
     public ClusterConfigState snapshot() {
-        if (taskKeyValueStore == null && connectorKeyValueStore == null){
+        if (taskKeyValueStore == null && connectorKeyValueStore == null) {
             return ClusterConfigState.EMPTY;
         }
         Map<String, Integer> connectorTaskCounts = new HashMap<>();
         Map<ConnectorTaskId, Map<String, String>> connectorTaskConfigs = new ConcurrentHashMap<>();
-        taskKeyValueStore.getKVMap().forEach((connectorName, taskConfigs)->{
+        taskKeyValueStore.getKVMap().forEach((connectorName, taskConfigs) -> {
             connectorTaskCounts.put(connectorName, taskConfigs.size());
-            taskConfigs.forEach(taskConfig->{
+            taskConfigs.forEach(taskConfig -> {
                 ConnectorTaskId id = new ConnectorTaskId(connectorName, taskConfig.getInt(RuntimeConfigDefine.TASK_ID));
                 connectorTaskConfigs.put(id, taskConfig.getProperties());
             });
@@ -130,10 +129,10 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
         Map<String, Map<String, String>> connectorConfigs = new HashMap<>();
         Map<String, TargetState> connectorTargetStates = new HashMap<>();
-        connectorKeyValueStore.getKVMap().forEach((connectorName, taskConfig)->{
+        connectorKeyValueStore.getKVMap().forEach((connectorName, taskConfig) -> {
             connectorConfigs.put(connectorName, taskConfig.getProperties());
             connectorTargetStates.put(connectorName, taskConfig.getTargetState());
         });
-        return new ClusterConfigState(connectorTaskCounts,connectorConfigs, connectorTargetStates, connectorTaskConfigs);
+        return new ClusterConfigState(connectorTaskCounts, connectorConfigs, connectorTargetStates, connectorTaskConfigs);
     }
 }

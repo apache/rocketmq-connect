@@ -131,7 +131,6 @@ public class WorkerSinkTask extends WorkerTask {
     private boolean pausedForRetry;
 
 
-
     public static final String BROKER_NAME = "brokerName";
     public static final String QUEUE_ID = "queueId";
     public static final String TOPIC = "topic";
@@ -179,7 +178,7 @@ public class WorkerSinkTask extends WorkerTask {
         this.lastCommittedOffsets = new ConcurrentHashMap<>();
         this.currentOffsets = new ConcurrentHashMap<>();
         this.originalOffsets = new ConcurrentHashMap<>();
-        this.messageBatch =  new ArrayList<>();
+        this.messageBatch = new ArrayList<>();
 
         // commit
         this.nextCommit = System.currentTimeMillis() + workerConfig.getOffsetCommitIntervalMs();
@@ -189,7 +188,6 @@ public class WorkerSinkTask extends WorkerTask {
         // pause for retry
         this.pausedForRetry = false;
     }
-
 
 
     protected void iteration() {
@@ -237,6 +235,7 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * commit offset
+     *
      * @param now
      * @param closing
      */
@@ -265,12 +264,12 @@ public class WorkerSinkTask extends WorkerTask {
                 .filter(e -> offsetsToCommit.containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        final Map<MessageQueue, Long> taskResetOffsets  = new ConcurrentHashMap<>();
-        Map<RecordPartition, RecordOffset>  taskProvidedRecordOffset = new ConcurrentHashMap<>();
+        final Map<MessageQueue, Long> taskResetOffsets = new ConcurrentHashMap<>();
+        Map<RecordPartition, RecordOffset> taskProvidedRecordOffset = new ConcurrentHashMap<>();
         try {
             log.trace("{} Calling task.preCommit with current offsets: {}", this, offsetsToCommit);
 
-            Map<RecordPartition, RecordOffset>  queueCommitOffset =  new ConcurrentHashMap<>();
+            Map<RecordPartition, RecordOffset> queueCommitOffset = new ConcurrentHashMap<>();
             for (Map.Entry<MessageQueue, Long> messageQueueOffset : offsetsToCommit.entrySet()) {
                 RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(messageQueueOffset.getKey());
                 RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(messageQueueOffset.getValue());
@@ -280,8 +279,8 @@ public class WorkerSinkTask extends WorkerTask {
             // pre commit
             taskProvidedRecordOffset = sinkTask.preCommit(queueCommitOffset);
 
-            for (Map.Entry<RecordPartition, RecordOffset> entry : taskProvidedRecordOffset.entrySet()){
-                taskResetOffsets.put(ConnectUtil.convertToMessageQueue(entry.getKey()),ConnectUtil.convertToOffset(entry.getValue()));
+            for (Map.Entry<RecordPartition, RecordOffset> entry : taskProvidedRecordOffset.entrySet()) {
+                taskResetOffsets.put(ConnectUtil.convertToMessageQueue(entry.getKey()), ConnectUtil.convertToOffset(entry.getValue()));
             }
 
         } catch (Throwable t) {
@@ -293,7 +292,8 @@ public class WorkerSinkTask extends WorkerTask {
                     log.debug("{} Rewinding topic queue {} to offset {}", this, entry.getKey(), entry.getValue());
                     try {
                         consumer.seek(entry.getKey(), entry.getValue());
-                    } catch (MQClientException e) {}
+                    } catch (MQClientException e) {
+                    }
                 }
                 //
                 currentOffsets.putAll(lastCommittedOffsetsForPartitions);
@@ -326,7 +326,7 @@ public class WorkerSinkTask extends WorkerTask {
             if (committableOffsets.containsKey(queue)) {
                 // current offset
                 long currentOffset = offsetsToCommit.get(queue);
-                if (currentOffset >= taskOffset ) {
+                if (currentOffset >= taskOffset) {
                     committableOffsets.put(queue, taskOffset);
                 } else {
                     log.warn("{} Ignoring invalid task provided offset {}/{} -- not yet consumed, taskOffset={} currentOffset={}",
@@ -353,13 +353,14 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * do commi
+     *
      * @param offsets
      * @param seqno
      */
     private void doCommitSync(Map<MessageQueue, Long> offsets, int seqno) {
         log.debug("{} Committing offsets synchronously using sequence number {}: {}", this, seqno, offsets);
         try {
-            offsets.forEach((queue, offset)->{
+            offsets.forEach((queue, offset) -> {
                 consumer.getOffsetStore().updateOffset(queue, offset, false);
             });
             onCommitCompleted(null, seqno, offsets);
@@ -370,6 +371,7 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * commit
+     *
      * @param error
      * @param seqno
      * @param committedOffsets
@@ -398,7 +400,6 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
 
-
     /**
      * Poll for new messages with the given timeout. Should only be invoked by the worker thread.
      */
@@ -419,7 +420,7 @@ public class WorkerSinkTask extends WorkerTask {
         if (offsets.isEmpty()) {
             return;
         }
-        for (Map.Entry<MessageQueue, Long> entry: offsets.entrySet()) {
+        for (Map.Entry<MessageQueue, Long> entry : offsets.entrySet()) {
             MessageQueue queue = entry.getKey();
             Long offset = entry.getValue();
             if (offset != null) {
@@ -440,6 +441,7 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * poll consumer
+     *
      * @param timeoutMs
      * @return
      */
@@ -468,7 +470,7 @@ public class WorkerSinkTask extends WorkerTask {
      * @param messages
      */
     private void receiveMessages(List<MessageExt> messages) {
-        if(messageBatch.isEmpty()){
+        if (messageBatch.isEmpty()) {
             originalOffsets.clear();
         }
         for (MessageExt message : messages) {
@@ -489,7 +491,7 @@ public class WorkerSinkTask extends WorkerTask {
             messageBatch.clear();
 
             if (!shouldPause()) {
-                if (pausedForRetry){
+                if (pausedForRetry) {
                     resumeAll();
                     pausedForRetry = false;
                 }
@@ -528,8 +530,8 @@ public class WorkerSinkTask extends WorkerTask {
                 recordPartition,
                 recordOffset,
                 timestamp,
-                schemaAndKey == null? null: schemaAndKey.schema(),
-                schemaAndKey == null? null: schemaAndKey.value(),
+                schemaAndKey == null ? null : schemaAndKey.schema(),
+                schemaAndKey == null ? null : schemaAndKey.value(),
                 schemaAndValue.schema(),
                 schemaAndValue.value()
         );
@@ -578,7 +580,7 @@ public class WorkerSinkTask extends WorkerTask {
             for (String topic : topics) {
                 consumer.setPullBatchSize(MAX_MESSAGE_NUM);
                 consumer.subscribe(topic, "*");
-                if (messageQueueListener == null){
+                if (messageQueueListener == null) {
                     messageQueueListener = consumer.getMessageQueueListener();
                 }
                 consumer.setMessageQueueListener(new MessageQueueListener() {
@@ -605,7 +607,7 @@ public class WorkerSinkTask extends WorkerTask {
                 });
             }
             consumer.start();
-        } catch(MQClientException e){
+        } catch (MQClientException e) {
             throw new ConnectException(e);
         }
         log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
@@ -616,21 +618,22 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * remove and close message queue
+     *
      * @param queues
      */
-    public void removeAndCloseMessageQueue(String topic, Set<MessageQueue> queues){
+    public void removeAndCloseMessageQueue(String topic, Set<MessageQueue> queues) {
         Set<MessageQueue> removeMessageQueues;
-        if (queues == null){
+        if (queues == null) {
             removeMessageQueues = new HashSet<>();
-            for (MessageQueue messageQueue : messageQueues){
-                if (messageQueue.getTopic().equals(topic)){
+            for (MessageQueue messageQueue : messageQueues) {
+                if (messageQueue.getTopic().equals(topic)) {
                     removeMessageQueues.add(messageQueue);
                 }
             }
         }
         // filter not contains in messageQueues
         removeMessageQueues = messageQueues.stream().filter(messageQueue -> !queues.contains(messageQueue)).collect(Collectors.toSet());
-        if (removeMessageQueues == null || removeMessageQueues.isEmpty()){
+        if (removeMessageQueues == null || removeMessageQueues.isEmpty()) {
             return;
         }
         // start remove
@@ -650,8 +653,9 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
     /**
-     * remove offset from currentOffsets、lastCommittedOffsets
+     * remove offset from currentOffsets/lastCommittedOffsets
      * remove message from messageBatch
+     *
      * @param queues
      * @param lost
      */
@@ -671,8 +675,8 @@ public class WorkerSinkTask extends WorkerTask {
         });
     }
 
-    public void assignMessageQueue(Set<MessageQueue> queues){
-        if (queues == null){
+    public void assignMessageQueue(Set<MessageQueue> queues) {
+        if (queues == null) {
             return;
         }
         Set<MessageQueue> newMessageQueues = queues.stream().filter(messageQueue -> !messageQueues.contains(messageQueue)).collect(Collectors.toSet());
@@ -710,9 +714,9 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
 
-
     /**
      * consume fro offset
+     *
      * @param messageQueue
      * @param taskConfig
      */
@@ -725,7 +729,7 @@ public class WorkerSinkTask extends WorkerTask {
             offset = consumer.getOffsetStore().readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE);
         }
 
-        if (offset < 0 ){
+        if (offset < 0) {
             String consumeFromWhere = taskConfig.getString("consume-from-where");
             if (StringUtils.isBlank(consumeFromWhere)) {
                 consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name();
@@ -746,10 +750,9 @@ public class WorkerSinkTask extends WorkerTask {
             }
         }
 
-        log.info("Consume {} from {}",messageQueue, offset);
+        log.info("Consume {} from {}", messageQueue, offset);
         return offset < 0 ? 0 : offset;
     }
-
 
 
     /**
@@ -774,7 +777,7 @@ public class WorkerSinkTask extends WorkerTask {
                         // wait unpause
                         if (awaitUnpause()) {
                             // check paused for retry
-                            if (!pausedForRetry){
+                            if (!pausedForRetry) {
                                 resumeAll();
                                 onResume();
                             }
@@ -785,10 +788,10 @@ public class WorkerSinkTask extends WorkerTask {
                     }
                 }
                 iteration();
-            }catch (RetriableException e) {
+            } catch (RetriableException e) {
                 log.error(" Sink task {}, pull message RetriableException, Error {} ", this, e.getMessage(), e);
                 readRecordFailNum();
-            }catch (InterruptedException interruptedException){
+            } catch (InterruptedException interruptedException) {
                 //NO-op
             } catch (Throwable e) {
                 log.error(" Sink task {}, pull message Throwable, Error {} ", this, e.getMessage(), e);
@@ -809,6 +812,7 @@ public class WorkerSinkTask extends WorkerTask {
 
     /**
      * error record reporter
+     *
      * @return
      */
     public WorkerErrorRecordReporter errorRecordReporter() {

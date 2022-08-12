@@ -33,7 +33,8 @@ public class WrapperStatusListener implements TaskStatus.Listener, ConnectorStat
 
     private StateManagementService managementService;
     private String workerId;
-    public WrapperStatusListener(StateManagementService managementService, String workerId){
+
+    public WrapperStatusListener(StateManagementService managementService, String workerId) {
         this.managementService = managementService;
         this.workerId = workerId;
     }
@@ -58,7 +59,7 @@ public class WrapperStatusListener implements TaskStatus.Listener, ConnectorStat
     @Override
     public void onFailure(String connector, Throwable cause) {
         managementService.putSafe(new ConnectorStatus(connector, ConnectorStatus.State.FAILED,
-                 workerId, generation(), trace(cause)));
+                workerId, generation(), trace(cause)));
     }
 
     private String trace(Throwable t) {
@@ -145,7 +146,7 @@ public class WrapperStatusListener implements TaskStatus.Listener, ConnectorStat
      */
     @Override
     public void onResume(ConnectorTaskId id) {
-        managementService.put(new TaskStatus(id, TaskStatus.State.RUNNING , workerId, generation()));
+        managementService.put(new TaskStatus(id, TaskStatus.State.RUNNING, workerId, generation()));
     }
 
     /**

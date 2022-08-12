@@ -25,6 +25,7 @@ import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.rest.RestHandler;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -36,7 +37,6 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.slf4j.Logger;
@@ -59,7 +59,7 @@ public abstract class AbstractConnectController implements ConnectController {
     /**
      * Configuration of current runtime.
      */
-    protected  final ConnectConfig connectConfig;
+    protected final ConnectConfig connectConfig;
 
     /**
      * All the configurations of current running connectors and tasks in cluster.
@@ -102,6 +102,7 @@ public abstract class AbstractConnectController implements ConnectController {
 
     /**
      * init connect controller
+     *
      * @param connectConfig
      */
     public AbstractConnectController(
@@ -194,25 +195,25 @@ public abstract class AbstractConnectController implements ConnectController {
     /**
      * reload plugins
      */
-    public void reloadPlugins(){
-         configManagementService.getPlugin().initPlugin();
+    public void reloadPlugins() {
+        configManagementService.getPlugin().initPlugin();
     }
 
-    public List<String> aliveWorkers(){
+    public List<String> aliveWorkers() {
         return clusterManagementService.getAllAliveWorkers();
     }
 
 
-
     /**
      * add connector
+     *
      * @param connectorName
      * @param configs
      * @return
      * @throws Exception
      */
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception {
-        return configManagementService.putConnectorConfig(connectorName,configs);
+        return configManagementService.putConnectorConfig(connectorName, configs);
     }
 
     /**
@@ -220,7 +221,7 @@ public abstract class AbstractConnectController implements ConnectController {
      *
      * @param connectorName
      */
-    public void deleteConnectorConfig(String connectorName){
+    public void deleteConnectorConfig(String connectorName) {
         configManagementService.deleteConnectorConfig(connectorName);
     }
 
@@ -246,17 +247,18 @@ public abstract class AbstractConnectController implements ConnectController {
 
     /**
      * Get a list of connectors currently running in this cluster.
+     *
      * @return A list of connector names
      */
     public Collection<String> connectors() {
         return configManagementService.snapshot().connectors();
     }
 
-    public Collection<String> allocatedConnectors(){
+    public Collection<String> allocatedConnectors() {
         return worker.allocatedConnectors();
     }
 
-    public Map<String, List<ConnectKeyValue>> allocatedTasks(){
+    public Map<String, List<ConnectKeyValue>> allocatedTasks() {
         return worker.allocatedTasks();
     }
 
@@ -294,12 +296,13 @@ public abstract class AbstractConnectController implements ConnectController {
 
     /**
      * Get the definition and status of a connector.
+     *
      * @param connector name of the connector
      */
-    public ConnectorInfo connectorInfo(String connector){
+    public ConnectorInfo connectorInfo(String connector) {
         final ClusterConfigState configState = configManagementService.snapshot();
         if (!configState.contains(connector)) {
-            throw new ConnectException("Connector["+connector+"] does not exist");
+            throw new ConnectException("Connector[" + connector + "] does not exist");
         }
         Map<String, String> config = configState.rawConnectorConfig(connector);
         return new ConnectorInfo(
@@ -312,10 +315,11 @@ public abstract class AbstractConnectController implements ConnectController {
 
     /**
      * task configs
+     *
      * @param connName
      * @return
      */
-    public List<TaskInfo> taskConfigs(final String connName){
+    public List<TaskInfo> taskConfigs(final String connName) {
         ClusterConfigState configState = configManagementService.snapshot();
         List<TaskInfo> result = new ArrayList<>();
         for (int i = 0; i < configState.taskCount(connName); i++) {
@@ -338,6 +342,7 @@ public abstract class AbstractConnectController implements ConnectController {
 
     /**
      * Retrieves ConnectorType for the corresponding connector class
+     *
      * @param connClass class of the connector
      */
     public ConnectorType connectorTypeForClass(String connClass) {
@@ -345,7 +350,7 @@ public abstract class AbstractConnectController implements ConnectController {
     }
 
     private Class loadConnector(String connectorClass) {
-        try{
+        try {
             ClassLoader classLoader = plugin.getPluginClassLoader(connectorClass);
             Class clazz;
             if (null != classLoader) {
@@ -354,7 +359,7 @@ public abstract class AbstractConnectController implements ConnectController {
                 clazz = Class.forName(connectorClass);
             }
             return clazz;
-        }catch (Exception ex){
+        } catch (Exception ex) {
             throw new ConnectException(ex);
         }
     }
