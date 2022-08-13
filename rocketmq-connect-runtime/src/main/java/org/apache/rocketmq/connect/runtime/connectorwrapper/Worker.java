@@ -837,7 +837,7 @@ public class Worker {
 
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
-                        DefaultLitePullConsumer consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, id, keyValue);
+                        DefaultLitePullConsumer consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, id, keyValue, false);
                         Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(workerConfig);
                         if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
                             ConnectUtil.createSubGroup(workerConfig, consumer.getConsumerGroup());

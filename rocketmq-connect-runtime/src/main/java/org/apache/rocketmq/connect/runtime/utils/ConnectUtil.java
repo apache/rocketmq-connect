@@ -311,7 +311,7 @@ public class ConnectUtil {
      * @return
      * @throws MQClientException
      */
-    public static DefaultLitePullConsumer initDefaultLitePullConsumer(ConnectConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue) throws MQClientException {
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(ConnectConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue, boolean autoCommit) throws MQClientException {
         DefaultLitePullConsumer consumer = null;
         String groupId = keyValue.getString(RuntimeConfigDefine.TASK_GROUP_ID);
         if (StringUtils.isBlank(groupId)) {
@@ -328,6 +328,7 @@ public class ConnectUtil {
         String uniqueName = Thread.currentThread().getName() + "-" + System.currentTimeMillis() % 1000;
         consumer.setInstanceName(uniqueName);
         consumer.setUnitName(uniqueName);
+        consumer.setAutoCommit(autoCommit);
         return consumer;
     }
 
