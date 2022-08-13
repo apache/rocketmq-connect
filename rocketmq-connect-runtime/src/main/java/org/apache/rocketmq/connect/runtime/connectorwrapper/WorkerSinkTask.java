@@ -696,12 +696,13 @@ public class WorkerSinkTask extends WorkerTask {
             if (pausedForRetry) {
                 resumeAll();
             }
-            // intersection
+            // reset
             sinkTaskContext.getPausedQueues().retainAll(queues);
-            if (!shouldPause()) {
-                if (!sinkTaskContext.getPausedQueues().isEmpty()) {
-                    consumer.pause(sinkTaskContext.getPausedQueues());
-                }
+            if (shouldPause()) {
+                return;
+            }
+            if (!sinkTaskContext.getPausedQueues().isEmpty()) {
+                consumer.pause(sinkTaskContext.getPausedQueues());
             }
         }
         log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
