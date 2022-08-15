@@ -32,7 +32,7 @@ check_java_version ()
 {
   _java=$1
   _version=$2
-  version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}' | grep -o '^[0-9.]\+')
+  version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}' | grep -o '^[0-9]\+\.\+[0-9]\+')
   flag="true"
   if [[ $(echo "$version < $_version" | bc) -eq 1 ]]; then
       flag="false"
@@ -100,8 +100,13 @@ if [[ $(check_java_version "$JAVA" "9") == "false" ]]; then
   JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
   JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 else
-  JAVA_OPT="${JAVA_OPT} -Xlog:gc:/dev/shm/mq_gc_%p.log -Xlog:gc*"
-  JAVA_OPT="${JAVA_OPT} -cp $(find "${BASE_DIR}/lib" -name '*.jar' | sed ':a;N;s/\n/:/;ba;'):${CLASSPATH}"
+  if [ "$(uname)" == "Darwin" ]; then
+    JAVA_OPT="${JAVA_OPT} -Xlog:gc:/tmp/mq_gc_$$.log -Xlog:gc*"
+    JAVA_OPT="${JAVA_OPT} -cp $(find "${BASE_DIR}/lib" -name '*.jar' | tr "\n" ":"):${CLASSPATH}"
+  else
+    JAVA_OPT="${JAVA_OPT} -Xlog:gc:/dev/shm/mq_gc_%p.log -Xlog:gc*"
+    JAVA_OPT="${JAVA_OPT} -cp $(find "${BASE_DIR}/lib" -name '*.jar' | sed ':a;N;s/\n/:/;ba;'):${CLASSPATH}"
+  fi
 fi
 JAVA_OPT="${JAVA_OPT} -DisSyncFlush=false"
 

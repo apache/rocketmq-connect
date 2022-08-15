@@ -17,11 +17,13 @@
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -120,6 +122,16 @@ public class PluginUtils {
         + ")\\..*$"
         + "|io\\.openmessaging\\.KeyValue");
 
+
+    // If the base interface or class that will be used to identify Connect plugins resides within
+    // the same java package as the plugins that need to be loaded in isolation (and thus are
+    // added to the INCLUDE pattern), then this base interface or class needs to be excluded in the
+    // regular expression pattern
+    private static final Pattern INCLUDE = Pattern.compile("^(?:"
+            + "|org\\.apache\\.rocketmq\\.connect"
+            + ")\\..*$");
+
+
     private static final DirectoryStream.Filter<Path> PLUGIN_PATH_FILTER = new DirectoryStream
         .Filter<Path>() {
         @Override
@@ -150,6 +162,83 @@ public class PluginUtils {
             }
         }
         return locations;
+    }
+
+    /**
+     * Verify the given class corresponds to a concrete class and not to an abstract class or
+     */
+    public static boolean isConcrete(Class<?> klass) {
+        int mod = klass.getModifiers();
+        return !Modifier.isAbstract(mod) && !Modifier.isInterface(mod);
+    }
+
+    /**
+     * Return whether the class with the given name should be loaded in isolation using a plugin
+     * classloader.
+     *
+     * @param name the fully qualified name of the class.
+     * @return true if this class should be loaded in isolation, false otherwise.
+     */
+    public static boolean shouldLoadInIsolation(String name) {
+        return !(BLACKLIST.matcher(name).matches() && !INCLUDE.matcher(name).matches());
+    }
+    /**
+     * Verify whether a given plugin's alias matches another alias in a collection of plugins.
+     *
+     * @param alias the plugin descriptor to test for alias matching.
+     * @param plugins the collection of plugins to test against.
+     * @param <U> the plugin type.
+     * @return false if a match was found in the collection, otherwise true.
+     */
+    public static <U> boolean isAliasUnique(
+            PluginWrapper<U> alias,
+            Collection<PluginWrapper<U>> plugins
+    ) {
+        boolean matched = false;
+        for (PluginWrapper<U> plugin : plugins) {
+            if (simpleName(alias).equals(simpleName(plugin))
+                    || prunedName(alias).equals(prunedName(plugin))) {
+                if (matched) {
+                    return false;
+                }
+                matched = true;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Return the simple class name of a plugin as {@code String}.
+     *
+     * @param plugin the plugin descriptor.
+     * @return the plugin's simple class name.
+     */
+    public static String simpleName(PluginWrapper<?> plugin) {
+        return plugin.pluginClass().getSimpleName();
+    }
+
+    /**
+     * Remove the plugin type name at the end of a plugin class name, if such suffix is present.
+     * This method is meant to be used to extract plugin aliases.
+     */
+    public static String prunedName(PluginWrapper<?> plugin) {
+        switch (plugin.type()) {
+            case SOURCE:
+            case SINK:
+            case CONNECTOR:
+                return prunePluginName(plugin, "Connector");
+            default:
+                return prunePluginName(plugin, plugin.type().simpleName());
+        }
+    }
+
+    private static String prunePluginName(PluginWrapper<?> plugin, String suffix) {
+        String simple = plugin.pluginClass().getSimpleName();
+        int pos = simple.lastIndexOf(suffix);
+        if (pos > 0) {
+            return simple.substring(0, pos);
+        }
+        return simple;
     }
 
     public static List<Path> pluginUrls(Path topPath) throws IOException {
