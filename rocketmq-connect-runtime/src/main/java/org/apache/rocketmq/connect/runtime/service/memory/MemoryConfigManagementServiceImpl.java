@@ -18,6 +18,7 @@ package org.apache.rocketmq.connect.runtime.service.memory;
 
 
 import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -27,6 +28,7 @@ import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,19 +131,22 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             }
         }
 
+        ClassLoader savedLoader = plugin.currentThreadLoader();
         String connectorClass = configs.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-        ClassLoader classLoader = plugin.getPluginClassLoader(connectorClass);
-        Class clazz;
-        if (null != classLoader) {
-            clazz = Class.forName(connectorClass, true, classLoader);
-        } else {
-            clazz = Class.forName(connectorClass);
+        ClassLoader connectLoader = plugin.delegatingLoader().pluginClassLoader(connectorClass);
+        savedLoader = Plugin.compareAndSwapLoaders(connectLoader);
+        try {
+            Class clazz = Utils.getContextCurrentClassLoader().loadClass(connectorClass);
+            final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
+            connector.validate(configs);
+            connector.start(configs);
+            connectorKeyValueStore.put(connectorName, configs);
+            recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
+        } catch (Exception ex) {
+            throw new ConnectException(ex);
+        } finally {
+            Plugin.compareAndSwapLoaders(savedLoader);
         }
-        final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
-        connector.validate(configs);
-        connector.start(configs);
-        connectorKeyValueStore.put(connectorName, configs);
-        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return "";
     }
 

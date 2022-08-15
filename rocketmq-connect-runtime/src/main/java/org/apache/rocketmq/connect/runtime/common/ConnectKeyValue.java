@@ -18,6 +18,10 @@
 package org.apache.rocketmq.connect.runtime.common;
 
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -123,6 +127,14 @@ public class ConnectKeyValue implements KeyValue, Serializable {
 
     public void setProperties(Map<String, String> properties) {
         this.properties = properties;
+    }
+
+
+    /**
+     * Gets all original settings with the given prefix.
+     */
+    public Map<String, String> originalsWithPrefix(String prefix) {
+        return originalsWithPrefix(prefix, true);
     }
 
     /**
