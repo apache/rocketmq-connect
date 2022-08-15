@@ -39,6 +39,15 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import org.apache.rocketmq.common.DataVersion;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.protocol.RequestCode;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -126,10 +135,28 @@ public abstract class ServerResponseMocker {
                     RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, remark);
             response.setOpaque(msg.getOpaque());
             response.setBody(getBody());
-            if (msg.getCode() == RequestCode.GET_BROKER_CLUSTER_INFO) {
-                final ClusterInfo clusterInfo = buildClusterInfo();
-                response.setBody(JSON.toJSONBytes(clusterInfo));
+
+            switch (msg.getCode()) {
+                case RequestCode.GET_BROKER_CLUSTER_INFO: {
+                    final ClusterInfo clusterInfo = buildClusterInfo();
+                    response.setBody(JSON.toJSONBytes(clusterInfo));
+                    break;
+                }
+
+                case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG: {
+                    final SubscriptionGroupWrapper wrapper = buildSubscriptionGroupWrapper();
+                    response.setBody(JSON.toJSONBytes(wrapper));
+                    break;
+                }
+                case RequestCode.GET_BROKER_CLUSTER_INFO: {
+                    final ClusterInfo clusterInfo = buildClusterInfo();
+                    response.setBody(JSON.toJSONBytes(clusterInfo));
+                    break;
+                }
+                default:
+                    break;
             }
+
             if (extMap != null && extMap.size() > 0) {
                 response.setExtFields(extMap);
             }
@@ -182,5 +209,20 @@ public abstract class ServerResponseMocker {
         brokerAddrTable.put("master", brokerData);
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         return clusterInfo;
+    }
+
+    private SubscriptionGroupWrapper buildSubscriptionGroupWrapper() {
+        SubscriptionGroupWrapper subscriptionGroupWrapper = new SubscriptionGroupWrapper();
+        ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptions = new ConcurrentHashMap<>();
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setConsumeBroadcastEnable(true);
+        subscriptionGroupConfig.setBrokerId(0);
+        subscriptionGroupConfig.setGroupName("Consumer-group-one");
+        subscriptions.put("Consumer-group-one", subscriptionGroupConfig);
+        subscriptionGroupWrapper.setSubscriptionGroupTable(subscriptions);
+        DataVersion dataVersion = new DataVersion();
+        dataVersion.nextVersion();
+        subscriptionGroupWrapper.setDataVersion(dataVersion);
+        return subscriptionGroupWrapper;
     }
 }
