@@ -40,6 +40,8 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnect
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
+import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
+import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -58,6 +60,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -94,9 +97,19 @@ public class WorkerTest {
     @Mock
     private ConnectStatsService connectStatsService;
 
+    @Mock
+    private DelegatingClassLoader delegatingClassLoader;
+
+    @Mock
+    private PluginClassLoader pluginClassLoader;
+
     @Before
     public void init() {
         when(plugin.currentThreadLoader()).thenReturn(Thread.currentThread().getContextClassLoader());
+        when(plugin.delegatingLoader()).thenReturn(delegatingClassLoader);
+        when(plugin.currentThreadLoader()).thenReturn(this.getClass().getClassLoader());
+        when(plugin.newConnector(any())).thenReturn(new TestConnector());
+        when(delegatingClassLoader.pluginClassLoader(any())).thenReturn(pluginClassLoader);
         connectConfig = new ConnectConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
