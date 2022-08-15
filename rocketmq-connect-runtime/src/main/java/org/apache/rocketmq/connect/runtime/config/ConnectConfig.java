@@ -108,7 +108,7 @@ public class ConnectConfig {
     /**
      * Http port for REST API.
      */
-    private int httpPort = 8081;
+    private int httpPort = 8082;
 
     /**
      * Source task position persistence interval.
