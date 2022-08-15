@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,7 +60,7 @@ public class ClickHouseJdbcSinkTest {
                 .field("id",SchemaBuilder.int32().build())
                 .field("name", SchemaBuilder.string().build())
                 .build();
-
+      
         // build record
         int id = 1;
         String name = "rocketmq";
@@ -78,5 +79,13 @@ public class ClickHouseJdbcSinkTest {
         );
         records.add(record);
         CKHouseSinkTask.put(records);
+    }
+
+    @Test
+    public void test1() {
+        List<Integer> integers = Arrays.asList(1, 2, 3, 4);
+        char c = '5';
+        int a = c - '0';
+        System.out.println(a);
     }
 }

@@ -20,11 +20,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
-import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.RecordConverter;
-import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
-import io.openmessaging.connector.api.data.SchemaAndValue;
+import io.openmessaging.connector.api.data.*;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
@@ -57,13 +53,8 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
@@ -456,10 +447,33 @@ public class WorkerSinkTask extends WorkerTask {
         // convert value
         SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> valueConverter.toConnectData(message.getTopic(), message.getBody()),
                 ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
+
+
+        Schema schema = SchemaBuilder.struct()
+                .name(message.getTopic())
+                .field("id",SchemaBuilder.int32().build())
+                .field("name", SchemaBuilder.string().build())
+                .build();
+        schemaAndKey.schema().setKeySchema(schema);
+        schemaAndValue.schema().setValueSchema(schema);
+        schemaAndKey.schema().setName(message.getTopic());
+        schemaAndValue.schema().setName(message.getTopic());
+        schemaAndKey.schema().setFieldType(FieldType.STRUCT);
+        schemaAndValue.schema().setFieldType(FieldType.STRUCT);
+        int id = 1;
+        String name = "rocketmq";
+        io.openmessaging.connector.api.data.Struct struct= new Struct(schema);
+        struct.put("id",id);
+        struct.put("name",name);
         ConnectRecord record = new ConnectRecord(recordPartition, recordOffset, timestamp, schemaAndKey.schema(), schemaAndKey.value(), schemaAndValue.schema(), schemaAndValue.value());
+        record.setSchema(schema);
+        record.setKey(schema);
+        record.setData(struct);
+
         if (retryWithToleranceOperator.failed()) {
             return null;
         }
+
 
         // Apply the transformations
         ConnectRecord transformedRecord = transformChain.doTransforms(record);
