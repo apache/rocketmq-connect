@@ -148,11 +148,6 @@ public abstract class ServerResponseMocker {
                     response.setBody(JSON.toJSONBytes(wrapper));
                     break;
                 }
-                case RequestCode.GET_BROKER_CLUSTER_INFO: {
-                    final ClusterInfo clusterInfo = buildClusterInfo();
-                    response.setBody(JSON.toJSONBytes(clusterInfo));
-                    break;
-                }
                 default:
                     break;
             }
