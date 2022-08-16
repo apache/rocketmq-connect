@@ -34,7 +34,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTas
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
@@ -169,7 +169,7 @@ public class WorkerTest {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
             connectKeyValue.getProperties().put("key1", "TEST-CONN-" + i + "1");
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.CONNECTOR_CLASS, TestConnector.class.getName());
+            connectKeyValue.getProperties().put(ConnectorConfig.CONNECTOR_CLASS, TestConnector.class.getName());
             connectorConfigs.put("TEST-CONN-" + i, connectKeyValue);
         }
 
@@ -191,14 +191,14 @@ public class WorkerTest {
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
             if (i == 1) {
                 // start direct task
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.DIRECT.name());
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.SOURCE_TASK_CLASS, TestSourceTask.class.getName());
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.SINK_TASK_CLASS, TestSinkTask.class.getName());
+                connectKeyValue.getProperties().put(ConnectorConfig.TASK_TYPE, Worker.TaskType.DIRECT.name());
+                connectKeyValue.getProperties().put(ConnectorConfig.SOURCE_TASK_CLASS, TestSourceTask.class.getName());
+                connectKeyValue.getProperties().put(ConnectorConfig.SINK_TASK_CLASS, TestSinkTask.class.getName());
             } else {
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.SOURCE.name());
+                connectKeyValue.getProperties().put(ConnectorConfig.TASK_TYPE, Worker.TaskType.SOURCE.name());
             }
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_CLASS, TestSourceTask.class.getName());
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.VALUE_CONVERTER, TestConverter.class.getName());
+            connectKeyValue.getProperties().put(ConnectorConfig.TASK_CLASS, TestSourceTask.class.getName());
+            connectKeyValue.getProperties().put(ConnectorConfig.VALUE_CONVERTER, TestConverter.class.getName());
 //            connectKeyValue.getProperties().put(RuntimeConfigDefine.NAMESRV_ADDR, "127.0.0.1:9876");
 //            connectKeyValue.getProperties().put(RuntimeConfigDefine.RMQ_PRODUCER_GROUP, UUID.randomUUID().toString());
 //            connectKeyValue.getProperties().put(RuntimeConfigDefine.OPERATION_TIMEOUT, "3000");

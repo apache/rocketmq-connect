@@ -20,7 +20,7 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
@@ -61,9 +61,9 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     @Override
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
-        int maxTask = configs.getInt(RuntimeConfigDefine.MAX_TASK, RuntimeConfigDefine.TASKS_MAX_DEFAULT);
+        int maxTask = configs.getInt(ConnectorConfig.MAX_TASK, ConnectorConfig.TASKS_MAX_DEFAULT);
         ConnectKeyValue connectConfig = connectorKeyValueStore.get(connectorName);
-        boolean directEnable = Boolean.parseBoolean(connectConfig.getString(RuntimeConfigDefine.CONNECTOR_DIRECT_ENABLE));
+        boolean directEnable = Boolean.parseBoolean(connectConfig.getString(ConnectorConfig.CONNECTOR_DIRECT_ENABLE));
         List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
         List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
         int taskId = 0;
@@ -73,19 +73,19 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
                 newKeyValue.put(key, keyValue.getString(key));
             }
             if (directEnable) {
-                newKeyValue.put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.DIRECT.name());
-                newKeyValue.put(RuntimeConfigDefine.SOURCE_TASK_CLASS, connectConfig.getString(RuntimeConfigDefine.SOURCE_TASK_CLASS));
-                newKeyValue.put(RuntimeConfigDefine.SINK_TASK_CLASS, connectConfig.getString(RuntimeConfigDefine.SINK_TASK_CLASS));
+                newKeyValue.put(ConnectorConfig.TASK_TYPE, Worker.TaskType.DIRECT.name());
+                newKeyValue.put(ConnectorConfig.SOURCE_TASK_CLASS, connectConfig.getString(ConnectorConfig.SOURCE_TASK_CLASS));
+                newKeyValue.put(ConnectorConfig.SINK_TASK_CLASS, connectConfig.getString(ConnectorConfig.SINK_TASK_CLASS));
             }
             // put task id
-            newKeyValue.put(RuntimeConfigDefine.TASK_ID, taskId);
-            newKeyValue.put(RuntimeConfigDefine.TASK_CLASS, connector.taskClass().getName());
-            newKeyValue.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
+            newKeyValue.put(ConnectorConfig.TASK_ID, taskId);
+            newKeyValue.put(ConnectorConfig.TASK_CLASS, connector.taskClass().getName());
+            newKeyValue.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
             newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
             newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
             Set<String> connectConfigKeySet = configs.keySet();
             for (String connectConfigKey : connectConfigKeySet) {
-                if (connectConfigKey.startsWith(RuntimeConfigDefine.TRANSFORMS)) {
+                if (connectConfigKey.startsWith(ConnectorConfig.TRANSFORMS)) {
                     newKeyValue.put(connectConfigKey, configs.getString(connectConfigKey));
                 }
             }
@@ -100,7 +100,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     @NotNull
     protected Connector loadConnector(ConnectKeyValue configs) {
-        String connectorClass = configs.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
+        String connectorClass = configs.getString(ConnectorConfig.CONNECTOR_CLASS);
         Connector connector = plugin.newConnector(connectorClass);
         connector.validate(configs);
         connector.start(configs);
@@ -118,7 +118,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         taskKeyValueStore.getKVMap().forEach((connectorName, taskConfigs) -> {
             connectorTaskCounts.put(connectorName, taskConfigs.size());
             taskConfigs.forEach(taskConfig -> {
-                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskConfig.getInt(RuntimeConfigDefine.TASK_ID));
+                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskConfig.getInt(ConnectorConfig.TASK_ID));
                 connectorTaskConfigs.put(id, taskConfig.getProperties());
             });
         });

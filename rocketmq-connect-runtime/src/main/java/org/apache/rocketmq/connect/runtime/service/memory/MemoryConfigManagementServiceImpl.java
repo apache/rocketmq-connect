@@ -22,7 +22,7 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
@@ -83,9 +83,9 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
         ConnectKeyValue exist = connectorKeyValueStore.get(connectorName);
         if (null != exist) {
-            Long updateTimestamp = exist.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
+            Long updateTimestamp = exist.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
             if (null != updateTimestamp) {
-                configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, updateTimestamp);
+                configs.put(ConnectorConfig.UPDATE_TIMESTAMP, updateTimestamp);
             }
         }
         if (configs.equals(exist)) {
@@ -93,8 +93,8 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         }
 
         Long currentTimestamp = System.currentTimeMillis();
-        configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
-        for (String requireConfig : RuntimeConfigDefine.REQUEST_CONFIG) {
+        configs.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
+        for (String requireConfig : ConnectorConfig.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
                 throw new ConnectException("Request config key: " + requireConfig);
             }
@@ -129,7 +129,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
-        config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
+        config.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.PAUSED);
         connectorKeyValueStore.put(connectorName, config);
         triggerListener();
@@ -146,7 +146,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
-        config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
+        config.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.STARTED);
         connectorKeyValueStore.put(connectorName, config);
         triggerListener();

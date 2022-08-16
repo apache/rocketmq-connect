@@ -33,7 +33,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -359,7 +359,7 @@ public class Worker {
             ClassLoader savedLoader = plugin.currentThreadLoader();
             try {
                 ConnectKeyValue keyValue = newConnectors.get(connectorName);
-                String connectorClass = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
+                String connectorClass = keyValue.getString(ConnectorConfig.CONNECTOR_CLASS);
                 ClassLoader connectorLoader = plugin.delegatingLoader().pluginClassLoader(connectorClass);
                 savedLoader = Plugin.compareAndSwapLoaders(connectorLoader);
 
@@ -782,9 +782,9 @@ public class Worker {
     private void startTask(Map<String, List<ConnectKeyValue>> newTasks) throws Exception {
         for (String connectorName : newTasks.keySet()) {
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
-                int taskId = keyValue.getInt(RuntimeConfigDefine.TASK_ID);
+                int taskId = keyValue.getInt(ConnectorConfig.TASK_ID);
                 ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
-                String taskType = keyValue.getString(RuntimeConfigDefine.TASK_TYPE);
+                String taskType = keyValue.getString(ConnectorConfig.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
                     createDirectTask(id, keyValue);
                     continue;
@@ -792,27 +792,27 @@ public class Worker {
 
                 ClassLoader savedLoader = plugin.currentThreadLoader();
                 try {
-                    String connType = keyValue.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
+                    String connType = keyValue.getString(ConnectorConfig.CONNECTOR_CLASS);
                     ClassLoader connectorLoader = plugin.delegatingLoader().connectorLoader(connType);
                     savedLoader = Plugin.compareAndSwapLoaders(connectorLoader);
                     // new task
-                    final Class<? extends Task> taskClass = plugin.currentThreadLoader().loadClass(keyValue.getString(RuntimeConfigDefine.TASK_CLASS)).asSubclass(Task.class);
+                    final Class<? extends Task> taskClass = plugin.currentThreadLoader().loadClass(keyValue.getString(ConnectorConfig.TASK_CLASS)).asSubclass(Task.class);
                     final Task task = plugin.newTask(taskClass);
 
                     /**
                      * create key/value converter
                      */
-                    RecordConverter valueConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.VALUE_CONVERTER,workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
-                    RecordConverter keyConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.KEY_CONVERTER,workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER,workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER,workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
 
                     if (keyConverter == null) {
-                        keyConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);
+                        keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);
                         log.info("Set up the key converter {} for task {} using the worker config", keyConverter.getClass(), id);
                     } else {
                         log.info("Set up the key converter {} for task {} using the connector config", keyConverter.getClass(), id);
                     }
                     if (valueConverter == null) {
-                        valueConverter = plugin.newConverter(keyValue, RuntimeConfigDefine.VALUE_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.PLUGINS);
+                        valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.PLUGINS);
                         log.info("Set up the value converter {} for task {} using the worker config", valueConverter.getClass(), id);
                     } else {
                         log.info("Set up the value converter {} for task {} using the connector config", valueConverter.getClass(), id);
@@ -884,10 +884,10 @@ public class Worker {
     }
 
     private void createDirectTask(ConnectorTaskId id, ConnectKeyValue keyValue) throws Exception {
-        String sourceTaskClass = keyValue.getString(RuntimeConfigDefine.SOURCE_TASK_CLASS);
+        String sourceTaskClass = keyValue.getString(ConnectorConfig.SOURCE_TASK_CLASS);
         Task sourceTask = getTask(sourceTaskClass);
 
-        String sinkTaskClass = keyValue.getString(RuntimeConfigDefine.SINK_TASK_CLASS);
+        String sinkTaskClass = keyValue.getString(ConnectorConfig.SINK_TASK_CLASS);
         Task sinkTask = getTask(sinkTaskClass);
 
         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);

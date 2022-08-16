@@ -27,7 +27,7 @@ import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -56,7 +56,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     private static final String COMMA = ",";
 
-    private static final String PREFIX = RuntimeConfigDefine.TRANSFORMS + ".";
+    private static final String PREFIX = ConnectorConfig.TRANSFORMS + ".";
 
     private RetryWithToleranceOperator retryWithToleranceOperator;
 
@@ -75,7 +75,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
     }
 
     private void init() {
-        String transformsStr = config.getString(RuntimeConfigDefine.TRANSFORMS);
+        String transformsStr = config.getString(ConnectorConfig.TRANSFORMS);
         if (StringUtils.isBlank(transformsStr)) {
             log.warn("no transforms config, {}", JSON.toJSONString(config));
             return;

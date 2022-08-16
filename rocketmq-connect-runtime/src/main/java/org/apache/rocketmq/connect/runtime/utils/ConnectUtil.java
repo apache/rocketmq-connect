@@ -40,7 +40,7 @@ import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -113,7 +113,7 @@ public class ConnectUtil {
         producer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
         producer.setProducerGroup(connectConfig.getRmqProducerGroup());
         producer.setSendMsgTimeout(connectConfig.getOperationTimeout());
-        producer.setMaxMessageSize(RuntimeConfigDefine.MAX_MESSAGE_SIZE);
+        producer.setMaxMessageSize(ConnectorConfig.MAX_MESSAGE_SIZE);
         producer.setLanguage(LanguageCode.JAVA);
         return producer;
     }

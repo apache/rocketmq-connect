@@ -2,7 +2,7 @@ package org.apache.rocketmq.connect.runtime.config;
 
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 
-public class SourceConnectorConfig extends RuntimeConfigDefine {
+public class SourceConnectorConfig extends ConnectorConfig {
 
     public static final String CONNECT_TOPICNAME = "connect.topicname";
 

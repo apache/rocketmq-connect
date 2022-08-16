@@ -30,9 +30,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
-import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
@@ -92,7 +91,7 @@ public class WorkerSinkTaskTest {
     @Before
     public void before() {
         connectKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, "TEST_TOPIC");
-        keyValue.put(RuntimeConfigDefine.TRANSFORMS, "testTransform");
+        keyValue.put(ConnectorConfig.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);

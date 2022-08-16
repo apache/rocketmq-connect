@@ -43,7 +43,7 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -372,8 +372,8 @@ public class WorkerSourceTask extends WorkerTask {
 
         byte[] value = retryWithToleranceOperator.execute(() -> valueConverter.fromConnectData(topic, record.getSchema(), record.getData()),
                 ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
-        if (value.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-            log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
+        if (value.length > ConnectorConfig.MAX_MESSAGE_SIZE) {
+            log.error("Send record, message size is greater than {} bytes, record: {}", ConnectorConfig.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
         }
         if (key != null) {
             sourceMessage.setKeys(Base64Util.base64Encode(key));
@@ -434,7 +434,7 @@ public class WorkerSourceTask extends WorkerTask {
             log.info("extension keySet null.");
             return;
         }
-        MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
+        MessageAccessor.putProperty(sourceMessage, ConnectorConfig.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));

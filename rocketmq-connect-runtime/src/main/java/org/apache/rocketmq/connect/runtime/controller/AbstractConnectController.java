@@ -21,7 +21,7 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
@@ -286,7 +286,7 @@ public abstract class AbstractConnectController implements ConnectController {
         Collections.sort(taskStates);
         Map<String, String> conf = rawConfig(connName);
         return new ConnectorStateInfo(connName, connectorState, taskStates,
-                conf == null ? ConnectorType.UNKNOWN : connectorTypeForClass(conf.get(RuntimeConfigDefine.CONNECTOR_CLASS)));
+                conf == null ? ConnectorType.UNKNOWN : connectorTypeForClass(conf.get(ConnectorConfig.CONNECTOR_CLASS)));
     }
 
 
@@ -309,7 +309,7 @@ public abstract class AbstractConnectController implements ConnectController {
                 connector,
                 config,
                 configState.tasks(connector),
-                connectorTypeForClass(config.get(RuntimeConfigDefine.CONNECTOR_CLASS))
+                connectorTypeForClass(config.get(ConnectorConfig.CONNECTOR_CLASS))
         );
     }
 

@@ -18,13 +18,17 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.converter.ConnectKeyValueConverter;
@@ -47,6 +51,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_CLASS;
 
 public class ConfigManagementServiceImpl extends AbstractConfigManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
@@ -148,25 +154,32 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     @Override
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
-        ConnectKeyValue exist = connectorKeyValueStore.get(connectorName);
-        // update version
-        if (null != exist) {
-            Long updateTimestamp = exist.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
-            if (null != updateTimestamp) {
-                configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, updateTimestamp);
-            }
-        }
-
-        if (configs.equals(exist)) {
-            throw new ConnectException("Connector with same config already exist.");
-        }
-
-        for (String requireConfig : RuntimeConfigDefine.REQUEST_CONFIG) {
+        // check request config
+        for (String requireConfig : ConnectorConfig.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
                 throw new ConnectException("Request config key: " + requireConfig);
             }
         }
-        configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
+        // update timestamp
+        ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
+        if (null != oldConfig) {
+            Long updateTimestamp = oldConfig.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
+            if (null != updateTimestamp) {
+                configs.put(ConnectorConfig.UPDATE_TIMESTAMP, updateTimestamp);
+            }
+        }
+        if (configs.equals(oldConfig)) {
+            throw new ConnectException("Connector with same config already exist.");
+        }
+        // validate config
+        Connector connector = plugin.newConnector(configs.getString(CONNECTOR_CLASS));
+        if (connector instanceof SourceConnector){
+            new SourceConnectorConfig(configs).validate();
+        } else if (connector instanceof SinkConnector){
+            new SinkConnectorConfig(configs).validate();
+        }
+        connector.validate(configs);
+        configs.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
         configs.setTargetState(TargetState.STARTED);
         dataSynchronizer.send(CONNECTOR_KEY(connectorName), configs);
         return connectorName;
@@ -232,7 +245,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         newConfig.setProperties(new HashMap<>(config.getProperties()));
         newConfig.setTargetState(config.getTargetState());
         // update version by timestamp
-        newConfig.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
+        newConfig.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
         return newConfig;
     }
 
@@ -291,7 +304,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         });
         taskKeyValueStore.getKVMap().forEach((connectName, taskConfigs) -> {
             taskConfigs.forEach(taskConfig -> {
-                ConnectorTaskId taskId = new ConnectorTaskId(connectName, taskConfig.getInt(RuntimeConfigDefine.TASK_ID));
+                ConnectorTaskId taskId = new ConnectorTaskId(connectName, taskConfig.getInt(ConnectorConfig.TASK_ID));
                 dataSynchronizer.send(TASK_KEY(taskId), taskConfig);
             });
         });
@@ -340,8 +353,8 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
         // config update
         if (!value.equals(oldConfig)) {
-            Long oldUpdateTime = oldConfig.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
-            Long newUpdateTime = value.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
+            Long oldUpdateTime = oldConfig.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
+            Long newUpdateTime = value.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
                 // remove
                 connectorKeyValueStore.remove(connectorName);
@@ -390,8 +403,8 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
         // config update
         if (!value.equals(oldConfig)) {
-            Long oldUpdateTime = oldConfig.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
-            Long newUpdateTime = value.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
+            Long oldUpdateTime = oldConfig.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
+            Long newUpdateTime = value.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
                 // remove
                 oldConfig.setTargetState(value.getTargetState());
@@ -426,13 +439,13 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private boolean mergeConnectConfig(String connectName, ConnectKeyValue connectKeyValue) {
         if (!connectorKeyValueStore.containsKey(connectName)) {
             connectorKeyValueStore.put(connectName, connectKeyValue);
-            recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP), connectKeyValue);
+            recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), connectKeyValue.getLong(ConnectorConfig.UPDATE_TIMESTAMP), connectKeyValue);
         }
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectName);
         // config update
         if (!connectKeyValue.equals(oldConfig)) {
-            Long oldUpdateTime = oldConfig.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
-            Long newUpdateTime = connectKeyValue.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
+            Long oldUpdateTime = oldConfig.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
+            Long newUpdateTime = connectKeyValue.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
             if (newUpdateTime > oldUpdateTime) {
                 connectorKeyValueStore.put(connectName, connectKeyValue);
                 recomputeTaskConfigs(connectName, loadConnector(connectKeyValue), newUpdateTime, connectKeyValue);

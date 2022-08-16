@@ -32,7 +32,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
@@ -95,7 +95,7 @@ public class WorkerSourceTaskTest {
         connectConfig.setNamesrvAddr("127.0.0.1:9876");
         connectStatsManager = new ConnectStatsManager(connectConfig);
         connectKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, "TEST_TOPIC");
-        keyValue.put(RuntimeConfigDefine.TRANSFORMS, "testTransform");
+        keyValue.put(ConnectorConfig.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),

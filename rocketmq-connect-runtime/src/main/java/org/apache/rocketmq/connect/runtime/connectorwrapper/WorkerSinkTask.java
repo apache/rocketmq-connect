@@ -40,7 +40,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
@@ -507,7 +507,7 @@ public class WorkerSinkTask extends WorkerTask {
     private ConnectRecord convertMessages(MessageExt message) {
         Map<String, String> properties = message.getProperties();
         // timestamp
-        String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
+        String connectTimestamp = properties.get(ConnectorConfig.CONNECT_TIMESTAMP);
         Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : message.getBornTimestamp();
 
         // partition and offset

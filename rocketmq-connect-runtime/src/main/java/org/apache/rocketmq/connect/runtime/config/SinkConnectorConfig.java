@@ -22,13 +22,15 @@ import com.google.common.base.Splitter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.errors.DeadLetterQueueConfig;
 
-public class SinkConnectorConfig extends RuntimeConfigDefine {
+public class SinkConnectorConfig extends ConnectorConfig {
 
     public static final String SEMICOLON = ";";
 
@@ -76,5 +78,16 @@ public class SinkConnectorConfig extends RuntimeConfigDefine {
             return null;
         }
         return new MessageQueue(messageQueueStrList.get(0), messageQueueStrList.get(1), Integer.valueOf(messageQueueStrList.get(2)));
+    }
+
+    /**
+     * validate
+     */
+    @Override
+    public void validate(){
+        super.validate();
+        if (!config.containsKey(CONNECT_TOPICNAMES)){
+            throw new ConnectException("Config connect.topicnames cannot be empty");
+        }
     }
 }

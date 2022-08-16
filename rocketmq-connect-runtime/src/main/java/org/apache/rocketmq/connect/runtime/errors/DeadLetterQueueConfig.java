@@ -19,16 +19,16 @@ package org.apache.rocketmq.connect.runtime.errors;
 
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_LOG_ENABLE_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_LOG_ENABLE_DEFAULT;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_LOG_INCLUDE_MESSAGES_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_LOG_INCLUDE_MESSAGES_DEFAULT;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_RETRY_MAX_DELAY_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_RETRY_MAX_DELAY_DEFAULT;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_RETRY_TIMEOUT_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_RETRY_TIMEOUT_DEFAULT;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_TOLERANCE_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.ERRORS_TOLERANCE_DEFAULT;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_LOG_ENABLE_CONFIG;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_LOG_ENABLE_DEFAULT;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_LOG_INCLUDE_MESSAGES_CONFIG;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_LOG_INCLUDE_MESSAGES_DEFAULT;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_RETRY_MAX_DELAY_CONFIG;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_RETRY_MAX_DELAY_DEFAULT;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_RETRY_TIMEOUT_CONFIG;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_RETRY_TIMEOUT_DEFAULT;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_TOLERANCE_CONFIG;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_TOLERANCE_DEFAULT;
 import static org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig.DLQ_CONTEXT_PROPERTIES_ENABLE_CONFIG;
 import static org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig.DLQ_CONTEXT_PROPERTIES_ENABLE_DEFAULT;
 import static org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig.DLQ_TOPIC_NAME_CONFIG;

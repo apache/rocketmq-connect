@@ -24,14 +24,15 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Define keys for connector and task configs.
  */
-public class RuntimeConfigDefine {
+public class ConnectorConfig {
     protected ConnectKeyValue config;
-    public RuntimeConfigDefine(ConnectKeyValue config){
+    public ConnectorConfig(ConnectKeyValue config){
         this.config = config;
         validate();
     }
@@ -40,8 +41,8 @@ public class RuntimeConfigDefine {
      * original config
      * @return
      */
-    public ConnectKeyValue originalConfig(){
-        return config;
+    public Map<String, String> originalConfig(){
+        return config.getProperties();
     }
 
     /**

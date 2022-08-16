@@ -31,7 +31,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -95,8 +95,8 @@ public class ConfigManagementServiceImplTest {
         connectConfig.setRmqMessageConsumeTimeout(3 * 1000);
 
         connectKeyValue = new ConnectKeyValue();
-        connectKeyValue.put(RuntimeConfigDefine.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector");
-        connectKeyValue.put(RuntimeConfigDefine.VALUE_CONVERTER, "source-record-converter");
+        connectKeyValue.put(ConnectorConfig.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector");
+        connectKeyValue.put(ConnectorConfig.VALUE_CONVERTER, "source-record-converter");
 
         doAnswer(new Answer() {
             @Override

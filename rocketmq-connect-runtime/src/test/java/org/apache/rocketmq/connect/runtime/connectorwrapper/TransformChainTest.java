@@ -20,7 +20,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.junit.After;
 import org.junit.Before;
@@ -44,7 +44,7 @@ public class TransformChainTest {
 
     @Before
     public void before() {
-        keyValue.put(RuntimeConfigDefine.TRANSFORMS, "testTransform");
+        keyValue.put(ConnectorConfig.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         connectRecord.setExtensions(keyValue);
         transformChain = new TransformChain(keyValue, plugin);
