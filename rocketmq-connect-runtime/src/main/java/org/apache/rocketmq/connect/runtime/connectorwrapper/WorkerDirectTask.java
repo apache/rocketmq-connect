@@ -29,7 +29,7 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -65,7 +65,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
     private SinkTask sinkTask;
     private final OffsetStorageReader positionStorageReader;
 
-    public WorkerDirectTask(ConnectConfig workerConfig,
+    public WorkerDirectTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,
                             SourceTask sourceTask,
                             ClassLoader classLoader,

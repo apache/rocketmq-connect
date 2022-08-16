@@ -39,7 +39,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
@@ -148,7 +148,7 @@ public class WorkerSinkTask extends WorkerTask {
         }
     };
 
-    public WorkerSinkTask(ConnectConfig workerConfig,
+    public WorkerSinkTask(WorkerConfig workerConfig,
                           ConnectorTaskId id,
                           SinkTask sinkTask,
                           ClassLoader classLoader,
@@ -181,7 +181,7 @@ public class WorkerSinkTask extends WorkerTask {
         this.messageBatch = new ArrayList<>();
 
         // commit
-        this.nextCommit = System.currentTimeMillis() + workerConfig.getOffsetCommitIntervalMs();
+        this.nextCommit = System.currentTimeMillis() + workerConfig.getOffsetCommitIntervalMsConfig();
         this.committing = false;
         this.commitSeqno = 0;
         this.commitStarted = -1;
@@ -191,7 +191,7 @@ public class WorkerSinkTask extends WorkerTask {
 
 
     protected void iteration() {
-        final long offsetCommitIntervalMs = workerConfig.getOffsetCommitIntervalMs();
+        final long offsetCommitIntervalMs = workerConfig.getOffsetCommitIntervalMsConfig();
         long now = System.currentTimeMillis();
         // check committing
         if (!committing && now >= nextCommit) {
@@ -508,7 +508,7 @@ public class WorkerSinkTask extends WorkerTask {
         Map<String, String> properties = message.getProperties();
         // timestamp
         String connectTimestamp = properties.get(RuntimeConfigDefine.CONNECT_TIMESTAMP);
-        Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : null;
+        Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : message.getBornTimestamp();
 
         // partition and offset
         RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(message.getTopic(), message.getBrokerName(), message.getQueueId());
@@ -566,7 +566,7 @@ public class WorkerSinkTask extends WorkerTask {
      */
     @Override
     protected void initializeAndStart() {
-        Set<String> topics = SinkConnectorConfig.parseTopicList(taskConfig);
+        Set<String> topics = new SinkConnectorConfig(taskConfig).parseTopicList();
         if (org.apache.commons.collections4.CollectionUtils.isEmpty(topics)) {
             throw new ConnectException("Sink connector topics config can be null, please check sink connector config info");
         }

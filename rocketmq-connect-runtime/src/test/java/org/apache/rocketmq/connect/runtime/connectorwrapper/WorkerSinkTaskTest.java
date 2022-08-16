@@ -26,16 +26,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -53,7 +57,7 @@ public class WorkerSinkTaskTest {
 
     private WorkerSinkTask workerSinkTask;
 
-    private ConnectConfig connectConfig = new ConnectConfig();
+    private WorkerConfig connectConfig = new WorkerConfig();
 
     private ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector", 1);
 
@@ -63,7 +67,7 @@ public class WorkerSinkTaskTest {
 
     private RecordConverter recordConverter = new TestConverter();
 
-    private DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer();
+    private DefaultLitePullConsumer defaultMQPullConsumer = new DefaultLitePullConsumer();
 
     private AtomicReference<WorkerState> workerState = new AtomicReference<>(WorkerState.STARTED);
 
@@ -86,14 +90,14 @@ public class WorkerSinkTaskTest {
 
     @Before
     public void before() {
-        connectKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, "TEST_TOPIC");
+        connectKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, "TEST_TOPIC");
         keyValue.put(RuntimeConfigDefine.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
         workerSinkTask = new WorkerSinkTask(connectConfig, connectorTaskId, sinkTask, WorkerSinkTaskTest.class.getClassLoader(), connectKeyValue,
             recordConverter, recordConverter, defaultMQPullConsumer, workerState, connectStatsManager, connectStatsService,
-            transformChain, retryWithToleranceOperator, workerErrorRecordReporter);
+            transformChain, retryWithToleranceOperator, workerErrorRecordReporter, new WrapperStatusListener(new StateManagementServiceImpl(),"workId"));
     }
 
     @After

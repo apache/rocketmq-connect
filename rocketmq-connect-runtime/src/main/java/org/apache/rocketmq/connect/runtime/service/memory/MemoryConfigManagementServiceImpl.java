@@ -21,7 +21,7 @@ import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -49,7 +49,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
     @Override
-    public void initialize(ConnectConfig connectConfig, Plugin plugin) {
+    public void initialize(WorkerConfig connectConfig, Plugin plugin) {
         this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.plugin = plugin;

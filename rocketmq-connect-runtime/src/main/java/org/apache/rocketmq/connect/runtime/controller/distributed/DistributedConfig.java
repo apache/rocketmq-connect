@@ -17,10 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 
 /**
  * distributed worker config
  */
-public class DistributedConfig extends ConnectConfig {
+public class DistributedConfig extends WorkerConfig {
 }

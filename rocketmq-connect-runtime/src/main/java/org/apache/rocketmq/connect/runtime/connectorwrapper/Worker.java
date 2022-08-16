@@ -32,7 +32,7 @@ import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
@@ -112,7 +112,7 @@ public class Worker {
     private final PositionManagementService positionManagementService;
 
     private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
-    private final ConnectConfig workerConfig;
+    private final WorkerConfig workerConfig;
     private final Plugin plugin;
 
     /**
@@ -129,7 +129,7 @@ public class Worker {
 
     private final ConfigManagementService configManagementService;
 
-    public Worker(ConnectConfig workerConfig,
+    public Worker(WorkerConfig workerConfig,
                   PositionManagementService positionManagementService,
                   ConfigManagementService configManagementService,
                   Plugin plugin,

@@ -23,7 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +37,7 @@ public class SourceTaskOffsetCommitterTest {
 
     private SourceTaskOffsetCommitter sourceTaskOffsetCommitter;
 
-    private ConnectConfig connectConfig = new ConnectConfig();
+    private WorkerConfig connectConfig = new WorkerConfig();
 
     private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(5);
 
@@ -51,7 +51,7 @@ public class SourceTaskOffsetCommitterTest {
 
     @Before
     public void before() {
-        connectConfig.setOffsetCommitIntervalMs(100);
+        connectConfig.setOffsetCommitIntervalMsConfig(100);
         sourceTaskOffsetCommitter = new SourceTaskOffsetCommitter(connectConfig);
         sourceTaskOffsetCommitter = new SourceTaskOffsetCommitter(connectConfig, scheduledExecutorService, committers);
         ScheduledFuture<?> commitFuture = scheduledExecutorService.scheduleWithFixedDelay(() -> {

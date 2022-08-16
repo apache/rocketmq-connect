@@ -93,7 +93,7 @@ public class DistributedConnectController extends AbstractConnectController {
         }, 1000, this.connectConfig.getPositionPersistInterval(), TimeUnit.MILLISECONDS);
 
 
-        // Persist position information of source tasks.
+        // Persist state information of connector
         scheduledExecutorService.scheduleAtFixedRate(() -> {
 
             try {
@@ -102,7 +102,7 @@ public class DistributedConnectController extends AbstractConnectController {
                 log.error("schedule persist position error.", e);
             }
 
-        }, 1000, this.connectConfig.getPositionPersistInterval(), TimeUnit.MILLISECONDS);
+        }, 1000, this.connectConfig.getStatePersistInterval(), TimeUnit.MILLISECONDS);
 
     }
 

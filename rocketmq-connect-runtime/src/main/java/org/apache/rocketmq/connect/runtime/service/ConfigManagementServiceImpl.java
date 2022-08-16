@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -88,7 +88,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private final String configManagePrefix = "ConfigManage";
 
     @Override
-    public void initialize(ConnectConfig connectConfig, Plugin plugin) {
+    public void initialize(WorkerConfig connectConfig, Plugin plugin) {
         this.connectorConfigUpdateListener = new HashSet<>();
         this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
                 connectConfig.getConfigStoreTopic(),
@@ -114,7 +114,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         String configStoreTopic = connectConfig.getConfigStoreTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, configStoreTopic)) {
             log.info("try to create config store topic: {}!", configStoreTopic);

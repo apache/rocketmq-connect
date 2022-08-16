@@ -30,7 +30,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -59,7 +59,7 @@ public class ConfigManagementServiceImplTest {
     private KeyValueStore<String, List<ConnectKeyValue>> taskKeyValueStore;
     private Set<ConfigManagementService.ConnectorConfigUpdateListener> connectorConfigUpdateListener;
     private DataSynchronizer<String, ConnAndTaskConfigs> dataSynchronizer;
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     @Mock
     private DefaultMQProducer producer;
@@ -81,7 +81,7 @@ public class ConfigManagementServiceImplTest {
         String consumerGroup = UUID.randomUUID().toString();
         String producerGroup = UUID.randomUUID().toString();
 
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setRmqConsumerGroup("testConsumerGroup");

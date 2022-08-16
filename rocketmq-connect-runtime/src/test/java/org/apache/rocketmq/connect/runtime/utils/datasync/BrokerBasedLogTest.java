@@ -25,7 +25,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,14 +62,14 @@ public class BrokerBasedLogTest {
     @Mock
     private Converter converter;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     @Before
     public void init() throws IllegalAccessException, NoSuchFieldException {
         topicName = "testTopicName";
         consumerGroup = "testConsumerGroup1";
         producerGroup = "testProducerGroup1";
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setRmqConsumerGroup(consumerGroup);
         connectConfig.setRmqProducerGroup(producerGroup);
         connectConfig.setNamesrvAddr("127.0.0.1:9876");

@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
@@ -84,11 +84,6 @@ public class DeadLetterQueueReporter implements ErrorReporter {
     private String connectorName;
 
 
-    public void workerId(String workerId) {
-        this.workerId = workerId;
-    }
-
-
     /**
      * build reporter
      *
@@ -99,7 +94,7 @@ public class DeadLetterQueueReporter implements ErrorReporter {
      */
     public static DeadLetterQueueReporter build(String connectorName,
                                                 ConnectKeyValue sinkConfig,
-                                                ConnectConfig workerConfig) {
+                                                WorkerConfig workerConfig) {
 
         DeadLetterQueueConfig deadLetterQueueConfig = new DeadLetterQueueConfig(sinkConfig);
         String dlqTopic = deadLetterQueueConfig.dlqTopicName();

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.connect.runtime.service;
 
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -31,7 +31,7 @@ public interface StateManagementService {
      * initialize cb config
      * @param connectConfig
      */
-    void initialize(ConnectConfig connectConfig);
+    void initialize(WorkerConfig connectConfig);
 
     /**
      * Start dependent services (if needed)

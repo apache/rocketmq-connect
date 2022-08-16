@@ -30,7 +30,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
@@ -56,7 +57,7 @@ public class WorkerSourceTaskTest {
 
     private WorkerSourceTask workerSourceTask;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     private ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector" ,1);
 
@@ -90,16 +91,16 @@ public class WorkerSourceTaskTest {
 
     @Before
     public void before() throws MQClientException, InterruptedException {
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("127.0.0.1:9876");
         connectStatsManager = new ConnectStatsManager(connectConfig);
-        connectKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, "TEST_TOPIC");
+        connectKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, "TEST_TOPIC");
         keyValue.put(RuntimeConfigDefine.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),
             connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
-            connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator);
+            connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator,null);
         NameServerMocker.startByDefaultConf(9876, 10911);
         ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
     }

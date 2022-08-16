@@ -28,7 +28,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -45,7 +45,7 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
     /**
      * Configs of current worker.
      */
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     /**
      * Used for worker discovery
@@ -60,7 +60,7 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         String consumerGroup = this.defaultMQPullConsumer.getConsumerGroup();
         Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
         if (!consumerGroupSet.contains(consumerGroup)) {
@@ -76,7 +76,7 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
 
     }
 
-    @Override public void initialize(ConnectConfig connectConfig) {
+    @Override public void initialize(WorkerConfig connectConfig) {
         this.connectConfig = connectConfig;
         this.workerStatusListeners = new HashSet<>();
         this.defaultMQPullConsumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);

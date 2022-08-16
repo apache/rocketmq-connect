@@ -33,7 +33,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
@@ -81,12 +81,12 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
      */
     private Converter valueConverter;
 
-    public BrokerBasedLog(ConnectConfig connectConfig,
-        String topicName,
-        String workId,
-        DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-        Converter keyConverter,
-        Converter valueConverter) {
+    public BrokerBasedLog(WorkerConfig connectConfig,
+                          String topicName,
+                          String workId,
+                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+                          Converter keyConverter,
+                          Converter valueConverter) {
 
         this.topicName = topicName;
         this.dataSynchronizerCallback = dataSynchronizerCallback;
@@ -104,7 +104,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         if (connectConfig.isAutoCreateGroupEnable()) {
             ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
         }

@@ -20,7 +20,7 @@ package org.apache.rocketmq.connect.runtime.controller;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
@@ -59,7 +59,7 @@ public abstract class AbstractConnectController implements ConnectController {
     /**
      * Configuration of current runtime.
      */
-    protected final ConnectConfig connectConfig;
+    protected final WorkerConfig connectConfig;
 
     /**
      * All the configurations of current running connectors and tasks in cluster.
@@ -107,7 +107,7 @@ public abstract class AbstractConnectController implements ConnectController {
      */
     public AbstractConnectController(
             Plugin plugin,
-            ConnectConfig connectConfig,
+            WorkerConfig connectConfig,
             ClusterManagementService clusterManagementService,
             ConfigManagementService configManagementService,
             PositionManagementService positionManagementService,
@@ -164,7 +164,7 @@ public abstract class AbstractConnectController implements ConnectController {
 
     }
 
-    public ConnectConfig getConnectConfig() {
+    public WorkerConfig getConnectConfig() {
         return connectConfig;
     }
 

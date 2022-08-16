@@ -26,11 +26,40 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.errors.DeadLetterQueueConfig;
 
-public class SinkConnectorConfig extends ConnectConfig {
+public class SinkConnectorConfig extends RuntimeConfigDefine {
 
-    public static Set<String> parseTopicList(ConnectKeyValue taskConfig) {
-        String messageQueueStr = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
+    public static final String SEMICOLON = ";";
+
+
+    public static final String CONNECT_TOPICNAMES = "connect.topicnames";
+
+    /**
+     * dead letter queue config
+     */
+    public static final String DLQ_PREFIX = "errors.deadletterqueue.";
+    public static final String DLQ_TOPIC_NAME_CONFIG = DLQ_PREFIX + "topic.name";
+
+    public static final String DLQ_TOPIC_READ_QUEUE_NUMS = DLQ_PREFIX + "read.queue.nums";
+    public static final short DLQ_TOPIC_READ_QUEUE_NUMS_DEFAULT = 8;
+
+    public static final String DLQ_TOPIC_WRITE_QUEUE_NUMS = DLQ_PREFIX + "write.queue.nums";
+    public static final short DLQ_TOPIC_WRITE_QUEUE_NUMS_DEFAULT = 8;
+
+    public static final String DLQ_CONTEXT_PROPERTIES_ENABLE_CONFIG = DLQ_PREFIX + "context.properties.enable";
+    public static final boolean DLQ_CONTEXT_PROPERTIES_ENABLE_DEFAULT = false;
+
+    public SinkConnectorConfig(ConnectKeyValue config) {
+        super(config);
+    }
+
+    public DeadLetterQueueConfig parseDeadLetterQueueConfig(){
+        return new DeadLetterQueueConfig(super.config);
+    }
+
+    public Set<String> parseTopicList() {
+        String messageQueueStr = this.config.getString(SinkConnectorConfig.CONNECT_TOPICNAMES);
         if (StringUtils.isBlank(messageQueueStr)) {
             return null;
         }

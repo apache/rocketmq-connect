@@ -21,7 +21,7 @@ import io.openmessaging.connector.api.component.connector.Connector;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
@@ -68,7 +68,7 @@ public class TestConfigManagementService implements ConfigManagementService {
 
     }
 
-    @Override public void initialize(ConnectConfig connectConfig, Plugin plugin) {
+    @Override public void initialize(WorkerConfig connectConfig, Plugin plugin) {
 
     }
 

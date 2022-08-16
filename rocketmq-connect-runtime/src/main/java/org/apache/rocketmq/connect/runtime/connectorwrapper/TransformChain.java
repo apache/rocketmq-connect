@@ -56,7 +56,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     private static final String COMMA = ",";
 
-    private static final String PREFIX = RuntimeConfigDefine.TRANSFORMS + "-";
+    private static final String PREFIX = RuntimeConfigDefine.TRANSFORMS + ".";
 
     private RetryWithToleranceOperator retryWithToleranceOperator;
 
@@ -86,7 +86,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
             return;
         }
         transformList.stream().forEach(transformStr -> {
-            String transformClassKey = PREFIX + transformStr + "-class";
+            String transformClassKey = PREFIX + transformStr + ".class";
             String transformClass = config.getString(transformClassKey);
             try {
                 Transform transform = newTransform(transformClass);
@@ -94,7 +94,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
                 Set<String> configKeys = config.keySet();
                 for (String key : configKeys) {
                     if (key.startsWith(PREFIX + transformStr) && !key.equals(transformClassKey)) {
-                        String originKey = key.replace(PREFIX + transformStr + "-", "");
+                        String originKey = key.replace(PREFIX + transformStr + ".", "");
                         transformConfig.put(originKey, config.getString(key));
                     }
                 }

@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -89,9 +89,9 @@ public class ConnectStatsManager {
 
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String worker;
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
-    public ConnectStatsManager(ConnectConfig connectConfig) {
+    public ConnectStatsManager(WorkerConfig connectConfig) {
         this.connectConfig = connectConfig;
         this.worker = connectConfig.getWorkerId();
         init();

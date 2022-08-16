@@ -21,6 +21,8 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -57,7 +59,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     @Override
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
-        int maxTask = configs.getInt(RuntimeConfigDefine.MAX_TASK, 1);
+        int maxTask = configs.getInt(RuntimeConfigDefine.MAX_TASK, RuntimeConfigDefine.TASKS_MAX_DEFAULT);
         ConnectKeyValue connectConfig = connectorKeyValueStore.get(connectorName);
         boolean directEnable = Boolean.parseBoolean(connectConfig.getString(RuntimeConfigDefine.CONNECTOR_DIRECT_ENABLE));
         List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
@@ -78,8 +80,8 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             newKeyValue.put(RuntimeConfigDefine.TASK_CLASS, connector.taskClass().getName());
             newKeyValue.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
 
-            newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAME));
-            newKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAMES, configs.getString(RuntimeConfigDefine.CONNECT_TOPICNAMES));
+            newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
+            newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
             Set<String> connectConfigKeySet = configs.keySet();
             for (String connectConfigKey : connectConfigKeySet) {
                 if (connectConfigKey.startsWith(RuntimeConfigDefine.TRANSFORMS)) {

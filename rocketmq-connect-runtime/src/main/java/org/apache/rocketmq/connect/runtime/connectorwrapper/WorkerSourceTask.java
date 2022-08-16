@@ -41,7 +41,8 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
@@ -132,7 +133,7 @@ public class WorkerSourceTask extends WorkerTask {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
     }
 
-    public WorkerSourceTask(ConnectConfig workerConfig,
+    public WorkerSourceTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,
                             SourceTask sourceTask,
                             ClassLoader classLoader,
@@ -393,7 +394,7 @@ public class WorkerSourceTask extends WorkerTask {
      * @return
      */
     private String maybeCreateAndGetTopic(ConnectRecord record) {
-        String topic = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
+        String topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
         if (StringUtils.isBlank(topic)) {
             RecordPosition recordPosition = record.getPosition();
             if (null == recordPosition) {
@@ -433,6 +434,7 @@ public class WorkerSourceTask extends WorkerTask {
             log.info("extension keySet null.");
             return;
         }
+        MessageAccessor.putProperty(sourceMessage, RuntimeConfigDefine.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));

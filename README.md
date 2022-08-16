@@ -18,13 +18,15 @@ rocketmq-connect-sample的主要作用是从源文件中读取数据发送到Roc
 3. Maven 3.2.x或以上版本;
 4. 启动 [RocketMQ](https://rocketmq.apache.org/docs/quick-start/);
 5. 创建测试Topic
-    sh  ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+```
+     sh ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+```
 
 **tips** : ${ROCKETMQ_HOME} 位置说明
 
-bin-release.zip 版本：/rocketmq-all-4.9.4-bin-release
-
-source-release.zip 版本：/rocketmq-all-4.9.4-source-release/distribution
+>bin-release.zip 版本：/rocketmq-all-4.9.4-bin-release
+> 
+>source-release.zip 版本：/rocketmq-all-4.9.4-source-release/distribution
 
 
 ## 2.构建Connect
@@ -48,16 +50,15 @@ sh bin/connect-standalone.sh -c conf/connect-standalone.conf &
 ```
 **tips**: 可修改 /bin/runconnect.sh 适当调整 JVM Parameters Configuration
 
-```
-JAVA_OPT="${JAVA_OPT} -server -Xms256m -Xmx256m"
-```
+>JAVA_OPT="${JAVA_OPT} -server -Xms256m -Xmx256m"
+
 runtime启动成功：
 
-The standalone worker boot success.
+>The standalone worker boot success.
 
 查看启动日志文件：
 
-tail -100f ~/logs/rocketmqconnect/connect_runtime.log
+>tail -100f ~/logs/rocketmqconnect/connect_runtime.log
 
 ctrl + c 退出日志
 
@@ -74,43 +75,44 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 
 看到以下日志说明 file source connector 启动成功了
 
-tail -100f ~/logs/rocketmqconnect/connect_runtime.log
-
-2019-07-16 11:18:39 INFO pool-7-thread-1 - **Source task start**, config:{"properties":{"source-record-...
+>tail -100f ~/logs/rocketmqconnect/connect_runtime.log
+>
+>2019-07-16 11:18:39 INFO pool-7-thread-1 - **Source task start**, config:{"properties":{"source-record-...
 
 #### source connector配置说明
 
-| key                     | nullable | default               | description |
-| ----------------------- | -------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| connector-class         | false    |                                                  |实现 Connector接口的类名称（包含包名）|
-| filename                | false    |                                                                          | 数据源文件名称 |
-| connect-topicname       | false    |                                                                   |同步文件数据所需topic|
+| key               | nullable | default              | description              |
+|-------------------| -------- | ---------------------|--------------------------|
+| connector.class   | false    |                      | 实现 Connector接口的类名称（包含包名） |
+| filename          | false    |                      | 数据源文件名称                  |
+| connect.topicname | false    |                      | 同步文件数据所需topic            |
 
 
 ## 5.启动sink connector
 
 ```
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSinkConnector","filename":"test-sink-file.txt","connect-topicname":"fileTopic"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{"connector.class":"org.apache.rocketmq.connect.file.FileSinkConnector","filename":"test-sink-file.txt","connect.topicnames":"fileTopic"}'
 
 cat test-sink-file.txt
 ```
 
-tail -100f ~/logs/rocketmqconnect/connect_runtime.log
+
+> tail -100f ~/logs/rocketmqconnect/connect_runtime.log
 
 看到以下日志说明file sink connector 启动成功了
 
-2019-07-16 11:24:58 INFO pool-7-thread-2 - **Sink task start**, config:{"properties":{"source-record-...
+> 2019-07-16 11:24:58 INFO pool-7-thread-2 - **Sink task start**, config:{"properties":{"source-record-...
 
 如果 test-sink-file.txt 生成并且与 source-file.txt 内容一样，说明整个流程正常运行。
 文件内容可能顺序不一样，这主要是因为RocketMQ发到不同queue时，接收不同queue消息顺序可能也不一致导致的，是正常的。
 
 #### sink connector配置说明
 
-| key                     | nullable | default | description                                                                            |
-| ----------------------- | -------- | ------- | -------------------------------------------------------------------------------------- |
-| connector-class         | false    |         | 实现Connector接口的类名称（包含包名）                                                  |
-| filename      | false    |         | sink拉去的数据保存到文件                                               |
-| connect-topicname | false    |         | sink需要处理数据消息topics                                             |
+| key                | nullable | default | description                                                                            |
+|--------------------| -------- | ------- | -------------------------------------------------------------------------------------- |
+| connector.class    | false    |         | 实现Connector接口的类名称（包含包名）                                                  |
+| filename           | false    |         | sink拉去的数据保存到文件                                               |
+| connect.topicnames | false    |         | sink需要处理数据消息topics                                             |
 
 ```  
 注：source/sink配置文件说明是以rocketmq-connect-sample为demo，不同source/sink connector配置有差异，请以具体sourc/sink connector 为准
@@ -129,7 +131,7 @@ curl     http://127.0.0.1:8082/connectors/fileSourceConnector/stop
 ```
 看到以下日志说明connector停止成功了
 
-**Source task stop**, config:{"properties":{"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter","filename":"/home/zhoubo/IdeaProjects/my-new3-rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","task-class":"org.apache.rocketmq.connect.file.FileSourceTask","topic":"fileTopic","connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","update-timestamp":"1564765189322"}}
+>**Source task stop**, config:{"properties":{"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter","filename":"/home/zhoubo/IdeaProjects/my-new3-rocketmq-externals/rocketmq-connect/rocketmq-connect-runtime/source-file.txt","task-class":"org.apache.rocketmq.connect.file.FileSourceTask","topic":"fileTopic","connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","update-timestamp":"1564765189322"}}
 
 ## 7.停止Worker进程
 
@@ -140,16 +142,20 @@ sh bin/connectshutdown.sh
 
 ## 8.日志目录
 
- ${user.home}/logs/rocketmqconnect 
+ >${user.home}/logs/rocketmqconnect 
 
 ## 9.配置文件
 
 持久化配置文件默认目录 /tmp/storeRoot
 
-1. connectorConfig.json connector配置持久化文件
-2. position.json        source connect数据处理进度持久化文件
-3. taskConfig.json      task配置持久化文件
-4. offset.json          sink connect数据消费进度持久化文件
+| key                  | description               |
+|----------------------|---------------------------|
+| connectorConfig.json | connector配置持久化文件          |
+| position.json        | source connect数据处理进度持久化文件 |
+| taskConfig.json      | task配置持久化文件               |
+| offset.json          | sink connect数据消费进度持久化文件   |
+| connectorStatus.json | connector 状态持久化文件         |
+| taskStatus.json      | task 状态持久化文件              |
 
 ## 10.配置说明
 
@@ -182,48 +188,83 @@ pluginPaths=rocketmq-connect-sample/target/rocketmq-connect-sample-0.0.1-SNAPSHO
 
 ## 11.其它restful接口
 
-
-查看集群节点信息：
-
+### 集群信息
++ 查看集群节点信息：
 ```
 curl -X GET http://(your worker ip):(port)/getClusterInfo
 ```
 
-查看集群中Connector和Task配置信息：
-
-```
-curl -X GET http://(your worker ip):(port)/getConfigInfo
-```
-
-查看当前节点分配Connector和Task配置信息：
-
-```
-curl -X GET http://(your worker ip):(port)/getAllocatedInfo
-```
-
-查看指定Connector配置信息：
-
-```
-curl -X GET http://(your worker ip):(port)/connectors/(connector name)/config
-```
-
-查看指定Connector状态：
-
-```
-curl -X GET http://(your worker ip):(port)/connectors/(connector name)/status
-```
-
-停止所有Connector：
-
-```
-curl -X GET http://(your worker ip):(port)/connectors/stopAll
-```
-
-重新加载Connector插件目录下的Connector包：
++ 重新加载Connector插件目录下的Connector包：
 
 ```
 curl -X GET http://(your worker ip):(port)/plugin/reload
 ```
+
+### Connector/Task管理
+
++ 创建或更新connector（存在且配置不同会更新，不存在创建）
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}
+```
++ Pause(暂停)指定的connector
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/pause
+```
++ Resume(重启)指定的connector
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/resume
+```
++ Pause(暂停)所有的connector
+```
+curl -X GET http://(your worker ip):(port)/connectors/pause/all
+```
+
++ Resume(重启)所有的connector
+```
+curl -X GET http://(your worker ip):(port)/connectors/resume/all
+```
+
++ 停止并删除指定的connector(谨慎使用)
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/stop
+```
++ 停止并删除所有的connector(谨慎使用)
+```
+curl -X GET http://(your worker ip):(port)/connectors/stop/all
+```
+
++ 列举集群中所有connector信息
+```
+curl -X GET http://(your worker ip):(port)/connectors/list
+```
++ 根据connectorName获取connector的配置信息
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/config
+```
++ 根据connectorName获取connector的状态
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/status
+```
++ 根据connectorName获取connector下所有task信息
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/tasks
+```
+
++ 根据connectorName和task id获取task状态
+```
+curl -X GET http://(your worker ip):(port)/connectors/{connectorName}/tasks/{task}/status
+```
+
++ 获取当前worker分配的connector信息
+```
+curl -X GET http://(your worker ip):(port)/allocated/connectors
+```
+
++ 获取当前worker分配的task信息
+```
+curl -X GET http://(your worker ip):(port)/allocated/tasks
+```
+
 
 从内存删除Connector配置信息（谨慎使用）：
 
@@ -232,27 +273,37 @@ curl -X GET http://(your worker ip):(port)/connectors/(connector name)/delete
 ```
 
 
-## 12.runtime配置参数说明
+## 12.Worker配置参数说明
 
-| key                      | nullable | default                                                      | description                                                  |
-| ------------------------ | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| workerId                 | false    | DEFAULT_WORKER_1                                             | 集群节点唯一标识                                             |
-| namesrvAddr              | false    | loacalhost:9876                                              | RocketMQ Name Server地址列表，多个NameServer地址用分号隔开   |
-| httpPort                 | false    | 8082                                                         | runtime提供restful接口服务端口                               |
-| pluginPaths              | false    |                                                              | source或者sink目录，启动runttime时加载                       |
-| storePathRootDir         | true     | /tmp/connectorStore                                          | 持久化文件保存目录                                           |
-| positionPersistInterval  | true     | 20s                                                          | source端持久化position数据间隔                               |
-| offsetPersistInterval    | true     | 20s                                                          | sink端持久化offset数据间隔                                   |
-| configPersistInterval    | true     | 20s                                                          | 集群中配置信息持久化间隔                                     |
-| rmqProducerGroup         | true     | defaultProducerGroup                                         | Producer组名，多个Producer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
-| rmqConsumerGroup         | true     | defaultConsumerGroup                                         | Consumer组名，多个Consumer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
-| maxMessageSize           | true     | 4MB                                                          | RocketMQ最大消息大小                                         |
-| operationTimeout         | true     | 3s                                                           | Producer发送消息超时时间                                     |
-| rmqMaxRedeliveryTimes    | true     |                                                              | 最大重新消费次数                                             |
-| rmqMessageConsumeTimeout | true     | 3s                                                           | Consumer超时时间                                             |
-| rmqMaxConsumeThreadNums  | true     | 32                                                           | Consumer客户端最大线程数                                     |
-| rmqMinConsumeThreadNums  | true     | 1                                                            | Consumer客户端最小线程数                                     |
-| allocTaskStrategy        | true     | org.apache.rocketmq.connect.<br>runtime.service.strategy.<br>DefaultAllocateConnAndTaskStrategy | 负载均衡策略类                                               |
+> ❌ 表示该模式下不需要配置此选项
+> ✅ 表示该模式下配置生效
+
+| key                         | nullable | standalone | distributed | default                                                                                         | description                                       |
+|-----------------------------|----------|------------|-------------|-------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| workerId                    | false    | ✅ ️        | ✅           | DEFAULT_WORKER_1                                                                                | 集群节点唯一标识                                          |
+| namesrvAddr                 | false    | ✅          | ✅           | loacalhost:9876                                                                                 | RocketMQ Name Server地址列表，多个NameServer地址用分号隔开      |
+| httpPort                    | false    | ✅          | ✅           | 8082                                                                                            | runtime提供restful接口服务端口                            |
+| pluginPaths                 | false    | ✅          | ✅           |                                                                                                 | source或者sink目录，启动runttime时加载                      |
+| storePathRootDir            | true     | ✅          | ✅           | /tmp/connectorStore                                                                             | 持久化文件保存目录                                         |
+| positionStoreTopic          | true     | ❌          | ✅           | connector-position-topic                                                                        | source端position变更通知topic                          |
+| positionPersistInterval     | true     | ✅          | ✅           | 20s                                                                                             | source端持久化position数据间隔                            |
+| configStoreTopic            | true     | ❌          | ✅           | connector-config-topic                                                                          | 集群connector配置变更通知topic                            |
+| configPersistInterval       | true     | ❌          | ✅           | 20s                                                                                             | 集群中配置信息持久化间隔                                      |
+| connectStatusTopic          | true     | ❌          | ✅           | connect-status-topic                                                                            | connector和task状态变更通知                              |
+| statePersistInterval        | true     | ❌          | ✅           | 20s                                                                                             | connector及task状态持久化间隔                             |
+| rmqProducerGroup            | true     | ✅          | ✅           | defaultProducerGroup                                                                            | Producer组名，多个Producer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
+| rmqConsumerGroup            | true     | ✅          | ✅           | defaultConsumerGroup                                                                            | Consumer组名，多个Consumer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
+| maxMessageSize              | true     | ✅          | ✅           | 4MB                                                                                             | RocketMQ最大消息大小                                    |
+| operationTimeout            | true     | ✅          | ✅           | 3s                                                                                              | Producer发送消息超时时间                                  |
+| rmqMaxRedeliveryTimes       | true     | ✅          | ✅           |                                                                                                 | 最大重新消费次数                                          |
+| rmqMessageConsumeTimeout    | true     | ✅          | ✅           | 3s                                                                                              | Consumer超时时间                                      |
+| rmqMaxConsumeThreadNums     | true     | ✅          | ✅           | 32                                                                                              | Consumer客户端最大线程数                                  |
+| rmqMinConsumeThreadNums     | true     | ✅          | ✅           | 1                                                                                               | Consumer客户端最小线程数                                  |
+| allocTaskStrategy           | true     | ✅          | ✅           | org.apache.rocketmq.connect.<br>runtime.service.strategy.<br>DefaultAllocateConnAndTaskStrategy | 负载均衡策略类                                           |
+| offsetCommitTimeoutMsConfig | true     | ✅          | ✅           | 5000L                                                                                           | source和sink offset提交超时时间                          |
+| offsetCommitIntervalMsConfig| true     | ✅          | ✅           | 60000L                                                                                          | source和sink offset提交间隔时间配置                        |
+| keyConverter                | true     | ✅          | ✅           | org.apache.rocketmq.connect.runtime.converter.record.StringConverter                            | 集群配置默认 key 转换器                                    |
+| valueConverter              | true     | ✅          | ✅           | org.apache.rocketmq.connect.runtime.converter.record.StringConverter                            | 集群配置默认 Value 转换器                                  |
 
 ### allocTaskStrategy说明
 
@@ -330,37 +381,38 @@ private static class MD5Hash implements HashFunction {
 }
 ```
 
-##开发指南
-如何在IDE中启动Connect Worker ?
+### 开发指南
 
-###单机模式启动Connect Worker
+> 如何在IDE中启动Connect Worker ?
 
-Main Class配置
-org.apache.rocketmq.connect.runtime.StandaloneConnectStartup
+### 单机模式启动Connect Worker
+
+Main Class配置:
+>org.apache.rocketmq.connect.runtime.StandaloneConnectStartup
 
 ![img_2.png](img_2.png)
 
 Program arguments配置
 
--c  ${user path}/rocketmq-connect/distribution/conf/connect-standalone.conf
+> -c  ${user path}/rocketmq-connect/distribution/conf/connect-standalone.conf
 
 Environment variables配置
 
-CONNECT_HOME=${user path}/rocketmq-connect/distribution
+> CONNECT_HOME=${user path}/rocketmq-connect/distribution
 
 ###集群模式启动Connect Worker
 
 Main Class配置
-org.apache.rocketmq.connect.runtime.DistributedConnectStartup
+>org.apache.rocketmq.connect.runtime.DistributedConnectStartup
 
 
 Program arguments配置
 
--c  ${user path}/rocketmq-connect/distribution/conf/connect-distributed.conf
+>-c  ${user path}/rocketmq-connect/distribution/conf/connect-distributed.conf
 
 Environment variables配置
 
-CONNECT_HOME=${user path}/rocketmq-connect/distribution
+>CONNECT_HOME=${user path}/rocketmq-connect/distribution
 
 
 
