@@ -273,65 +273,78 @@ curl -X GET http://(your worker ip):(port)/connectors/(connector name)/delete
 ```
 ## 12.Connector通用配置参数说明
 
-| key                         | nullable | default                                                             | description                                                                 |
-|-----------------------------|----------|---------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| connector.class             | false    |                                                                     | 指定插件的class信息                                                                |
-| max.tasks                   | false    | 1                                                                   | connector下运行的task的数量，根据情况而定                                                 |
+| key                         | nullable | default                                     | description                                                                 |
+|-----------------------------|----------|---------------------------------------------|-----------------------------------------------------------------------------|
+| connector.class             | false    |                                             | 指定插件的class信息                                                                |
+| max.tasks                   | false    | 1                                           | connector下运行的task的数量，根据情况而定                                                 |
 | value.converter             | false    | org.apache.rocketmq.connect.runtime.converter.record.StringConverter | ConnectRecord key的转换器                                                       |
 | key.converter               | false    | org.apache.rocketmq.connect.runtime.converter.record.StringConverter | ConnectRecord value的转换器                                                     |
-| transforms                  | true     |                                                                     | 配置的数据转换器，多个需要用 ","分割                                                        |
-| errors.log.include.messages | true     | false                                                               | 是否将导致故障的connector异常信息纪录在日志中                                                 |
-| errors.log.enable           | true     | false                                                               | 如果为true，请将每个错误以及失败操作和问题记录的详细信息写入Connect应用程序日志。默认情况下，这是“false”，因此只报告不可容忍的错误。 |
-| errors.retry.timeout        | true     | 0                                                                   | 重试超时时间                                                                      |
-| errors.retry.delay.max.ms   | true     | 60000                                                               | 重试延迟时间                                                                      |
-| errors.tolerance            | true     | ToleranceType.NONE                                                  | 在Connector操作期间容忍错误的行为。“NONE”是默认值，表示任何错误都将导致连接器任务立即失败；"ALL“更改行为以跳过有问题的记录。    |
-
+| transforms                  | true     |                                             | 配置的数据转换器，多个需要用 ","分割                                                        |
+| errors.log.include.messages | true     | false                                       | 是否将导致故障的connector异常信息纪录在日志中                                                 |
+| errors.log.enable           | true     | false                                       | 如果为true，请将每个错误以及失败操作和问题记录的详细信息写入Connect应用程序日志。默认情况下，这是“false”，因此只报告不可容忍的错误。 |
+| errors.retry.timeout        | true     | 0                                           | 重试超时时间                                                                      |
+| errors.retry.delay.max.ms   | true     | 60000                                       | 重试延迟时间                                                                      |
+| errors.tolerance            | true     | ToleranceType.NONE                          | 在Connector操作期间容忍错误的行为。“NONE”是默认值，表示任何错误都将导致连接器任务立即失败；"ALL“更改行为以跳过有问题的记录。    |
+#### Transform配置案例
+```
+"transforms": "Unwrap",
+"transforms.Unwrap.delete.handling.mode": "none",
+"transforms.Unwrap.add.headers": "op,source.db,source.table",
+"transforms.Unwrap.class": "io.debezium.transforms.ExtractNewRecordState",
+```
+> 1.transforms: 为固定配置,不可变
+> 
+> 2.Unwrap: 为配置名称，可自定义, 多个用","分割，若为多个，下面配置均需重复配置
+> 
+> 3.transforms.${transform-name}.class: 用此配置来表示transform的class
+> 
+> 4.transforms.${transform-name}.{config.key}: transform中使用的多个配置项；
 ### Source Connector特殊配置
 | key                         | nullable | default | description                                          |
 |-----------------------------|---------|---------|------------------------------------------------------|
 | connect.topicname           | true    |         | 指定数据写入的topic，若不配置则直接取position中key为topic的值，若取不到则抛出异常  |
 
 ### Sink Connector特殊配置
-| key                                               | nullable | default               | description |
-|---------------------------------------------------|----------|-----------------------|--------|
-| connect.topicnames                                | false    |                       |        |
-| task.group.id                                     | true     | connect-{connectName} |        |
-| errors.deadletterqueue.topic.name                 | true     |                       |        |
-| errors.deadletterqueue.read.queue.nums            | true     | 8                     |        |
-| errors.deadletterqueue.write.queue.nums           | true     | 8                     |        |
-| errors.deadletterqueue.context.properties.enable  | true     | false                 |        |
+| key                                               | nullable | default               | description                |
+|---------------------------------------------------|----------|-----------------------|----------------------------|
+| connect.topicnames                                | false    |                       | sink订阅的topic配置多个用","分割     |
+| task.group.id                                     | true     | connect-{connectName} | sink订阅topic的group id       |
+| errors.deadletterqueue.topic.name                 | true     |                       | 错误队列的topic配置               |
+| errors.deadletterqueue.read.queue.nums            | true     | 8                     | 错误队列创建时指定读的队列数             |
+| errors.deadletterqueue.write.queue.nums           | true     | 8                     | 错误队列创建时指定写的队列数             |
+| errors.deadletterqueue.context.properties.enable  | true     | false                 | 上报错误数据是否包含错误的详细的属性信息       |
 
 ## 13.Worker配置参数说明
 
 > ❌ 表示该模式下不需要配置此选项
 > ✅ 表示该模式下配置生效
 
-| key                         | nullable | standalone | distributed | default                                                                                         | description                                       |
-|-----------------------------|----------|------------|-------------|-------------------------------------------------------------------------------------------------|---------------------------------------------------|
-| workerId                    | false    | ✅ ️        | ✅           | DEFAULT_WORKER_1                                                                                | 集群节点唯一标识                                          |
-| namesrvAddr                 | false    | ✅          | ✅           | loacalhost:9876                                                                                 | RocketMQ Name Server地址列表，多个NameServer地址用分号隔开      |
-| httpPort                    | false    | ✅          | ✅           | 8082                                                                                            | runtime提供restful接口服务端口                            |
-| pluginPaths                 | false    | ✅          | ✅           |                                                                                                 | source或者sink目录，启动runttime时加载                      |
-| storePathRootDir            | true     | ✅          | ✅           | /tmp/connectorStore                                                                             | 持久化文件保存目录                                         |
-| positionStoreTopic          | true     | ❌          | ✅           | connector-position-topic                                                                        | source端position变更通知topic                          |
-| positionPersistInterval     | true     | ✅          | ✅           | 20s                                                                                             | source端持久化position数据间隔                            |
-| configStoreTopic            | true     | ❌          | ✅           | connector-config-topic                                                                          | 集群connector配置变更通知topic                            |
-| configPersistInterval       | true     | ❌          | ✅           | 20s                                                                                             | 集群中配置信息持久化间隔                                      |
-| connectStatusTopic          | true     | ❌          | ✅           | connect-status-topic                                                                            | connector和task状态变更通知                              |
-| statePersistInterval        | true     | ❌          | ✅           | 20s                                                                                             | connector及task状态持久化间隔                             |
-| rmqProducerGroup            | true     | ✅          | ✅           | defaultProducerGroup                                                                            | Producer组名，多个Producer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
-| rmqConsumerGroup            | true     | ✅          | ✅           | defaultConsumerGroup                                                                            | Consumer组名，多个Consumer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
-| maxMessageSize              | true     | ✅          | ✅           | 4MB                                                                                             | RocketMQ最大消息大小                                    |
-| operationTimeout            | true     | ✅          | ✅           | 3s                                                                                              | Producer发送消息超时时间                                  |
-| rmqMaxRedeliveryTimes       | true     | ✅          | ✅           |                                                                                                 | 最大重新消费次数                                          |
-| rmqMessageConsumeTimeout    | true     | ✅          | ✅           | 3s                                                                                              | Consumer超时时间                                      |
-| rmqMaxConsumeThreadNums     | true     | ✅          | ✅           | 32                                                                                              | Consumer客户端最大线程数                                  |
-| rmqMinConsumeThreadNums     | true     | ✅          | ✅           | 1                                                                                               | Consumer客户端最小线程数                                  |
+| key                         | nullable | standalone | distributed | default                                                            | description                                       |
+|-----------------------------|----------|------------|-------------|--------------------------------------------------------------------|---------------------------------------------------|
+| workerId                    | false    | ✅ ️        | ✅           | DEFAULT_WORKER_1                                                   | 集群节点唯一标识                                          |
+| namesrvAddr                 | false    | ✅          | ✅           | loacalhost:9876                                                    | RocketMQ Name Server地址列表，多个NameServer地址用分号隔开      |
+| httpPort                    | false    | ✅          | ✅           | 8082                                                               | runtime提供restful接口服务端口                            |
+| pluginPaths                 | false    | ✅          | ✅           |                                                                    | source或者sink目录，启动runttime时加载                      |
+| storePathRootDir            | true     | ✅          | ✅           | /tmp/connectorStore                                                | 持久化文件保存目录                                         |
+| positionStoreTopic          | true     | ❌          | ✅           | connector-position-topic                                           | source端position变更通知topic                          |
+| positionPersistInterval     | true     | ✅          | ✅           | 20s                                                                | source端持久化position数据间隔                            |
+| configStoreTopic            | true     | ❌          | ✅           | connector-config-topic                                             | 集群connector配置变更通知topic                            |
+| configPersistInterval       | true     | ❌          | ✅           | 20s                                                                | 集群中配置信息持久化间隔                                      |
+| connectStatusTopic          | true     | ❌          | ✅           | connect-status-topic                                               | connector和task状态变更通知                              |
+| statePersistInterval        | true     | ❌          | ✅           | 20s                                                                | connector及task状态持久化间隔                             |
+| rmqProducerGroup            | true     | ✅          | ✅           | defaultProducerGroup                                               | Producer组名，多个Producer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
+| rmqConsumerGroup            | true     | ✅          | ✅           | defaultConsumerGroup                                               | Consumer组名，多个Consumer如果属于一个应用，发送同样的消息，则应该将它们归为同一组 |
+| maxMessageSize              | true     | ✅          | ✅           | 4MB                                                                | RocketMQ最大消息大小                                    |
+| operationTimeout            | true     | ✅          | ✅           | 3s                                                                 | Producer发送消息超时时间                                  |
+| rmqMaxRedeliveryTimes       | true     | ✅          | ✅           |                                                                    | 最大重新消费次数                                          |
+| rmqMessageConsumeTimeout    | true     | ✅          | ✅           | 3s                                                                 | Consumer超时时间                                      |
+| rmqMaxConsumeThreadNums     | true     | ✅          | ✅           | 32                                                                 | Consumer客户端最大线程数                                  |
+| rmqMinConsumeThreadNums     | true     | ✅          | ✅           | 1                                                                  | Consumer客户端最小线程数                                  |
 | allocTaskStrategy           | true     | ✅          | ✅           | org.apache.rocketmq.connect.<br>runtime.service.strategy.<br>DefaultAllocateConnAndTaskStrategy | 负载均衡策略类                                           |
-| offsetCommitTimeoutMsConfig | true     | ✅          | ✅           | 5000L                                                                                           | source和sink offset提交超时时间                          |
-| offsetCommitIntervalMsConfig| true     | ✅          | ✅           | 60000L                                                                                          | source和sink offset提交间隔时间配置                        |
-| keyConverter                | true     | ✅          | ✅           | org.apache.rocketmq.connect.runtime.converter.record.StringConverter                            | 集群配置默认 key 转换器                                    |
-| valueConverter              | true     | ✅          | ✅           | org.apache.rocketmq.connect.runtime.converter.record.StringConverter                            | 集群配置默认 Value 转换器                                  |
+| offsetCommitTimeoutMsConfig | true     | ✅          | ✅           | 5000L                                                              | source和sink offset提交超时时间                          |
+| offsetCommitIntervalMsConfig| true     | ✅          | ✅           | 60000L                                                             | source和sink offset提交间隔时间配置                        |
+| keyConverter                | true     | ✅          | ✅           | org.apache.rocketmq.connect.runtime.converter.record.StringConverter | 集群配置默认 key 转换器                                    |
+| valueConverter              | true     | ✅          | ✅           | org.apache.rocketmq.connect.runtime.converter.record.StringConverter | 集群配置默认 Value 转换器                                  |
 
 ### allocTaskStrategy说明
 
@@ -350,7 +363,7 @@ org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy
 
 [负载均衡](https://rocketmq-1.gitbook.io/rocketmq-connector/rocketmq-connect-1/rocketmq-runtime/fu-zai-jun-heng)
 
-## 13.runtime支持JVM参数说明
+## 14.runtime支持JVM参数说明
 
 | key                                             | nullable | default | description             |
 | ----------------------------------------------- | -------- | ------- | ----------------------- |
