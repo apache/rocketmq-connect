@@ -25,6 +25,7 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -64,7 +65,8 @@ public class DeadLetterQueueReporterTest {
         messageExt.setBody("Hello World".getBytes(StandardCharsets.UTF_8));
         processingContext.consumerRecord(messageExt);
         final DeadLetterQueueReporter reporter = buildDeadLetterQueueReporter();
-        reporter.report(processingContext);
+
+        Assertions.assertThatCode(() -> reporter.report(processingContext)).doesNotThrowAnyException();
     }
 
     private DeadLetterQueueReporter buildDeadLetterQueueReporter() {

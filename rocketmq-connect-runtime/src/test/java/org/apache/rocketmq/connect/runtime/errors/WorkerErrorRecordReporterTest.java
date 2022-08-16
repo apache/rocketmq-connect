@@ -17,10 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.errors;
 
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.converter.record.StringConverter;
@@ -51,10 +53,16 @@ public class WorkerErrorRecordReporterTest {
         retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 2000, ToleranceType.ALL);
         recordConverter = new StringConverter();
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
-        Map<String, Integer> partition = new HashMap<>();
+        Map<String, Object> partition = new HashMap<>();
         partition.put("queueId", 0);
+        partition.put("topic", "DEFAULT_TOPIC");
+        partition.put("queueOffset", 0L);
+        partition.put("brokerName", "mockBrokerName");
         recordPartition = new RecordPartition(partition);
         connectRecord = new ConnectRecord(recordPartition, recordOffset, System.currentTimeMillis());
+        KeyValue extensions = new DefaultKeyValue();
+        extensions.put("extension1", "test1");
+        connectRecord.setExtensions(extensions);
     }
 
     @Test
