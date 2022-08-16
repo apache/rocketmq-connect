@@ -26,6 +26,8 @@ import java.util.Set;
 
 
 public class SinkConnectConfig extends HudiConnectConfig {
+    protected String connectorClass;
+    protected String taskClass;
     private Set<String> whiteList;
     private String srcNamesrvs;
     private String srcCluster;
@@ -39,6 +41,8 @@ public class SinkConnectConfig extends HudiConnectConfig {
 
     public void validate(KeyValue config) {
         buildWhiteList(config);
+        this.connectorClass = config.getString(HudiConnectConfig.CONN_CONNECTOR_CLASS);
+        this.taskClass = config.getString(HudiConnectConfig.CONN_TASK_CLASS);
         this.tablePath = config.getString(HudiConnectConfig.CONN_HUDI_TABLE_PATH);
         this.tableName = config.getString(HudiConnectConfig.CONN_HUDI_TABLE_NAME);
         this.insertShuffleParallelism = config.getInt(HudiConnectConfig.CONN_HUDI_INSERT_SHUFFLE_PARALLELISM);
@@ -68,6 +72,21 @@ public class SinkConnectConfig extends HudiConnectConfig {
         }
     }
 
+    public String getConnectorClass() {
+        return connectorClass;
+    }
+
+    public void setConnectorClass(String connectorClass) {
+        this.connectorClass = connectorClass;
+    }
+
+    public String getTaskClass() {
+        return taskClass;
+    }
+
+    public void setTaskClass(String taskClass) {
+        this.taskClass = taskClass;
+    }
 
     public Set<String> getWhiteList() {
         return whiteList;
