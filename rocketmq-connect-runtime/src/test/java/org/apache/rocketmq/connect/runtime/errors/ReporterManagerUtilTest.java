@@ -41,6 +41,7 @@ public class ReporterManagerUtilTest {
         RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(100, 100, ToleranceType.ALL);
         RecordConverter converter = new StringConverter();
         connectKeyValue.put("errors.log.enable", "true");
+        connectKeyValue.put("errors.deadletterqueue.topic.name", "TEST_TOPIC");
         final WorkerErrorRecordReporter reporter = ReporterManagerUtil.createWorkerErrorRecordReporter(connectKeyValue, retryWithToleranceOperator, converter);
         Assert.assertNotNull(reporter);
     }

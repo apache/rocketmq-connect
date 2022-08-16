@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.errors;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
@@ -67,6 +68,17 @@ public class DeadLetterQueueReporterTest {
         final DeadLetterQueueReporter reporter = buildDeadLetterQueueReporter();
 
         Assertions.assertThatCode(() -> reporter.report(processingContext)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void populateContextHeadersTest() {
+        Message producerRecord = new MessageExt();
+        producerRecord.setBody("Hello World".getBytes(StandardCharsets.UTF_8));
+        ProcessingContext processingContext = new ProcessingContext();
+        processingContext.stage(ErrorReporter.Stage.PRODUCE);
+        processingContext.executingClass(this.getClass());
+        final DeadLetterQueueReporter deadLetterQueueReporter = buildDeadLetterQueueReporter();
+        Assertions.assertThatCode(() -> deadLetterQueueReporter.populateContextHeaders(producerRecord, processingContext)).doesNotThrowAnyException();
     }
 
     private DeadLetterQueueReporter buildDeadLetterQueueReporter() {
