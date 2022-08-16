@@ -35,6 +35,9 @@ public class SinkConnectorConfig extends RuntimeConfigDefine {
 
     public static final String CONNECT_TOPICNAMES = "connect.topicnames";
 
+    public static final String TASK_GROUP_ID = "task.group.id";
+
+
     /**
      * dead letter queue config
      */

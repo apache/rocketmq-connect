@@ -271,9 +271,37 @@ curl -X GET http://(your worker ip):(port)/allocated/tasks
 ```
 curl -X GET http://(your worker ip):(port)/connectors/(connector name)/delete
 ```
+## 12.Connector通用配置参数说明
 
+| key                         | nullable | default                                                             | description                                                                 |
+|-----------------------------|----------|---------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| connector.class             | false    |                                                                     | 指定插件的class信息                                                                |
+| max.tasks                   | false    | 1                                                                   | connector下运行的task的数量，根据情况而定                                                 |
+| value.converter             | false    | org.apache.rocketmq.connect.runtime.converter.record.StringConverter | ConnectRecord key的转换器                                                       |
+| key.converter               | false    | org.apache.rocketmq.connect.runtime.converter.record.StringConverter | ConnectRecord value的转换器                                                     |
+| transforms                  | true     |                                                                     | 配置的数据转换器，多个需要用 ","分割                                                        |
+| errors.log.include.messages | true     | false                                                               | 是否将导致故障的connector异常信息纪录在日志中                                                 |
+| errors.log.enable           | true     | false                                                               | 如果为true，请将每个错误以及失败操作和问题记录的详细信息写入Connect应用程序日志。默认情况下，这是“false”，因此只报告不可容忍的错误。 |
+| errors.retry.timeout        | true     | 0                                                                   | 重试超时时间                                                                      |
+| errors.retry.delay.max.ms   | true     | 60000                                                               | 重试延迟时间                                                                      |
+| errors.tolerance            | true     | ToleranceType.NONE                                                  | 在Connector操作期间容忍错误的行为。“NONE”是默认值，表示任何错误都将导致连接器任务立即失败；"ALL“更改行为以跳过有问题的记录。    |
 
-## 12.Worker配置参数说明
+### Source Connector特殊配置
+| key                         | nullable | default | description                                          |
+|-----------------------------|---------|---------|------------------------------------------------------|
+| connect.topicname           | true    |         | 指定数据写入的topic，若不配置则直接取position中key为topic的值，若取不到则抛出异常  |
+
+### Sink Connector特殊配置
+| key                                               | nullable | default               | description |
+|---------------------------------------------------|----------|-----------------------|--------|
+| connect.topicnames                                | false    |                       |        |
+| task.group.id                                     | true     | connect-{connectName} |        |
+| errors.deadletterqueue.topic.name                 | true     |                       |        |
+| errors.deadletterqueue.read.queue.nums            | true     | 8                     |        |
+| errors.deadletterqueue.write.queue.nums           | true     | 8                     |        |
+| errors.deadletterqueue.context.properties.enable  | true     | false                 |        |
+
+## 13.Worker配置参数说明
 
 > ❌ 表示该模式下不需要配置此选项
 > ✅ 表示该模式下配置生效

@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
@@ -313,7 +314,7 @@ public class ConnectUtil {
      */
     public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue, boolean autoCommit) throws MQClientException {
         DefaultLitePullConsumer consumer = null;
-        String groupId = keyValue.getString(RuntimeConfigDefine.TASK_GROUP_ID);
+        String groupId = keyValue.getString(SinkConnectorConfig.TASK_GROUP_ID);
         if (StringUtils.isBlank(groupId)) {
             groupId = SYS_TASK_CG_PREFIX + id.connector();
         }

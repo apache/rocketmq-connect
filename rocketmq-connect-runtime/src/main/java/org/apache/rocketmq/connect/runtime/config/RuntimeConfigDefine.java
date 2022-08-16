@@ -35,7 +35,7 @@ public class RuntimeConfigDefine {
         this.config = config;
         validate();
     }
-    
+
     /**
      * original config
      * @return
@@ -55,8 +55,6 @@ public class RuntimeConfigDefine {
 
     public static final String MAX_TASK = "max.tasks";
     public static final int TASKS_MAX_DEFAULT = 1;
-
-    public static final String TASK_GROUP_ID = "task.group.id";
 
     public static final String TASK_TYPE = "task.type";
 
