@@ -85,7 +85,7 @@ public class DeadLetterQueueConfig {
      */
     public Boolean isDlqContextHeadersEnabled() {
         return config.getProperties().containsKey(DLQ_CONTEXT_HEADERS_ENABLE_CONFIG) ?
-                Boolean.getBoolean(config.getProperties().get(DLQ_CONTEXT_HEADERS_ENABLE_CONFIG)) : DLQ_CONTEXT_HEADERS_ENABLE_DEFAULT;
+                Boolean.valueOf(config.getProperties().get(DLQ_CONTEXT_HEADERS_ENABLE_CONFIG)) : DLQ_CONTEXT_HEADERS_ENABLE_DEFAULT;
     }
 
 
@@ -115,7 +115,7 @@ public class DeadLetterQueueConfig {
      */
     public boolean includeRecordDetailsInErrorLog() {
         return config.getProperties().containsKey(ERRORS_LOG_INCLUDE_MESSAGES_CONFIG) ?
-                Boolean.getBoolean(config.getProperties().get(ERRORS_LOG_INCLUDE_MESSAGES_CONFIG)) : ERRORS_LOG_INCLUDE_MESSAGES_DEFAULT;
+                Boolean.valueOf(config.getProperties().get(ERRORS_LOG_INCLUDE_MESSAGES_CONFIG)) : ERRORS_LOG_INCLUDE_MESSAGES_DEFAULT;
     }
 
 
@@ -128,7 +128,7 @@ public class DeadLetterQueueConfig {
 
     private boolean enableErrorLog() {
         return config.getProperties().containsKey(ERRORS_LOG_ENABLE_CONFIG) ?
-                Boolean.getBoolean(config.getProperties().get(ERRORS_LOG_ENABLE_CONFIG)) : ERRORS_LOG_ENABLE_DEFAULT;
+                Boolean.valueOf(config.getProperties().get(ERRORS_LOG_ENABLE_CONFIG)) : ERRORS_LOG_ENABLE_DEFAULT;
 
     }
 
