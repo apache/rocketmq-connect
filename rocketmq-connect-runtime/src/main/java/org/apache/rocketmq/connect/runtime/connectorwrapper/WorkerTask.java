@@ -17,6 +17,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
@@ -233,7 +234,7 @@ public abstract class WorkerTask implements Runnable {
             doRun();
         } catch (Throwable t) {
             onFailure(t);
-            throw (Error) t;
+            throw new ConnectException(t);
         } finally {
             Thread.currentThread().setName(savedName);
             Plugin.compareAndSwapLoaders(savedLoader);

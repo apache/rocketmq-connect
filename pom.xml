@@ -52,7 +52,7 @@
         <commons.cli.version>1.2</commons.cli.version>
         <reflections.version>0.10.2</reflections.version>
         <guava.version>22.0</guava.version>
-
+        <jackson.version>2.13.3</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
         <maven.test.skip>false</maven.test.skip>
@@ -122,6 +122,11 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${rocketmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.reflections</groupId>
