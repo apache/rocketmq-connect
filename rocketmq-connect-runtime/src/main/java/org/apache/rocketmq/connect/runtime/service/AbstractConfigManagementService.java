@@ -23,6 +23,7 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -44,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class AbstractConfigManagementService implements ConfigManagementService {
 
+    protected WorkerConfig workerConfig;
     protected Plugin plugin;
 
     /**
@@ -79,7 +81,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             newKeyValue.put(RuntimeConfigDefine.TASK_ID, taskId);
             newKeyValue.put(RuntimeConfigDefine.TASK_CLASS, connector.taskClass().getName());
             newKeyValue.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
-
             newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
             newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
             Set<String> connectConfigKeySet = configs.keySet();

@@ -198,7 +198,7 @@ public class WorkerTest {
                 connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.SOURCE.name());
             }
             connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_CLASS, TestSourceTask.class.getName());
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, TestConverter.class.getName());
+            connectKeyValue.getProperties().put(RuntimeConfigDefine.VALUE_CONVERTER, TestConverter.class.getName());
 //            connectKeyValue.getProperties().put(RuntimeConfigDefine.NAMESRV_ADDR, "127.0.0.1:9876");
 //            connectKeyValue.getProperties().put(RuntimeConfigDefine.RMQ_PRODUCER_GROUP, UUID.randomUUID().toString());
 //            connectKeyValue.getProperties().put(RuntimeConfigDefine.OPERATION_TIMEOUT, "3000");

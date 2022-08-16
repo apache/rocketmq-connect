@@ -155,11 +155,11 @@ public class RestHandlerTest {
         String connectName = "testConnector";
         ConnectKeyValue connectKeyValue = new ConnectKeyValue();
         connectKeyValue.put(RuntimeConfigDefine.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.service.TestConnector");
-        connectKeyValue.put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, "source-record-converter");
+        connectKeyValue.put(RuntimeConfigDefine.VALUE_CONVERTER, "source-record-converter");
 
         ConnectKeyValue connectKeyValue1 = new ConnectKeyValue();
         connectKeyValue1.put(RuntimeConfigDefine.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.service.TestConnector");
-        connectKeyValue1.put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, "source-record-converter1");
+        connectKeyValue1.put(RuntimeConfigDefine.VALUE_CONVERTER, "source-record-converter1");
 
         List<ConnectKeyValue> connectKeyValues = new ArrayList<ConnectKeyValue>(8) {
             {

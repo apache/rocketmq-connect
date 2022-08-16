@@ -96,7 +96,7 @@ public class ConfigManagementServiceImplTest {
 
         connectKeyValue = new ConnectKeyValue();
         connectKeyValue.put(RuntimeConfigDefine.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector");
-        connectKeyValue.put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, "source-record-converter");
+        connectKeyValue.put(RuntimeConfigDefine.VALUE_CONVERTER, "source-record-converter");
 
         doAnswer(new Answer() {
             @Override

@@ -75,7 +75,7 @@ public class TransferUtilsTest {
         String connectName = "testConnector";
         ConnectKeyValue connectKeyValue = new ConnectKeyValue();
         connectKeyValue.put(RuntimeConfigDefine.CONNECTOR_CLASS, "io.openmessaging.connect.runtime.service.TestConnector");
-        connectKeyValue.put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, "source-record-converter");
+        connectKeyValue.put(RuntimeConfigDefine.VALUE_CONVERTER, "source-record-converter");
         List<ConnectKeyValue> connectKeyValues = new ArrayList<ConnectKeyValue>(8) {
             {
                 add(connectKeyValue);
@@ -112,7 +112,7 @@ public class TransferUtilsTest {
 
         assertNotNull(connectKeyValue1);
         assertEquals("io.openmessaging.connect.runtime.service.TestConnector", connectKeyValue1.getString(RuntimeConfigDefine.CONNECTOR_CLASS));
-        assertEquals("source-record-converter", connectKeyValue1.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER));
+        assertEquals("source-record-converter", connectKeyValue1.getString(RuntimeConfigDefine.VALUE_CONVERTER));
 
         Map<String, List<ConnectKeyValue>> taskConfigs1 = connAndTaskConfigs1.getTaskConfigs();
         List<ConnectKeyValue> connectKeyValues1 = taskConfigs1.get(connectName);
@@ -122,7 +122,7 @@ public class TransferUtilsTest {
         ConnectKeyValue connectKeyValue2 = connectKeyValues1.get(0);
         assertNotNull(connectKeyValue2);
         assertEquals("io.openmessaging.connect.runtime.service.TestConnector", connectKeyValue2.getString(RuntimeConfigDefine.CONNECTOR_CLASS));
-        assertEquals("source-record-converter", connectKeyValue2.getString(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER));
+        assertEquals("source-record-converter", connectKeyValue2.getString(RuntimeConfigDefine.VALUE_CONVERTER));
     }
 
 }

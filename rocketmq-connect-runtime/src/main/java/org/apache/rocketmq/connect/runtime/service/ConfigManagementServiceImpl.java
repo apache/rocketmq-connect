@@ -88,24 +88,25 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private final String configManagePrefix = "ConfigManage";
 
     @Override
-    public void initialize(WorkerConfig connectConfig, Plugin plugin) {
+    public void initialize(WorkerConfig workerConfig, Plugin plugin) {
         this.connectorConfigUpdateListener = new HashSet<>();
-        this.dataSynchronizer = new BrokerBasedLog<>(connectConfig,
-                connectConfig.getConfigStoreTopic(),
-                ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId()),
+        this.dataSynchronizer = new BrokerBasedLog<>(workerConfig,
+                workerConfig.getConfigStoreTopic(),
+                ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
                 new ConfigChangeCallback(),
                 new JsonConverter(),
                 new ConnectKeyValueConverter());
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getConnectorConfigPath(connectConfig.getStorePathRootDir()),
+                FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
                 new JsonConverter(),
                 new JsonConverter(ConnectKeyValue.class));
         this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskConfigPath(connectConfig.getStorePathRootDir()),
+                FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
                 new JsonConverter(),
                 new ListConverter(ConnectKeyValue.class));
         this.plugin = plugin;
-        this.prepare(connectConfig);
+        this.prepare(workerConfig);
+        this.workerConfig = workerConfig;
     }
 
 

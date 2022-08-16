@@ -49,10 +49,11 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
     @Override
-    public void initialize(WorkerConfig connectConfig, Plugin plugin) {
+    public void initialize(WorkerConfig workerConfig, Plugin plugin) {
         this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.plugin = plugin;
+        this.workerConfig = workerConfig;
     }
 
     @Override

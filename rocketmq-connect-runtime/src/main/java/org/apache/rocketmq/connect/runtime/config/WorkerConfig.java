@@ -84,8 +84,8 @@ public class WorkerConfig {
     /**
      * Configure cluster converter
      */
-    public String keyConverter = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
-    public String valueConverter = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
+    private String keyConverter = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
+    private String valueConverter = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
 
     /**
      * Storage directory for file store.
