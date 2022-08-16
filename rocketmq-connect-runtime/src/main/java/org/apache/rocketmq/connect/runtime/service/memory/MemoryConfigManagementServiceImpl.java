@@ -18,9 +18,13 @@ package org.apache.rocketmq.connect.runtime.service.memory;
 
 
 import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
@@ -33,6 +37,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_CLASS;
 
 /**
  * memory config management service impl for standalone
@@ -81,25 +87,34 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
 
     @Override
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
-        ConnectKeyValue exist = connectorKeyValueStore.get(connectorName);
-        if (null != exist) {
-            Long updateTimestamp = exist.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
-            if (null != updateTimestamp) {
-                configs.put(ConnectorConfig.UPDATE_TIMESTAMP, updateTimestamp);
-            }
-        }
-        if (configs.equals(exist)) {
-            throw new ConnectException("Connector with same config already exist.");
-        }
 
-        Long currentTimestamp = System.currentTimeMillis();
-        configs.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
+        // check request config
         for (String requireConfig : ConnectorConfig.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
                 throw new ConnectException("Request config key: " + requireConfig);
             }
         }
+        // current timestamp
+        Long currentTimestamp = System.currentTimeMillis();
+        ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
+        if (null != oldConfig) {
+            Long updateTimestamp = oldConfig.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
+            if (null != updateTimestamp) {
+                configs.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
+            }
+        }
+        if (configs.equals(oldConfig)) {
+            throw new ConnectException("Connector with same config already exist.");
+        }
+        // validate config
         Connector connector = super.loadConnector(configs);
+        if (connector instanceof SourceConnector){
+            new SourceConnectorConfig(configs).validate();
+        } else if (connector instanceof SinkConnector){
+            new SinkConnectorConfig(configs).validate();
+        }
+        configs.setTargetState(TargetState.STARTED);
+        // update cache
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return connectorName;

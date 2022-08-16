@@ -63,7 +63,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
         int maxTask = configs.getInt(ConnectorConfig.MAX_TASK, ConnectorConfig.TASKS_MAX_DEFAULT);
         ConnectKeyValue connectConfig = connectorKeyValueStore.get(connectorName);
-        boolean directEnable = Boolean.parseBoolean(connectConfig.getString(ConnectorConfig.CONNECTOR_DIRECT_ENABLE));
+        boolean directEnable = Boolean.parseBoolean(connectConfig.getString(ConnectorConfig.CONNECTOR_DIRECT_ENABLE, "false"));
         List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
         List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
         int taskId = 0;
