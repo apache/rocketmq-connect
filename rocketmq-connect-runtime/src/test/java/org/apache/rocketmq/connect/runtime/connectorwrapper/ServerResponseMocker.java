@@ -39,6 +39,11 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.DataVersion;
@@ -47,6 +52,8 @@ import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
@@ -148,6 +155,11 @@ public abstract class ServerResponseMocker {
                     response.setBody(JSON.toJSONBytes(wrapper));
                     break;
                 }
+                case RequestCode.GET_ROUTEINFO_BY_TOPIC: {
+                    final TopicRouteData topicRouteData = buildTopicRouteData();
+                    response.setBody(JSON.toJSONBytes(topicRouteData));
+                    break;
+                }
                 default:
                     break;
             }
@@ -220,4 +232,32 @@ public abstract class ServerResponseMocker {
         subscriptionGroupWrapper.setDataVersion(dataVersion);
         return subscriptionGroupWrapper;
     }
+
+    private TopicRouteData buildTopicRouteData() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName("mockBrokerName");
+        queueData.setPerm(6);
+        queueData.setReadQueueNums(8);
+        queueData.setWriteQueueNums(8);
+        List<QueueData> queueDataList = new ArrayList<QueueData>();
+        queueDataList.add(queueData);
+        topicRouteData.setQueueDatas(queueDataList);
+
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        brokerAddrs.put(0L, "127.0.0.1:10911");
+
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerAddrs(brokerAddrs);
+        brokerData.setBrokerName("mockBrokerName");
+        brokerData.setCluster("mockCluster");
+
+        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
+        brokerDataList.add(brokerData);
+        topicRouteData.setBrokerDatas(brokerDataList);
+
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        return topicRouteData;
+    }
+
 }
