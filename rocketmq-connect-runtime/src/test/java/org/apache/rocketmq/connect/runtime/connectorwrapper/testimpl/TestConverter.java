@@ -17,17 +17,17 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
-import io.openmessaging.connector.api.data.Converter;
+import io.openmessaging.connector.api.data.RecordConverter;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
 
-public class TestConverter implements Converter {
+public class TestConverter implements RecordConverter {
 
-    @Override
-    public byte[] objectToByte(Object object) {
-        return "test-converter".getBytes();
+    @Override public byte[] fromConnectData(String topic, Schema schema, Object value) {
+        return new byte[0];
     }
 
-    @Override
-    public Object byteToObject(byte[] bytes) {
+    @Override public SchemaAndValue toConnectData(String topic, byte[] value) {
         return null;
     }
 }

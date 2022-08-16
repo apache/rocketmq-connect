@@ -129,7 +129,6 @@ public class DistributedConnectStartup {
                 }
             }
             Plugin plugin = new Plugin(pluginPaths);
-            plugin.initPlugin();
 
             // Create controller and initialize.
             ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.DISTRIBUTED);

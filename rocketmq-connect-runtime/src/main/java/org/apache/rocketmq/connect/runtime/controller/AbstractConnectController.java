@@ -161,4 +161,7 @@ public abstract class AbstractConnectController implements ConnectController {
         return connectStatsService;
     }
 
+    public Plugin plugin() {
+        return this.plugin;
+    }
 }
