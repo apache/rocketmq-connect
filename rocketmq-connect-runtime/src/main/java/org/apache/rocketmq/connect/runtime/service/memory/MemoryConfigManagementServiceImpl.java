@@ -99,6 +99,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             }
         }
         Connector connector = super.loadConnector(configs);
+        configs.setTargetState(TargetState.STARTED);
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return connectorName;
