@@ -30,6 +30,9 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.errors.DeadLetterQueueConfig;
 
+/**
+ * sink connector config
+ */
 public class SinkConnectorConfig extends ConnectorConfig {
 
     public static final String SEMICOLON = ";";
