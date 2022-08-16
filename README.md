@@ -17,10 +17,9 @@ rocketmq-connect-sample的主要作用是从源文件中读取数据发送到Roc
 2. 64bit JDK 1.8+;
 3. Maven 3.2.x或以上版本;
 4. 启动 [RocketMQ](https://rocketmq.apache.org/docs/quick-start/);
-5. 创建测试Topic
-```
-     sh ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
-```
+5. 创建测试Topic 
+> sh ${ROCKETMQ_HOME}/bin/mqadmin updateTopic -t fileTopic -n localhost:9876 -c DefaultCluster -r 8 -w 8
+
 
 **tips** : ${ROCKETMQ_HOME} 位置说明
 
