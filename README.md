@@ -308,6 +308,41 @@ curl -X GET http://(your worker ip):(port)/connectors/(connector name)/delete
 > 3.transforms.${transform-name}.class: 用此配置来表示transform的class
 > 
 > 4.transforms.${transform-name}.{config.key}: transform中使用的多个配置项；
+
+#### Transform接口
+```java
+
+package io.openmessaging.connector.api.component;
+
+import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.data.ConnectRecord;
+
+public interface Transform<R extends ConnectRecord> extends Component {
+    default void validate(KeyValue config) {
+    }
+
+    R doTransform(R var1);
+}
+
+
+```
+> 1. 自定义Transform只需要实现以上接口即可，将自定义包按照到 [pluginPaths]指定的插件目录下面即可;
+> 
+> 2. 平台已经实现的transform在 transforms module下面，欢迎大家定义和扩展更加丰富的transform库
+>> org.apache.rocketmq.connect.transforms.ChangeCase$Key
+>> org.apache.rocketmq.connect.transforms.ChangeCase$Value
+>> org.apache.rocketmq.connect.transforms.ExtractNestedField$Value
+>> org.apache.rocketmq.connect.transforms.ExtractNestedField$Key
+>> org.apache.rocketmq.connect.transforms.PatternRename$Key
+>> org.apache.rocketmq.connect.transforms.PatternRename$Value
+>> org.apache.rocketmq.connect.transforms.PatternFilter$Key
+>> org.apache.rocketmq.connect.transforms.PatternFilter$Value
+>> org.apache.rocketmq.connect.transforms.SetMaximumPrecision$Key
+>> org.apache.rocketmq.connect.transforms.SetMaximumPrecision$Value
+
+
+
+
 ### Source Connector特殊配置
 | key                         | nullable | default | description                                          |
 |-----------------------------|---------|---------|------------------------------------------------------|
