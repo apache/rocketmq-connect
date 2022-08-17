@@ -173,9 +173,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         }
         // validate config
         Connector connector = plugin.newConnector(configs.getString(CONNECTOR_CLASS));
-        if (connector instanceof SourceConnector){
+        if (connector instanceof SourceConnector) {
             new SourceConnectorConfig(configs).validate();
-        } else if (connector instanceof SinkConnector){
+        } else if (connector instanceof SinkConnector) {
             new SinkConnectorConfig(configs).validate();
         }
         connector.validate(configs);

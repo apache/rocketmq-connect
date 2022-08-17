@@ -802,8 +802,8 @@ public class Worker {
                     /**
                      * create key/value converter
                      */
-                    RecordConverter valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER,workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
-                    RecordConverter keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER,workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
 
                     if (keyConverter == null) {
                         keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);

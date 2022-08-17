@@ -46,7 +46,7 @@ public class WorkerConfig {
 
     /**
      * config example:
-     *     namesrvAddr = localhost:9876
+     * namesrvAddr = localhost:9876
      */
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
@@ -56,19 +56,19 @@ public class WorkerConfig {
     private int httpPort = 8082;
 
     /**
-     * plugin paths config；
+     * plugin paths config;
      * Multiple use ',' split
      * config example:
-     *     pluginPaths = /tmp/plugins/,/app/plugins/
+     * pluginPaths = /tmp/plugins/,/app/plugins/
      */
     private String pluginPaths;
 
     /**
      * rocketmq access control config;
      * config example:
-     *     aclEnable = true
-     *     accessKey = 12345
-     *     secretKey = 11111
+     * aclEnable = true
+     * accessKey = 12345
+     * secretKey = 11111
      */
     private boolean aclEnable = false;
     private String accessKey;
@@ -77,7 +77,7 @@ public class WorkerConfig {
     /**
      * auto create group enable config:
      * config example:
-     *    autoCreateGroupEnable = false
+     * autoCreateGroupEnable = false
      */
     private boolean autoCreateGroupEnable = false;
 
@@ -90,7 +90,7 @@ public class WorkerConfig {
     /**
      * Storage directory for file store.
      * config example:
-     *     storePathRootDir = /tmp/storeRoot
+     * storePathRootDir = /tmp/storeRoot
      */
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "connectorStore";
 
@@ -105,8 +105,8 @@ public class WorkerConfig {
     private String clusterStoreTopic = "connector-cluster-topic";
     /**
      * Task allocated strategy
-     * config example with default：
-     *    allocTaskStrategy
+     * config example with default:
+     * allocTaskStrategy
      */
     private String allocTaskStrategy = "org.apache.rocketmq.connect.runtime.service.strategy.DefaultAllocateConnAndTaskStrategy";
 
@@ -153,21 +153,21 @@ public class WorkerConfig {
 
     /**
      * RocketMq store topic producer group
-     * config example with default：
-     *     rmqProducerGroup = connector-producer-group;
+     * config example with default:
+     * rmqProducerGroup = connector-producer-group;
      */
     private String rmqProducerGroup = "connector-producer-group";
     /**
      * RocketMq store topic consumer group
-     * config example with default：
-     *     rmqConsumerGroup = connector-consumer-group;
+     * config example with default:
+     * rmqConsumerGroup = connector-consumer-group;
      */
     private String rmqConsumerGroup = "connector-consumer-group";
 
     /**
      * RocketMq admin group
-     * config example with default：
-     *     adminExtGroup = connector-admin-group;
+     * config example with default:
+     * adminExtGroup = connector-admin-group;
      */
     private String adminExtGroup = "connector-admin-group";
 
@@ -182,14 +182,14 @@ public class WorkerConfig {
     /**
      * Task start timeout mills, default 3 minute
      * config example by default:
-     *    maxStartTimeoutMills = 1000 * 60 * 3
-     * */
+     * maxStartTimeoutMills = 1000 * 60 * 3
+     */
     private long maxStartTimeoutMills = 1000 * 60 * 3;
 
     /**
      * task stop timeout mills, default 1 minute
      * config example by default:
-     *       maxStopTimeoutMills = 1000 * 60
+     * maxStopTimeoutMills = 1000 * 60
      */
     private long maxStopTimeoutMills = 1000 * 60;
 
@@ -197,14 +197,14 @@ public class WorkerConfig {
     /**
      * offset commit timeout(ms)
      * config example with default
-     *     offsetCommitTimeoutMsConfig = 5000L
+     * offsetCommitTimeoutMsConfig = 5000L
      */
     private long offsetCommitTimeoutMsConfig = 5000L;
 
     /**
      * offset commit interval ms
      * config example with default
-     *     offsetCommitIntervalMsConfig = 60000L
+     * offsetCommitIntervalMsConfig = 60000L
      */
     private long offsetCommitIntervalMsConfig = 60000L;
 

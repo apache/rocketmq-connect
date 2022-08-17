@@ -19,6 +19,7 @@
 package org.apache.rocketmq.connect.runtime.config;
 
 import com.google.common.base.Splitter;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,7 +63,7 @@ public class SinkConnectorConfig extends ConnectorConfig {
         super(config);
     }
 
-    public DeadLetterQueueConfig parseDeadLetterQueueConfig(){
+    public DeadLetterQueueConfig parseDeadLetterQueueConfig() {
         return new DeadLetterQueueConfig(super.config);
     }
 
@@ -87,9 +88,9 @@ public class SinkConnectorConfig extends ConnectorConfig {
      * validate
      */
     @Override
-    public void validate(){
+    public void validate() {
         super.validate();
-        if (!config.containsKey(CONNECT_TOPICNAMES)){
+        if (!config.containsKey(CONNECT_TOPICNAMES)) {
             throw new ConnectException("Config connect.topicnames cannot be empty");
         }
     }

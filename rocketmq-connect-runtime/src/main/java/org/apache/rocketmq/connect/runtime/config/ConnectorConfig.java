@@ -32,16 +32,18 @@ import java.util.Set;
  */
 public class ConnectorConfig {
     protected ConnectKeyValue config;
-    public ConnectorConfig(ConnectKeyValue config){
+
+    public ConnectorConfig(ConnectKeyValue config) {
         this.config = config;
         validate();
     }
 
     /**
      * original config
+     *
      * @return
      */
-    public Map<String, String> originalConfig(){
+    public Map<String, String> originalConfig() {
         return config.getProperties();
     }
 
@@ -68,7 +70,7 @@ public class ConnectorConfig {
      * Last updated time of the configuration.
      */
     public static final String UPDATE_TIMESTAMP = "update.timestamp";
-    
+
     /**
      * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */
@@ -117,8 +119,8 @@ public class ConnectorConfig {
     /**
      * validate
      */
-    public void validate(){
-        if (!config.containsKey(CONNECTOR_CLASS)){
+    public void validate() {
+        if (!config.containsKey(CONNECTOR_CLASS)) {
             throw new ConnectException("Config connector.class cannot be empty");
         }
     }

@@ -38,8 +38,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_CLASS;
-
 /**
  * memory config management service impl for standalone
  */
@@ -108,9 +106,9 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         }
         // validate config
         Connector connector = super.loadConnector(configs);
-        if (connector instanceof SourceConnector){
+        if (connector instanceof SourceConnector) {
             new SourceConnectorConfig(configs).validate();
-        } else if (connector instanceof SinkConnector){
+        } else if (connector instanceof SinkConnector) {
             new SinkConnectorConfig(configs).validate();
         }
         configs.setTargetState(TargetState.STARTED);
