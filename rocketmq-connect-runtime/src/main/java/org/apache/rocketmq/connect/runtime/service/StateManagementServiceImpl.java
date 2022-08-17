@@ -270,7 +270,11 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     @Override
     public TaskStatus get(ConnectorTaskId id) {
-        return connAndTaskStatus.getTasks().get(id.connector(), id.task()).get();
+        ConnAndTaskStatus.CacheEntry<TaskStatus> cacheEntry =connAndTaskStatus.getTasks().get(id.connector(), id.task());
+        if (cacheEntry == null ){
+            return null;
+        }
+        return cacheEntry.get();
     }
 
     /**
@@ -281,7 +285,11 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     @Override
     public ConnectorStatus get(String connector) {
-        return connAndTaskStatus.getConnectors().get(connector).get();
+        ConnAndTaskStatus.CacheEntry<ConnectorStatus> cacheEntry = connAndTaskStatus.getConnectors().get(connector);
+        if (cacheEntry == null){
+            return null;
+        }
+        return cacheEntry.get();
     }
 
     /**
