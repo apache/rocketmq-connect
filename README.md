@@ -284,16 +284,26 @@ curl -X GET http://(your worker ip):(port)/connectors/(connector name)/delete
 | errors.retry.timeout        | true     | 0                                           | 重试超时时间                                                                      |
 | errors.retry.delay.max.ms   | true     | 60000                                       | 重试延迟时间                                                                      |
 | errors.tolerance            | true     | ToleranceType.NONE                          | 在Connector操作期间容忍错误的行为。“NONE”是默认值，表示任何错误都将导致连接器任务立即失败；"ALL“更改行为以跳过有问题的记录。    |
-#### Transform配置案例
+#### Transform配置案例[单个配置]
 ```
-"transforms": "Unwrap",
-"transforms.Unwrap.delete.handling.mode": "none",
-"transforms.Unwrap.add.headers": "op,source.db,source.table",
-"transforms.Unwrap.class": "io.debezium.transforms.ExtractNewRecordState",
+"transforms": "Replace",
+"transforms.Replace.field.pattern": "company",
+"transforms.Replace.field.replacement": "company02",
+"transforms.Replace.class": "org.apache.rocketmq.connect.transforms.PatternRename$Value",
+```
+#### Transform配置案例[多个配置],会按照配置顺序依次执行
+```
+"transforms": "Replace, Replace02",
+"transforms.Replace.field.pattern": "company",
+"transforms.Replace.field.replacement": "company02",
+"transforms.Replace.class": "org.apache.rocketmq.connect.transforms.PatternRename$Value",
+"transforms.Replace02.field.pattern": "company02",
+"transforms.Replace02.field.replacement": "company03",
+"transforms.Replace02.class": "org.apache.rocketmq.connect.transforms.PatternRename$Value",
 ```
 > 1.transforms: 为固定配置,不可变
 > 
-> 2.Unwrap: 为配置名称，可自定义, 多个用","分割，若为多个，下面配置均需重复配置
+> 2.Replace, Replace02: 为配置名称，可自定义, 多个用","分割，若为多个，下面配置均需重复配置
 > 
 > 3.transforms.${transform-name}.class: 用此配置来表示transform的class
 > 
