@@ -38,10 +38,8 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
 
         Map<RecordPartition, RecordOffset> offsets2 = new HashMap<>(offsets.size());
         offsets.forEach((tp,offset) -> {
-            Map<String, String> map = RecordUtil.getPartitionMap(tp.topic());
-            map.put(RecordUtil.QUEUE_ID, tp.partition() + "");
-            RecordPartition recordPartition = new RecordPartition(map);
 
+            RecordPartition recordPartition = RecordUtil.topicPartitionToRecordPartition(tp);
             Map<String, String> offsetMap = new HashMap<>();
             offsetMap.put(RecordUtil.QUEUE_OFFSET, offset + "");
             RecordOffset recordOffset = new RecordOffset(offsetMap);
@@ -104,19 +102,7 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
                  return EXECUTOR_SERVICE.submit(new Callable<Void>() {
                      @Override
                      public Void call() throws Exception {
-
-                         Map<String, String> partitionMap = RecordUtil.getPartitionMap(record.topic());
-                         partitionMap.put(RecordUtil.QUEUE_ID, record.kafkaPartition() + "");
-                         RecordPartition recordPartition = new RecordPartition(partitionMap);
-
-                         Map<String, String> offsetMap = new HashMap<>();
-                         offsetMap.put(RecordUtil.QUEUE_OFFSET, record.kafkaOffset() + "");
-                         RecordOffset recordOffset = new RecordOffset(offsetMap);
-
-                         ConnectRecord connectRecord = new ConnectRecord(
-                                 recordPartition, recordOffset, record.timestamp(),
-                                 SchemaBuilder.string().build(), record.value()
-                                 );
+                         ConnectRecord connectRecord = RecordUtil.sinkRecordToConnectRecord(record);
                          sinkTaskContext.errorRecordReporter().report(connectRecord, error);
                          return null;
                      }

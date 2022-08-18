@@ -9,6 +9,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.storage.Converter;
 import org.apache.kafka.connect.storage.HeaderConverter;
@@ -152,6 +153,21 @@ public class RecordUtil {
                 connectRecord.getTimestamp(),headers
                 );
         return sourceRecord;
+    }
+
+    public static ConnectRecord sinkRecordToConnectRecord(SinkRecord sinkRecord){
+        TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
+        RecordPartition recordPartition = RecordUtil.topicPartitionToRecordPartition(topicPartition);
+
+        Map<String, String> offsetMap = new HashMap<>();
+        offsetMap.put(RecordUtil.QUEUE_OFFSET, sinkRecord.kafkaOffset() + "");
+        RecordOffset recordOffset = new RecordOffset(offsetMap);
+
+        ConnectRecord connectRecord = new ConnectRecord(
+                recordPartition, recordOffset, sinkRecord.timestamp(),
+                SchemaBuilder.string().build(), sinkRecord.value()
+        );
+        return connectRecord;
     }
 
 }
