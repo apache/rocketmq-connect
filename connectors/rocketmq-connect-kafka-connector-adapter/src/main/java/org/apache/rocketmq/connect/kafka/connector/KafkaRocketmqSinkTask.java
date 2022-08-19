@@ -54,10 +54,14 @@ public class KafkaRocketmqSinkTask extends SinkTask {
             if(key != null) {
                 keySchemaAndValue = keyConverter.toConnectData(topic, key.getBytes(StandardCharsets.UTF_8));
             }
-
+            // rocketmq分区概念是三元组，即MessageQueue(topic,brokerName,queueId)
+            // kafka分区概念是二元组，即TopicPartition(topic，partition)
+            // org.apache.kafka.connect.sink.SinkTaskContext多个接口需要TopicPartition(topic，partition)映射到
+            // MessageQueue(topic,brokerName,queueId)，所以编码MessageQueue（topic,brokerName）-》TopicPartition(topic）
+            String sinkTopic = RecordUtil.getTopicAndBrokerName(sinkRecord.getPosition().getPartition());
+            int sinkPartition = RecordUtil.getPartition(sinkRecord.getPosition().getPartition());
             SinkRecord record = new SinkRecord(
-                    RecordUtil.getTopicAndBrokerName(sinkRecord.getPosition().getPartition()),
-                    RecordUtil.getPartition(sinkRecord.getPosition().getPartition()),
+                    sinkTopic, sinkPartition,
                     keySchemaAndValue==null?null:keySchemaAndValue.schema(),
                     keySchemaAndValue==null?null:keySchemaAndValue.value(),
                     valueSchemaAndValue.schema(), valueSchemaAndValue.value(),
