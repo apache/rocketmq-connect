@@ -69,7 +69,7 @@ touch test-source-file.txt
 
 echo "Hello \r\nRocketMQ\r\n Connect" >> test-source-file.txt
 
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.file.FileSourceConnector","filename":"test-source-file.txt","connect-topicname":"fileTopic"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector.class":"org.apache.rocketmq.connect.file.FileSourceConnector","filename":"test-source-file.txt","connect.topicname":"fileTopic"}'
 ```
 
 看到以下日志说明 file source connector 启动成功了
@@ -137,7 +137,6 @@ curl     http://127.0.0.1:8082/connectors/fileSourceConnector/stop
 ```
 sh bin/connectshutdown.sh
 ```
-
 
 ## 8.日志目录
 
