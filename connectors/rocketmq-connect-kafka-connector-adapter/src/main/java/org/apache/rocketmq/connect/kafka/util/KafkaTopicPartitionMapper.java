@@ -11,7 +11,7 @@ import java.util.Map;
  *org.apache.kafka.connect.sink.SinkTaskContext多个接口需要TopicPartition(topic，partition)映射到
  *MessageQueue(topic,brokerName,queueId)，所以需要转换
  */
-public interface RecordPartitionTopicPartitionConvertor {
+public interface KafkaTopicPartitionMapper {
 
     /**
      * 配置
