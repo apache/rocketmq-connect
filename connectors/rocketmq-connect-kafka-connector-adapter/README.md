@@ -67,13 +67,26 @@ touch /tmp/test-source-file.txt
 
 echo "Hello \r\nRocketMQ\r\n Connect" >> /tmp/test-source-file.txt
 
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSourceConnector","connect-topicname":"fileTopic","connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector","plugin.path":"/tmp/kafka-plugins","topic":"fileTopic","file":"/tmp/test-source-file.txt"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{
+	"connector-class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSourceConnector",
+	"connect-topicname": "fileTopic",
+	"connector.class": "org.apache.kafka.connect.file.FileStreamSourceConnector",
+	"plugin.path": "/tmp/kafka-plugins",
+	"topic": "fileTopic",
+	"file": "/tmp/test-source-file.txt"
+}'
 ```
 
 ## 5.启动sink connector
 
 ```
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{"connector-class":"org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector","connect-topicname":"fileTopic","connector.class":"org.apache.kafka.connect.file.FileStreamSinkConnector","plugin.path":"/tmp/kafka-plugins","file":"/tmp/test-sink-file.txt"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{
+	"connector-class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector",
+	"connect-topicname": "fileTopic",
+	"connector.class": "org.apache.kafka.connect.file.FileStreamSinkConnector",
+	"plugin.path": "/tmp/kafka-plugins",
+	"file": "/tmp/test-sink-file.txt"
+}'
 
 cat /tmp/test-sink-file.txt
 ```
