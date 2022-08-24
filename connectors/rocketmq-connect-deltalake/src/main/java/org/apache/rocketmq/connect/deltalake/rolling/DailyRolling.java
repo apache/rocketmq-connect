@@ -6,13 +6,13 @@ import io.openmessaging.connector.api.data.RecordPosition;
  * @author osgoo
  * @date 2022/8/23
  */
-public class DailyPartition implements Partition {
+public class DailyRolling implements StoreFileRolling {
     private String additionalPartitionColumns;
-    public DailyPartition() {
+    public DailyRolling() {
 
     }
 
-    public DailyPartition(String additionalPartitionColumns) {
+    public DailyRolling(String additionalPartitionColumns) {
         this.additionalPartitionColumns = additionalPartitionColumns;
     }
 

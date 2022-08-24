@@ -6,7 +6,7 @@ import io.openmessaging.connector.api.data.RecordPosition;
  * @author osgoo
  * @date 2022/8/23
  */
-public interface Partition {
+public interface StoreFileRolling {
     /**
      * generate store dir by RecordPosition and timestamp
      * @param partition

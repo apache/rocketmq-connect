@@ -2,6 +2,7 @@ package org.apache.rocketmq.connect.deltalake.connector;
 
 import org.apache.rocketmq.connect.deltalake.config.ConfigUtil;
 import org.apache.rocketmq.connect.deltalake.config.DeltalakeConnectConfig;
+import org.apache.rocketmq.connect.deltalake.exception.WriteParquetException;
 import org.apache.rocketmq.connect.deltalake.writer.DeltalakeWriterOnHdfs;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
@@ -23,7 +24,12 @@ public class DeltalakeSinkTask extends SinkTask {
 
     @Override
     public void put(List<ConnectRecord> list) throws ConnectException {
-        writer.writeEntries(list);
+        try {
+            writer.writeEntries(list);
+        } catch (WriteParquetException e) {
+            log.error("write to parquet exception,", e);
+            throw new ConnectException("write to parquet exception,", e);
+        }
     }
 
     @Override
