@@ -434,7 +434,9 @@ public class WorkerSourceTask extends WorkerTask {
             log.info("extension keySet null.");
             return;
         }
-        MessageAccessor.putProperty(sourceMessage, ConnectorConfig.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
+        if (sourceDataEntry.getTimestamp() != null){
+            MessageAccessor.putProperty(sourceMessage, ConnectorConfig.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
+        }
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
