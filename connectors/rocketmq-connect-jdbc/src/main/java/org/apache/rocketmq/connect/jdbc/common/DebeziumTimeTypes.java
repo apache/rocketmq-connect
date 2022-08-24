@@ -20,14 +20,10 @@ package org.apache.rocketmq.connect.jdbc.common;
 import io.debezium.time.Date;
 import io.debezium.time.ZonedTimestamp;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.logical.Decimal;
-import io.openmessaging.connector.api.data.logical.Time;
 import org.apache.rocketmq.connect.jdbc.util.DateTimeUtils;
 
-import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -56,6 +52,7 @@ public class DebeziumTimeTypes {
 
     /**
      * maybe bind debezium logical
+     *
      * @param statement
      * @param index
      * @param schema
@@ -76,7 +73,7 @@ public class DebeziumTimeTypes {
                 case Date.SCHEMA_NAME:
                     statement.setDate(index,
                             new java.sql.Date(
-                                    (long)DebeziumTimeTypes.toMillsTimestamp(Date.SCHEMA_NAME, value)
+                                    (long) DebeziumTimeTypes.toMillsTimestamp(Date.SCHEMA_NAME, value)
                             ),
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
@@ -84,14 +81,14 @@ public class DebeziumTimeTypes {
                 case io.debezium.time.Timestamp.SCHEMA_NAME:
 
                     statement.setTimestamp(index,
-                            new java.sql.Timestamp((long)DebeziumTimeTypes.toMillsTimestamp(io.debezium.time.Timestamp.SCHEMA_NAME, value)),
+                            new java.sql.Timestamp((long) DebeziumTimeTypes.toMillsTimestamp(io.debezium.time.Timestamp.SCHEMA_NAME, value)),
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
                 case ZonedTimestamp.SCHEMA_NAME:
 
                     statement.setTimestamp(index,
-                            new java.sql.Timestamp( (long)toMillsTimestamp(ZonedTimestamp.SCHEMA_NAME,value) ),
+                            new java.sql.Timestamp((long) toMillsTimestamp(ZonedTimestamp.SCHEMA_NAME, value)),
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
@@ -103,18 +100,18 @@ public class DebeziumTimeTypes {
     }
 
 
-    private static Object toMillsTimestamp(String schemaName, Object value){
-        if(schemaName == null){
+    private static Object toMillsTimestamp(String schemaName, Object value) {
+        if (schemaName == null) {
             return value;
         }
-        switch (schemaName){
+        switch (schemaName) {
             case ZonedTimestamp.SCHEMA_NAME:
                 DateTimeFormatter formatter = ZonedTimestamp.FORMATTER;
-                LocalDateTime localDateTime=LocalDateTime.parse(value.toString(),formatter);
+                LocalDateTime localDateTime = LocalDateTime.parse(value.toString(), formatter);
                 return localDateTime.toInstant(ZoneOffset.ofHours(0)).toEpochMilli();
 
             case Date.SCHEMA_NAME:
-                return LocalDate.ofEpochDay((long)value)
+                return LocalDate.ofEpochDay((long) value)
                         .atStartOfDay(ZoneOffset.ofHours(0))
                         .toInstant()
                         .toEpochMilli();
