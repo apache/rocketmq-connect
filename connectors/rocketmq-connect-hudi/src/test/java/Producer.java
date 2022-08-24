@@ -36,7 +36,7 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
         producer.start();
 
-        File s = new File("/Users/osgoo/Downloads/user.avsc");
+        File s = new File("user.avsc");
         Schema schema = new Schema.Parser().parse(s);
 
         GenericRecord user1 = new GenericData.Record(schema);

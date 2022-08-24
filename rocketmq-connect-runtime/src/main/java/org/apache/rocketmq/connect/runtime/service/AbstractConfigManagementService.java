@@ -46,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class AbstractConfigManagementService implements ConfigManagementService {
 
     protected WorkerConfig workerConfig;
+
     protected Plugin plugin;
 
     /**

@@ -448,7 +448,6 @@ public class WorkerSinkTask extends WorkerTask {
         return msgs;
     }
 
-
     @Override
     public void close() {
         sinkTask.stop();

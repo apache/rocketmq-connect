@@ -113,6 +113,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         }
         configs.setTargetState(TargetState.STARTED);
         // update cache
+
         connectorKeyValueStore.put(connectorName, configs);
         recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
         return connectorName;
@@ -161,9 +162,12 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.STARTED);
+
         connectorKeyValueStore.put(connectorName, config);
         triggerListener();
     }
+
+
 
     @Override
     public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
