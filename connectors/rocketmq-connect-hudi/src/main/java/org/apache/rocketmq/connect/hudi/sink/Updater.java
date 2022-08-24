@@ -140,8 +140,12 @@ public class Updater {
         }
     }
 
-    private GenericRecord sinkDataEntry2GenericRecord(ConnectRecord record) {
-        byte[] recordBytes = new byte[0];
+
+    private GenericRecord sinkDataEntry2GenericRecord(ConnectRecord record) throws UnsupportedEncodingException {
+        byte[] recordBytes = ((String) record.getData()).getBytes("UTF8");
+        GenericRecord genericRecord = new GenericData.Record(this.hudiConnectConfig.schema);
+        DatumReader<GenericRecord> userDatumReader = new SpecificDatumReader<GenericRecord>(this.hudiConnectConfig.schema);
+        BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(recordBytes, null);
         try {
             recordBytes = ((String) record.getData()).getBytes("UTF8");
         } catch (UnsupportedEncodingException e) {
@@ -210,6 +214,20 @@ public class Updater {
             commitList = inflightList;
             inflightList = new ArrayList<>();
         }
+
+        List<HoodieRecord> hoodieRecordsList = new ArrayList<>();
+        for (ConnectRecord record : commitList) {
+            GenericRecord genericRecord = null;
+            try {
+                genericRecord = sinkDataEntry2GenericRecord(record);
+            } catch (UnsupportedEncodingException e) {
+                log.error("parse record error, ", e);
+                continue;
+            }
+            HoodieRecord<HoodieAvroPayload> hoodieRecord = new HoodieRecord(new HoodieKey(UUID.randomUUID().toString(), "shardingKey-" + record.getPosition().getPartition()), new HoodieAvroPayload(Option.of(genericRecord)));
+            hoodieRecordsList.add(hoodieRecord);
+        }
+
         try {
             log.info("Before commit.");
             List<HoodieRecord> hoodieRecordsList = new ArrayList<>();
