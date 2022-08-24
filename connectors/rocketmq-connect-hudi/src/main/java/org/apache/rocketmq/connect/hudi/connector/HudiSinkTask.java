@@ -18,9 +18,9 @@
 package org.apache.rocketmq.connect.hudi.connector;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.common.QueueMetaData;
-import io.openmessaging.connector.api.data.SinkDataEntry;
-import io.openmessaging.connector.api.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.hudi.config.HudiConnectConfig;
 import org.apache.rocketmq.connect.hudi.config.ConfigUtil;
 import org.apache.rocketmq.connect.hudi.sink.Updater;
@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 
@@ -46,10 +47,10 @@ public class HudiSinkTask extends SinkTask {
     }
 
     @Override
-    public void put(Collection<SinkDataEntry> sinkDataEntries) {
+    public void put(List<ConnectRecord> sinkDataEntries) throws ConnectException {
         try {
             log.info("Hudi Sink Task trying to put()");
-            for (SinkDataEntry record : sinkDataEntries) {
+            for (ConnectRecord record : sinkDataEntries) {
                 log.info("Hudi Sink Task trying to call updater.push()");
                 Boolean isSuccess = updater.push(record);
                 if (!isSuccess) {
@@ -60,11 +61,6 @@ public class HudiSinkTask extends SinkTask {
         } catch (Exception e) {
             log.error("put sinkDataEntries error, {}", e);
         }
-    }
-
-    @Override
-    public void commit(Map<QueueMetaData, Long> map) {
-
     }
 
     /**
@@ -99,13 +95,9 @@ public class HudiSinkTask extends SinkTask {
         }
     }
 
-    @Override
-    public void pause() {
-
-    }
 
     @Override
-    public void resume() {
+    public void validate(KeyValue config) {
 
     }
 }

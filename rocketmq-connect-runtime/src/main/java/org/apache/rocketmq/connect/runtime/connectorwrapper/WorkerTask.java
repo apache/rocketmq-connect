@@ -232,9 +232,12 @@ public abstract class WorkerTask implements Runnable {
         try {
             Thread.currentThread().setName(THREAD_NAME_PREFIX + id);
             doRun();
+        } catch (InterruptedException e) {
+            // set interrupted flag to caller
+            Thread.currentThread().interrupt();
         } catch (Throwable t) {
             onFailure(t);
-            throw new ConnectException(t);
+            throw t;
         } finally {
             Thread.currentThread().setName(savedName);
             Plugin.compareAndSwapLoaders(savedLoader);

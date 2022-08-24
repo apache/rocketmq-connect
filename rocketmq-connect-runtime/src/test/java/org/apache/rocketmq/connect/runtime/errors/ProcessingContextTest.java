@@ -15,13 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.hudi.strategy;
+package org.apache.rocketmq.connect.runtime.errors;
 
-import io.openmessaging.KeyValue;
+import org.assertj.core.api.Assertions;
+import org.junit.After;
+import org.junit.Test;
 
-import java.util.List;
+public class ProcessingContextTest {
 
+    private ProcessingContext processingContext = new ProcessingContext();
 
-public interface ITaskDivideStrategy {
-    List<KeyValue> divide(KeyValue source);
+    @After
+    public void after() {
+        processingContext.close();
+    }
+
+    @Test
+    public void reportTest() {
+        processingContext.stage(ErrorReporter.Stage.CONSUME);
+        processingContext.toString(true);
+        Assertions.assertThatCode(() -> processingContext.report()).doesNotThrowAnyException();
+    }
 }
