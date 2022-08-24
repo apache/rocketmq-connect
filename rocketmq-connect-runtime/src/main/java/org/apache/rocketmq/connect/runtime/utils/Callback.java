@@ -14,31 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.serialization;
-
-import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.errors.ConnectException;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+package org.apache.rocketmq.connect.runtime.utils;
 
 /**
- * json deserializer
+ * Generic interface for callbacks
  */
-public class JsonDeserializer implements Deserializer<Object> {
-
-    @Override
-    public Object deserialize(String topic, byte[] bytes) {
-        if (Objects.isNull(bytes)) {
-            return null;
-        }
-        Object data;
-        try {
-            String json = new String(bytes, StandardCharsets.UTF_8);
-            data = JSON.parse(json);
-        } catch (Exception e) {
-            throw new ConnectException(e);
-        }
-        return data;
-    }
+public interface Callback<V> {
+    /**
+     * Invoked upon completion of the operation.
+     *
+     * @param error the error that caused the operation to fail, or null if no error occurred
+     * @param result the return value, or null if the operation failed
+     */
+    void onCompletion(Throwable error, V result);
 }

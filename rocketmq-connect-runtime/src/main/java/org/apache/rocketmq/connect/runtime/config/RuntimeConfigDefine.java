@@ -38,6 +38,8 @@ public class RuntimeConfigDefine {
 
     public static final String TASK_ID = "task-id";
 
+    public static final String TASK_GROUP_ID = "task-group-id";
+
     public static final String TASK_TYPE = "task-type";
 
     public static final String SOURCE_TASK_CLASS = "source-task-class";
@@ -52,12 +54,7 @@ public class RuntimeConfigDefine {
      * Last updated time of the configuration.
      */
     public static final String UPDATE_TIMESTAMP = "update-timestamp";
-
-    /**
-     * Whether the current config is deleted.
-     */
-    public static final String CONFIG_DELETED = "config-deleted";
-
+    
     /**
      * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */

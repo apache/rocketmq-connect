@@ -29,13 +29,15 @@ import java.util.Iterator;
 import java.util.Objects;
 
 /**
- *  common utils
+ * common utils
  */
 public class Utils {
 
     private static final Logger log = LoggerFactory.getLogger(Utils.class);
+
     /**
      * Sleep for a bit
+     *
      * @param ms The duration of the sleep
      */
     public static void sleep(long ms) {
@@ -76,10 +78,25 @@ public class Utils {
         }
     }
 
+
+    /**
+     * Create a string representation of an array joined by the given separator
+     *
+     * @param strs      The array of items
+     * @param separator The separator
+     * @return The string representation.
+     */
     public static <T> String join(T[] strs, String separator) {
         return join(Arrays.asList(strs), separator);
     }
 
+    /**
+     * Create a string representation of a collection joined by the given separator
+     *
+     * @param collection The list of items
+     * @param separator  The separator
+     * @return The string representation.
+     */
     public static <T> String join(Collection<T> collection, String separator) {
         Objects.requireNonNull(collection);
         StringBuilder sb = new StringBuilder();
@@ -110,6 +127,7 @@ public class Utils {
 
     /**
      * get context current class loader
+     *
      * @return
      */
     public static ClassLoader getContextCurrentClassLoader() {
@@ -124,10 +142,11 @@ public class Utils {
 
     /**
      * get class
+     *
      * @param key
      * @return
      */
-    public static Class<?> getClass(ConnectKeyValue config,final String key) {
+    public static Class<?> getClass(ConnectKeyValue config, final String key) {
         if (!config.containsKey(key) || StringUtils.isEmpty(config.getString(key))) {
             throw new ConnectException("");
         }
@@ -136,7 +155,7 @@ public class Utils {
             Class<?> klass = contextCurrentClassLoader.loadClass(config.getString(key).trim());
             return Class.forName(klass.getName(), true, contextCurrentClassLoader);
         } catch (ClassNotFoundException e) {
-            throw new ConnectException("Expected a Class instance or class name. key ["+ key+"], value ["+config.getString(key)+"]");
+            throw new ConnectException("Expected a Class instance or class name. key [" + key + "], value [" + config.getString(key) + "]");
         }
     }
 }

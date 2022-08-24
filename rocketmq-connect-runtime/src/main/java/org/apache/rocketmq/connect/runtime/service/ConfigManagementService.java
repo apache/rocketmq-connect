@@ -18,13 +18,13 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.Connector;
-
-import java.util.List;
-import java.util.Map;
-
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for config manager. Contains connector configs and task configs. All worker in a cluster should keep the
@@ -60,13 +60,6 @@ public interface ConfigManagementService {
     Map<String, ConnectKeyValue> getConnectorConfigs();
 
     /**
-     * Get all connector configs from the cluster including DELETED bit set to 1
-     *
-     * @return
-     */
-    Map<String, ConnectKeyValue> getConnectorConfigsIncludeDeleted();
-
-    /**
      * Put the configs of the specified connector in the cluster.
      *
      * @param connectorName
@@ -74,14 +67,28 @@ public interface ConfigManagementService {
      * @return
      * @throws Exception
      */
-    String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception;
+    String putConnectorConfig(String connectorName, ConnectKeyValue configs);
 
     /**
      * Remove the connector with the specified connector name in the cluster.
      *
      * @param connectorName
      */
-    void removeConnectorConfig(String connectorName);
+    void deleteConnectorConfig(String connectorName);
+
+    /**
+     * pause connector
+     *
+     * @param connectorName
+     */
+    void pauseConnector(String connectorName);
+
+    /**
+     * resume connector
+     *
+     * @param connectorName
+     */
+    void resumeConnector(String connectorName);
 
     void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs);
 
@@ -106,8 +113,9 @@ public interface ConfigManagementService {
 
     void initialize(ConnectConfig connectConfig, Plugin plugin);
 
-    interface ConnectorConfigUpdateListener {
+    ClusterConfigState snapshot();
 
+    interface ConnectorConfigUpdateListener {
         /**
          * Invoke while connector config changed.
          */

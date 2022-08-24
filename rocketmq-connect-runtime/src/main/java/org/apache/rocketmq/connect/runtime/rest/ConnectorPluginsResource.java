@@ -16,15 +16,19 @@
  */
 package org.apache.rocketmq.connect.runtime.rest;
 
-import com.alibaba.fastjson.JSON;
-import io.javalin.Context;
+import io.javalin.http.Context;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginType;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginWrapper;
-import org.apache.rocketmq.connect.runtime.rest.entities.ConfigKeyInfo;
+import org.apache.rocketmq.connect.runtime.rest.entities.ErrorMessage;
+import org.apache.rocketmq.connect.runtime.rest.entities.HttpResponse;
 import org.apache.rocketmq.connect.runtime.rest.entities.PluginInfo;
+import org.eclipse.jetty.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +37,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * connector plugins
+ */
 public class ConnectorPluginsResource {
+
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     private final AbstractConnectController connectController;
     private final List<PluginInfo> connectorPlugins;
@@ -67,7 +76,7 @@ public class ConnectorPluginsResource {
      * @throws Throwable
      */
     public void validateConfigs(Context context) {
-        // No-op
+        context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "This function has not been implemented yet"));
     }
 
     /**
@@ -75,18 +84,24 @@ public class ConnectorPluginsResource {
      * @param context
      * @return
      */
-    public void listConnectorPlugins(Context context) {
-       boolean connectorsOnly = context.anyFormParamNull("connectorsOnly")
-               ? false : Boolean.parseBoolean(context.pathParam("connectorsOnly")) ;
+    public void listPlugins(Context context) {
         synchronized (this) {
-            if (connectorsOnly) {
-                List<PluginInfo> pluginInfos = Collections.unmodifiableList(connectorPlugins.stream()
-                        .filter(p -> PluginType.SINK.toString().equals(p.getType()) || PluginType.SOURCE.toString().equals(p.getType()))
-                        .collect(Collectors.toList()));
-                context.result(JSON.toJSONString(pluginInfos));
-            } else {
-                context.result(JSON.toJSONString(Collections.unmodifiableList(connectorPlugins)));
-            }
+            context.json(new HttpResponse<>(context.status(), Collections.unmodifiableList(connectorPlugins)));
+        }
+    }
+
+
+    /**
+     * list connector plugins
+     * @param context
+     * @return
+     */
+    public void listConnectorPlugins(Context context) {
+        synchronized (this) {
+            List<PluginInfo> pluginInfos = Collections.unmodifiableList(connectorPlugins.stream()
+                    .filter(p -> PluginType.SINK.toString().equals(p.getType()) || PluginType.SOURCE.toString().equals(p.getType()))
+                    .collect(Collectors.toList()));
+            context.json(new HttpResponse<>(context.status(), pluginInfos));
         }
     }
 
@@ -95,9 +110,9 @@ public class ConnectorPluginsResource {
      * @param context
      * @return
      */
-    public List<ConfigKeyInfo> getConnectorConfigDef(Context context) {
+    public void getConnectorConfigDef(Context context) {
         // No-op
-        return Collections.emptyList();
+        context.json(new HttpResponse<>(HttpStatus.BAD_REQUEST_400, "This function has not been implemented yet"));
     }
 
     /**
@@ -105,8 +120,13 @@ public class ConnectorPluginsResource {
      * @param context
      */
     public void reloadPlugins(Context context) {
-        connectController.getConfigManagementService().getPlugin().initLoaders();
-        context.result("success");
+        try {
+            connectController.reloadPlugins();
+            context.json(new HttpResponse<>(context.status(), "Plugin reload succeeded"));
+        } catch (Exception ex) {
+            log.error("Reload plugin failed .", ex);
+            context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
+        }
     }
 }
 

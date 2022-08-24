@@ -29,12 +29,11 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
  * Configurations for runtime.
  */
 public class ConnectConfig {
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
 
     public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
 
     public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
-
-    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
 
     public static final String COMMA = ",";
 
@@ -70,7 +69,7 @@ public class ConnectConfig {
 
     private int rmqMinConsumeThreadNums = 1;
 
-    // task start timeout mills, default 3 minute
+    /** Task start timeout mills, default 3 minute */
     private long maxStartTimeoutMills = 1000 * 60 * 3;
 
     // task stop timeout mills, default 1 minute
@@ -78,15 +77,6 @@ public class ConnectConfig {
 
     // offset commit timeout
     private long offsetCommitTimeoutMsConfig = 1000 * 30;
-
-
-    public int getBrokerSuspendMaxTimeMillis() {
-        return brokerSuspendMaxTimeMillis;
-    }
-
-    public void setBrokerSuspendMaxTimeMillis(int brokerSuspendMaxTimeMillis) {
-        this.brokerSuspendMaxTimeMillis = brokerSuspendMaxTimeMillis;
-    }
 
     private int brokerSuspendMaxTimeMillis = 300;
 
@@ -109,6 +99,11 @@ public class ConnectConfig {
      * Default topic to send/consume offset change message.
      */
     private String offsetStoreTopic = "connector-offset-topic";
+
+    /**
+     * Default topic to send/consume offset change message.
+     */
+    private String connectStatusTopic = "connect-status-topic";
 
     /**
      * Http port for REST API.
@@ -151,7 +146,9 @@ public class ConnectConfig {
     /**
      * offset commit interval ms
      */
-    private long offsetCommitIntervalMs = 5000L;
+    private long offsetCommitIntervalMs = 1000L * 30;
+
+
 
 
     public String getWorkerId() {
@@ -314,6 +311,14 @@ public class ConnectConfig {
         this.offsetStoreTopic = offsetStoreTopic;
     }
 
+    public String getConnectStatusTopic() {
+        return connectStatusTopic;
+    }
+
+    public void setConnectStatusTopic(String connectStatusTopic) {
+        this.connectStatusTopic = connectStatusTopic;
+    }
+
     public String getConnectClusterId() {
         return connectClusterId;
     }
@@ -419,6 +424,14 @@ public class ConnectConfig {
         this.offsetCommitTimeoutMsConfig = offsetCommitTimeoutMsConfig;
     }
 
+    public int getBrokerSuspendMaxTimeMillis() {
+        return brokerSuspendMaxTimeMillis;
+    }
+
+    public void setBrokerSuspendMaxTimeMillis(int brokerSuspendMaxTimeMillis) {
+        this.brokerSuspendMaxTimeMillis = brokerSuspendMaxTimeMillis;
+    }
+
     @Override
     public String toString() {
         return "ConnectConfig{" +
@@ -442,6 +455,7 @@ public class ConnectConfig {
                 ", configStoreTopic='" + configStoreTopic + '\'' +
                 ", positionStoreTopic='" + positionStoreTopic + '\'' +
                 ", offsetStoreTopic='" + offsetStoreTopic + '\'' +
+                ", connectStatusTopic='" + connectStatusTopic + '\'' +
                 ", httpPort=" + httpPort +
                 ", positionPersistInterval=" + positionPersistInterval +
                 ", offsetPersistInterval=" + offsetPersistInterval +

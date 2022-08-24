@@ -21,22 +21,39 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Interface for config manager. Contains connector configs and task configs. All worker in a cluster should keep the
  * same configs.
  */
 public abstract class AbstractConfigManagementService implements ConfigManagementService {
+
+    protected Plugin plugin;
+
+    /**
+     * Current task configs in the store.
+     */
+    protected KeyValueStore<String, List<ConnectKeyValue>> taskKeyValueStore;
+
     /**
      * Current connector configs in the store.
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
+
 
     @Override
     public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
@@ -77,4 +94,38 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     protected abstract void putTaskConfigs(String connectorName, List<ConnectKeyValue> configs);
 
+
+    @NotNull
+    protected Connector loadConnector(ConnectKeyValue configs) {
+        String connectorClass = configs.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
+        Connector connector = plugin.newConnector(connectorClass);
+        connector.validate(configs);
+        connector.start(configs);
+        return connector;
+    }
+
+
+    @Override
+    public ClusterConfigState snapshot() {
+        if (taskKeyValueStore == null && connectorKeyValueStore == null) {
+            return ClusterConfigState.EMPTY;
+        }
+        Map<String, Integer> connectorTaskCounts = new HashMap<>();
+        Map<ConnectorTaskId, Map<String, String>> connectorTaskConfigs = new ConcurrentHashMap<>();
+        taskKeyValueStore.getKVMap().forEach((connectorName, taskConfigs) -> {
+            connectorTaskCounts.put(connectorName, taskConfigs.size());
+            taskConfigs.forEach(taskConfig -> {
+                ConnectorTaskId id = new ConnectorTaskId(connectorName, taskConfig.getInt(RuntimeConfigDefine.TASK_ID));
+                connectorTaskConfigs.put(id, taskConfig.getProperties());
+            });
+        });
+
+        Map<String, Map<String, String>> connectorConfigs = new HashMap<>();
+        Map<String, TargetState> connectorTargetStates = new HashMap<>();
+        connectorKeyValueStore.getKVMap().forEach((connectorName, taskConfig) -> {
+            connectorConfigs.put(connectorName, taskConfig.getProperties());
+            connectorTargetStates.put(connectorName, taskConfig.getTargetState());
+        });
+        return new ClusterConfigState(connectorTaskCounts, connectorConfigs, connectorTargetStates, connectorTaskConfigs);
+    }
 }

@@ -23,18 +23,17 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
 import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
-import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 /**
  * memory config management service impl for standalone
  */
@@ -42,16 +41,9 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     /**
-     * Current task configs in the store.
-     */
-    private KeyValueStore<String, List<ConnectKeyValue>> taskKeyValueStore;
-
-    /**
      * All listeners to trigger while config change.
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
-
-    private Plugin plugin;
 
     public MemoryConfigManagementServiceImpl() {
     }
@@ -82,36 +74,12 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
      */
     @Override
     public Map<String, ConnectKeyValue> getConnectorConfigs() {
-        Map<String, ConnectKeyValue> result = new HashMap<>();
-        Map<String, ConnectKeyValue> connectorConfigs = connectorKeyValueStore.getKVMap();
-        for (String connectorName : connectorConfigs.keySet()) {
-            ConnectKeyValue config = connectorConfigs.get(connectorName);
-            if (0 != config.getInt(RuntimeConfigDefine.CONFIG_DELETED)) {
-                continue;
-            }
-            result.put(connectorName, config);
-        }
-        return result;
+        return connectorKeyValueStore.getKVMap();
     }
 
-    /**
-     * get all connector configs include deleted
-     *
-     * @return
-     */
-    @Override
-    public Map<String, ConnectKeyValue> getConnectorConfigsIncludeDeleted() {
-        Map<String, ConnectKeyValue> result = new HashMap<>();
-        Map<String, ConnectKeyValue> connectorConfigs = connectorKeyValueStore.getKVMap();
-        for (String connectorName : connectorConfigs.keySet()) {
-            ConnectKeyValue config = connectorConfigs.get(connectorName);
-            result.put(connectorName, config);
-        }
-        return result;
-    }
 
     @Override
-    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception {
+    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
         ConnectKeyValue exist = connectorKeyValueStore.get(connectorName);
         if (null != exist) {
             Long updateTimestamp = exist.getLong(RuntimeConfigDefine.UPDATE_TIMESTAMP);
@@ -120,34 +88,21 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             }
         }
         if (configs.equals(exist)) {
-            return "Connector with same config already exist.";
+            throw new ConnectException("Connector with same config already exist.");
         }
 
         Long currentTimestamp = System.currentTimeMillis();
         configs.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, currentTimestamp);
         for (String requireConfig : RuntimeConfigDefine.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
-                return "Request config key: " + requireConfig;
+                throw new ConnectException("Request config key: " + requireConfig);
             }
         }
-
-        ClassLoader savedLoader = plugin.currentThreadLoader();
-        String connectorClass = configs.getString(RuntimeConfigDefine.CONNECTOR_CLASS);
-        ClassLoader connectLoader = plugin.delegatingLoader().pluginClassLoader(connectorClass);
-        savedLoader = Plugin.compareAndSwapLoaders(connectLoader);
-        try {
-            Class clazz = Utils.getContextCurrentClassLoader().loadClass(connectorClass);
-            final Connector connector = (Connector) clazz.getDeclaredConstructor().newInstance();
-            connector.validate(configs);
-            connector.start(configs);
-            connectorKeyValueStore.put(connectorName, configs);
-            recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
-        } catch (Exception ex) {
-            throw new ConnectException(ex);
-        } finally {
-            Plugin.compareAndSwapLoaders(savedLoader);
-        }
-        return "";
+        Connector connector = super.loadConnector(configs);
+        configs.setTargetState(TargetState.STARTED);
+        connectorKeyValueStore.put(connectorName, configs);
+        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
+        return connectorName;
     }
 
     @Override
@@ -157,30 +112,49 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
     @Override
-    public void removeConnectorConfig(String connectorName) {
+    public void deleteConnectorConfig(String connectorName) {
+        connectorKeyValueStore.remove(connectorName);
+        taskKeyValueStore.remove(connectorName);
+        triggerListener();
+    }
+
+    /**
+     * pause connector
+     *
+     * @param connectorName
+     */
+    @Override
+    public void pauseConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
         config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
-        config.put(RuntimeConfigDefine.CONFIG_DELETED, 1);
-        List<ConnectKeyValue> taskConfigList = taskKeyValueStore.get(connectorName);
-        taskConfigList.add(config);
+        config.setTargetState(TargetState.PAUSED);
         connectorKeyValueStore.put(connectorName, config);
-        putTaskConfigs(connectorName, taskConfigList);
-        log.info("[ISSUE #2027] After removal The configs are:\n" + getConnectorConfigs().toString());
+        triggerListener();
+    }
+
+    /**
+     * resume connector
+     *
+     * @param connectorName
+     */
+    @Override
+    public void resumeConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
+        ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
+        config.put(RuntimeConfigDefine.UPDATE_TIMESTAMP, System.currentTimeMillis());
+        config.setTargetState(TargetState.STARTED);
+        connectorKeyValueStore.put(connectorName, config);
         triggerListener();
     }
 
     @Override
     public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
-        Map<String, List<ConnectKeyValue>> result = new HashMap<>();
-        Map<String, List<ConnectKeyValue>> taskConfigs = taskKeyValueStore.getKVMap();
-        Map<String, ConnectKeyValue> filteredConnector = getConnectorConfigs();
-        for (String connectorName : taskConfigs.keySet()) {
-            if (!filteredConnector.containsKey(connectorName)) {
-                continue;
-            }
-            result.put(connectorName, taskConfigs.get(connectorName));
-        }
-        return result;
+        return taskKeyValueStore.getKVMap();
     }
 
     @Override

@@ -21,6 +21,14 @@ import java.io.File;
 
 public class FilePathConfigUtil {
 
+    public static String getConnectorStatusConfigPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "connectorStatus.json";
+    }
+
+    public static String getTaskStatusConfigPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "taskStatus.json";
+    }
+
     public static String getConnectorConfigPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "connectorConfig.json";
     }

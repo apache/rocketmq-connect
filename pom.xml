@@ -46,13 +46,13 @@
         <httpclient.version>4.5.13</httpclient.version>
         <openmessaging.connector.version>0.1.4</openmessaging.connector.version>
         <fastjson.version>1.2.83</fastjson.version>
-        <javalin.version>2.8.0</javalin.version>
+        <javalin.version>4.6.4</javalin.version>
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.2.9</logback.version>
         <commons.cli.version>1.2</commons.cli.version>
         <reflections.version>0.10.2</reflections.version>
         <guava.version>22.0</guava.version>
-
+        <jackson.version>2.13.3</jackson.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
         <maven.test.skip>false</maven.test.skip>
@@ -147,6 +147,12 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-connect-sample</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

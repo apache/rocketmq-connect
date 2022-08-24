@@ -24,7 +24,7 @@ import java.util.Objects;
 /**
  * @param <T>
  */
-public class PluginWrapper<T> implements Comparable<PluginWrapper<T>>{
+public class PluginWrapper<T> implements Comparable<PluginWrapper<T>> {
     private final Class<? extends T> klass;
     private final String name;
     private final PluginType type;
@@ -42,8 +42,8 @@ public class PluginWrapper<T> implements Comparable<PluginWrapper<T>>{
         this.typeName = type.toString();
         this.classLoader = loader;
         this.location = loader instanceof PluginClassLoader
-            ? ((PluginClassLoader) loader).location()
-            : "classpath";
+                ? ((PluginClassLoader) loader).location()
+                : "classpath";
         this.version = version != null ? version : "null";
         this.encodedVersion = new DefaultArtifactVersion(this.version);
     }
