@@ -127,7 +127,7 @@ public class Utils {
      * @param key
      * @return
      */
-    public static Class<?> getClass(ConnectKeyValue config,final String key) {
+    public static Class<?> getClass(ConnectKeyValue config, final String key) {
         if (!config.containsKey(key) || StringUtils.isEmpty(config.getString(key))) {
             throw new ConnectException("");
         }

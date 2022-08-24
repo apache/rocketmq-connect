@@ -76,8 +76,8 @@ public class ConnectorPluginsResource {
      * @return
      */
     public void listConnectorPlugins(Context context) {
-       boolean connectorsOnly = context.anyFormParamNull("connectorsOnly")
-               ? false : Boolean.parseBoolean(context.pathParam("connectorsOnly")) ;
+        boolean connectorsOnly = context.anyFormParamNull("connectorsOnly")
+               ? false : Boolean.parseBoolean(context.pathParam("connectorsOnly"));
         synchronized (this) {
             if (connectorsOnly) {
                 List<PluginInfo> pluginInfos = Collections.unmodifiableList(connectorPlugins.stream()
