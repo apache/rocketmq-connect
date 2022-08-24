@@ -7,11 +7,13 @@ package org.apache.rocketmq.connect.deltalake.writer;
 public class WriteParquetResult {
     private String tableDir;
     private String fullFileName;
-    private boolean needAddFile;
-    public WriteParquetResult(String tableDir, String fullFileName, boolean needAddFile) {
+    private boolean isNewAdded;
+    private boolean needUpdateFile;
+    public WriteParquetResult(String tableDir, String fullFileName, boolean isNewAdded, boolean needUpdateFile) {
         this.tableDir = tableDir;
         this.fullFileName = fullFileName;
-        this.needAddFile = needAddFile;
+        this.isNewAdded = isNewAdded;
+        this.needUpdateFile = needUpdateFile;
     }
 
     public String getTableDir() {
@@ -30,11 +32,19 @@ public class WriteParquetResult {
         this.fullFileName = fullFileName;
     }
 
-    public boolean isNeedAddFile() {
-        return needAddFile;
+    public boolean isNewAdded() {
+        return isNewAdded;
     }
 
-    public void setNeedAddFile(boolean needAddFile) {
-        this.needAddFile = needAddFile;
+    public void setNewAdded(boolean newAdded) {
+        isNewAdded = newAdded;
+    }
+
+    public boolean isNeedUpdateFile() {
+        return needUpdateFile;
+    }
+
+    public void setNeedUpdateFile(boolean needUpdateFile) {
+        this.needUpdateFile = needUpdateFile;
     }
 }

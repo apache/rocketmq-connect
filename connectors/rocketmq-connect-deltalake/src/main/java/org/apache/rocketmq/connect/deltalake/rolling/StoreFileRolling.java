@@ -13,13 +13,14 @@ public interface StoreFileRolling {
      * @param timestamp
      * @return
      */
-    String storeDir(RecordPosition partition, long timestamp);
+    String generateStoreDir(RecordPosition partition, long timestamp);
 
     /**
      * generate store file name by RecordPosition
      * @param partition
+     * @param timestamp
      * @return
      */
-    String storeFileName(RecordPosition partition);
+    String generateStoreFileName(RecordPosition partition, long timestamp);
 
 }

@@ -5,9 +5,6 @@ import io.delta.standalone.Operation;
 import io.delta.standalone.OptimisticTransaction;
 import io.delta.standalone.actions.AddFile;
 import io.delta.standalone.actions.Metadata;
-import io.delta.standalone.types.DataType;
-import io.delta.standalone.types.IntegerType;
-import io.delta.standalone.types.StringType;
 import io.delta.standalone.types.StructType;
 import io.openmessaging.connector.api.data.Schema;
 import org.apache.avro.generic.GenericData;
@@ -31,10 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.Path;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.*;
 
 import static org.apache.rocketmq.connect.deltalake.config.ConfigUtil.convertSchemaToStructType;
@@ -47,11 +44,13 @@ public class DeltalakeWriterOnHdfs implements DeltalakeWriter {
     private Logger log = LoggerFactory.getLogger(DeltalakeWriterOnHdfs.class);
     private DeltalakeConnectConfig deltalakeConnectConfig;
     private StoreFileRolling storeFileRolling;
+    private long lastUpdateAddFileInfo = System.currentTimeMillis();
+    private ParquetWriter<GenericRecord> currentWriter;
     private Map<String, ParquetWriter<GenericRecord>> writers;
 
     public DeltalakeWriterOnHdfs(DeltalakeConnectConfig deltalakeConnectConfig) {
         this.deltalakeConnectConfig = deltalakeConnectConfig;
-        storeFileRolling = new DailyRolling();
+        storeFileRolling = new DailyRolling(deltalakeConnectConfig);
         writers = new HashMap<>();
     }
 
@@ -60,42 +59,58 @@ public class DeltalakeWriterOnHdfs implements DeltalakeWriter {
             // write to parquet file
             WriteParquetResult result = writeParquet(record);
             // addFile to deltalake
-            if (result.isNeedAddFile()) {
-                addFileToDeltaLog(result.getTableDir(), result.getFullFileName());
+            if (result.isNewAdded()) {
+                addOrUpdateFileToDeltaLog(result.getTableDir(), result.getFullFileName(), true, false);
+            } else if (result.isNeedUpdateFile()) {
+                addOrUpdateFileToDeltaLog(result.getTableDir(), result.getFullFileName(), false, true);
             }
         }
     }
 
-    private WriteParquetResult writeParquet(ConnectRecord record) throws WriteParquetException {
-        WriteParquetResult result = new WriteParquetResult(null, null, false);
-        String storeDir = storeFileRolling.storeDir(record.getPosition(), record.getTimestamp());
-        String storeFile = storeFileRolling.storeFileName(record.getPosition());
-        ParquetWriter<GenericRecord> parquetWriter = writers.get(storeDir + storeFile);
-        if (parquetWriter == null) {
-            // todo schema evolution
+    private WriteParquetResult checkParquetWriter(ConnectRecord record) throws WriteParquetException {
+        WriteParquetResult result = new WriteParquetResult(null, null, false, false);
+        if (currentWriter == null) {
+            String storeDir = storeFileRolling.generateStoreDir(record.getPosition(), record.getTimestamp());
+            String storeFile = storeFileRolling.generateStoreFileName(record.getPosition(), record.getTimestamp());
+            ParquetWriter<GenericRecord> parquetWriter = writers.get(storeDir + storeFile);
+            if (parquetWriter == null) {
+                // todo schema evolution
 //            org.apache.avro.Schema avroSchema = convertSchema(record.getSchema());
-            org.apache.avro.Schema avroSchema = deltalakeConnectConfig.getSchema();
-            try {
-                parquetWriter = new AvroParquetWriter(
-                        new Path(storeDir + storeFile),
-                        avroSchema,
-                        CompressionCodecName.SNAPPY,
-                        deltalakeConnectConfig.getBlockSize(),
-                        deltalakeConnectConfig.getPageSize());
-            } catch (IOException e) {
-                log.error("create parquetwriter occur exception, path : " + storeDir + storeFile + ", record : " + record, e);
-                throw new WriteParquetException("create parquetwriter occur exception, path : " + storeDir + storeFile + ", record : " + record, e);
+                org.apache.avro.Schema avroSchema = deltalakeConnectConfig.getSchema();
+                try {
+                    parquetWriter = new AvroParquetWriter(
+                            new Path(storeDir + storeFile),
+                            avroSchema,
+                            CompressionCodecName.SNAPPY,
+                            deltalakeConnectConfig.getBlockSize(),
+                            deltalakeConnectConfig.getPageSize());
+                } catch (IOException e) {
+                    log.error("create parquetwriter occur exception, path : " + storeDir + storeFile + ", record : " + record, e);
+                    throw new WriteParquetException("create parquetwriter occur exception, path : " + storeDir + storeFile + ", record : " + record, e);
+                }
+                writers.put(storeDir + storeFile, parquetWriter);
+                result.setTableDir(storeDir);
+                result.setFullFileName(storeDir + storeFile);
+                result.setNewAdded(true);
+                result.setNeedUpdateFile(false);
             }
-            writers.put(storeDir + storeFile, parquetWriter);
-            result.setTableDir(storeDir);
-            result.setFullFileName(storeFile);
-            result.setNeedAddFile(true);
+            currentWriter =  parquetWriter;
+            return result;
         }
+        // check if to update file meta
+        if (System.currentTimeMillis() - lastUpdateAddFileInfo > Duration.ofMinutes(1).toMillis()) {
+            result.setNeedUpdateFile(true);
+        }
+        return result;
+    }
+
+    private WriteParquetResult writeParquet(ConnectRecord record) throws WriteParquetException {
+        WriteParquetResult result;
+        result = checkParquetWriter(record);
         GenericRecord genericRecord;
         try {
             genericRecord = sinkDataEntry2GenericRecord(record);
-            parquetWriter.write(genericRecord);
-            result.setNeedAddFile(true);
+            currentWriter.write(genericRecord);
         } catch (UnsupportedEncodingException e) {
             log.error("convert sinkDataEntry to GenericRecord error, record : " + record, e);
             throw new WriteParquetException("convert sinkDataEntry to GenericRecord error, record : " + record, e);
@@ -109,14 +124,13 @@ public class DeltalakeWriterOnHdfs implements DeltalakeWriter {
         return result;
     }
 
-    private boolean addFileToDeltaLog(String tablePath, String addFileName) {
+    private boolean addOrUpdateFileToDeltaLog(String tablePath, String addFileName, boolean updateMeta, boolean update) {
         String tablePathWithEngineType = deltalakeConnectConfig.getEngineType() + "://" + deltalakeConnectConfig.getEngineEndpoint() + tablePath;
         String addFileNameWithEngineType = deltalakeConnectConfig.getEngineType() + "://" + deltalakeConnectConfig.getEngineEndpoint() + addFileName;
         try {
             final String engineInfo = deltalakeConnectConfig.getEngineType();
 
             DeltaLog log = DeltaLog.forTable(new Configuration(), tablePathWithEngineType);
-            org.apache.avro.Schema s = deltalakeConnectConfig.getSchema();
 
             // todo parse partition column
             List<String> partitionColumns = Arrays.asList("name");
@@ -130,7 +144,9 @@ public class DeltalakeWriterOnHdfs implements DeltalakeWriter {
 
             // update schema
             OptimisticTransaction txn = log.startTransaction();
-            txn.updateMetadata(metadata);
+            if (updateMeta) {
+                txn.updateMetadata(metadata);
+            }
 
             // todo add partition column to new added file
 //            Map<String, String> partitionValues = new HashMap<>();
@@ -144,8 +160,18 @@ public class DeltalakeWriterOnHdfs implements DeltalakeWriter {
                     AddFile.builder(addFileNameWithEngineType, new HashMap<>(), status.getLen(), System.currentTimeMillis(),
                             true)
                             .build();
-            Operation op = new Operation(Operation.Name.WRITE);
+            Operation op;
+            if (!update) {
+                op = new Operation(Operation.Name.WRITE);
+            } else {
+                op = new Operation(Operation.Name.UPDATE);
+            }
             txn.commit(Collections.singletonList(addFile), op, engineInfo);
+            lastUpdateAddFileInfo = System.currentTimeMillis();
+            // check if file length over maxFileSize to rolling a new file
+            if (status.getLen() > deltalakeConnectConfig.getMaxFileSize()) {
+                currentWriter = null;
+            }
             return true;
         } catch (Exception e) {
             log.error("exec AddFile exception,", e);

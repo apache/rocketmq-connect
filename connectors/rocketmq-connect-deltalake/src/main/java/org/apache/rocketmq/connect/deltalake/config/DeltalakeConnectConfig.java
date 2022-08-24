@@ -12,8 +12,12 @@ public class DeltalakeConnectConfig {
     private int blockSize = 1024;
     private int pageSize = 65535;
     private int maxFileSize = 1024 * 1024 * 1024;
+    private long parquetSegmentLength = 1024 * 1024;
     private String engineType = "hdfs";
     private String engineEndpoint = "localhost:9000";
+    private String compressType = "snappy";
+    // rolling file
+    private String additionalPartitionColumns;
 
     public Schema getSchema() {
         return schema;
@@ -55,6 +59,14 @@ public class DeltalakeConnectConfig {
         this.maxFileSize = maxFileSize;
     }
 
+    public long getParquetSegmentLength() {
+        return parquetSegmentLength;
+    }
+
+    public void setParquetSegmentLength(long parquetSegmentLength) {
+        this.parquetSegmentLength = parquetSegmentLength;
+    }
+
     public String getEngineType() {
         return engineType;
     }
@@ -69,5 +81,21 @@ public class DeltalakeConnectConfig {
 
     public void setEngineEndpoint(String engineEndpoint) {
         this.engineEndpoint = engineEndpoint;
+    }
+
+    public String getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(String compressType) {
+        this.compressType = compressType;
+    }
+
+    public String getAdditionalPartitionColumns() {
+        return additionalPartitionColumns;
+    }
+
+    public void setAdditionalPartitionColumns(String additionalPartitionColumns) {
+        this.additionalPartitionColumns = additionalPartitionColumns;
     }
 }
