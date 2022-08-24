@@ -9,6 +9,7 @@ public class WriteParquetResult {
     private String fullFileName;
     private boolean isNewAdded;
     private boolean needUpdateFile;
+    private long fileSize;
     public WriteParquetResult(String tableDir, String fullFileName, boolean isNewAdded, boolean needUpdateFile) {
         this.tableDir = tableDir;
         this.fullFileName = fullFileName;
@@ -46,5 +47,23 @@ public class WriteParquetResult {
 
     public void setNeedUpdateFile(boolean needUpdateFile) {
         this.needUpdateFile = needUpdateFile;
+    }
+
+    public long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    @Override
+    public String toString() {
+        return "WriteParquetResult{" +
+                "tableDir='" + tableDir + '\'' +
+                ", fullFileName='" + fullFileName + '\'' +
+                ", isNewAdded=" + isNewAdded +
+                ", needUpdateFile=" + needUpdateFile +
+                '}';
     }
 }

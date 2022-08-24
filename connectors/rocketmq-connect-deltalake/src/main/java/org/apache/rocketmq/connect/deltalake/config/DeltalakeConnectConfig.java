@@ -26,12 +26,19 @@ public class DeltalakeConnectConfig {
         return engineType + "://" + engineEndpoint;
     }
     public Schema getSchema() {
-        File schemaFile = new File(schemaPath);
+        File s = new File("/Users/osgoo/Downloads/user.avsc");
         try {
-            return new Schema.Parser().parse(schemaFile);
+            Schema schema = new Schema.Parser().parse(s);
+            return schema;
         } catch (IOException e) {
             e.printStackTrace();
         }
+//        File schemaFile = new File(schemaPath);
+//        try {
+//            return new Schema.Parser().parse(schemaFile);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         return null;
     }
 
