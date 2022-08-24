@@ -269,11 +269,5 @@
             <version>1.2.83</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-avro_2.13</artifactId>
-            <version>3.3.0</version>
-        </dependency>
-
     </dependencies>
 </project>

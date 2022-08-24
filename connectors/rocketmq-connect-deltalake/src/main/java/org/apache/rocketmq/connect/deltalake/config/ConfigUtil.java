@@ -17,11 +17,7 @@
 
 package org.apache.rocketmq.connect.deltalake.config;
 
-import io.delta.standalone.types.DataType;
-import io.delta.standalone.types.StructType;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.Schema;
-import org.apache.spark.sql.avro.SchemaConverters;
 
 import java.lang.reflect.Method;
 
@@ -72,11 +68,4 @@ public class ConfigUtil {
         }
     }
 
-    public static StructType convertSchemaToStructType(org.apache.avro.Schema schema) {
-        StructType structType = new StructType();
-        for (org.apache.avro.Schema.Field field : schema.getFields()) {
-            structType.add(field.name(), (DataType) SchemaConverters.toSqlType(field.schema()).dataType());
-        }
-        return structType;
-    }
 }

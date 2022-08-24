@@ -7,6 +7,9 @@ import io.openmessaging.connector.api.data.RecordPosition;
  * @date 2022/8/23
  */
 public interface StoreFileRolling {
+
+    String generateTableDir(RecordPosition recordPosition);
+
     /**
      * generate store dir by RecordPosition and timestamp
      * @param partition

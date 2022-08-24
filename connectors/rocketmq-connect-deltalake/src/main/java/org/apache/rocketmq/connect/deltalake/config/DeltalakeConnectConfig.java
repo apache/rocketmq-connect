@@ -2,13 +2,16 @@ package org.apache.rocketmq.connect.deltalake.config;
 
 import org.apache.avro.Schema;
 
+import java.io.File;
+import java.io.IOException;
+
 /**
  * @author osgoo
  * @date 2022/8/19
  */
 public class DeltalakeConnectConfig {
     private Schema schema;
-    private String schemaJson;
+    private String schemaPath = "/Users/osgoo/Downloads/user.avsc";
     private int blockSize = 1024;
     private int pageSize = 65535;
     private int maxFileSize = 1024 * 1024 * 1024;
@@ -19,20 +22,29 @@ public class DeltalakeConnectConfig {
     // rolling file
     private String additionalPartitionColumns;
 
+    public String getFsPrefix() {
+        return engineType + "://" + engineEndpoint;
+    }
     public Schema getSchema() {
-        return schema;
+        File schemaFile = new File(schemaPath);
+        try {
+            return new Schema.Parser().parse(schemaFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void setSchema(Schema schema) {
         this.schema = schema;
     }
 
-    public String getSchemaJson() {
-        return schemaJson;
+    public String getSchemaPath() {
+        return schemaPath;
     }
 
-    public void setSchemaJson(String schemaJson) {
-        this.schemaJson = schemaJson;
+    public void setSchemaPath(String schemaPath) {
+        this.schemaPath = schemaPath;
     }
 
     public int getBlockSize() {

@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class DeltalakeSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(DeltalakeSinkTask.class);
-    private DeltalakeConnectConfig deltalakeConnectConfig;
+    private DeltalakeConnectConfig deltalakeConnectConfig = new DeltalakeConnectConfig();
     private DeltalakeWriterOnHdfs writer;
 
     @Override
@@ -52,6 +52,8 @@ public class DeltalakeSinkTask extends SinkTask {
 
     }
 
-
-
+    @Override
+    public void validate(KeyValue config) {
+        ConfigUtil.load(config, deltalakeConnectConfig);
+    }
 }
