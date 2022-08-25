@@ -19,14 +19,16 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-con
 {
     "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
     "max-task":"2",
-    "connection.url":"jdbc:mysql://XXXXXXXXX:3306",
+    "connection.url":"jdbc:mysql://XXXXXXXXX:3306/{sourceDbName}",
     "connection.user":"*****",
     "connection.password":"*****",
     "table.whitelist":"db.table",
     "mode": "incrementing",
     "incrementing.column.name":"id",
     "timestamp.initial": -1,
-    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+    "connect-topicname":"targetTopic",
+    "key-converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "value-converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 ```
 
@@ -37,14 +39,15 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-conne
 {
     "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
     "max-task":"2",
-    "connect-topicname":"connect-topicname-jdbc-02",
-    "connection.url":"jdbc:mysql://*****:3306/{dbname}",
+    "connect-topicname":"targetTopic",
+    "connection.url":"jdbc:mysql://*****:3306/{sinkDbName}",
     "connection.user":"******",
     "connection.password":"******",
     "pk.fields":"id",
     "pk.mode":"record_value",
     "insert.mode":"UPSERT",
-    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+    "key-converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "value-converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 ```
 
