@@ -38,8 +38,8 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-conne
 {
     "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
     "max-task":"2",
-    "connect-topicname":"connect-topicname-jdbc-02",
-    "connection.url":"jdbc:mysql://*****:3306/{dbname}",
+    "connect-topicname":"targetTopic",
+    "connection.url":"jdbc:mysql://*****:3306/{sinkDbName}",
     "connection.user":"******",
     "connection.password":"******",
     "pk.fields":"id",
