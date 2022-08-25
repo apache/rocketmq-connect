@@ -10,7 +10,7 @@ import java.util.Map;
  * 编码到Topic
  */
 public class EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper
-        implements RocketmqBrokerNameKafkaTopicPartitionMapper {
+        implements RocketmqRecordPartitionKafkaTopicPartitionMapper {
 
     private String SEPARATOR_CONFIG = "separator";
 

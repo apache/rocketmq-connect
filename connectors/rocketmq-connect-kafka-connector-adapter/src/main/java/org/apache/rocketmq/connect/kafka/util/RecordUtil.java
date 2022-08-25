@@ -114,7 +114,7 @@ public class RecordUtil {
         return sourceRecord;
     }
 
-    public static ConnectRecord sinkRecordToConnectRecord(SinkRecord sinkRecord, RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper){
+    public static ConnectRecord sinkRecordToConnectRecord(SinkRecord sinkRecord, RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper){
         TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
         RecordPartition recordPartition = kafkaTopicPartitionMapper.toRecordPartition(topicPartition);
 

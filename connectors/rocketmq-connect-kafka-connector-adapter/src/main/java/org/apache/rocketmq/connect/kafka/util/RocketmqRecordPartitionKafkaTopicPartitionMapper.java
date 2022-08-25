@@ -12,11 +12,11 @@ import java.util.Map;
  *org.apache.kafka.connect.sink.SinkTaskContext多个接口需要TopicPartition(topic，partition)映射到
  *MessageQueue(topic,brokerName,queueId)，所以需要转换
  */
-public interface RocketmqBrokerNameKafkaTopicPartitionMapper {
+public interface RocketmqRecordPartitionKafkaTopicPartitionMapper {
 
 
-    static RocketmqBrokerNameKafkaTopicPartitionMapper newKafkaTopicPartitionMapper(Map<String, String> kafkaTaskProps){
-        RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper = new EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper();
+    static RocketmqRecordPartitionKafkaTopicPartitionMapper newKafkaTopicPartitionMapper(Map<String, String> kafkaTaskProps){
+        RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper = new EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper();
         kafkaTopicPartitionMapper.configure(new HashMap<>());
         return kafkaTopicPartitionMapper;
     }

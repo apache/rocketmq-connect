@@ -6,8 +6,8 @@ import org.apache.kafka.common.TopicPartition;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class EncodedPartitionRocketmqBrokerNameKafkaTopicPartitionMapper
-        implements RocketmqBrokerNameKafkaTopicPartitionMapper{
+public abstract class EncodedPartitionRocketmqRecordPartitionKafkaTopicPartitionMapper
+        implements RocketmqRecordPartitionKafkaTopicPartitionMapper {
 
     private int partitionBits = 16;
 

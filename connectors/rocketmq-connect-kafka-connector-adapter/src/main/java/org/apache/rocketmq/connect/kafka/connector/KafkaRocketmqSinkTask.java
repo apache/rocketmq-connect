@@ -26,7 +26,7 @@ import org.apache.rocketmq.connect.kafka.config.ConfigDefine;
 import org.apache.rocketmq.connect.kafka.util.ConfigUtil;
 import org.apache.rocketmq.connect.kafka.util.KafkaPluginsUtil;
 import org.apache.rocketmq.connect.kafka.util.RecordUtil;
-import org.apache.rocketmq.connect.kafka.util.RocketmqBrokerNameKafkaTopicPartitionMapper;
+import org.apache.rocketmq.connect.kafka.util.RocketmqRecordPartitionKafkaTopicPartitionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ public class KafkaRocketmqSinkTask extends SinkTask {
     private Converter keyConverter;
     private Converter valueConverter;
     private HeaderConverter headerConverter;
-    private RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
+    private RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
 
     @Override
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
@@ -103,7 +103,7 @@ public class KafkaRocketmqSinkTask extends SinkTask {
             Class<? extends Task> taskClass = taskConfig.getClass(ConfigDefine.TASK_CLASS).asSubclass(Task.class);
             this.kafkaSinkTask = (org.apache.kafka.connect.sink.SinkTask)kafkaPlugins.newTask(taskClass);
             initConverter(kafkaPlugins, kafkaTaskProps);
-            this.kafkaTopicPartitionMapper = RocketmqBrokerNameKafkaTopicPartitionMapper.newKafkaTopicPartitionMapper(kafkaTaskProps);
+            this.kafkaTopicPartitionMapper = RocketmqRecordPartitionKafkaTopicPartitionMapper.newKafkaTopicPartitionMapper(kafkaTaskProps);
             this.kafkaSinkTask.initialize(new RocketmqKafkaSinkTaskContext(sinkTaskContext, this.kafkaTopicPartitionMapper));
             this.kafkaSinkTask.start(kafkaTaskProps);
         } catch (Throwable e){

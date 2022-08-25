@@ -8,7 +8,7 @@ import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.rocketmq.connect.kafka.util.ConfigUtil;
 import org.apache.rocketmq.connect.kafka.util.RecordUtil;
-import org.apache.rocketmq.connect.kafka.util.RocketmqBrokerNameKafkaTopicPartitionMapper;
+import org.apache.rocketmq.connect.kafka.util.RocketmqRecordPartitionKafkaTopicPartitionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +24,9 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
     private static final ExecutorService EXECUTOR_SERVICE  = Executors.newFixedThreadPool(1);
 
     private SinkTaskContext sinkTaskContext;
-    private RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
+    private RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
 
-    public RocketmqKafkaSinkTaskContext(SinkTaskContext sinkTaskContext, RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper) {
+    public RocketmqKafkaSinkTaskContext(SinkTaskContext sinkTaskContext, RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper) {
         this.sinkTaskContext = sinkTaskContext;
         this.kafkaTopicPartitionMapper = kafkaTopicPartitionMapper;
     }
