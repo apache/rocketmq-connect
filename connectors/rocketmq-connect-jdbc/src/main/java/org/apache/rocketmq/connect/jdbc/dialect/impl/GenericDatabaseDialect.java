@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
 
-import io.debezium.time.ZonedTimestamp;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
@@ -70,9 +69,7 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1560,6 +1557,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         } else {
             boolean bound = maybeBindLogical(statement, index, schema, value);
             if (!bound) {
+                bound = maybeBindDebeziumLogical(statement, index, schema, value);
+            }
+            if (!bound) {
                 bound = maybeBindPrimitive(statement, index, schema, value);
             }
             if (!bound) {
@@ -1615,29 +1615,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
-
-                case DebeziumTimeTypes.DATE:
-                    statement.setDate(index,
-                            new java.sql.Date((long)DebeziumTimeTypes.toMillsTimestamp(DebeziumTimeTypes.DATE, value)),
-                            DateTimeUtils.getTimeZoneCalendar(timeZone)
-                    );
-                    return true;
-                case DebeziumTimeTypes.TIMESTAMP:
-                    statement.setTimestamp(index,
-                            new java.sql.Timestamp((long)DebeziumTimeTypes.toMillsTimestamp(DebeziumTimeTypes.TIMESTAMP, value)),
-                            DateTimeUtils.getTimeZoneCalendar(timeZone)
-                    );
-                    return true;
-                case ZonedTimestamp.SCHEMA_NAME:
-                    DateTimeFormatter formatter = ZonedTimestamp.FORMATTER;
-                    LocalDateTime localDateTime=LocalDateTime.parse(value.toString(),formatter);
-                    Long format = localDateTime.toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
-                    statement.setTimestamp(index,
-                            new java.sql.Timestamp(format),
-                            DateTimeUtils.getTimeZoneCalendar(timeZone)
-                    );
-                    return true;
-
                 default:
                     return false;
             }
@@ -1697,6 +1674,14 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return null;
     }
 
+    protected boolean maybeBindDebeziumLogical(
+            PreparedStatement statement,
+            int index,
+            Schema schema,
+            Object value
+    ) throws SQLException {
+       return DebeziumTimeTypes.maybeBindDebeziumLogical(statement, index, schema, value, timeZone);
+    }
     protected boolean maybeBindPrimitive(
             PreparedStatement statement,
             int index,
