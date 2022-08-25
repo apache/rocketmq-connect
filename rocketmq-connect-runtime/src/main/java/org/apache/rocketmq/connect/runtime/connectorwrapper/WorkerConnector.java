@@ -264,10 +264,6 @@ public class WorkerConnector implements Runnable {
 
     /**
      * Wait for this connector to finish shutting down.
-<<<<<<< HEAD
-     *
-=======
->>>>>>> master
      * @param timeoutMs time in milliseconds to await shutdown
      * @return true if successful, false if the timeout was reached
      */
@@ -336,10 +332,6 @@ public class WorkerConnector implements Runnable {
 
     /**
      * reconfigure
-<<<<<<< HEAD
-     *
-=======
->>>>>>> master
      * @param keyValue
      */
     public void reconfigure(ConnectKeyValue keyValue) {
@@ -355,10 +347,7 @@ public class WorkerConnector implements Runnable {
 
     /**
      * connector name
-<<<<<<< HEAD
      *
-=======
->>>>>>> master
      * @return
      */
     public String getConnectorName() {
@@ -367,10 +356,7 @@ public class WorkerConnector implements Runnable {
 
     /**
      * connector config
-<<<<<<< HEAD
      *
-=======
->>>>>>> master
      * @return
      */
     public ConnectKeyValue getKeyValue() {
@@ -379,10 +365,6 @@ public class WorkerConnector implements Runnable {
 
     /**
      * connector object
-<<<<<<< HEAD
-     *
-=======
->>>>>>> master
      * @return
      */
     public Connector getConnector() {
