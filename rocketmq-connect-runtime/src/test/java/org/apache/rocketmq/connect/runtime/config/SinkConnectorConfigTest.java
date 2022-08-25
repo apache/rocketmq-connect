@@ -29,12 +29,12 @@ public class SinkConnectorConfigTest {
     @Test
     public void parseTopicListTest() {
         // connect-topicname is null
-        final Set<String> result1 = SinkConnectorConfig.parseTopicList(connectKeyValue);
+        final Set<String> result1 = new SinkConnectorConfig(connectKeyValue).parseTopicList();
         assert result1 == null;
 
         // connect-topicname is not null
-        connectKeyValue.put(RuntimeConfigDefine.CONNECT_TOPICNAME, "test");
-        final Set<String> result2 = SinkConnectorConfig.parseTopicList(connectKeyValue);
+        connectKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, "test");
+        final Set<String> result2 = new SinkConnectorConfig(connectKeyValue).parseTopicList();
         assert !result2.isEmpty();
     }
 

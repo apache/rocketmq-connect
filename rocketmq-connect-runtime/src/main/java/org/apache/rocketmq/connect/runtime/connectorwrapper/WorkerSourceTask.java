@@ -41,8 +41,9 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -132,7 +133,7 @@ public class WorkerSourceTask extends WorkerTask {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
     }
 
-    public WorkerSourceTask(ConnectConfig workerConfig,
+    public WorkerSourceTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,
                             SourceTask sourceTask,
                             ClassLoader classLoader,
@@ -371,8 +372,8 @@ public class WorkerSourceTask extends WorkerTask {
 
         byte[] value = retryWithToleranceOperator.execute(() -> valueConverter.fromConnectData(topic, record.getSchema(), record.getData()),
                 ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
-        if (value.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-            log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
+        if (value.length > ConnectorConfig.MAX_MESSAGE_SIZE) {
+            log.error("Send record, message size is greater than {} bytes, record: {}", ConnectorConfig.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
         }
         if (key != null) {
             sourceMessage.setKeys(Base64Util.base64Encode(key));
@@ -393,7 +394,7 @@ public class WorkerSourceTask extends WorkerTask {
      * @return
      */
     private String maybeCreateAndGetTopic(ConnectRecord record) {
-        String topic = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
+        String topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
         if (StringUtils.isBlank(topic)) {
             RecordPosition recordPosition = record.getPosition();
             if (null == recordPosition) {
@@ -432,6 +433,9 @@ public class WorkerSourceTask extends WorkerTask {
         if (CollectionUtils.isEmpty(keySet)) {
             log.info("extension keySet null.");
             return;
+        }
+        if (sourceDataEntry.getTimestamp() != null) {
+            MessageAccessor.putProperty(sourceMessage, ConnectorConfig.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
         }
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {

@@ -159,9 +159,9 @@ public class Plugin {
         return newPlugin(taskClass);
     }
 
-    public RecordConverter newConverter(ConnectKeyValue config, String classPropertyName, ClassLoaderUsage classLoaderUsage) {
+    public RecordConverter newConverter(ConnectKeyValue config, String classPropertyName, String defaultConverter, ClassLoaderUsage classLoaderUsage) {
         if (!config.containsKey(classPropertyName)) {
-            return null;
+            config.put(classPropertyName, defaultConverter);
         }
         Class<? extends RecordConverter> klass = null;
         switch (classLoaderUsage) {

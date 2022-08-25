@@ -20,7 +20,7 @@ import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
@@ -79,7 +79,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         String connectStatusTopic = connectConfig.getConnectStatusTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, connectStatusTopic)) {
             log.info("try to create status topic: {}!", connectStatusTopic);
@@ -94,7 +94,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param config
      */
     @Override
-    public void initialize(ConnectConfig config) {
+    public void initialize(WorkerConfig config) {
         this.dataSynchronizer = new BrokerBasedLog(config,
                 config.getConnectStatusTopic(),
                 ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
@@ -270,7 +270,11 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     @Override
     public TaskStatus get(ConnectorTaskId id) {
-        return connAndTaskStatus.getTasks().get(id.connector(), id.task()).get();
+        ConnAndTaskStatus.CacheEntry<TaskStatus> cacheEntry = connAndTaskStatus.getTasks().get(id.connector(), id.task());
+        if (cacheEntry == null) {
+            return null;
+        }
+        return cacheEntry.get();
     }
 
     /**
@@ -281,7 +285,11 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     @Override
     public ConnectorStatus get(String connector) {
-        return connAndTaskStatus.getConnectors().get(connector).get();
+        ConnAndTaskStatus.CacheEntry<ConnectorStatus> cacheEntry = connAndTaskStatus.getConnectors().get(connector);
+        if (cacheEntry == null) {
+            return null;
+        }
+        return cacheEntry.get();
     }
 
     /**

@@ -18,7 +18,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -39,7 +39,7 @@ public abstract class WorkerTask implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(WorkerTask.class);
     private static final String THREAD_NAME_PREFIX = "task-thread-";
 
-    protected final ConnectConfig workerConfig;
+    protected final WorkerConfig workerConfig;
 
     protected final ConnectorTaskId id;
     protected final ClassLoader loader;
@@ -61,7 +61,7 @@ public abstract class WorkerTask implements Runnable {
 
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-    public WorkerTask(ConnectConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener) {
+    public WorkerTask(WorkerConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener) {
         this.workerConfig = workerConfig;
         this.id = id;
         this.loader = loader;

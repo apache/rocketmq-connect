@@ -17,7 +17,7 @@
 package org.apache.rocketmq.connect.runtime.service.memory;
 
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
@@ -49,7 +49,7 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
      * @param config
      */
     @Override
-    public void initialize(ConnectConfig config) {
+    public void initialize(WorkerConfig config) {
         this.tasks = new Table<>();
         this.connectors = new ConcurrentHashMap<>();
     }

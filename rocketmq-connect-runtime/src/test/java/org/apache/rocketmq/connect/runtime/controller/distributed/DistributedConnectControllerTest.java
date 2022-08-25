@@ -18,8 +18,8 @@
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
@@ -52,7 +52,7 @@ public class DistributedConnectControllerTest {
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
 
-    private ConnectConfig connectConfig = new ConnectConfig();
+    private WorkerConfig connectConfig = new WorkerConfig();
 
     private ServerResponseMocker nameServerMocker;
 

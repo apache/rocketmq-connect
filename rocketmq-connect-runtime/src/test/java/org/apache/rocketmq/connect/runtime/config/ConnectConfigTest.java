@@ -25,7 +25,7 @@ public class ConnectConfigTest {
 
     @Test
     public void testConnectConfigAttribute() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setHttpPort(8081);
         assertThat(connectConfig.getHttpPort()).isEqualTo(8081);
 
@@ -104,17 +104,14 @@ public class ConnectConfigTest {
         connectConfig.setAutoCreateGroupEnable(true);
         assertThat(true == connectConfig.isAutoCreateGroupEnable());
 
-        connectConfig.setClusterName("default_cluster");
-        assertThat("default_cluster".equals(connectConfig.getClusterName()));
-
         connectConfig.setAdminExtGroup("admin_group");
         assertThat("admin_group".equals(connectConfig.getAdminExtGroup()));
 
         connectConfig.setConnectHome("/usr/connect");
         assertThat("/usr/connect".equals(connectConfig.getConnectHome()));
 
-        connectConfig.setOffsetCommitIntervalMs(100);
-        assertThat(100 == connectConfig.getOffsetCommitIntervalMs());
+        connectConfig.setOffsetCommitIntervalMsConfig(100);
+        assertThat(100 == connectConfig.getOffsetCommitIntervalMsConfig());
 
         connectConfig.setMaxStartTimeoutMills(100);
         assertThat(100 == connectConfig.getMaxStartTimeoutMills());

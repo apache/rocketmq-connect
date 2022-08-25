@@ -19,7 +19,7 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.Connector;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 
@@ -48,7 +48,7 @@ public interface ConfigManagementService {
      *
      * @param config can be DistributedConfig or StandaloneConfig
      */
-    default void configure(ConnectConfig config) {
+    default void configure(WorkerConfig config) {
 
     }
 
@@ -111,7 +111,7 @@ public interface ConfigManagementService {
      */
     void registerListener(ConnectorConfigUpdateListener listener);
 
-    void initialize(ConnectConfig connectConfig, Plugin plugin);
+    void initialize(WorkerConfig connectConfig, Plugin plugin);
 
     ClusterConfigState snapshot();
 

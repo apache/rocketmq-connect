@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * A wrapper of {@link Connector} for runtime.
  */
-public class WorkerConnector implements Runnable  {
+public class WorkerConnector implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(WorkerConnector.class);
     private static final String THREAD_NAME_PREFIX = "connector-thread-";
 
@@ -129,7 +129,7 @@ public class WorkerConnector implements Runnable  {
 
     @Override
     public void run() {
-        try  {
+        try {
             ClassLoader savedLoader = Plugin.compareAndSwapLoaders(classloader);
             String savedName = Thread.currentThread().getName();
             try {
@@ -162,7 +162,8 @@ public class WorkerConnector implements Runnable  {
                 }
                 try {
                     wait();
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException e) {
+                }
             }
         }
         doShutdown();
@@ -346,6 +347,7 @@ public class WorkerConnector implements Runnable  {
 
     /**
      * connector name
+     *
      * @return
      */
     public String getConnectorName() {
@@ -354,6 +356,7 @@ public class WorkerConnector implements Runnable  {
 
     /**
      * connector config
+     *
      * @return
      */
     public ConnectKeyValue getKeyValue() {
@@ -376,7 +379,7 @@ public class WorkerConnector implements Runnable  {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("connectorName:" + connectorName)
-            .append("\nConfigs:" + JSON.toJSONString(keyValue));
+                .append("\nConfigs:" + JSON.toJSONString(keyValue));
         return sb.toString();
     }
 }
