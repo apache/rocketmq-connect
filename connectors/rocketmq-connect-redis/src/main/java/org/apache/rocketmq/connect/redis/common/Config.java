@@ -97,8 +97,7 @@ public class Config {
             .append(replId)
             .append(",")
             .append("commands: ")
-            .append(commands)
-        ;
+            .append(commands);
         return sb.toString();
     }
 

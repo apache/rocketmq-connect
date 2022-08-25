@@ -17,12 +17,12 @@
 
 package org.apache.rocketmq.connect.redis.converter;
 
-import io.openmessaging.connector.api.data.SourceDataEntry;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import java.util.List;
 import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 
 public interface KVEntryConverter {
 
-    List<SourceDataEntry> kVEntryToDataEntries(KVEntry kvEntry);
+    List<ConnectRecord> kVEntryToDataEntries(KVEntry kvEntry);
 
 }

@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 import com.moilioncircle.redis.replicator.rdb.datatype.EvictType;
 import com.moilioncircle.redis.replicator.rdb.datatype.ExpiredType;
 
-public class Options<T>{
+public class Options<T> {
     private static ConcurrentMap<String, Options<Object>> pool = new ConcurrentHashMap<>(32);
 
     public static final Options<Void> REDIS_PARTITION = newOption("DEFAULT_PARTITION");
@@ -79,43 +79,43 @@ public class Options<T>{
         this.name = name;
     }
 
-    public String name(){
+    public String name() {
         return this.name;
     }
 
-    public static <T> Options<T> valueOf(String name){
-        if(name == null || name.isEmpty()){
+    public static <T> Options<T> valueOf(String name) {
+        if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("empty name");
         }
-        return (Options<T>)get(name);
+        return (Options<T>) get(name);
     }
 
 
-    private static <T> Options<T> newOption(String name){
-        if(name == null || name.isEmpty()){
+    private static <T> Options<T> newOption(String name) {
+        if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("empty name");
         }
-        return (Options<T>)getOrCreate(name);
+        return (Options<T>) getOrCreate(name);
     }
 
-    private static Options<Object> getOrCreate(String name){
+    private static Options<Object> getOrCreate(String name) {
         Options<Object> option = get(name);
-        if(option == null){
+        if (option == null) {
             final Options<Object> tempOption = new Options<>(name);
             option = save(name, tempOption);
-            if(option == null){
+            if (option == null) {
                 return tempOption;
             }
         }
         return option;
     }
 
-    private static Options<Object> get(String name){
+    private static Options<Object> get(String name) {
         Options<Object> option = pool.get(name);
         return option;
     }
 
-    private static Options<Object> save(String name, Options<Object> options){
+    private static Options<Object> save(String name, Options<Object> options) {
         return pool.putIfAbsent(name, options);
     }
 

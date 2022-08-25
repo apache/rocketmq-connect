@@ -17,14 +17,11 @@
 
 package org.apache.rocketmq.connect.redis.connector;
 
-import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
+import java.util.List;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
@@ -34,7 +31,6 @@ import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
 import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 import org.apache.rocketmq.connect.redis.processor.DefaultRedisEventProcessor;
 import org.apache.rocketmq.connect.redis.processor.RedisEventProcessor;
-import org.apache.rocketmq.connect.redis.converter.RedisPositionConverter;
 import org.apache.rocketmq.connect.redis.processor.RedisEventProcessorCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,16 +60,15 @@ public class RedisSourceTask extends SourceTask {
     }
 
 
-    @Override public Collection<SourceDataEntry> poll() {
+    @Override public List<ConnectRecord> poll() {
         try {
             KVEntry event = this.eventProcessor.poll();
             if (event == null) {
                 return null;
             }
             event.queueName(Options.REDIS_QEUEUE.name());
-            event.entryType(EntryType.UPDATE);
 
-            Collection<SourceDataEntry> res = this.kvEntryConverter.kVEntryToDataEntries(event);
+            List<ConnectRecord> res = this.kvEntryConverter.kVEntryToDataEntries(event);
             LOGGER.info("send data entries: {}", res);
             return res;
         } catch (InterruptedException e) {
@@ -94,11 +89,7 @@ public class RedisSourceTask extends SourceTask {
         this.config.load(keyValue);
         LOGGER.info("task config msg: {}", this.config.toString());
 
-        // get position info
-        ByteBuffer byteBuffer = this.context.positionStorageReader().getPosition(
-            this.config.getPositionPartitionKey()
-        );
-        Long position = RedisPositionConverter.jsonToLong(byteBuffer);
+        final Long position = this.sourceTaskContext.configs().getLong("offset");
         if (position != null && position >= -1) {
             this.config.setPosition(position);
         }
@@ -127,16 +118,6 @@ public class RedisSourceTask extends SourceTask {
                 LOGGER.error("processor stop error: {}", e);
             }
         }
-    }
-
-
-    @Override public void pause() {
-
-    }
-
-
-    @Override public void resume() {
-
     }
 
     private class DefaultRedisEventProcessorCallback implements RedisEventProcessorCallback {

@@ -25,6 +25,7 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
+import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 
 public class TestConfigManagementService implements ConfigManagementService {
     @Override public void start() {
@@ -39,15 +40,19 @@ public class TestConfigManagementService implements ConfigManagementService {
         return null;
     }
 
-    @Override public Map<String, ConnectKeyValue> getConnectorConfigsIncludeDeleted() {
+    @Override public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
         return null;
     }
 
-    @Override public String putConnectorConfig(String connectorName, ConnectKeyValue configs) throws Exception {
-        return null;
+    @Override public void deleteConnectorConfig(String connectorName) {
+
     }
 
-    @Override public void removeConnectorConfig(String connectorName) {
+    @Override public void pauseConnector(String connectorName) {
+
+    }
+
+    @Override public void resumeConnector(String connectorName) {
 
     }
 
@@ -70,6 +75,10 @@ public class TestConfigManagementService implements ConfigManagementService {
 
     @Override public void initialize(WorkerConfig connectConfig, Plugin plugin) {
 
+    }
+
+    @Override public ClusterConfigState snapshot() {
+        return null;
     }
 
     @Override public Plugin getPlugin() {

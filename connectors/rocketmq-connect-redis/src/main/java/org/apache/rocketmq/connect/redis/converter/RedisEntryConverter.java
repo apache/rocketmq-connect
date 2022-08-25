@@ -17,53 +17,89 @@
 
 package org.apache.rocketmq.connect.redis.converter;
 
-import io.openmessaging.connector.api.data.DataEntryBuilder;
+import com.alibaba.fastjson.JSON;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import java.nio.ByteBuffer;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.connect.redis.common.Options;
-import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
 import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 
 public class RedisEntryConverter implements KVEntryConverter {
     private final int maxValueSize = 500;
 
-    @Override public List<SourceDataEntry> kVEntryToDataEntries(KVEntry kvEntry) {
-        Schema schema = getRedisSchema(kvEntry.getValueType());
-
+    @Override public List<ConnectRecord> kVEntryToDataEntries(KVEntry kvEntry) {
         String partition = kvEntry.getPartition();
         if (partition == null) {
             throw new IllegalStateException("partition info error.");
         }
-        List<SourceDataEntry> res = new ArrayList<>();
+        List<ConnectRecord> res = new ArrayList<>();
         List<Object> values = splitValue(kvEntry.getValueType(), kvEntry.getValue(), this.maxValueSize);
         for (int i = 0; i < values.size(); i++) {
-            DataEntryBuilder builder = newDataEntryBuilderWithoutValue(schema, kvEntry);
+            Schema schema = SchemaBuilder.struct().name(Options.REDIS_QEUEUE.name()).build();
+            final List<Field> fields = buildFields();
+            schema.setFields(fields);
 
-            builder.putFiled(Options.REDIS_VALUE.name(), values.get(i));
-            builder.timestamp(System.currentTimeMillis());
-
-            SourceDataEntry entry = builder.buildSourceDataEntry(
-                ByteBuffer.wrap(kvEntry.getPartition().getBytes()),
-                ByteBuffer.wrap(RedisPositionConverter.longToJson(kvEntry.getOffset()).toJSONString().getBytes())
-            );
-            res.add(entry);
+            final Object data = values.get(i);
+            if (data == null  || data.toString().equals("")) {
+                continue;
+            }
+            res.add(new ConnectRecord(buildRecordPartition(partition),
+                buildRecordOffset(kvEntry.getOffset()),
+                System.currentTimeMillis(),
+                schema,
+                buildPayLoad(fields, kvEntry, schema)));
         }
         return res;
+    }
+
+    private RecordOffset buildRecordOffset(Long offset)  {
+        Map<String, Long> offsetMap = new HashMap<>();
+        offsetMap.put("queueOffset", offset);
+        RecordOffset recordOffset = new RecordOffset(offsetMap);
+        return recordOffset;
+    }
+
+    private RecordPartition buildRecordPartition(String partition) {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put("partition", partition);
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
+    }
+
+    private List<Field> buildFields() {
+        final Schema stringSchema = SchemaBuilder.string().build();
+        List<Field> fields = new ArrayList<>();
+        fields.add(new Field(0, Options.REDIS_COMMAND.name(), stringSchema));
+        fields.add(new Field(1, Options.REDIS_KEY.name(), stringSchema));
+        fields.add(new Field(2, Options.REDIS_VALUE.name(), stringSchema));
+        fields.add(new Field(3, Options.REDIS_PARAMS.name(), stringSchema));
+        return fields;
+    }
+
+    private Struct buildPayLoad(List<Field> fields, KVEntry kvEntry, Schema schema) {
+        Struct payLoad = new Struct(schema);
+        payLoad.put(fields.get(0), kvEntry.getCommand());
+        payLoad.put(fields.get(1), kvEntry.getKey());
+        payLoad.put(fields.get(2), JSON.toJSONString(kvEntry.getValue()));
+        payLoad.put(fields.get(3), JSON.toJSONString(kvEntry.getParams()));
+        return payLoad;
     }
 
 
     private List<Object> splitValue(FieldType valueType, Object value, Integer maxValueSize) {
         List<Object> res = new ArrayList<>();
         if (valueType.equals(FieldType.ARRAY) && value instanceof List) {
-            List<Object> list = (List)value;
+            List<Object> list = (List) value;
             if (list.size() < maxValueSize) {
                 res.add(list);
             } else {
@@ -73,7 +109,7 @@ public class RedisEntryConverter implements KVEntryConverter {
                     for (int j = i * maxValueSize; j < Math.min((i + 1) * maxValueSize, list.size()); j++) {
                         v.add(list.get(j));
                     }
-                    if(!v.isEmpty()){
+                    if (!v.isEmpty()) {
                         res.add(v);
                     }
                 }
@@ -82,7 +118,7 @@ public class RedisEntryConverter implements KVEntryConverter {
         }
 
         if (valueType.equals(FieldType.MAP) && value instanceof Map) {
-            Map<Object, Object> map = (Map<Object, Object>)value;
+            Map<Object, Object> map = (Map<Object, Object>) value;
             if (map.size() < maxValueSize) {
                 res.add(map);
             } else {
@@ -96,7 +132,7 @@ public class RedisEntryConverter implements KVEntryConverter {
                         num = new AtomicInteger(0);
                     }
                 }
-                if(!v.isEmpty()){
+                if (!v.isEmpty()) {
                     res.add(v);
                 }
             }
@@ -105,30 +141,6 @@ public class RedisEntryConverter implements KVEntryConverter {
 
         res.add(value);
         return res;
-    }
-
-    private DataEntryBuilder newDataEntryBuilderWithoutValue(Schema schema, KVEntry kvEntry) {
-        DataEntryBuilder dataEntryBuilder = new DataEntryBuilder(schema);
-        dataEntryBuilder.queue(kvEntry.getQueueName());
-        dataEntryBuilder.entryType(kvEntry.getEntryType());
-        dataEntryBuilder.putFiled(Options.REDIS_COMMAND.name(), kvEntry.getCommand());
-        dataEntryBuilder.putFiled(Options.REDIS_KEY.name(), kvEntry.getKey());
-        dataEntryBuilder.putFiled(Options.REDIS_PARAMS.name(), kvEntry.getParams());
-        return dataEntryBuilder;
-    }
-
-    private Schema getRedisSchema(FieldType valueType) {
-        Schema schema = new Schema();
-        schema.setDataSource(Options.REDIS_DATASOURCE.name());
-        List<Field> fields = new ArrayList<>();
-
-        fields.add(new Field(0, Options.REDIS_COMMAND.name(), FieldType.STRING));
-        fields.add(new Field(1, Options.REDIS_KEY.name(), FieldType.STRING));
-        fields.add(new Field(2, Options.REDIS_VALUE.name(), valueType));
-        fields.add(new Field(3, Options.REDIS_PARAMS.name(), FieldType.MAP));
-
-        schema.setFields(fields);
-        return schema;
     }
 
 }

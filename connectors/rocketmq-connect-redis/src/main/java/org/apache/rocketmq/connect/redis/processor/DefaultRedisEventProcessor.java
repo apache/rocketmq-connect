@@ -218,7 +218,7 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
                     this.config.setOffset(Long.parseLong(offset));
                 }
             } else if(SyncMod.CUSTOM_OFFSET.equals(this.config.getSyncMod())){
-                if(this.config.getPosition() != null){
+                if (this.config.getPosition() != null) {
                     this.config.setOffset(this.config.getPosition());
                 }
             }

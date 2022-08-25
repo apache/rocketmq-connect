@@ -19,7 +19,6 @@ package org.apache.rocketmq.connect.redis.pojo;
 
 import java.util.HashMap;
 import java.util.Map;
-import io.openmessaging.connector.api.data.EntryType;
 import io.openmessaging.connector.api.data.FieldType;
 import org.apache.rocketmq.connect.redis.common.Options;
 
@@ -28,7 +27,6 @@ public class RedisEntry implements KVEntry {
     private String partition;
     private Map<String, Object> params;
     private String queueName;
-    private EntryType entryType;
     private String command;
     private String key;
     private FieldType valueType;
@@ -68,15 +66,6 @@ public class RedisEntry implements KVEntry {
 
     @Override public String getQueueName() {
         return this.queueName;
-    }
-
-    @Override public KVEntry entryType(EntryType entryType) {
-        this.entryType = entryType;
-        return this;
-    }
-
-    @Override public EntryType getEntryType() {
-        return this.entryType;
     }
 
     @Override public RedisEntry sourceId(String id) {
@@ -143,7 +132,7 @@ public class RedisEntry implements KVEntry {
     }
 
     @Override public <T> T getParam(Options<T> k) {
-        if(k == null){
+        if (k == null) {
             return null;
         }
         return (T) this.params.get(k.name());
@@ -159,7 +148,6 @@ public class RedisEntry implements KVEntry {
         sb.append("RedisEntry{")
             .append("partition:'").append(this.partition).append("', ")
             .append("queueName:'").append(this.queueName).append("', ")
-            .append("entryType:'").append(this.entryType).append("', ")
             .append("command:'").append(this.command).append("', ")
             .append("key:'").append(this.key).append("', ")
             .append("valueType:").append(this.valueType).append("', ")
