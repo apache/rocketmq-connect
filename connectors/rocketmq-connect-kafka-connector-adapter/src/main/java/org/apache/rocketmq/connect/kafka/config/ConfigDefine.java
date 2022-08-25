@@ -18,6 +18,9 @@ public class ConfigDefine {
     public static final String VALUE_CONVERTER = WorkerConfig.VALUE_CONVERTER_CLASS_CONFIG;
     public static final String HEADER_CONVERTER = WorkerConfig.HEADER_CONVERTER_CLASS_CONFIG;
 
+    // topic partition
+    public static String ROCKETMQ_BROKERNAME_KAFKATOPICPARTITION_MAPPER = "rocketmq.brokerName.kafkaTopicPartition.mapper";
+
 
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>(){
         {

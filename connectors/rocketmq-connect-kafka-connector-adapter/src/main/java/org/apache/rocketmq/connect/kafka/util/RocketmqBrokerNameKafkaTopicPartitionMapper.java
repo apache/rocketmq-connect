@@ -3,6 +3,7 @@ package org.apache.rocketmq.connect.kafka.util;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.kafka.common.TopicPartition;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -11,13 +12,20 @@ import java.util.Map;
  *org.apache.kafka.connect.sink.SinkTaskContext多个接口需要TopicPartition(topic，partition)映射到
  *MessageQueue(topic,brokerName,queueId)，所以需要转换
  */
-public interface KafkaTopicPartitionMapper {
+public interface RocketmqBrokerNameKafkaTopicPartitionMapper {
+
+
+    static RocketmqBrokerNameKafkaTopicPartitionMapper newKafkaTopicPartitionMapper(Map<String, String> kafkaTaskProps){
+        RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper = new EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper();
+        kafkaTopicPartitionMapper.configure(new HashMap<>());
+        return kafkaTopicPartitionMapper;
+    }
 
     /**
      * 配置
      * @param configs
      */
-    void configure(Map<String, ?> configs);
+    void configure(Map<String, String> configs);
 
     /**
      * 转换为kafka TopicPartition

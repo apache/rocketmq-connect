@@ -26,6 +26,7 @@ import org.apache.rocketmq.connect.kafka.config.ConfigDefine;
 import org.apache.rocketmq.connect.kafka.util.ConfigUtil;
 import org.apache.rocketmq.connect.kafka.util.KafkaPluginsUtil;
 import org.apache.rocketmq.connect.kafka.util.RecordUtil;
+import org.apache.rocketmq.connect.kafka.util.RocketmqBrokerNameKafkaTopicPartitionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,7 @@ public class KafkaRocketmqSinkTask extends SinkTask {
     private Converter keyConverter;
     private Converter valueConverter;
     private HeaderConverter headerConverter;
+    private RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
 
     @Override
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
@@ -54,16 +56,9 @@ public class KafkaRocketmqSinkTask extends SinkTask {
             if(key != null) {
                 keySchemaAndValue = keyConverter.toConnectData(topic, key.getBytes(StandardCharsets.UTF_8));
             }
-            /*
-             rocketmq分区概念是三元组，即MessageQueue(topic,brokerName,queueId)
-             kafka分区概念是二元组，即TopicPartition(topic，partition)
-             org.apache.kafka.connect.sink.SinkTaskContext多个接口需要TopicPartition(topic，partition)映射到
-             MessageQueue(topic,brokerName,queueId)，所以编码MessageQueue（topic,brokerName）-》TopicPartition(topic）
-             */
-            String sinkTopic = RecordUtil.getTopicAndBrokerName(sinkRecord.getPosition().getPartition());
-            int sinkPartition = RecordUtil.getPartition(sinkRecord.getPosition().getPartition());
+            TopicPartition topicPartition = this.kafkaTopicPartitionMapper.toTopicPartition(sinkRecord.getPosition().getPartition());
             SinkRecord record = new SinkRecord(
-                    sinkTopic, sinkPartition,
+                    topicPartition.topic(), topicPartition.partition(),
                     keySchemaAndValue==null?null:keySchemaAndValue.schema(),
                     keySchemaAndValue==null?null:keySchemaAndValue.value(),
                     valueSchemaAndValue.schema(), valueSchemaAndValue.value(),
@@ -108,7 +103,8 @@ public class KafkaRocketmqSinkTask extends SinkTask {
             Class<? extends Task> taskClass = taskConfig.getClass(ConfigDefine.TASK_CLASS).asSubclass(Task.class);
             this.kafkaSinkTask = (org.apache.kafka.connect.sink.SinkTask)kafkaPlugins.newTask(taskClass);
             initConverter(kafkaPlugins, kafkaTaskProps);
-            this.kafkaSinkTask.initialize(new RocketmqKafkaSinkTaskContext(sinkTaskContext));
+            this.kafkaTopicPartitionMapper = RocketmqBrokerNameKafkaTopicPartitionMapper.newKafkaTopicPartitionMapper(kafkaTaskProps);
+            this.kafkaSinkTask.initialize(new RocketmqKafkaSinkTaskContext(sinkTaskContext, this.kafkaTopicPartitionMapper));
             this.kafkaSinkTask.start(kafkaTaskProps);
         } catch (Throwable e){
             recoverClassLoader();
@@ -196,7 +192,7 @@ public class KafkaRocketmqSinkTask extends SinkTask {
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>(currentOffsets.size());
 
         for(Map.Entry<RecordPartition, RecordOffset> po: currentOffsets.entrySet()){
-            TopicPartition tp = RecordUtil.recordPartitionToTopicPartition(po.getKey());
+            TopicPartition tp = this.kafkaTopicPartitionMapper.toTopicPartition(po.getKey());
             OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(RecordUtil.getOffset(po.getValue()));
             offsets.put(tp, offsetAndMetadata);
         }

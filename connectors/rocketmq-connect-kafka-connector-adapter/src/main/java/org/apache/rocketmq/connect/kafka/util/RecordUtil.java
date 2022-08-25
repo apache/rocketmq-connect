@@ -25,57 +25,16 @@ public class RecordUtil {
     public static final String TOPIC = "topic";
     public static final String QUEUE_OFFSET = "queueOffset";
 
-
-    private static final String TOPIC_SEP = "@#@";
-
-
     public static final String KAFKA_MSG_KEY = "kafka_key";
     public static final String KAFKA_CONNECT_RECORD_TOPIC_KEY = "kafka_connect_record_topic";
     public static final String KAFKA_CONNECT_RECORD_PARTITION_KEY = "kafka_connect_record_partition";
     public static final String KAFKA_CONNECT_RECORD_HEADER_KEY_PREFIX = "kafka_connect_record_header_";
-
-    public static String getTopicAndBrokerName(RecordPartition recordPartition) {
-        return new StringBuilder()
-                .append(recordPartition.getPartition().get(TOPIC))
-                .append(TOPIC_SEP)
-                .append(recordPartition.getPartition().get(BROKER_NAME))
-                .toString();
-    }
-
-    public static Map<String, String>  getPartitionMap(String topicAndBrokerName) {
-        String[] split = topicAndBrokerName.split(TOPIC_SEP);
-        Map<String, String> map = new HashMap<>();
-        map.put(TOPIC, split[0]);
-        map.put(BROKER_NAME, split[1]);
-
-        return map;
-    }
 
     public static  long getOffset(RecordOffset recordOffset){
         return Long.valueOf(
                 (String) recordOffset.getOffset().get(QUEUE_OFFSET)
         );
     }
-
-    public static  int getPartition(RecordPartition recordPartition){
-        return Integer.valueOf(
-                (String) recordPartition.getPartition().get(QUEUE_ID)
-        );
-    }
-
-    public static TopicPartition recordPartitionToTopicPartition(RecordPartition recordPartition){
-        String topicAndBrokerName = getTopicAndBrokerName(recordPartition);
-        int partition = getPartition(recordPartition);
-        return new TopicPartition(topicAndBrokerName, partition);
-    }
-
-    public static RecordPartition topicPartitionToRecordPartition(TopicPartition topicPartition){
-        Map<String, String> map = RecordUtil.getPartitionMap(topicPartition.topic());
-        map.put(RecordUtil.QUEUE_ID, topicPartition.partition() + "");
-        return new RecordPartition(map);
-    }
-
-
     public static ConnectRecord toConnectRecord(SourceRecord sourceRecord, Converter keyConverter, Converter valueConverter,
                                          HeaderConverter headerConverter){
         RecordPartition recordPartition = new RecordPartition(new HashMap<>(sourceRecord.sourcePartition()));
@@ -155,9 +114,9 @@ public class RecordUtil {
         return sourceRecord;
     }
 
-    public static ConnectRecord sinkRecordToConnectRecord(SinkRecord sinkRecord){
+    public static ConnectRecord sinkRecordToConnectRecord(SinkRecord sinkRecord, RocketmqBrokerNameKafkaTopicPartitionMapper kafkaTopicPartitionMapper){
         TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
-        RecordPartition recordPartition = RecordUtil.topicPartitionToRecordPartition(topicPartition);
+        RecordPartition recordPartition = kafkaTopicPartitionMapper.toRecordPartition(topicPartition);
 
         Map<String, String> offsetMap = new HashMap<>();
         offsetMap.put(RecordUtil.QUEUE_OFFSET, sinkRecord.kafkaOffset() + "");
