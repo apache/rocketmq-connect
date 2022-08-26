@@ -15,13 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.hudi.strategy;
+package org.apache.rocketmq.connect.runtime.controller.isolation;
 
-import io.openmessaging.KeyValue;
-
+import java.util.ArrayList;
 import java.util.List;
+import org.assertj.core.api.Assertions;
+import org.junit.Before;
+import org.junit.Test;
 
+public class PluginTest {
 
-public interface ITaskDivideStrategy {
-    List<KeyValue> divide(KeyValue source);
+    private Plugin plugin;
+
+    @Before
+    public void before() {
+        List<String> pluginPaths = new ArrayList<>();
+        pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
+        plugin = new Plugin(pluginPaths);
+    }
+
+    @Test
+    public void initLoadersTest() {
+        Assertions.assertThatCode(() -> plugin.initLoaders()).doesNotThrowAnyException();
+    }
 }

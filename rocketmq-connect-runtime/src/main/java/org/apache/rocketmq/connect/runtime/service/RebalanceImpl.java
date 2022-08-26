@@ -25,7 +25,7 @@ import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
@@ -77,7 +77,7 @@ public class RebalanceImpl {
 
     public void checkClusterStoreTopic() {
         if (!clusterManagementService.hasClusterStoreTopic()) {
-            ConnectConfig connectConfig = this.connectController.getConnectConfig();
+            WorkerConfig connectConfig = this.connectController.getConnectConfig();
             String clusterStoreTopic = this.connectController.getConnectConfig().getClusterStoreTopic();
             log.info("cluster store topic not exist, try to create it!");
             TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
@@ -98,7 +98,7 @@ public class RebalanceImpl {
             }
         }
 
-
+        // exculde delete connector
         Map<String, ConnectKeyValue> curConnectorConfigs = configManagementService.getConnectorConfigs();
         log.info("Current ConnectorConfigs : " + curConnectorConfigs);
         Map<String, List<ConnectKeyValue>> curTaskConfigs = configManagementService.getTaskConfigs();

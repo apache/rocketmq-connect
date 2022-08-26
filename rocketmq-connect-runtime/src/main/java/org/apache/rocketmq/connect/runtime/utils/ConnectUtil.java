@@ -20,17 +20,10 @@ package org.apache.rocketmq.connect.runtime.utils;
 import com.beust.jcommander.internal.Sets;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -45,14 +38,25 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
@@ -91,7 +95,7 @@ public class ConnectUtil {
         return new StringBuffer(prefix).append("-").append(UUID.randomUUID().toString()).toString();
     }
 
-    public static AllocateConnAndTaskStrategy initAllocateConnAndTaskStrategy(ConnectConfig connectConfig) {
+    public static AllocateConnAndTaskStrategy initAllocateConnAndTaskStrategy(WorkerConfig connectConfig) {
         try {
             return (AllocateConnAndTaskStrategy) Thread.currentThread().getContextClassLoader().loadClass(connectConfig.getAllocTaskStrategy()).newInstance();
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
@@ -99,7 +103,7 @@ public class ConnectUtil {
         }
     }
 
-    public static DefaultMQProducer initDefaultMQProducer(ConnectConfig connectConfig) {
+    public static DefaultMQProducer initDefaultMQProducer(WorkerConfig connectConfig) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
@@ -109,12 +113,12 @@ public class ConnectUtil {
         producer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
         producer.setProducerGroup(connectConfig.getRmqProducerGroup());
         producer.setSendMsgTimeout(connectConfig.getOperationTimeout());
-        producer.setMaxMessageSize(RuntimeConfigDefine.MAX_MESSAGE_SIZE);
+        producer.setMaxMessageSize(ConnectorConfig.MAX_MESSAGE_SIZE);
         producer.setLanguage(LanguageCode.JAVA);
         return producer;
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig) {
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(WorkerConfig connectConfig) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
@@ -125,12 +129,12 @@ public class ConnectUtil {
         consumer.setConsumerGroup(connectConfig.getRmqConsumerGroup());
         consumer.setMaxReconsumeTimes(connectConfig.getRmqMaxRedeliveryTimes());
         consumer.setBrokerSuspendMaxTimeMillis(connectConfig.getBrokerSuspendMaxTimeMillis());
-        consumer.setConsumerPullTimeoutMillis((long) connectConfig.getRmqMessageConsumeTimeout());
+        consumer.setConsumerPullTimeoutMillis(connectConfig.getRmqMessageConsumeTimeout());
         consumer.setLanguage(LanguageCode.JAVA);
         return consumer;
     }
 
-    public static DefaultMQPushConsumer initDefaultMQPushConsumer(ConnectConfig connectConfig) {
+    public static DefaultMQPushConsumer initDefaultMQPushConsumer(WorkerConfig connectConfig) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
@@ -140,14 +144,14 @@ public class ConnectUtil {
         consumer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
         consumer.setConsumerGroup(createGroupName(connectConfig.getRmqConsumerGroup()));
         consumer.setMaxReconsumeTimes(connectConfig.getRmqMaxRedeliveryTimes());
-        consumer.setConsumeTimeout((long) connectConfig.getRmqMessageConsumeTimeout());
+        consumer.setConsumeTimeout(connectConfig.getRmqMessageConsumeTimeout());
         consumer.setConsumeThreadMin(connectConfig.getRmqMinConsumeThreadNums());
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setLanguage(LanguageCode.JAVA);
         return consumer;
     }
 
-    public static DefaultMQAdminExt startMQAdminTool(ConnectConfig connectConfig) throws MQClientException {
+    public static DefaultMQAdminExt startMQAdminTool(WorkerConfig connectConfig) throws MQClientException {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
@@ -160,7 +164,7 @@ public class ConnectUtil {
         return defaultMQAdminExt;
     }
 
-    public static void createTopic(ConnectConfig connectConfig, TopicConfig topicConfig) {
+    public static void createTopic(WorkerConfig connectConfig, TopicConfig topicConfig) {
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
@@ -182,7 +186,7 @@ public class ConnectUtil {
         }
     }
 
-    public static boolean isTopicExist(ConnectConfig connectConfig, String topic) {
+    public static boolean isTopicExist(WorkerConfig connectConfig, String topic) {
         DefaultMQAdminExt defaultMQAdminExt = null;
         boolean foundTopicRouteInfo = false;
         try {
@@ -203,7 +207,7 @@ public class ConnectUtil {
         return foundTopicRouteInfo;
     }
 
-    public static Set<String> fetchAllConsumerGroupList(ConnectConfig connectConfig) {
+    public static Set<String> fetchAllConsumerGroupList(WorkerConfig connectConfig) {
         Set<String> consumerGroupSet = Sets.newHashSet();
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
@@ -223,7 +227,7 @@ public class ConnectUtil {
         return consumerGroupSet;
     }
 
-    public static String createSubGroup(ConnectConfig connectConfig, String subGroup) {
+    public static String createSubGroup(WorkerConfig connectConfig, String subGroup) {
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
@@ -258,6 +262,20 @@ public class ConnectUtil {
         return recordPartition;
     }
 
+    /**
+     * convert to message queue
+     *
+     * @param recordPartition
+     * @return
+     */
+    public static MessageQueue convertToMessageQueue(RecordPartition recordPartition) {
+        Map<String, ?> partion = recordPartition.getPartition();
+        String topic = partion.get("topic").toString();
+        String brokerName = partion.get("brokerName").toString();
+        int queueId = partion.containsKey("queueId") ? Integer.parseInt(partion.get("queueId").toString()) : 0;
+        return new MessageQueue(topic, brokerName, queueId);
+    }
+
     public static RecordOffset convertToRecordOffset(Long offset) {
         Map<String, String> offsetMap = new HashMap<>();
         offsetMap.put(QUEUE_OFFSET, offset + "");
@@ -278,7 +296,6 @@ public class ConnectUtil {
     }
 
 
-
     public static RecordPartition convertToRecordPartition(String topic, String brokerName, int queueId) {
         Map<String, String> map = new HashMap<>();
         map.put("topic", topic);
@@ -288,7 +305,39 @@ public class ConnectUtil {
         return recordPartition;
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, ConnectorTaskId  id, ConnectKeyValue keyValue) {
+    /**
+     * init default lite pull consumer
+     *
+     * @param connectConfig
+     * @return
+     * @throws MQClientException
+     */
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue, boolean autoCommit) throws MQClientException {
+        DefaultLitePullConsumer consumer = null;
+        String groupId = keyValue.getString(SinkConnectorConfig.TASK_GROUP_ID);
+        if (StringUtils.isBlank(groupId)) {
+            groupId = SYS_TASK_CG_PREFIX + id.connector();
+        }
+        if (Objects.isNull(consumer)) {
+            if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
+                consumer = new DefaultLitePullConsumer(groupId);
+            } else {
+                consumer = new DefaultLitePullConsumer(groupId, getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+            }
+        }
+        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        String uniqueName = Thread.currentThread().getName() + "-" + System.currentTimeMillis() % 1000;
+        consumer.setInstanceName(uniqueName);
+        consumer.setUnitName(uniqueName);
+        consumer.setAutoCommit(autoCommit);
+        return consumer;
+    }
+
+    private static RPCHook getAclRPCHook(String accessKey, String secretKey) {
+        return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+    }
+
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(WorkerConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
@@ -307,7 +356,7 @@ public class ConnectUtil {
         return consumer;
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(ConnectConfig connectConfig, String connectorName, ConnectKeyValue keyValue) {
+    public static DefaultMQPullConsumer initDefaultMQPullConsumer(WorkerConfig connectConfig, String connectorName, ConnectKeyValue keyValue) {
         RPCHook rpcHook = null;
         if (connectConfig.getAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));

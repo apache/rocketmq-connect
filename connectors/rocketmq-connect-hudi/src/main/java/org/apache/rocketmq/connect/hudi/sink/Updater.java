@@ -19,9 +19,10 @@
 package org.apache.rocketmq.connect.hudi.sink;
 
 
-import io.openmessaging.connector.api.data.SinkDataEntry;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
@@ -52,8 +53,10 @@ import org.apache.rocketmq.connect.hudi.config.HudiConnectConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -70,8 +73,9 @@ public class Updater {
     private transient ScheduledExecutorService scheduledExecutor;
     private int flushIntervalMs = 3000;
     private int batchSize = 100;
-    private List<SinkDataEntry> inflightList;
+    private List<ConnectRecord> inflightList;
     private Object batchLocker = new Object();
+    public static final String QUEUE_ID = "queueId";
 
 
     public Updater(HudiConnectConfig hudiConnectConfig) throws Exception {
@@ -136,22 +140,30 @@ public class Updater {
         }
     }
 
-    private GenericRecord sinkDataEntry2GenericRecord(SinkDataEntry record) {
-        byte[] recordBytes = (byte[]) record.getPayload()[0];
+
+    private GenericRecord sinkDataEntry2GenericRecord(ConnectRecord record) throws UnsupportedEncodingException {
+        byte[] recordBytes = ((String) record.getData()).getBytes("UTF8");
         GenericRecord genericRecord = new GenericData.Record(this.hudiConnectConfig.schema);
         DatumReader<GenericRecord> userDatumReader = new SpecificDatumReader<GenericRecord>(this.hudiConnectConfig.schema);
         BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(recordBytes, null);
         try {
-            if (!decoder.isEnd()) {
-                genericRecord = userDatumReader.read(genericRecord, decoder);
-            }
-        } catch (IOException e) {
-            log.error("SinkDataEntry convert to GenericRecord occur error,", e);
+            recordBytes = ((String) record.getData()).getBytes("UTF8");
+        } catch (UnsupportedEncodingException e) {
+            log.error("convert record getBytes error", e);
         }
+
+        GenericRecord genericRecord = null;
+        try {
+            genericRecord = new GenericDatumReader<GenericRecord>(this.hudiConnectConfig.schema).read(null,
+                    DecoderFactory.get().jsonDecoder(this.hudiConnectConfig.schema, new ByteArrayInputStream(recordBytes)));
+        } catch (IOException e) {
+            log.error("convert record to genericRecord error", e);
+        }
+
         return genericRecord;
     }
 
-    public boolean push(SinkDataEntry record) {
+    public boolean push(ConnectRecord record) {
         log.info("Updater Trying to push data");
         Boolean isSuccess = true;
         if (record == null) {
@@ -162,6 +174,7 @@ public class Updater {
             inflightList.add(record);
         }
         if (inflightList.size() >= batchSize) {
+            log.info("prepare to commit");
             try {
                 scheduledExecutor.submit(this::commit);
             } catch (Exception e) {
@@ -193,7 +206,7 @@ public class Updater {
     }
 
     public void commit() {
-        List<SinkDataEntry> commitList;
+        List<ConnectRecord> commitList;
         if (inflightList.isEmpty()) {
             return;
         }
@@ -201,13 +214,29 @@ public class Updater {
             commitList = inflightList;
             inflightList = new ArrayList<>();
         }
+
         List<HoodieRecord> hoodieRecordsList = new ArrayList<>();
-        for (SinkDataEntry record : commitList) {
-            GenericRecord genericRecord = sinkDataEntry2GenericRecord(record);
-            HoodieRecord<HoodieAvroPayload> hoodieRecord = new HoodieRecord(new HoodieKey(UUID.randomUUID().toString(), "shardingKey-" + record.getQueueName()), new HoodieAvroPayload(Option.of(genericRecord)));
+        for (ConnectRecord record : commitList) {
+            GenericRecord genericRecord = null;
+            try {
+                genericRecord = sinkDataEntry2GenericRecord(record);
+            } catch (UnsupportedEncodingException e) {
+                log.error("parse record error, ", e);
+                continue;
+            }
+            HoodieRecord<HoodieAvroPayload> hoodieRecord = new HoodieRecord(new HoodieKey(UUID.randomUUID().toString(), "shardingKey-" + record.getPosition().getPartition()), new HoodieAvroPayload(Option.of(genericRecord)));
             hoodieRecordsList.add(hoodieRecord);
         }
+
         try {
+            log.info("Before commit.");
+            List<HoodieRecord> hoodieRecordsList = new ArrayList<>();
+            for (ConnectRecord record : commitList) {
+                GenericRecord genericRecord = sinkDataEntry2GenericRecord(record);
+                HoodieRecord<HoodieAvroPayload> hoodieRecord = new HoodieRecord(new HoodieKey(UUID.randomUUID().toString(), "shardingKey-" + record.getPosition().getPartition().getPartition().get(QUEUE_ID)), new HoodieAvroPayload(Option.of(genericRecord)));
+                hoodieRecordsList.add(hoodieRecord);
+            }
+
             List<WriteStatus> statuses = hudiWriteClient.upsert(hoodieRecordsList, hudiWriteClient.startCommit());
             log.info("Upserted data to hudi");
             long upserted = statuses.get(0).getStat().getNumInserts();

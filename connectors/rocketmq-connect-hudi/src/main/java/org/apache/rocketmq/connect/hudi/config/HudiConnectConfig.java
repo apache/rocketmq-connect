@@ -53,6 +53,8 @@ public class HudiConnectConfig {
     public static final String CONN_WHITE_LIST = "whiteDataBase";
     public static final String CONN_SOURCE_RECORD_CONVERTER = "source-record-converter";
 
+    public static final String CONN_CONNECTOR_CLASS = "connector-class";
+    public static final String CONN_TASK_CLASS = "task-class";
     public static final String CONN_HUDI_TABLE_TYPE = "tableType";
     public static final String CONN_HUDI_TABLE_PATH = "tablePath";
     public static final String CONN_HUDI_TABLE_NAME = "tableName";
@@ -70,7 +72,7 @@ public class HudiConnectConfig {
     public static final String CONN_SOURCE_CLUSTER = "source-cluster";
     public static final String REFRESH_INTERVAL = "refresh.interval";
 
-    public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
+    public static final Set<String>REQUEST_CONFIG = new HashSet<String>() {
         {
             add(CONN_HUDI_TABLE_PATH);
             add(CONN_HUDI_TABLE_NAME);

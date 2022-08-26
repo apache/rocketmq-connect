@@ -16,60 +16,88 @@
  */
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
-import io.openmessaging.connector.api.component.task.sink.SinkConnector;
-import io.openmessaging.connector.api.component.task.source.SourceConnector;
-import java.util.Locale;
 
-public class PluginWrapper<T> {
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
+
+import java.util.Objects;
+
+/**
+ * @param <T>
+ */
+public class PluginWrapper<T> implements Comparable<PluginWrapper<T>> {
     private final Class<? extends T> klass;
     private final String name;
     private final PluginType type;
     private final String typeName;
     private final String location;
+    private final String version;
+    private final DefaultArtifactVersion encodedVersion;
+
     private final ClassLoader classLoader;
 
-    public PluginWrapper(Class<? extends T> klass, ClassLoader loader) {
+    public PluginWrapper(Class<? extends T> klass, String version, ClassLoader loader) {
         this.klass = klass;
         this.name = klass.getName();
         this.type = PluginType.from(klass);
         this.typeName = type.toString();
         this.classLoader = loader;
         this.location = loader instanceof PluginClassLoader
-            ? ((PluginClassLoader) loader).location()
-            : "classpath";
+                ? ((PluginClassLoader) loader).location()
+                : "classpath";
+        this.version = version != null ? version : "null";
+        this.encodedVersion = new DefaultArtifactVersion(this.version);
     }
 
     public ClassLoader getClassLoader() {
         return this.classLoader;
     }
 
-    public enum PluginType {
-        SOURCE(SourceConnector.class),
-        SINK(SinkConnector.class),
-        UNKNOWN(Object.class);
+    public Class<? extends T> pluginClass() {
+        return klass;
+    }
 
-        private Class<?> klass;
+    public String className() {
+        return name;
+    }
 
-        PluginType(Class<?> klass) {
-            this.klass = klass;
+    public String version() {
+        return version;
+    }
+
+    public PluginType type() {
+        return type;
+    }
+
+    public String typeName() {
+        return typeName;
+    }
+
+    public String location() {
+        return location;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
         }
-
-        public static PluginType from(Class<?> klass) {
-            for (PluginType type : PluginType.values()) {
-                if (type.klass.isAssignableFrom(klass)) {
-                    return type;
-                }
-            }
-            return UNKNOWN;
+        if (!(o instanceof PluginWrapper)) {
+            return false;
         }
+        PluginWrapper<?> that = (PluginWrapper<?>) o;
+        return Objects.equals(klass, that.klass) &&
+                Objects.equals(version, that.version) &&
+                type == that.type;
+    }
 
-        public String simpleName() {
-            return klass.getSimpleName();
-        }
+    @Override
+    public int hashCode() {
+        return Objects.hash(klass, version, type);
+    }
 
-        @Override
-        public String toString() {
-            return super.toString().toLowerCase(Locale.ROOT);
-        }
+    @Override
+    public int compareTo(PluginWrapper other) {
+        int nameComp = name.compareTo(other.name);
+        return nameComp != 0 ? nameComp : encodedVersion.compareTo(other.encodedVersion);
     }
 }

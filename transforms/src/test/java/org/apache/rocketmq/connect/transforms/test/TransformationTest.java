@@ -14,12 +14,28 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+package org.apache.rocketmq.connect.transforms.test;
 
-package org.apache.rocketmq.connect.hudi.strategy;
+import io.openmessaging.connector.api.component.Transform;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import org.junit.Before;
+
+public abstract class TransformationTest {
+  final boolean isKey;
+  final static String TOPIC = "test";
+  
+  protected TransformationTest(boolean isKey) {
+    this.isKey = isKey;
+  }
+
+  protected abstract Transform<ConnectRecord> create();
+
+  Transform<ConnectRecord> transformation;
+
+  @Before
+  public void before() {
+    this.transformation = create();
+  }
 
 
-public class TaskDivideStrategyFactory {
-    public static ITaskDivideStrategy getInstance() {
-        return new TaskDivideByQueueStrategy();
-    }
 }

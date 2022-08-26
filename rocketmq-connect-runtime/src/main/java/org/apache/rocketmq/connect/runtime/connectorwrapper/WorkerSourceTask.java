@@ -34,14 +34,17 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
@@ -57,6 +60,7 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -129,21 +133,22 @@ public class WorkerSourceTask extends WorkerTask {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
     }
 
-    public WorkerSourceTask(ConnectConfig workerConfig,
-        ConnectorTaskId id,
-        SourceTask sourceTask,
-        ClassLoader classLoader,
-        ConnectKeyValue taskConfig,
-        PositionManagementService positionManagementService,
-        RecordConverter keyConverter,
-        RecordConverter valueConverter,
-        DefaultMQProducer producer,
-        AtomicReference<WorkerState> workerState,
-        ConnectStatsManager connectStatsManager,
-        ConnectStatsService connectStatsService,
-        TransformChain<ConnectRecord> transformChain,
-        RetryWithToleranceOperator retryWithToleranceOperator) {
-        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState);
+    public WorkerSourceTask(WorkerConfig workerConfig,
+                            ConnectorTaskId id,
+                            SourceTask sourceTask,
+                            ClassLoader classLoader,
+                            ConnectKeyValue taskConfig,
+                            PositionManagementService positionManagementService,
+                            RecordConverter keyConverter,
+                            RecordConverter valueConverter,
+                            DefaultMQProducer producer,
+                            AtomicReference<WorkerState> workerState,
+                            ConnectStatsManager connectStatsManager,
+                            ConnectStatsService connectStatsService,
+                            TransformChain<ConnectRecord> transformChain,
+                            RetryWithToleranceOperator retryWithToleranceOperator,
+                            WrapperStatusListener statusListener) {
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
 
         this.sourceTask = sourceTask;
         this.offsetStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
@@ -190,7 +195,7 @@ public class WorkerSourceTask extends WorkerTask {
     }
 
     protected Optional<RecordOffsetManagement.SubmittedPosition> prepareToSendRecord(
-        ConnectRecord record
+            ConnectRecord record
     ) {
         maybeThrowProducerSendException();
         return Optional.of(this.offsetManagement.submitRecord(record.getPosition()));
@@ -215,7 +220,8 @@ public class WorkerSourceTask extends WorkerTask {
             /**prepare to send record*/
             Optional<RecordOffsetManagement.SubmittedPosition> submittedRecordPosition = prepareToSendRecord(preTransformRecord);
             try {
-                producer.send(sourceMessage, new SendCallback() {
+
+                SendCallback callback = new SendCallback() {
                     @Override
                     public void onSuccess(SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
@@ -235,10 +241,20 @@ public class WorkerSourceTask extends WorkerTask {
                         // record send failed
                         recordSendFailed(false, sourceMessage, preTransformRecord, throwable);
                     }
-                });
+                };
+
+                if (StringUtils.isEmpty(sourceMessage.getKeys())) {
+                    // Round robin
+                    producer.send(sourceMessage, callback);
+                } else {
+                    // Partition message ordering,
+                    // At the same time, ensure that the data is pulled in an orderly manner, which needs to be guaranteed by sourceTask in the business
+                    producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys(), callback);
+                }
+
             } catch (RetriableException e) {
                 log.warn("{} Failed to send record to topic '{}'. Backing off before retrying: ",
-                    this, sourceMessage.getTopic(), e);
+                        this, sourceMessage.getTopic(), e);
                 // Intercepted as successfully sent, used to continue sending next time
                 toSendRecord = toSendRecord.subList(processed, toSendRecord.size());
                 // remove pre submit position, for retry
@@ -266,17 +282,17 @@ public class WorkerSourceTask extends WorkerTask {
     private void maybeThrowProducerSendException() {
         if (producerSendException.get() != null) {
             throw new ConnectException(
-                "Unrecoverable exception from producer send callback",
-                producerSendException.get()
+                    "Unrecoverable exception from producer send callback",
+                    producerSendException.get()
             );
         }
     }
 
     private void recordSendFailed(
-        boolean synchronous,
-        Message sourceMessage,
-        ConnectRecord preTransformRecord,
-        Throwable e) {
+            boolean synchronous,
+            Message sourceMessage,
+            ConnectRecord preTransformRecord,
+            Throwable e) {
         if (synchronous) {
             throw new ConnectException("Unrecoverable exception trying to send", e);
         }
@@ -284,16 +300,16 @@ public class WorkerSourceTask extends WorkerTask {
         if (retryWithToleranceOperator.getErrorToleranceType() == ToleranceType.ALL) {
             // ignore all error
             log.trace(
-                "Ignoring failed record send: {} failed to send record to {}: ",
-                WorkerSourceTask.this,
-                topic,
-                e
+                    "Ignoring failed record send: {} failed to send record to {}: ",
+                    WorkerSourceTask.this,
+                    topic,
+                    e
             );
             retryWithToleranceOperator.executeFailed(
-                ErrorReporter.Stage.ROCKETMQ_PRODUCE,
-                WorkerSourceTask.class,
-                preTransformRecord,
-                e);
+                    ErrorReporter.Stage.ROCKETMQ_PRODUCE,
+                    WorkerSourceTask.class,
+                    preTransformRecord,
+                    e);
             commitTaskRecord(preTransformRecord, null);
         } else {
             log.error("{} failed to send record to {}: ", WorkerSourceTask.this, topic, e);
@@ -319,9 +335,9 @@ public class WorkerSourceTask extends WorkerTask {
      * @param result
      */
     private void recordSent(
-        ConnectRecord preTransformRecord,
-        Message sourceMessage,
-        SendResult result) {
+            ConnectRecord preTransformRecord,
+            Message sourceMessage,
+            SendResult result) {
         commitTaskRecord(preTransformRecord, result);
     }
 
@@ -352,14 +368,16 @@ public class WorkerSourceTask extends WorkerTask {
         Message sourceMessage = new Message();
         sourceMessage.setTopic(topic);
         byte[] key = retryWithToleranceOperator.execute(() -> keyConverter.fromConnectData(topic, record.getKeySchema(), record.getKey()),
-            ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
+                ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
 
         byte[] value = retryWithToleranceOperator.execute(() -> valueConverter.fromConnectData(topic, record.getSchema(), record.getData()),
-            ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
-        if (value.length > RuntimeConfigDefine.MAX_MESSAGE_SIZE) {
-            log.error("Send record, message size is greater than {} bytes, record: {}", RuntimeConfigDefine.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
+                ErrorReporter.Stage.CONVERTER, valueConverter.getClass());
+        if (value.length > ConnectorConfig.MAX_MESSAGE_SIZE) {
+            log.error("Send record, message size is greater than {} bytes, record: {}", ConnectorConfig.MAX_MESSAGE_SIZE, JSON.toJSONString(record));
         }
-        sourceMessage.setKeys(Base64Util.base64Encode(key));
+        if (key != null) {
+            sourceMessage.setKeys(Base64Util.base64Encode(key));
+        }
         sourceMessage.setBody(value);
         if (retryWithToleranceOperator.failed()) {
             return null;
@@ -376,7 +394,7 @@ public class WorkerSourceTask extends WorkerTask {
      * @return
      */
     private String maybeCreateAndGetTopic(ConnectRecord record) {
-        String topic = taskConfig.getString(RuntimeConfigDefine.CONNECT_TOPICNAME);
+        String topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
         if (StringUtils.isBlank(topic)) {
             RecordPosition recordPosition = record.getPosition();
             if (null == recordPosition) {
@@ -416,6 +434,9 @@ public class WorkerSourceTask extends WorkerTask {
             log.info("extension keySet null.");
             return;
         }
+        if (sourceDataEntry.getTimestamp() != null) {
+            MessageAccessor.putProperty(sourceMessage, ConnectorConfig.CONNECT_TIMESTAMP, sourceDataEntry.getTimestamp().toString());
+        }
         for (String key : keySet) {
             if (WHITE_KEY_SET.contains(key)) {
                 MessageAccessor.putProperty(sourceMessage, key, extensionKeyValues.getString(key));
@@ -453,8 +474,22 @@ public class WorkerSourceTask extends WorkerTask {
     @Override
     protected void execute() {
         while (isRunning()) {
-
             updateCommittableOffsets();
+
+            if (shouldPause()) {
+                onPause();
+                try {
+                    // wait unpause
+                    if (awaitUnpause()) {
+                        onResume();
+                    }
+                    continue;
+                } catch (InterruptedException e) {
+                    // do exception
+                }
+            }
+
+
             if (CollectionUtils.isEmpty(toSendRecord)) {
                 try {
                     prepareToPollTask();
@@ -494,8 +529,8 @@ public class WorkerSourceTask extends WorkerTask {
     protected void finalOffsetCommit(boolean b) {
 
         offsetManagement.awaitAllMessages(
-            workerConfig.getOffsetCommitTimeoutMsConfig(),
-            TimeUnit.MILLISECONDS
+                workerConfig.getOffsetCommitTimeoutMsConfig(),
+                TimeUnit.MILLISECONDS
         );
         updateCommittableOffsets();
         commitOffsets();
@@ -516,9 +551,9 @@ public class WorkerSourceTask extends WorkerTask {
 
         if (committableOffsets.isEmpty()) {
             log.debug("{} Either no records were produced by the task since the last offset commit, "
-                    + "or every record has been filtered out by a transformation "
-                    + "or dropped due to transformation or conversion errors.",
-                this
+                            + "or every record has been filtered out by a transformation "
+                            + "or dropped due to transformation or conversion errors.",
+                    this
             );
             // We continue with the offset commit process here instead of simply returning immediately
             // in order to invoke SourceTask::commit and record metrics for a successful offset commit
@@ -526,17 +561,17 @@ public class WorkerSourceTask extends WorkerTask {
             log.info("{} Committing offsets for {} acknowledged messages", this, committableOffsets.numCommittableMessages());
             if (committableOffsets.hasPending()) {
                 log.debug("{} There are currently {} pending messages spread across {} source partitions whose offsets will not be committed. "
-                        + "The source partition with the most pending messages is {}, with {} pending messages",
-                    this,
-                    committableOffsets.numUncommittableMessages(),
-                    committableOffsets.numDeques(),
-                    committableOffsets.largestDequePartition(),
-                    committableOffsets.largestDequeSize()
+                                + "The source partition with the most pending messages is {}, with {} pending messages",
+                        this,
+                        committableOffsets.numUncommittableMessages(),
+                        committableOffsets.numDeques(),
+                        committableOffsets.largestDequePartition(),
+                        committableOffsets.largestDequeSize()
                 );
             } else {
                 log.debug("{} There are currently no pending messages for this offset commit; "
-                        + "all messages dispatched to the task's producer since the last commit have been acknowledged",
-                    this
+                                + "all messages dispatched to the task's producer since the last commit have been acknowledged",
+                        this
                 );
             }
         }
@@ -549,7 +584,7 @@ public class WorkerSourceTask extends WorkerTask {
             // There was nothing in the offsets to process, but we still mark a successful offset commit.
             long durationMillis = System.currentTimeMillis() - started;
             log.debug("{} Finished offset commitOffsets successfully in {} ms",
-                this, durationMillis);
+                    this, durationMillis);
             commitSourceTask();
             return true;
         }
@@ -578,7 +613,7 @@ public class WorkerSourceTask extends WorkerTask {
         }
         long durationMillis = System.currentTimeMillis() - started;
         log.debug("{} Finished commitOffsets successfully in {} ms",
-            this, durationMillis);
+                this, durationMillis);
         commitSourceTask();
         return true;
     }

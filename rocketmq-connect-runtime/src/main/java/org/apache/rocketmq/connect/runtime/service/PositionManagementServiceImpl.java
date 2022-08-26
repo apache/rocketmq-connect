@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
@@ -77,7 +77,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         String positionStoreTopic = connectConfig.getPositionStoreTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, positionStoreTopic)) {
             log.info("try to create position store topic: {}!", positionStoreTopic);
@@ -163,7 +163,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         this.positionUpdateListener.add(listener);
     }
 
-    @Override public void initialize(ConnectConfig connectConfig) {
+    @Override public void initialize(WorkerConfig connectConfig) {
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
             new RecordPartitionConverter(),
             new RecordOffsetConverter());

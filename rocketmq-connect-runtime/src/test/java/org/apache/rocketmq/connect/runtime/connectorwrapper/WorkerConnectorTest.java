@@ -41,13 +41,13 @@ public class WorkerConnectorTest {
     public void init() {
         ConnectKeyValue connectKeyValue = new ConnectKeyValue();
         connectKeyValue.put("key1", "value1");
-        workerConnector = new WorkerConnector("TEST-CONN", new TestConnector(), connectKeyValue, connectorContext);
-        workerConnector.start();
+        workerConnector = new WorkerConnector("TEST-CONN", new TestConnector(), connectKeyValue, connectorContext, null, null);
+        new Thread(workerConnector).start();
     }
 
     @After
     public void destroy() {
-        workerConnector.stop();
+        workerConnector.shutdown();
     }
 
     @Test

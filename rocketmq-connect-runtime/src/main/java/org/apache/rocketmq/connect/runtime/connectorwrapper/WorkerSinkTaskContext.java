@@ -25,6 +25,7 @@ import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,11 +33,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.common.QueueState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +45,9 @@ import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTas
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
 
+/**
+ * worker sink task context
+ */
 public class WorkerSinkTaskContext implements SinkTaskContext {
 
     /**
@@ -54,18 +57,24 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-    private final Map<MessageQueue, Long> messageQueuesOffsetMap = new ConcurrentHashMap<>(64);
+    private final Map<MessageQueue, Long> messageQueuesOffset;
 
-    private final Map<MessageQueue, QueueState> messageQueuesStateMap = new ConcurrentHashMap<>(64);
+    private final Set<MessageQueue> pausedQueues;
 
     private final WorkerSinkTask workerSinkTask;
 
-    private final DefaultMQPullConsumer consumer;
+    private final DefaultLitePullConsumer consumer;
 
-    public WorkerSinkTaskContext(ConnectKeyValue taskConfig, WorkerSinkTask workerSinkTask, DefaultMQPullConsumer consumer) {
+    public WorkerSinkTaskContext(ConnectKeyValue taskConfig, WorkerSinkTask workerSinkTask, DefaultLitePullConsumer consumer) {
         this.taskConfig = taskConfig;
         this.workerSinkTask = workerSinkTask;
         this.consumer = consumer;
+        this.pausedQueues = new HashSet<>();
+        this.messageQueuesOffset = new ConcurrentHashMap<>();
+    }
+
+    public Set<MessageQueue> getPausedQueues() {
+        return pausedQueues;
     }
 
     @Override
@@ -92,7 +101,7 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
             log.warn("resetOffset, offset is null");
             return;
         }
-        messageQueuesOffsetMap.put(messageQueue, offset);
+        messageQueuesOffset.put(messageQueue, offset);
     }
 
     @Override
@@ -121,7 +130,7 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
                 log.warn("resetOffset, offset is null");
                 continue;
             }
-            messageQueuesOffsetMap.put(messageQueue, offset);
+            messageQueuesOffset.put(messageQueue, offset);
         }
     }
 
@@ -131,6 +140,7 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
             log.warn("recordPartitions is null or recordPartitions.size() is zero. recordPartitions {}", JSON.toJSONString(recordPartitions));
             return;
         }
+        Set<MessageQueue> queues = new HashSet<>();
         for (RecordPartition recordPartition : recordPartitions) {
             if (null == recordPartition || null == recordPartition.getPartition()) {
                 log.warn("recordPartition {} info is null", recordPartition);
@@ -144,13 +154,16 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
                 continue;
             }
             MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueId);
-            if (!messageQueuesOffsetMap.containsKey(messageQueue)) {
-                log.warn("sink task current messageQueuesOffsetMap {} not contain messageQueue {}", messageQueuesOffsetMap, messageQueue);
-                continue;
-            }
-            messageQueuesStateMap.put(messageQueue, QueueState.PAUSE);
+            queues.add(messageQueue);
         }
-        this.workerSinkTask.close();
+
+        pausedQueues.addAll(queues);
+        if (workerSinkTask.shouldPause()) {
+            log.debug("{} Connector is paused, so not pausing consumer's partitions {}", this, queues);
+        } else {
+            consumer.pause(queues);
+            log.debug("{} Pausing partitions {}. Connector is not paused.", this, queues);
+        }
     }
 
     @Override
@@ -159,6 +172,7 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
             log.warn("recordPartitions is null or recordPartitions.size() is zero. recordPartitions {}", JSON.toJSONString(recordPartitions));
             return;
         }
+        Set<MessageQueue> queues = new HashSet<>();
         for (RecordPartition recordPartition : recordPartitions) {
             if (null == recordPartition || null == recordPartition.getPartition()) {
                 log.warn("recordPartition {} info is null", recordPartition);
@@ -172,11 +186,14 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
                 continue;
             }
             MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueId);
-            if (!messageQueuesOffsetMap.containsKey(messageQueue)) {
-                log.warn("sink task current messageQueuesOffsetMap {} not contain messageQueue {}", messageQueuesOffsetMap, messageQueue);
-                continue;
-            }
-            messageQueuesStateMap.remove(messageQueue);
+            queues.add(messageQueue);
+        }
+        pausedQueues.removeAll(queues);
+        if (workerSinkTask.shouldPause()) {
+            log.debug("{} Connector is paused, so not resuming consumer's partitions {}", this, queues);
+        } else {
+            consumer.resume(queues);
+            log.debug("{} Resuming partitions: {}", this, queues);
         }
     }
 
@@ -206,11 +223,11 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
     }
 
     public Map<MessageQueue, Long> queuesOffsets() {
-        return this.messageQueuesOffsetMap;
+        return this.messageQueuesOffset;
     }
 
     public void cleanQueuesOffsets() {
-        this.messageQueuesOffsetMap.clear();
+        this.messageQueuesOffset.clear();
     }
 
 

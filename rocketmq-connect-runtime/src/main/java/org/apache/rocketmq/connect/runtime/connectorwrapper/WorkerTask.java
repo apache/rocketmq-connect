@@ -18,13 +18,17 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -35,7 +39,7 @@ public abstract class WorkerTask implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(WorkerTask.class);
     private static final String THREAD_NAME_PREFIX = "task-thread-";
 
-    protected  final ConnectConfig workerConfig;
+    protected final WorkerConfig workerConfig;
 
     protected final ConnectorTaskId id;
     protected final ClassLoader loader;
@@ -50,9 +54,14 @@ public abstract class WorkerTask implements Runnable {
     protected final AtomicReference<WorkerState> workerState;
     protected final RetryWithToleranceOperator retryWithToleranceOperator;
     protected final TransformChain<ConnectRecord> transformChain;
+    private volatile TargetState targetState;
 
+    // send status
+    private final TaskStatus.Listener statusListener;
 
-    public WorkerTask(ConnectConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState) {
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+
+    public WorkerTask(WorkerConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener) {
         this.workerConfig = workerConfig;
         this.id = id;
         this.loader = loader;
@@ -62,6 +71,8 @@ public abstract class WorkerTask implements Runnable {
         this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.transformChain = transformChain;
         this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
+        this.targetState = TargetState.STARTED;
+        this.statusListener = taskListener;
     }
 
     public ConnectorTaskId id() {
@@ -115,7 +126,10 @@ public abstract class WorkerTask implements Runnable {
     }
 
     protected boolean isStopping() {
-        return !isRunning();
+        return WorkerTaskState.ERROR == state.get()
+                || WorkerTaskState.STOPPING == state.get()
+                || WorkerTaskState.STOPPED == state.get()
+                || WorkerTaskState.TERMINATED == state.get();
     }
 
     /**
@@ -128,9 +142,25 @@ public abstract class WorkerTask implements Runnable {
             state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
             close();
             state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
+            // UNASSIGNED state
+            statusListener.onShutdown(id);
         } catch (Throwable t) {
             log.error("{} Task threw an uncaught and unrecoverable exception during shutdown", this, t);
             throw t;
+        }
+    }
+
+    /**
+     * Wait for this task to finish stopping.
+     *
+     * @param timeoutMs time in milliseconds to await stop
+     * @return true if successful, false if the timeout was reached
+     */
+    public boolean awaitStop(long timeoutMs) {
+        try {
+            return shutdownLatch.await(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            return false;
         }
     }
 
@@ -139,8 +169,8 @@ public abstract class WorkerTask implements Runnable {
      */
     public void cleanup() {
         log.info("Cleaning a task, current state {}, destination state {}", state.get().name(), WorkerTaskState.TERMINATED.name());
-        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED)
-                || state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
+        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
+                state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
             log.info("Cleaning a task success");
         } else {
             log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
@@ -164,12 +194,28 @@ public abstract class WorkerTask implements Runnable {
 
     private void doRun() throws InterruptedException {
         try {
+            synchronized (this) {
+                if (isStopping()) {
+                    return;
+                }
+
+                if (targetState == TargetState.PAUSED) {
+                    onPause();
+                    if (!awaitUnpause()) {
+                        return;
+                    }
+                }
+            }
+
             doInitializeAndStart();
+            statusListener.onStartup(id);
             // while poll
             doExecute();
         } catch (Throwable t) {
-            log.error("{} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted", this, t);
-            throw t;
+            if (isRunning()) {
+                log.error("{} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted", this, t);
+                throw t;
+            }
         } finally {
             doClose();
         }
@@ -180,27 +226,96 @@ public abstract class WorkerTask implements Runnable {
      */
     @Override
     public void run() {
+        ClassLoader savedLoader = Plugin.compareAndSwapLoaders(loader);
         String savedName = Thread.currentThread().getName();
         try {
             Thread.currentThread().setName(THREAD_NAME_PREFIX + id);
             doRun();
+        } catch (InterruptedException e) {
+            // set interrupted flag to caller
+            Thread.currentThread().interrupt();
         } catch (Throwable t) {
             onFailure(t);
-            throw (Error) t;
+            throw t;
         } finally {
             Thread.currentThread().setName(savedName);
+            Plugin.compareAndSwapLoaders(savedLoader);
+            shutdownLatch.countDown();
         }
     }
+
+    /**
+     * should pause
+     *
+     * @return
+     */
+    public boolean shouldPause() {
+        return this.targetState == TargetState.PAUSED;
+    }
+
+    /**
+     * Await task resumption.
+     *
+     * @return true if the task's target state is not paused, false if the task is shutdown before resumption
+     * @throws InterruptedException
+     */
+    protected boolean awaitUnpause() throws InterruptedException {
+        synchronized (this) {
+            while (targetState == TargetState.PAUSED) {
+                if (isStopping()) {
+                    return false;
+                }
+                this.wait();
+            }
+            return true;
+        }
+    }
+
+
+    /**
+     * change task target state
+     *
+     * @param state
+     */
+    public void transitionTo(TargetState state) {
+        synchronized (this) {
+            // ignore the state change if we are stopping
+            if (isStopping()) {
+                return;
+            }
+            // not equal set
+            if (this.targetState != state) {
+                this.targetState = state;
+                // notify thread continue run
+                this.notifyAll();
+            }
+        }
+    }
+
+
+    protected synchronized void onPause() {
+        statusListener.onPause(id);
+    }
+
+    protected synchronized void onResume() {
+        statusListener.onResume(id);
+    }
+
 
     public void onFailure(Throwable t) {
         synchronized (this) {
             state.set(WorkerTaskState.ERROR);
+            // on failure
+            statusListener.onFailure(id, t);
         }
     }
 
+    /**
+     * timeout
+     */
     public void timeout() {
         log.error("Worker task stop is timeout !!!");
-        onFailure(null);
+        onFailure(new Throwable("Worker task stop is timeout"));
     }
 
 }
