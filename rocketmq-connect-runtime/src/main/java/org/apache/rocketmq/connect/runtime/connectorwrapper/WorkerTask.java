@@ -179,14 +179,18 @@ public abstract class WorkerTask implements Runnable {
      * do execute data
      */
     @Override
-    public void run() {
+    public void run() throws Error {
         String savedName = Thread.currentThread().getName();
         try {
             Thread.currentThread().setName(THREAD_NAME_PREFIX + id);
             doRun();
         } catch (Throwable t) {
             onFailure(t);
-            throw (Error) t;
+            try {
+                throw (Error) t;
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
         } finally {
             Thread.currentThread().setName(savedName);
         }

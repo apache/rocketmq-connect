@@ -20,7 +20,7 @@ public class ClickHouseJdbcSinkTest {
     private static JdbcSinkTask CKHouseSinkTask = new JdbcSinkTask();
     private static final String dbName = "default";
     private static final String tableName = "tb_test";
-    private static final String ip = "localhost";
+    private static final String ip = "47.118.70.66";
     private static final String port = "18123";
     @Before
     public void testCKHouseSinkConfig() {
@@ -63,7 +63,7 @@ public class ClickHouseJdbcSinkTest {
       
         // build record
         int id = 1;
-        String name = "rocketmq";
+        String name = "test";
         io.openmessaging.connector.api.data.Struct struct= new Struct(schema);
         struct.put("id",id);
         struct.put("name",name);
