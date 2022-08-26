@@ -10,7 +10,7 @@ import java.util.Map;
  * 编码到Topic
  */
 public class EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper
-        implements RocketmqRecordPartitionKafkaTopicPartitionMapper {
+        extends RocketmqRecordPartitionKafkaTopicPartitionMapper {
 
     private String SEPARATOR_CONFIG = "separator";
 
@@ -26,22 +26,14 @@ public class EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper
     @Override
     public TopicPartition toTopicPartition(RecordPartition recordPartition) {
         String topicAndBrokerName = getTopicAndBrokerName(recordPartition);
-        int partition = getPartition(recordPartition);
+        int partition = getQueueId(recordPartition);
         return new TopicPartition(topicAndBrokerName, partition);
     }
 
     private  String getTopicAndBrokerName(RecordPartition recordPartition) {
-        return new StringBuilder()
-                .append(recordPartition.getPartition().get(RecordUtil.TOPIC))
-                .append(this.separator)
-                .append(recordPartition.getPartition().get(RecordUtil.BROKER_NAME))
-                .toString();
-    }
-
-    private  int getPartition(RecordPartition recordPartition){
-        return Integer.valueOf(
-                (String) recordPartition.getPartition().get(RecordUtil.QUEUE_ID)
-        );
+        return getMessageQueueTopic(recordPartition) +
+                this.separator +
+                getBrokerName(recordPartition);
     }
 
     @Override

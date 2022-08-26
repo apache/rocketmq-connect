@@ -12,34 +12,48 @@ import java.util.Map;
  *org.apache.kafka.connect.sink.SinkTaskContext多个接口需要TopicPartition(topic，partition)映射到
  *MessageQueue(topic,brokerName,queueId)，所以需要转换
  */
-public interface RocketmqRecordPartitionKafkaTopicPartitionMapper {
+public abstract class RocketmqRecordPartitionKafkaTopicPartitionMapper {
 
 
-    static RocketmqRecordPartitionKafkaTopicPartitionMapper newKafkaTopicPartitionMapper(Map<String, String> kafkaTaskProps){
+    public static RocketmqRecordPartitionKafkaTopicPartitionMapper newKafkaTopicPartitionMapper(Map<String, String> kafkaTaskProps){
         RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper = new EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper();
         kafkaTopicPartitionMapper.configure(new HashMap<>());
         return kafkaTopicPartitionMapper;
+    }
+
+    protected String getBrokerName(RecordPartition recordPartition){
+        return (String)recordPartition.getPartition().get(RecordUtil.BROKER_NAME);
+    }
+
+    protected String getMessageQueueTopic(RecordPartition recordPartition){
+        return (String)recordPartition.getPartition().get(RecordUtil.TOPIC);
+    }
+
+    protected int getQueueId(RecordPartition recordPartition){
+        return Integer.valueOf(
+                (String) recordPartition.getPartition().get(RecordUtil.QUEUE_ID)
+        );
     }
 
     /**
      * 配置
      * @param configs
      */
-    void configure(Map<String, String> configs);
+    public abstract void configure(Map<String, String> configs);
 
     /**
      * 转换为kafka TopicPartition
      * @param recordPartition
      * @return
      */
-    TopicPartition toTopicPartition(RecordPartition recordPartition);
+    public abstract TopicPartition toTopicPartition(RecordPartition recordPartition);
 
     /**
      * 转换为openmessaging RecordPartition 也就是 rocketmq的MessageQueue
      * @param topicPartition
      * @return
      */
-    RecordPartition toRecordPartition(TopicPartition topicPartition);
+    public abstract RecordPartition toRecordPartition(TopicPartition topicPartition);
 
 
 }
