@@ -60,7 +60,7 @@ public class ClickHouseJdbcSinkTest {
                 .field("id",SchemaBuilder.int32().build())
                 .field("name", SchemaBuilder.string().build())
                 .build();
-      
+
         // build record
         int id = 1;
         String name = "test";
@@ -80,7 +80,6 @@ public class ClickHouseJdbcSinkTest {
         records.add(record);
         CKHouseSinkTask.put(records);
     }
-
     @Test
     public void test1() {
         List<Integer> integers = Arrays.asList(1, 2, 3, 4);

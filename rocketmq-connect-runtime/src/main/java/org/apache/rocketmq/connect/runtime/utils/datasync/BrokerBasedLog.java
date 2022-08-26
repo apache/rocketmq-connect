@@ -33,12 +33,13 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.MAX_MESSAGE_SIZE;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.MAX_MESSAGE_SIZE;
 
 /**
  * A Broker base data synchronizer, synchronize data between workers.
@@ -80,12 +81,12 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
      */
     private Converter valueConverter;
 
-    public BrokerBasedLog(ConnectConfig connectConfig,
-        String topicName,
-        String workId,
-        DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-        Converter keyConverter,
-        Converter valueConverter) {
+    public BrokerBasedLog(WorkerConfig connectConfig,
+                          String topicName,
+                          String workId,
+                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+                          Converter keyConverter,
+                          Converter valueConverter) {
 
         this.topicName = topicName;
         this.dataSynchronizerCallback = dataSynchronizerCallback;
@@ -103,7 +104,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         if (connectConfig.isAutoCreateGroupEnable()) {
             ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
         }
@@ -151,6 +152,40 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             log.error("BrokerBaseLog send async message Failed.", e);
         }
     }
+
+    /**
+     * send data to all workers
+     *
+     * @param key
+     * @param value
+     * @param callback
+     */
+    @Override
+    public void send(K key, V value, Callback callback) {
+        try {
+            byte[] messageBody = encodeKeyValue(key, value);
+            if (messageBody.length > MAX_MESSAGE_SIZE) {
+                log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
+                return;
+            }
+            producer.send(new Message(topicName, messageBody), new SendCallback() {
+                @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                    log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
+                    callback.onCompletion(null, value);
+                }
+
+                @Override public void onException(Throwable throwable) {
+                    if (null != throwable) {
+                        log.error("Send async message Failed, error: {}", throwable);
+                        callback.onCompletion(throwable, value);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.error("BrokerBaseLog send async message Failed.", e);
+        }
+    }
+
 
     private byte[] encodeKeyValue(K key, V value) throws Exception {
 

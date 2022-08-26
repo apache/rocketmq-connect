@@ -28,17 +28,11 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
 /**
  * Configurations for runtime.
  */
-public class ConnectConfig {
-
-    public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
-
-    public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
-
+public class WorkerConfig {
     private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
-
-    public static final String COMMA = ",";
-
-    public static final String SEMICOLON = ";";
+    public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
+    public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
+    private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
 
     /**
      * The unique ID of each worker instance in the cluster
@@ -46,54 +40,76 @@ public class ConnectConfig {
     private String workerId = "DefaultWorker";
 
     /**
-     * Storage directory for file store.
+     * Group listening for cluster changes
      */
-    private String storePathRootDir = System.getProperty("user.home") + File.separator + "connectorStore";
+    private String connectClusterId = "DefaultConnectCluster";
 
-    private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
-
+    /**
+     * config example:
+     * namesrvAddr = localhost:9876
+     */
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
-    private String rmqProducerGroup = "connector-producer-group";
+    /**
+     * Http port for REST API.
+     */
+    private int httpPort = 8082;
+
+    /**
+     * plugin paths config;
+     * Multiple use ',' split
+     * config example:
+     * pluginPaths = /tmp/plugins/,/app/plugins/
+     */
+    private String pluginPaths;
+
+    /**
+     * rocketmq access control config;
+     * config example:
+     * aclEnable = true
+     * accessKey = 12345
+     * secretKey = 11111
+     */
+    private boolean aclEnable = false;
+    private String accessKey;
+    private String secretKey;
+
+    /**
+     * auto create group enable config:
+     * config example:
+     * autoCreateGroupEnable = false
+     */
+    private boolean autoCreateGroupEnable = false;
+
+    /**
+     * Configure cluster converter
+     */
+    private String keyConverter = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
+    private String valueConverter = "org.apache.rocketmq.connect.runtime.converter.record.StringConverter";
+
+    /**
+     * Storage directory for file store.
+     * config example:
+     * storePathRootDir = /tmp/storeRoot
+     */
+    private String storePathRootDir = System.getProperty("user.home") + File.separator + "connectorStore";
 
     private int maxMessageSize;
 
     private int operationTimeout = 3000;
 
-    private String rmqConsumerGroup = "connector-consumer-group";
-
-    private int rmqMaxRedeliveryTimes;
-
-    private int rmqMessageConsumeTimeout = 3000;
-
-    private int rmqMaxConsumeThreadNums = 32;
-
-    private int rmqMinConsumeThreadNums = 1;
-
-    // task start timeout mills, default 3 minute
-    private long maxStartTimeoutMills = 1000 * 60 * 3;
-
-    // task stop timeout mills, default 1 minute
-    private long maxStopTimeoutMills = 1000 * 60;
-
-    // offset commit timeout
-    private long offsetCommitTimeoutMsConfig = 1000 * 30;
-
-
-    public int getBrokerSuspendMaxTimeMillis() {
-        return brokerSuspendMaxTimeMillis;
-    }
-
-    public void setBrokerSuspendMaxTimeMillis(int brokerSuspendMaxTimeMillis) {
-        this.brokerSuspendMaxTimeMillis = brokerSuspendMaxTimeMillis;
-    }
-
-    private int brokerSuspendMaxTimeMillis = 300;
 
     /**
      * Default topic to send/consume online or offline message.
      */
     private String clusterStoreTopic = "connector-cluster-topic";
+    /**
+     * Task allocated strategy
+     * config example with default:
+     * allocTaskStrategy
+     */
+    private String allocTaskStrategy = "org.apache.rocketmq.connect.runtime.service.strategy.DefaultAllocateConnAndTaskStrategy";
+
 
     /**
      * Default topic to send/consume config change message.
@@ -101,9 +117,18 @@ public class ConnectConfig {
     private String configStoreTopic = "connector-config-topic";
 
     /**
+     * Connector configuration persistence interval.
+     */
+    private int configPersistInterval = 20 * 1000;
+
+    /**
      * Default topic to send/consume position change message.
      */
     private String positionStoreTopic = "connector-position-topic";
+    /**
+     * Source task position persistence interval.
+     */
+    private int positionPersistInterval = 20 * 1000;
 
     /**
      * Default topic to send/consume offset change message.
@@ -111,47 +136,77 @@ public class ConnectConfig {
     private String offsetStoreTopic = "connector-offset-topic";
 
     /**
-     * Http port for REST API.
-     */
-    private int httpPort = 8081;
-
-    /**
-     * Source task position persistence interval.
-     */
-    private int positionPersistInterval = 20 * 1000;
-
-    /**
      * Sink task offset persistence interval.
      */
     private int offsetPersistInterval = 20 * 1000;
 
     /**
-     * Connector configuration persistence interval.
+     * Default topic to send/consume state change message.
      */
-    private int configPersistInterval = 20 * 1000;
+    private String connectStatusTopic = "connect-status-topic";
 
-    private String pluginPaths;
+    /**
+     * Connector state persistence interval.
+     */
+    private int statePersistInterval = 20 * 1000;
 
-    private String connectClusterId = "DefaultConnectCluster";
 
-    private String allocTaskStrategy = "org.apache.rocketmq.connect.runtime.service.strategy.DefaultAllocateConnAndTaskStrategy";
+    /**
+     * RocketMq store topic producer group
+     * config example with default:
+     * rmqProducerGroup = connector-producer-group;
+     */
+    private String rmqProducerGroup = "connector-producer-group";
+    /**
+     * RocketMq store topic consumer group
+     * config example with default:
+     * rmqConsumerGroup = connector-consumer-group;
+     */
+    private String rmqConsumerGroup = "connector-consumer-group";
 
-    private boolean aclEnable = false;
-
-    private String accessKey;
-
-    private String secretKey;
-
-    private boolean autoCreateGroupEnable = false;
-
-    private String clusterName;
-
+    /**
+     * RocketMq admin group
+     * config example with default:
+     * adminExtGroup = connector-admin-group;
+     */
     private String adminExtGroup = "connector-admin-group";
+
+    private int rmqMaxRedeliveryTimes;
+
+    private int rmqMessageConsumeTimeout = 3000;
+    private int rmqMaxConsumeThreadNums = 32;
+    private int rmqMinConsumeThreadNums = 1;
+    private int brokerSuspendMaxTimeMillis = 300;
+
+
+    /**
+     * Task start timeout mills, default 3 minute
+     * config example by default:
+     * maxStartTimeoutMills = 1000 * 60 * 3
+     */
+    private long maxStartTimeoutMills = 1000 * 60 * 3;
+
+    /**
+     * task stop timeout mills, default 1 minute
+     * config example by default:
+     * maxStopTimeoutMills = 1000 * 60
+     */
+    private long maxStopTimeoutMills = 1000 * 60;
+
+
+    /**
+     * offset commit timeout(ms)
+     * config example with default
+     * offsetCommitTimeoutMsConfig = 5000L
+     */
+    private long offsetCommitTimeoutMsConfig = 5000L;
 
     /**
      * offset commit interval ms
+     * config example with default
+     * offsetCommitIntervalMsConfig = 60000L
      */
-    private long offsetCommitIntervalMs = 5000L;
+    private long offsetCommitIntervalMsConfig = 60000L;
 
 
     public String getWorkerId() {
@@ -314,6 +369,14 @@ public class ConnectConfig {
         this.offsetStoreTopic = offsetStoreTopic;
     }
 
+    public String getConnectStatusTopic() {
+        return connectStatusTopic;
+    }
+
+    public void setConnectStatusTopic(String connectStatusTopic) {
+        this.connectStatusTopic = connectStatusTopic;
+    }
+
     public String getConnectClusterId() {
         return connectClusterId;
     }
@@ -362,14 +425,6 @@ public class ConnectConfig {
         this.autoCreateGroupEnable = autoCreateGroupEnable;
     }
 
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
-    }
-
     public String getAdminExtGroup() {
         return adminExtGroup;
     }
@@ -387,12 +442,12 @@ public class ConnectConfig {
     }
 
 
-    public long getOffsetCommitIntervalMs() {
-        return offsetCommitIntervalMs;
+    public long getOffsetCommitIntervalMsConfig() {
+        return offsetCommitIntervalMsConfig;
     }
 
-    public void setOffsetCommitIntervalMs(long offsetCommitIntervalMs) {
-        this.offsetCommitIntervalMs = offsetCommitIntervalMs;
+    public void setOffsetCommitIntervalMsConfig(long offsetCommitIntervalMsConfig) {
+        this.offsetCommitIntervalMsConfig = offsetCommitIntervalMsConfig;
     }
 
     public long getMaxStartTimeoutMills() {
@@ -419,43 +474,82 @@ public class ConnectConfig {
         this.offsetCommitTimeoutMsConfig = offsetCommitTimeoutMsConfig;
     }
 
+    public int getBrokerSuspendMaxTimeMillis() {
+        return brokerSuspendMaxTimeMillis;
+    }
+
+    public void setBrokerSuspendMaxTimeMillis(int brokerSuspendMaxTimeMillis) {
+        this.brokerSuspendMaxTimeMillis = brokerSuspendMaxTimeMillis;
+    }
+
+    public boolean isAclEnable() {
+        return aclEnable;
+    }
+
+    public String getKeyConverter() {
+        return keyConverter;
+    }
+
+    public void setKeyConverter(String keyConverter) {
+        this.keyConverter = keyConverter;
+    }
+
+    public String getValueConverter() {
+        return valueConverter;
+    }
+
+    public void setValueConverter(String valueConverter) {
+        this.valueConverter = valueConverter;
+    }
+
+    public int getStatePersistInterval() {
+        return statePersistInterval;
+    }
+
+    public void setStatePersistInterval(int statePersistInterval) {
+        this.statePersistInterval = statePersistInterval;
+    }
+
     @Override
     public String toString() {
-        return "ConnectConfig{" +
-                "workerId='" + workerId + '\'' +
-                ", storePathRootDir='" + storePathRootDir + '\'' +
-                ", connectHome='" + connectHome + '\'' +
-                ", namesrvAddr='" + namesrvAddr + '\'' +
-                ", rmqProducerGroup='" + rmqProducerGroup + '\'' +
-                ", maxMessageSize=" + maxMessageSize +
-                ", operationTimeout=" + operationTimeout +
-                ", rmqConsumerGroup='" + rmqConsumerGroup + '\'' +
-                ", rmqMaxRedeliveryTimes=" + rmqMaxRedeliveryTimes +
-                ", rmqMessageConsumeTimeout=" + rmqMessageConsumeTimeout +
-                ", rmqMaxConsumeThreadNums=" + rmqMaxConsumeThreadNums +
-                ", rmqMinConsumeThreadNums=" + rmqMinConsumeThreadNums +
-                ", maxStartTimeoutMills=" + maxStartTimeoutMills +
-                ", maxStopTimeoutMills=" + maxStopTimeoutMills +
-                ", offsetCommitTimeoutMsConfig=" + offsetCommitTimeoutMsConfig +
-                ", brokerSuspendMaxTimeMillis=" + brokerSuspendMaxTimeMillis +
-                ", clusterStoreTopic='" + clusterStoreTopic + '\'' +
-                ", configStoreTopic='" + configStoreTopic + '\'' +
-                ", positionStoreTopic='" + positionStoreTopic + '\'' +
-                ", offsetStoreTopic='" + offsetStoreTopic + '\'' +
-                ", httpPort=" + httpPort +
-                ", positionPersistInterval=" + positionPersistInterval +
-                ", offsetPersistInterval=" + offsetPersistInterval +
-                ", configPersistInterval=" + configPersistInterval +
-                ", pluginPaths='" + pluginPaths + '\'' +
+        return "WorkerConfig{" +
+                "connectHome='" + connectHome + '\'' +
+                ", workerId='" + workerId + '\'' +
                 ", connectClusterId='" + connectClusterId + '\'' +
-                ", allocTaskStrategy='" + allocTaskStrategy + '\'' +
+                ", namesrvAddr='" + namesrvAddr + '\'' +
+                ", httpPort=" + httpPort +
+                ", pluginPaths='" + pluginPaths + '\'' +
                 ", aclEnable=" + aclEnable +
                 ", accessKey='" + accessKey + '\'' +
                 ", secretKey='" + secretKey + '\'' +
                 ", autoCreateGroupEnable=" + autoCreateGroupEnable +
-                ", clusterName='" + clusterName + '\'' +
+                ", keyConverter='" + keyConverter + '\'' +
+                ", valueConverter='" + valueConverter + '\'' +
+                ", storePathRootDir='" + storePathRootDir + '\'' +
+                ", maxMessageSize=" + maxMessageSize +
+                ", operationTimeout=" + operationTimeout +
+                ", clusterStoreTopic='" + clusterStoreTopic + '\'' +
+                ", allocTaskStrategy='" + allocTaskStrategy + '\'' +
+                ", configStoreTopic='" + configStoreTopic + '\'' +
+                ", configPersistInterval=" + configPersistInterval +
+                ", positionStoreTopic='" + positionStoreTopic + '\'' +
+                ", positionPersistInterval=" + positionPersistInterval +
+                ", offsetStoreTopic='" + offsetStoreTopic + '\'' +
+                ", offsetPersistInterval=" + offsetPersistInterval +
+                ", connectStatusTopic='" + connectStatusTopic + '\'' +
+                ", statePersistInterval=" + statePersistInterval +
+                ", rmqProducerGroup='" + rmqProducerGroup + '\'' +
+                ", rmqConsumerGroup='" + rmqConsumerGroup + '\'' +
                 ", adminExtGroup='" + adminExtGroup + '\'' +
-                ", offsetCommitIntervalMs=" + offsetCommitIntervalMs +
+                ", rmqMaxRedeliveryTimes=" + rmqMaxRedeliveryTimes +
+                ", rmqMessageConsumeTimeout=" + rmqMessageConsumeTimeout +
+                ", rmqMaxConsumeThreadNums=" + rmqMaxConsumeThreadNums +
+                ", rmqMinConsumeThreadNums=" + rmqMinConsumeThreadNums +
+                ", brokerSuspendMaxTimeMillis=" + brokerSuspendMaxTimeMillis +
+                ", maxStartTimeoutMills=" + maxStartTimeoutMills +
+                ", maxStopTimeoutMills=" + maxStopTimeoutMills +
+                ", offsetCommitTimeoutMsConfig=" + offsetCommitTimeoutMsConfig +
+                ", offsetCommitIntervalMsConfig=" + offsetCommitIntervalMsConfig +
                 '}';
     }
 }

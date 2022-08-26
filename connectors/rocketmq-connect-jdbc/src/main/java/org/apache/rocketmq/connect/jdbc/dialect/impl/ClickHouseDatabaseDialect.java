@@ -1,5 +1,4 @@
 package org.apache.rocketmq.connect.jdbc.dialect.impl;
-
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.DatabaseDialectProvider;
