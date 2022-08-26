@@ -19,14 +19,15 @@ package org.apache.rocketmq.connect.runtime.controller.distributed;
 
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;
 import org.apache.rocketmq.connect.runtime.service.RebalanceService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,12 +55,13 @@ public class DistributedConnectController extends AbstractConnectController {
     private final RebalanceService rebalanceService;
 
     public DistributedConnectController(Plugin plugin,
-                                         DistributedConfig connectConfig,
-                                         ClusterManagementService clusterManagementService,
-                                         ConfigManagementService configManagementService,
-                                         PositionManagementService positionManagementService) {
+                                        DistributedConfig connectConfig,
+                                        ClusterManagementService clusterManagementService,
+                                        ConfigManagementService configManagementService,
+                                        PositionManagementService positionManagementService,
+                                        StateManagementService stateManagementService) {
 
-        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService);
+        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService, stateManagementService);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.rebalanceService = new RebalanceService(rebalanceImpl, configManagementService, clusterManagementService);
@@ -90,6 +92,18 @@ public class DistributedConnectController extends AbstractConnectController {
 
         }, 1000, this.connectConfig.getPositionPersistInterval(), TimeUnit.MILLISECONDS);
 
+
+        // Persist state information of connector
+        scheduledExecutorService.scheduleAtFixedRate(() -> {
+
+            try {
+                this.stateManagementService.persist();
+            } catch (Exception e) {
+                log.error("schedule persist position error.", e);
+            }
+
+        }, 1000, this.connectConfig.getStatePersistInterval(), TimeUnit.MILLISECONDS);
+
     }
 
     @Override
@@ -105,4 +119,6 @@ public class DistributedConnectController extends AbstractConnectController {
             log.error("shutdown scheduledExecutorService error.", e);
         }
     }
+
+
 }

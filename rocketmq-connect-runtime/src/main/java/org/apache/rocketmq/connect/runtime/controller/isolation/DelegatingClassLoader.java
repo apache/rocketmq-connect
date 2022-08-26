@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -119,6 +118,7 @@ public class DelegatingClassLoader extends URLClassLoader {
 
     /**
      * Retrieve the PluginClassLoader associated with a plugin class
+     *
      * @param name
      * @return
      */
@@ -132,8 +132,8 @@ public class DelegatingClassLoader extends URLClassLoader {
         }
         ClassLoader pluginLoader = inner.get(inner.lastKey());
         return pluginLoader instanceof PluginClassLoader
-               ? (PluginClassLoader) pluginLoader
-               : null;
+                ? (PluginClassLoader) pluginLoader
+                : null;
     }
 
     public ClassLoader connectorLoader(Connector connector) {
@@ -142,16 +142,16 @@ public class DelegatingClassLoader extends URLClassLoader {
 
     public ClassLoader connectorLoader(String connectorClassOrAlias) {
         String fullName = aliases.containsKey(connectorClassOrAlias)
-                          ? aliases.get(connectorClassOrAlias)
-                          : connectorClassOrAlias;
+                ? aliases.get(connectorClassOrAlias)
+                : connectorClassOrAlias;
         ClassLoader classLoader = pluginClassLoader(fullName);
         if (classLoader == null) {
             classLoader = this;
         }
         log.debug(
-            "Getting plugin class loader: '{}' for connector: {}",
-            classLoader,
-            connectorClassOrAlias
+                "Getting plugin class loader: '{}' for connector: {}",
+                classLoader,
+                connectorClassOrAlias
         );
         return classLoader;
     }
@@ -180,13 +180,13 @@ public class DelegatingClassLoader extends URLClassLoader {
     }
 
     public void initLoaders() {
-        long begin_time = System.currentTimeMillis();
+        long beginTime = System.currentTimeMillis();
         for (String configPath : pluginPaths) {
             initPluginLoader(configPath);
         }
         initPluginLoader(CLASSPATH_NAME);
         addAllAliases();
-        log.info("Init all plugins cost time = {} ms", System.currentTimeMillis()-begin_time);
+        log.info("Init all plugins cost time = {} ms", System.currentTimeMillis() - beginTime);
     }
 
     private void initPluginLoader(String path) {
@@ -239,9 +239,9 @@ public class DelegatingClassLoader extends URLClassLoader {
             ClassLoader loader,
             URL[] urls
     ) throws ReflectiveOperationException {
-        long begin_time = System.currentTimeMillis();
+        long beginTime = System.currentTimeMillis();
         PluginScanResult plugins = doLoad(loader, urls);
-        log.info("Registered loader: {}, cost time = {} ms", loader, System.currentTimeMillis()-begin_time);
+        log.info("Registered loader: {}, cost time = {} ms", loader, System.currentTimeMillis() - beginTime);
         if (!plugins.isEmpty()) {
             addPlugins(plugins.sinkConnectors(), loader);
             sinkConnectors.addAll(plugins.sinkConnectors());
@@ -348,7 +348,7 @@ public class DelegatingClassLoader extends URLClassLoader {
             ServiceLoader<T> serviceLoader = ServiceLoader.load(klass, loader);
             for (T pluginImpl : serviceLoader) {
                 result.add(new PluginWrapper<>((Class<? extends T>) pluginImpl.getClass(),
-                    versionFor(pluginImpl), loader));
+                        versionFor(pluginImpl), loader));
             }
         } finally {
             Plugin.compareAndSwapLoaders(savedLoader);
@@ -356,7 +356,7 @@ public class DelegatingClassLoader extends URLClassLoader {
         return result;
     }
 
-    private static <T>  String versionFor(T pluginImpl) {
+    private static <T> String versionFor(T pluginImpl) {
 //        return pluginImpl instanceof Versioned ? ((Versioned) pluginImpl).version() : UNDEFINED_VERSION;
         return UNDEFINED_VERSION;
     }

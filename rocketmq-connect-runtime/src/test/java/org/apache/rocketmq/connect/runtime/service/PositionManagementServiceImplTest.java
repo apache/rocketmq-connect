@@ -35,7 +35,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -61,7 +61,7 @@ import static org.mockito.Mockito.doAnswer;
 @RunWith(MockitoJUnitRunner.class)
 public class PositionManagementServiceImplTest {
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     @Mock
     private DefaultMQProducer producer;
@@ -87,7 +87,7 @@ public class PositionManagementServiceImplTest {
     private final String namespace = "namespace";
     @Before
     public void init() throws Exception {
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setNamesrvAddr("localhost:9876");
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");

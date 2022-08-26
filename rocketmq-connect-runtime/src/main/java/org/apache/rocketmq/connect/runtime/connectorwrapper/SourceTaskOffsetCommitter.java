@@ -19,7 +19,7 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +39,12 @@ import java.util.concurrent.TimeUnit;
 class SourceTaskOffsetCommitter {
     private static final Logger log = LoggerFactory.getLogger(SourceTaskOffsetCommitter.class);
 
-    private final ConnectConfig config;
+    private final WorkerConfig config;
     private final ScheduledExecutorService commitExecutorService;
     private final ConcurrentMap<ConnectorTaskId, ScheduledFuture<?>> committers;
 
 
-    SourceTaskOffsetCommitter(ConnectConfig config,
+    SourceTaskOffsetCommitter(WorkerConfig config,
                               ScheduledExecutorService commitExecutorService,
                               ConcurrentMap<ConnectorTaskId, ScheduledFuture<?>> committers) {
         this.config = config;
@@ -52,9 +52,9 @@ class SourceTaskOffsetCommitter {
         this.committers = committers;
     }
 
-    public SourceTaskOffsetCommitter(ConnectConfig config) {
-        this(config, Executors.newSingleThreadScheduledExecutor(ThreadUtils.newThreadFactory(
-                SourceTaskOffsetCommitter.class.getSimpleName() + "-%d", false)),
+    public SourceTaskOffsetCommitter(WorkerConfig config) {
+        this(config, Executors.newSingleThreadScheduledExecutor(ThreadUtils.newGenericThreadFactory(
+                SourceTaskOffsetCommitter.class.getSimpleName(), false)),
                 new ConcurrentHashMap<>());
     }
 
@@ -70,7 +70,7 @@ class SourceTaskOffsetCommitter {
     }
 
     public void schedule(final ConnectorTaskId id, final WorkerSourceTask workerTask) {
-        long commitIntervalMs = config.getOffsetCommitIntervalMs();
+        long commitIntervalMs = config.getOffsetCommitIntervalMsConfig();
         ScheduledFuture<?> commitFuture = commitExecutorService.scheduleWithFixedDelay(() -> {
             commit(workerTask);
         }, commitIntervalMs, commitIntervalMs, TimeUnit.MILLISECONDS);

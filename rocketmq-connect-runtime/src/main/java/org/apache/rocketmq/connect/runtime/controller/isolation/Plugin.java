@@ -19,14 +19,6 @@ package org.apache.rocketmq.connect.runtime.controller.isolation;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.Task;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.data.RecordConverter;
@@ -35,6 +27,14 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Plugin {
 
@@ -51,7 +51,7 @@ public class Plugin {
         delegatingLoader.initLoaders();
     }
 
-    public void initLoaders(){
+    public void initLoaders() {
         delegatingLoader.initLoaders();
     }
 
@@ -64,6 +64,7 @@ public class Plugin {
     public DelegatingClassLoader delegatingLoader() {
         return delegatingLoader;
     }
+
     public Set<PluginWrapper<SinkConnector>> sinkConnectors() {
         return delegatingLoader.sinkConnectors();
     }
@@ -158,9 +159,9 @@ public class Plugin {
         return newPlugin(taskClass);
     }
 
-    public RecordConverter newConverter(ConnectKeyValue config, String classPropertyName, ClassLoaderUsage classLoaderUsage) {
+    public RecordConverter newConverter(ConnectKeyValue config, String classPropertyName, String defaultConverter, ClassLoaderUsage classLoaderUsage) {
         if (!config.containsKey(classPropertyName)) {
-            return null;
+            config.put(classPropertyName, defaultConverter);
         }
         Class<? extends RecordConverter> klass = null;
         switch (classLoaderUsage) {
@@ -168,7 +169,7 @@ public class Plugin {
                 klass = pluginClassFromConfig(config, classPropertyName, RecordConverter.class, delegatingLoader.converters());
                 break;
             case PLUGINS:
-                String converterClassOrAlias = Utils.getClass(config,classPropertyName).getName();
+                String converterClassOrAlias = Utils.getClass(config, classPropertyName).getName();
                 try {
                     klass = pluginClass(delegatingLoader, converterClassOrAlias, RecordConverter.class);
                 } catch (ClassNotFoundException e) {

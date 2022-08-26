@@ -20,7 +20,7 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
 import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -61,7 +61,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
 
     }
 
-    @Override public void initialize(ConnectConfig connectConfig) {
+    @Override public void initialize(WorkerConfig connectConfig) {
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
             new RecordPartitionConverter(),
             new RecordOffsetConverter());

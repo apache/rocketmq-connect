@@ -34,7 +34,8 @@ public class JsonDeserializer implements Deserializer<Object> {
         }
         Object data;
         try {
-            data = JSON.parse(new String(bytes, StandardCharsets.UTF_8));
+            String json = new String(bytes, StandardCharsets.UTF_8);
+            data = JSON.parse(json);
         } catch (Exception e) {
             throw new ConnectException(e);
         }

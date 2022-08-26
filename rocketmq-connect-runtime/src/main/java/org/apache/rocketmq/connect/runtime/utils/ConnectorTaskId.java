@@ -16,34 +16,44 @@
  */
 package org.apache.rocketmq.connect.runtime.utils;
 
-import com.alibaba.fastjson.annotation.JSONCreator;
-import com.alibaba.fastjson.annotation.JSONField;
-
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Unique ID for a single task. It includes a unique connector ID and a task ID that is unique within
  * the connector.
  */
-public class ConnectorTaskId implements Serializable, Comparable<ConnectorTaskId> {
-    private final String connector;
-    private final int task;
+public class ConnectorTaskId implements Comparable<ConnectorTaskId> {
+    private String connector;
+    private int task;
 
-    @JSONCreator
-    public ConnectorTaskId(@JSONField(name = "connector") String connector, @JSONField(name = "task") int task) {
+    public ConnectorTaskId(){}
+    public ConnectorTaskId(String connector, int task) {
         this.connector = connector;
         this.task = task;
     }
 
-    @JSONField(name = "connector")
     public String connector() {
         return connector;
     }
 
-    @JSONField
     public int task() {
         return task;
+    }
+
+    public String getConnector() {
+        return connector;
+    }
+
+    public void setConnector(String connector) {
+        this.connector = connector;
+    }
+
+    public int getTask() {
+        return task;
+    }
+
+    public void setTask(int task) {
+        this.task = task;
     }
 
     @Override

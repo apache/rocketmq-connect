@@ -27,11 +27,10 @@ import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +41,7 @@ import java.util.Set;
 
 /**
  * Transform serial actuator, including the initialization of transform
+ *
  * @param <R>
  */
 public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
@@ -56,7 +56,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     private static final String COMMA = ",";
 
-    private static final String PREFIX = RuntimeConfigDefine.TRANSFORMS + "-";
+    private static final String PREFIX = ConnectorConfig.TRANSFORMS + ".";
 
     private RetryWithToleranceOperator retryWithToleranceOperator;
 
@@ -75,7 +75,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
     }
 
     private void init() {
-        String transformsStr = config.getString(RuntimeConfigDefine.TRANSFORMS);
+        String transformsStr = config.getString(ConnectorConfig.TRANSFORMS);
         if (StringUtils.isBlank(transformsStr)) {
             log.warn("no transforms config, {}", JSON.toJSONString(config));
             return;
@@ -86,7 +86,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
             return;
         }
         transformList.stream().forEach(transformStr -> {
-            String transformClassKey = PREFIX + transformStr + "-class";
+            String transformClassKey = PREFIX + transformStr + ".class";
             String transformClass = config.getString(transformClassKey);
             try {
                 Transform transform = newTransform(transformClass);
@@ -94,7 +94,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
                 Set<String> configKeys = config.keySet();
                 for (String key : configKeys) {
                     if (key.startsWith(PREFIX + transformStr) && !key.equals(transformClassKey)) {
-                        String originKey = key.replace(PREFIX + transformStr + "-", "");
+                        String originKey = key.replace(PREFIX + transformStr + ".", "");
                         transformConfig.put(originKey, config.getString(key));
                     }
                 }
@@ -115,9 +115,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
             if (this.retryWithToleranceOperator == null) {
                 connectRecord = transform.doTransform(currentRecord);
             } else {
-                connectRecord = this.retryWithToleranceOperator.execute(
-                    () -> transform.doTransform(currentRecord), ErrorReporter.Stage.TRANSFORMATION, transform.getClass()
-                );
+                connectRecord = this.retryWithToleranceOperator.execute(() -> transform.doTransform(currentRecord), ErrorReporter.Stage.TRANSFORMATION, transform.getClass());
             }
 
             if (connectRecord == null) {
@@ -126,7 +124,6 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
         }
         return connectRecord;
     }
-
 
 
     private Transform newTransform(String transformClass) throws Exception {
@@ -139,7 +136,7 @@ public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
             return transform;
         } catch (Exception ex) {
             throw new ConnectException("Load transform failed !!", ex);
-        }finally {
+        } finally {
             Plugin.compareAndSwapLoaders(savedLoader);
         }
     }

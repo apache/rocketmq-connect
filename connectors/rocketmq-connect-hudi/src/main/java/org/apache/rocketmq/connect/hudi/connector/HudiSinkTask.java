@@ -20,6 +20,8 @@ package org.apache.rocketmq.connect.hudi.connector;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.hudi.config.HudiConnectConfig;
 import org.apache.rocketmq.connect.hudi.config.ConfigUtil;
@@ -28,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+
 import java.util.List;
 import java.util.Map;
 
@@ -95,9 +98,14 @@ public class HudiSinkTask extends SinkTask {
         }
     }
 
+    @Override
+    public void flush(Map<RecordPartition, RecordOffset> currentOffsets) throws ConnectException {
+    }
 
     @Override
-    public void validate(KeyValue config) {
-
+    public Map<RecordPartition, RecordOffset> preCommit(Map<RecordPartition, RecordOffset> currentOffsets) {
+        this.flush(currentOffsets);
+        return currentOffsets;
     }
+
 }

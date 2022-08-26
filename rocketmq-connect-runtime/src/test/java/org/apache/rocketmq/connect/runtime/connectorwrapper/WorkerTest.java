@@ -27,15 +27,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
@@ -78,7 +77,7 @@ public class WorkerTest {
     @Mock
     private DefaultMQProducer producer;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     private Worker worker;
 
@@ -110,18 +109,18 @@ public class WorkerTest {
         when(plugin.currentThreadLoader()).thenReturn(this.getClass().getClassLoader());
         when(plugin.newConnector(any())).thenReturn(new TestConnector());
         when(delegatingClassLoader.pluginClassLoader(any())).thenReturn(pluginClassLoader);
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setNamesrvAddr("localhost:9876");
-        worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController);
+        worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, null);
 
         Set<WorkerConnector> workingConnectors = new HashSet<>();
         for (int i = 0; i < 3; i++) {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
             connectKeyValue.getProperties().put("key1", "TEST-CONN-" + i + "1");
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
-            workingConnectors.add(new WorkerConnector("TEST-CONN-" + i, new TestConnector(), connectKeyValue, connectorContext));
+            workingConnectors.add(new WorkerConnector("TEST-CONN-" + i, new TestConnector(), connectKeyValue, connectorContext, null, null));
         }
         worker.setWorkingConnectors(workingConnectors);
         assertThat(worker.getWorkingConnectors().size()).isEqualTo(3);
@@ -135,7 +134,7 @@ public class WorkerTest {
             // create retry operator
             RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
             retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
-            final WorkerSourceTask task = new WorkerSourceTask(new ConnectConfig(),
+            final WorkerSourceTask task = new WorkerSourceTask(new WorkerConfig(),
                 new ConnectorTaskId("TEST-CONN-" + i, i),
                 new TestSourceTask(),
                 null,
@@ -147,9 +146,8 @@ public class WorkerTest {
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,
                 transformChain,
-                retryWithToleranceOperator);
+                retryWithToleranceOperator, null);
            runnables.add(task);
-
         }
         worker.setWorkingTasks(runnables);
         assertThat(worker.getWorkingTasks().size()).isEqualTo(3);
@@ -171,7 +169,7 @@ public class WorkerTest {
             ConnectKeyValue connectKeyValue = new ConnectKeyValue();
             connectKeyValue.getProperties().put("key1", "TEST-CONN-" + i + "1");
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.CONNECTOR_CLASS, TestConnector.class.getName());
+            connectKeyValue.getProperties().put(ConnectorConfig.CONNECTOR_CLASS, TestConnector.class.getName());
             connectorConfigs.put("TEST-CONN-" + i, connectKeyValue);
         }
 
@@ -193,17 +191,17 @@ public class WorkerTest {
             connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
             if (i == 1) {
                 // start direct task
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.DIRECT.name());
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.SOURCE_TASK_CLASS, TestSourceTask.class.getName());
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.SINK_TASK_CLASS, TestSinkTask.class.getName());
+                connectKeyValue.getProperties().put(ConnectorConfig.TASK_TYPE, Worker.TaskType.DIRECT.name());
+                connectKeyValue.getProperties().put(ConnectorConfig.SOURCE_TASK_CLASS, TestSourceTask.class.getName());
+                connectKeyValue.getProperties().put(ConnectorConfig.SINK_TASK_CLASS, TestSinkTask.class.getName());
             } else {
-                connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_TYPE, Worker.TaskType.SOURCE.name());
+                connectKeyValue.getProperties().put(ConnectorConfig.TASK_TYPE, Worker.TaskType.SOURCE.name());
             }
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.TASK_CLASS, TestSourceTask.class.getName());
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, TestConverter.class.getName());
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.NAMESRV_ADDR, "127.0.0.1:9876");
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.RMQ_PRODUCER_GROUP, UUID.randomUUID().toString());
-            connectKeyValue.getProperties().put(RuntimeConfigDefine.OPERATION_TIMEOUT, "3000");
+            connectKeyValue.getProperties().put(ConnectorConfig.TASK_CLASS, TestSourceTask.class.getName());
+            connectKeyValue.getProperties().put(ConnectorConfig.VALUE_CONVERTER, TestConverter.class.getName());
+//            connectKeyValue.getProperties().put(RuntimeConfigDefine.NAMESRV_ADDR, "127.0.0.1:9876");
+//            connectKeyValue.getProperties().put(RuntimeConfigDefine.RMQ_PRODUCER_GROUP, UUID.randomUUID().toString());
+//            connectKeyValue.getProperties().put(RuntimeConfigDefine.OPERATION_TIMEOUT, "3000");
             connectKeyValues.add(connectKeyValue);
             taskConfigs.put("TEST-CONN-" + i, connectKeyValues);
         }

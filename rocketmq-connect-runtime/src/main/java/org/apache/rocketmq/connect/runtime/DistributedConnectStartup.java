@@ -32,13 +32,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConfig;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
@@ -109,7 +110,7 @@ public class DistributedConnectStartup {
             }
 
             if (null == connectConfig.getConnectHome()) {
-                System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", ConnectConfig.CONNECT_HOME_ENV);
+                System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);
             }
 
@@ -137,13 +138,15 @@ public class DistributedConnectStartup {
             configManagementService.initialize(connectConfig, plugin);
             PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.DISTRIBUTED);
             positionManagementServices.initialize(connectConfig);
-
+            StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.DISTRIBUTED);
+            stateManagementService.initialize(connectConfig);
             DistributedConnectController controller = new DistributedConnectController(
                     plugin,
                     connectConfig,
                     clusterManagementService,
                     configManagementService,
-                    positionManagementServices);
+                    positionManagementServices,
+                    stateManagementService);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
