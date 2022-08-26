@@ -2,6 +2,8 @@ package org.apache.rocketmq.connect.kafka.util;
 
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.rocketmq.connect.kafka.config.ConfigDefine;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,8 +18,25 @@ public abstract class RocketmqRecordPartitionKafkaTopicPartitionMapper {
 
 
     public static RocketmqRecordPartitionKafkaTopicPartitionMapper newKafkaTopicPartitionMapper(Map<String, String> kafkaTaskProps){
-        RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper = new EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper();
-        kafkaTopicPartitionMapper.configure(new HashMap<>());
+        String mapper = kafkaTaskProps.getOrDefault(ConfigDefine.ROCKETMQ_RECORDPARTITION_KAFKATOPICPARTITION_MAPPER, "encodedTopic");
+        RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
+        if(mapper.equalsIgnoreCase("encodedTopic")){
+            kafkaTopicPartitionMapper = new EncodedTopicRocketmqBrokerNameKafkaTopicPartitionMapper();
+        } else if(mapper.equalsIgnoreCase("assignEncodedPartition")){
+            kafkaTopicPartitionMapper = new AssignEncodedPartitionRocketmqRecordPartitionKafkaTopicPartitionMapper();
+        } else if(mapper.equalsIgnoreCase("regexEncodedPartition")){
+            kafkaTopicPartitionMapper = new RegexEncodedPartitionRocketmqRecordPartitionKafkaTopicPartitionMapper();
+        } else {
+            throw new ConnectException("unknown rocketmq.recordPartition.kafkaTopicPartition.mapper config:"+mapper);
+        }
+        Map<String, String> mapperConfig = new HashMap<>();
+        String prefix = mapper+".";
+        for(Map.Entry<String, String> kv: kafkaTaskProps.entrySet()){
+            if(kv.getKey().startsWith(prefix)){
+                mapperConfig.put(kv.getKey().substring(prefix.length()), kv.getValue());
+            }
+        }
+        kafkaTopicPartitionMapper.configure(mapperConfig);
         return kafkaTopicPartitionMapper;
     }
 
