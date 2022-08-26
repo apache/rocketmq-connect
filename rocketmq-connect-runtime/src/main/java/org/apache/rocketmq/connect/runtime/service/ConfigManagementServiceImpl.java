@@ -20,6 +20,8 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
@@ -80,6 +82,32 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     public static String DELETE_CONNECTOR_KEY(String connectorName) {
         return DELETE_CONNECTOR_PREFIX + connectorName;
     }
+
+
+    /**
+     * connector configuration
+     */
+    public static final Schema CONNECTOR_CONFIGURATION_V0 = SchemaBuilder.struct()
+            .field("properties",
+                    SchemaBuilder.map(
+                            SchemaBuilder.string().build(),
+                            SchemaBuilder.string().optional().build()
+                    ).build())
+            .build();
+
+    /**
+     * task configuration
+     */
+    public static final Schema TASK_CONFIGURATION_V0 = CONNECTOR_CONFIGURATION_V0;
+
+    /**
+     * task state
+     */
+    public static final Schema TARGET_STATE_V0 = SchemaBuilder.struct()
+            .field("state", SchemaBuilder.string().build())
+            .build();
+
+
 
     /**
      * All listeners to trigger while config change.
