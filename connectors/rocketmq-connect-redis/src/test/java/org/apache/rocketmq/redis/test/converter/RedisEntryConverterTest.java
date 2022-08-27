@@ -41,11 +41,6 @@ public class RedisEntryConverterTest {
         Collection<ConnectRecord> res = converter.kVEntryToDataEntries(entry);
         Assert.assertNotNull(res);
         Assert.assertEquals(1, res.size());
-//        Assert.assertEquals("key", ((List<ConnectRecord>) res).get(0).getData()[1]);
-//        Assert.assertEquals("value", ((List<ConnectRecord>) res).get(0).getPayload()[2]);
-//        Assert.assertEquals("set", ((List<ConnectRecord>) res).get(0).getPayload()[0]);
-//        Map<String, Object> params = (Map<String, Object>) ((List<ConnectRecord>) res).get(0).getPayload()[3];
-//        Assert.assertEquals("replId", params.get(Options.REDIS_REPLID.name()));
     }
 
     @Test
@@ -86,10 +81,9 @@ public class RedisEntryConverterTest {
         }
         entry.value(values);
 
-//        List<SourceDataEntry> entryList = converter.kVEntryToDataEntries(entry);
-//        Assert.assertNotNull(entryList);
-//        Assert.assertEquals(21, entryList.size());
-//        Assert.assertEquals("set", entryList.get(0).getPayload()[0]);
+        List<ConnectRecord> entryList = converter.kVEntryToDataEntries(entry);
+        Assert.assertNotNull(entryList);
+        Assert.assertEquals(21, entryList.size());
     }
 
     private KVEntry getKVEntry(){
