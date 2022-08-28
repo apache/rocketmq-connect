@@ -23,7 +23,7 @@ import java.util.Map;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.assertj.core.api.Assertions;
@@ -86,7 +86,7 @@ public class DeadLetterQueueReporterTest {
         Map<String, String> properties = new HashMap<>();
         properties.put(DeadLetterQueueConfig.DLQ_TOPIC_NAME_CONFIG, "DEAD_LETTER_TOPIC");
         sinkConfig.setProperties(properties);
-        ConnectConfig workerConfig = new ConnectConfig();
+        WorkerConfig workerConfig = new WorkerConfig();
         final DeadLetterQueueReporter deadLetterQueueReporter = DeadLetterQueueReporter.build("fileSinkConnector", sinkConfig, workerConfig);
         return deadLetterQueueReporter;
     }
