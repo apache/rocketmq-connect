@@ -75,4 +75,13 @@ public class PluginInfo {
     public int hashCode() {
         return Objects.hash(className, type, version);
     }
+
+    @Override
+    public String toString() {
+        return "PluginInfo{" +
+            "className='" + className + '\'' +
+            ", type=" + type +
+            ", version='" + version + '\'' +
+            '}';
+    }
 }
