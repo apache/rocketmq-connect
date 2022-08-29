@@ -16,39 +16,40 @@
  */
 package org.apache.rocketmq.connect.transforms;
 
-
 import com.google.common.base.CaseFormat;
 import io.openmessaging.KeyValue;
 
 public class ChangeCaseConfig {
-  public final CaseFormat from;
-  public final CaseFormat to;
+    public final CaseFormat from;
+    public final CaseFormat to;
 
-  public static final String FROM_CONFIG = "from";
-  static final String FROM_DOC = "The format to move from ";
-  public static final String TO_CONFIG = "to";
-  static final String TO_DOC = "";
+    public static final String FROM_CONFIG = "from";
+    static final String FROM_DOC = "The format to move from ";
+    public static final String TO_CONFIG = "to";
+    static final String TO_DOC = "";
 
-  public ChangeCaseConfig(KeyValue config) {
-    String fromConfig = config.getString(FROM_CONFIG);
-    this.from = CaseFormat.valueOf(fromConfig);
-    String toConfig = config.getString(TO_CONFIG);
-    this.to = CaseFormat.valueOf(toConfig);
-  }
+    public ChangeCaseConfig(KeyValue config) {
+        String fromConfig = config.getString(FROM_CONFIG);
+        this.from = CaseFormat.valueOf(fromConfig);
+        String toConfig = config.getString(TO_CONFIG);
+        this.to = CaseFormat.valueOf(toConfig);
+    }
 
-  /**
-   * from
-   * @return
-   */
-  public CaseFormat from(){
-    return this.from;
-  }
+    /**
+     * from
+     *
+     * @return
+     */
+    public CaseFormat from() {
+        return this.from;
+    }
 
-  /**
-   * to
-   * @return
-   */
-  public CaseFormat to(){
-    return this.to;
-  }
+    /**
+     * to
+     *
+     * @return
+     */
+    public CaseFormat to() {
+        return this.to;
+    }
 }

@@ -23,50 +23,49 @@ import org.slf4j.LoggerFactory;
 
 /**
  * set null
+ *
  * @param <R>
  */
 public abstract class SetNull<R extends ConnectRecord> extends BaseTransformation<R> {
-  private static final Logger log = LoggerFactory.getLogger(SetNull.class);
+    private static final Logger log = LoggerFactory.getLogger(SetNull.class);
 
+    PatternRenameConfig config;
 
-  PatternRenameConfig config;
-
-  @Override
-  public void start(KeyValue keyValue) {
-    config = new PatternRenameConfig(keyValue);
-  }
-
-  /**
-   * transform key
-   */
-  public static class Key extends SetNull<ConnectRecord> {
     @Override
-    public ConnectRecord doTransform(ConnectRecord r) {
-      return new ConnectRecord(
-              r.getPosition().getPartition(),
-              r.getPosition().getOffset(),
-              r.getTimestamp(),
-              null,
-              null,
-              r.getSchema(),
-              r.getData()
-      );
+    public void start(KeyValue keyValue) {
+        config = new PatternRenameConfig(keyValue);
     }
-  }
 
-
-  public static class Value extends SetNull<ConnectRecord> {
-    @Override
-    public ConnectRecord doTransform(ConnectRecord r) {
-      return new ConnectRecord(
-              r.getPosition().getPartition(),
-              r.getPosition().getOffset(),
-              r.getTimestamp(),
-              r.getKeySchema(),
-              r.getKey(),
-              r.getSchema(),
-              r.getData()
-      );
+    /**
+     * transform key
+     */
+    public static class Key extends SetNull<ConnectRecord> {
+        @Override
+        public ConnectRecord doTransform(ConnectRecord r) {
+            return new ConnectRecord(
+                r.getPosition().getPartition(),
+                r.getPosition().getOffset(),
+                r.getTimestamp(),
+                null,
+                null,
+                r.getSchema(),
+                r.getData()
+            );
+        }
     }
-  }
+
+    public static class Value extends SetNull<ConnectRecord> {
+        @Override
+        public ConnectRecord doTransform(ConnectRecord r) {
+            return new ConnectRecord(
+                r.getPosition().getPartition(),
+                r.getPosition().getOffset(),
+                r.getTimestamp(),
+                r.getKeySchema(),
+                r.getKey(),
+                r.getSchema(),
+                r.getData()
+            );
+        }
+    }
 }
