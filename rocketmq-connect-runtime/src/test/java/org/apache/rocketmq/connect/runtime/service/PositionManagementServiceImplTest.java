@@ -36,6 +36,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -117,7 +118,7 @@ public class PositionManagementServiceImplTest {
         }).when(producer).send(any(Message.class), any(SendCallback.class));
 
         positionManagementService = new PositionManagementServiceImpl();
-        positionManagementService.initialize(connectConfig);
+        positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
         final Field dataSynchronizerField = PositionManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);

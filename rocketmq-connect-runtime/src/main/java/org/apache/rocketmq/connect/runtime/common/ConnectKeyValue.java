@@ -30,6 +30,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
 
+    /**
+     * epoch for update
+     */
+    private long epoch;
+
+    /**
+     * target state
+     */
     private TargetState targetState;
 
     /**
@@ -165,6 +173,19 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.targetState = targetState;
     }
 
+    public long getEpoch() {
+        return epoch;
+    }
+
+    public void setEpoch(long epoch) {
+        this.epoch = epoch;
+    }
+
+    public ConnectKeyValue nextGeneration(){
+        this.setEpoch(System.currentTimeMillis());
+        return this;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj != null && obj.getClass() == this.getClass()) {
@@ -173,7 +194,6 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         }
         return false;
     }
-
 
     @Override
     public int hashCode() {

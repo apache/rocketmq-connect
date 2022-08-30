@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
-import io.openmessaging.connector.api.component.connector.Connector;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -51,8 +50,8 @@ public class TestConfigManagementService implements ConfigManagementService {
 
     }
 
-    @Override public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp,
-        ConnectKeyValue configs) {
+    @Override public void recomputeTaskConfigs(String connectorName,
+                                               ConnectKeyValue configs) {
 
     }
 

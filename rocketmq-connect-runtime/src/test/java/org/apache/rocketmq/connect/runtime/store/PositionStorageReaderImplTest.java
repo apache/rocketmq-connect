@@ -24,9 +24,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.assertj.core.util.Maps;
@@ -49,7 +50,7 @@ public class PositionStorageReaderImplTest {
 
     private RecordOffset recordOffset;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     private ServerResponseMocker nameServerMocker;
 
@@ -60,7 +61,7 @@ public class PositionStorageReaderImplTest {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
 
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
         positionManagementService = new PositionManagementServiceImpl();
@@ -75,7 +76,7 @@ public class PositionStorageReaderImplTest {
         Map<String, Long> offset = new HashMap<>();
         offset.put("queueOffset", 0L);
         recordOffset = new RecordOffset(offset);
-        positionManagementService.initialize(connectConfig);
+        positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
         positionManagementService.start();
         positionManagementService.putPosition(extendRecordPartition, recordOffset);

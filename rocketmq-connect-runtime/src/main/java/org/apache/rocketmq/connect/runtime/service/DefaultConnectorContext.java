@@ -51,11 +51,9 @@ public class DefaultConnectorContext implements ConnectorContext {
             }
         }
         if (null != currentConnector) {
-            Connector connector = currentConnector.getConnector();
             ConnectKeyValue connectKeyValue = controller.getConfigManagementService().getConnectorConfigs().get(connectorName);
-            long currentTimeMillis = System.currentTimeMillis();
-            connectKeyValue.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimeMillis);
-            controller.getConfigManagementService().recomputeTaskConfigs(connectorName, connector, currentTimeMillis, connectKeyValue);
+            connectKeyValue.setEpoch(System.currentTimeMillis());
+            controller.getConfigManagementService().recomputeTaskConfigs(connectorName, connectKeyValue);
             log.info("Connector {} recompute taskConfigs success.", connectorName);
         } else {
             log.info("Not found connector {}.", connectorName);

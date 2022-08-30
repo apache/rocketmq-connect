@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.connect.runtime.service;
 
-import com.alibaba.fastjson.JSON;
+import io.openmessaging.connector.api.data.RecordConverter;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaAndValue;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -24,9 +28,9 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
-import org.apache.rocketmq.connect.runtime.converter.ConnAndTasksStatusConverter;
 import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.ListConverter;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
@@ -59,21 +63,32 @@ public class StateManagementServiceImpl implements StateManagementService {
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
 
+    public static final String STATE_KEY_NAME = "state";
+    public static final String TRACE_KEY_NAME = "trace";
+    public static final String WORKER_ID_KEY_NAME = "worker_id";
+    public static final String GENERATION_KEY_NAME = "generation";
+    private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
+            .field(STATE_KEY_NAME, SchemaBuilder.string().build())
+            .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
+            .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
+            .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
+            .build();
+
+
     /**
      * Synchronize config with other workers.
      */
-    private DataSynchronizer<String, String> dataSynchronizer;
-    /**
-     * Current connector status in the store.
-     */
-    protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
+    private DataSynchronizer<String, byte[]> dataSynchronizer;
 
-    /**
-     * Current task status in the store.
-     */
+    /** Current connector status in the store. */
+    protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
+    /** Current task status in the store. */
     protected KeyValueStore<String, List<TaskStatus>> taskStatusStore;
+
     protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
 
+    private RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
+    private String statusTopic;
     /**
      * Preparation before startup
      *
@@ -94,13 +109,17 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param config
      */
     @Override
-    public void initialize(WorkerConfig config) {
+    public void initialize(WorkerConfig config, RecordConverter converter) {
+        // set config
+        this.converter = converter;
+        this.statusTopic = config.getConnectStatusTopic();
+
         this.dataSynchronizer = new BrokerBasedLog(config,
-                config.getConnectStatusTopic(),
+                this.statusTopic,
                 ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
                 new StatusChangeCallback(),
-                new JsonConverter(),
-                new ConnAndTasksStatusConverter());
+                Serdes.serdeFrom(String.class),
+                Serdes.serdeFrom(byte[].class));
 
         /**connector status store*/
         this.connectorStatusStore = new FileBaseKeyValueStore<>(
@@ -251,7 +270,8 @@ public class StateManagementServiceImpl implements StateManagementService {
             }
         }
 
-        dataSynchronizer.send(key, JSON.toJSONString(status), new Callback() {
+        final byte[] value = serialize(status);
+        dataSynchronizer.send(key, value, new Callback() {
             @Override
             public void onCompletion(Throwable error, Object result) {
                 if (error != null) {
@@ -259,6 +279,16 @@ public class StateManagementServiceImpl implements StateManagementService {
                 }
             }
         });
+    }
+
+    private byte[] serialize(AbstractStatus<?> status) {
+        Struct struct = new Struct(STATUS_SCHEMA_V0);
+        struct.put(STATE_KEY_NAME, status.getState().name());
+        if (status.getTrace() != null)
+            struct.put(TRACE_KEY_NAME, status.getTrace());
+        struct.put(WORKER_ID_KEY_NAME, status.getWorkerId());
+        struct.put(GENERATION_KEY_NAME, status.getGeneration());
+        return converter.fromConnectData(this.statusTopic, STATUS_SCHEMA_V0, struct);
     }
 
 
@@ -331,13 +361,13 @@ public class StateManagementServiceImpl implements StateManagementService {
     }
 
 
-    private class StatusChangeCallback implements DataSynchronizerCallback<String, String> {
+    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
-        public void onCompletion(Throwable error, String key, String result) {
+        public void onCompletion(Throwable error, String key, byte[] value) {
             if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
-                readConnectorStatus(key, JSON.parseObject(result, ConnectorStatus.class));
+                readConnectorStatus(key, value);
             } else if (key.startsWith(TASK_STATUS_PREFIX)) {
-                readTaskStatus(key, JSON.parseObject(result, TaskStatus.class));
+                readTaskStatus(key, value);
             } else {
                 log.warn("Discarding record with invalid key {}", key);
             }
@@ -348,14 +378,15 @@ public class StateManagementServiceImpl implements StateManagementService {
      * read connector status
      *
      * @param key
-     * @param status
+     * @param value
      */
-    private void readConnectorStatus(String key, ConnectorStatus status) {
+    private void readConnectorStatus(String key, byte[] value) {
         String connector = parseConnectorStatusKey(key);
         if (connector.isEmpty()) {
             log.warn("Discarding record with invalid connector status key {}", key);
             return;
         }
+        ConnectorStatus status = parseConnectorStatus(connector, value);
 
         if (status == null || ConnectorStatus.State.DESTROYED == status.getState()) {
             log.trace("Removing connector status for {}", connector);
@@ -369,23 +400,43 @@ public class StateManagementServiceImpl implements StateManagementService {
         }
     }
 
+
     private String parseConnectorStatusKey(String key) {
         return key.substring(CONNECTOR_STATUS_PREFIX.length());
+    }
+
+    private ConnectorStatus parseConnectorStatus(String connector, byte[] data) {
+        try {
+            SchemaAndValue schemaAndValue = converter.toConnectData(this.statusTopic, data);
+            if (!(schemaAndValue.value() instanceof Map)) {
+                log.error("Invalid connector status type {}", schemaAndValue.value().getClass());
+                return null;
+            }
+            Map<String, Object> statusMap = (Map<String, Object>) schemaAndValue.value();
+            TaskStatus.State state = TaskStatus.State.valueOf((String) statusMap.get(STATE_KEY_NAME));
+            String trace = (String) statusMap.get(TRACE_KEY_NAME);
+            String workerUrl = (String) statusMap.get(WORKER_ID_KEY_NAME);
+            Long generation = (Long) statusMap.get(GENERATION_KEY_NAME);
+            return new ConnectorStatus(connector, state,  workerUrl, generation, trace);
+        } catch (Exception e) {
+            log.error("Failed to deserialize connector status", e);
+            return null;
+        }
     }
 
     /**
      * read task status
      *
      * @param key
-     * @param status
+     * @param value
      */
-    private void readTaskStatus(String key, TaskStatus status) {
+    private void readTaskStatus(String key, byte[] value) {
         ConnectorTaskId id = parseConnectorTaskId(key);
         if (id == null) {
             log.warn("Receive record with invalid task status key {}", key);
             return;
         }
-
+        TaskStatus status = parseTaskStatus(id, value);
         if (status == null || TaskStatus.State.DESTROYED == status.getState()) {
             log.trace("Removing task status for {}", id);
             remove(id.connector());
@@ -413,6 +464,26 @@ public class StateManagementServiceImpl implements StateManagementService {
             return null;
         }
     }
+
+    private TaskStatus parseTaskStatus(ConnectorTaskId taskId, byte[] data) {
+        try {
+            SchemaAndValue schemaAndValue = converter.toConnectData(statusTopic, data);
+            if (!(schemaAndValue.value() instanceof Map)) {
+                log.error("Invalid task status type {}", schemaAndValue.value().getClass());
+                return null;
+            }
+            Map<String, Object> statusMap = (Map<String, Object>) schemaAndValue.value();
+            TaskStatus.State state = TaskStatus.State.valueOf((String) statusMap.get(STATE_KEY_NAME));
+            String trace = (String) statusMap.get(TRACE_KEY_NAME);
+            String workerUrl = (String) statusMap.get(WORKER_ID_KEY_NAME);
+            Long generation = (Long) statusMap.get(GENERATION_KEY_NAME);
+            return new TaskStatus(taskId, state, workerUrl, generation, trace);
+        } catch (Exception e) {
+            log.error("Failed to deserialize task status", e);
+            return null;
+        }
+    }
+
 
     /**
      * remove connector
