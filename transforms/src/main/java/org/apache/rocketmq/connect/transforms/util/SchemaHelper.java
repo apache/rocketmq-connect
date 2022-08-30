@@ -52,7 +52,7 @@ public class SchemaHelper {
             if (!(input instanceof BigDecimal)) {
                 throw new UnsupportedOperationException(String.format("Unsupported Type: %s", input.getClass()));
             }
-            builder = Decimal.builder(((BigDecimal)input).scale());
+            builder = Decimal.builder(((BigDecimal) input).scale());
         }
 
         return builder.optional();

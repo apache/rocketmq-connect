@@ -26,38 +26,37 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-
 /**
  * pattern filter config
  */
-public class PatternFilterConfig{
+public class PatternFilterConfig {
 
-  public static final String PATTERN_CONFIG = "pattern";
-  public static final String PATTERN_DOC = "The regex to test the message with. ";
+    public static final String PATTERN_CONFIG = "pattern";
+    public static final String PATTERN_DOC = "The regex to test the message with. ";
 
-  public static final String FIELD_CONFIG = "fields";
-  public static final String FIELD_DOC = "The fields to transform.";
+    public static final String FIELD_CONFIG = "fields";
+    public static final String FIELD_DOC = "The fields to transform.";
 
+    private final Pattern pattern;
+    private final Set<String> fields;
 
-  private final Pattern pattern;
-  private final Set<String> fields;
-  public PatternFilterConfig(KeyValue config){
-    ExtendKeyValue extendKeyValue = new ExtendKeyValue(config);
-    String pattern = extendKeyValue.getString(PATTERN_CONFIG);
-    try {
-      this.pattern = Pattern.compile(pattern);
-    } catch (PatternSyntaxException var4) {
-      throw new ConnectException(String.format("Could not compile regex '%s'.", pattern));
+    public PatternFilterConfig(KeyValue config) {
+        ExtendKeyValue extendKeyValue = new ExtendKeyValue(config);
+        String pattern = extendKeyValue.getString(PATTERN_CONFIG);
+        try {
+            this.pattern = Pattern.compile(pattern);
+        } catch (PatternSyntaxException var4) {
+            throw new ConnectException(String.format("Could not compile regex '%s'.", pattern));
+        }
+        List<String> fields = extendKeyValue.getList(FIELD_CONFIG);
+        this.fields = new HashSet<>(fields);
     }
-    List<String> fields = extendKeyValue.getList(FIELD_CONFIG);
-    this.fields = new HashSet<>(fields);
-  }
 
-  public Pattern pattern() {
-    return this.pattern;
-  }
+    public Pattern pattern() {
+        return this.pattern;
+    }
 
-  public Set<String> fields() {
-    return this.fields;
-  }
+    public Set<String> fields() {
+        return this.fields;
+    }
 }

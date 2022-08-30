@@ -43,7 +43,7 @@ public class WorkerSinkTaskContextTest {
     @Mock
     private WorkerSinkTask workerSinkTask;
 
-    private DefaultLitePullConsumer defaultLitePullConsumer = new DefaultLitePullConsumer();
+    private DefaultLitePullConsumer consumer = new DefaultLitePullConsumer();
 
     private RecordPartition recordPartition;
 
@@ -59,7 +59,8 @@ public class WorkerSinkTaskContextTest {
         Map<String, String> offset = new HashMap<>();
         offset.put("queueOffset", "0");
         recordOffset = new RecordOffset(offset);
-        workerSinkTaskContext = new WorkerSinkTaskContext(connectKeyValue, workerSinkTask, defaultLitePullConsumer);
+
+        workerSinkTaskContext = new WorkerSinkTaskContext(connectKeyValue, workerSinkTask, consumer);
     }
 
     @Test

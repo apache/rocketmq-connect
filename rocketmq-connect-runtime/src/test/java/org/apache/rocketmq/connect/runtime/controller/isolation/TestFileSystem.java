@@ -27,11 +27,11 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
-import sun.nio.fs.MacOSXFileSystemProvider;
 
 public class TestFileSystem extends FileSystem {
     @Override public FileSystemProvider provider() {
-        return new MacOSXFileSystemProvider();
+//        return new MacOSXFileSystemProvider();
+        return null;
     }
 
     @Override public void close() throws IOException {
