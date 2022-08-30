@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -888,5 +889,19 @@ public class JsonConverterTest {
     private void assertStructSchemaEqual(Schema schema, Struct struct) {
         converter.fromConnectData(TOPIC, schema, struct);
         assertEquals(schema, struct.getSchema());
+    }
+
+    @Test
+    public void converterData(){
+        JsonConverter jsonConverter = new JsonConverter();
+        jsonConverter.configure(new HashMap<>());
+        Map<Object,Object> data = Maps.newConcurrentMap();
+        JSONObject object = new JSONObject();
+        object.put("data","data");
+        data.put("data", object );
+        data.put("data01","data01");
+        byte[] serData = jsonConverter.fromConnectData("test", null, data);
+        SchemaAndValue deData = jsonConverter.toConnectData("test", serData);
+        Map<Object, Object> value = (Map<Object, Object>)deData.value();
     }
 }

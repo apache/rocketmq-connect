@@ -28,6 +28,8 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -51,6 +53,7 @@ public class DistributedConnectControllerTest {
     private ConfigManagementService configManagementService = new TestConfigManagementService();
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
+    private StateManagementService stateManagementService = new StateManagementServiceImpl();
 
     private WorkerConfig connectConfig = new WorkerConfig();
 
@@ -64,8 +67,13 @@ public class DistributedConnectControllerTest {
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
         connectConfig.setNamesrvAddr("127.0.0.1:9876");
         clusterManagementService.initialize(connectConfig);
-        distributedConnectController = new DistributedConnectController(plugin, distributedConfig, clusterManagementService,
-            configManagementService, positionManagementService);
+        distributedConnectController = new DistributedConnectController(
+                plugin,
+                distributedConfig,
+                clusterManagementService,
+                configManagementService,
+                positionManagementService,
+                stateManagementService );
     }
 
     @After

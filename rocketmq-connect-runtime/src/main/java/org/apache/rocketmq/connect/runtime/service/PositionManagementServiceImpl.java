@@ -79,7 +79,8 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         this.keyConverter = keyConverter;
         this.valueConverter = valueConverter;
         this.topic = workerConfig.getPositionStoreTopic();
-
+        this.keyConverter.configure(new HashMap<>());
+        this.valueConverter.configure(new HashMap<>());
         this.dataSynchronizer = new BrokerBasedLog(
                 workerConfig,
                 this.topic,

@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +113,7 @@ public class StateManagementServiceImpl implements StateManagementService {
     public void initialize(WorkerConfig config, RecordConverter converter) {
         // set config
         this.converter = converter;
+        this.converter.configure(new HashMap<>());
         this.statusTopic = config.getConnectStatusTopic();
 
         this.dataSynchronizer = new BrokerBasedLog(config,

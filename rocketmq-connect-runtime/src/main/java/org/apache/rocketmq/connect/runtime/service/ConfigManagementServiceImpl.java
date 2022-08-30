@@ -51,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -151,6 +152,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         // set config
         this.topic = workerConfig.getConfigStoreTopic();
         this.converter = converter;
+        this.converter.configure(new HashMap<>());
         this.plugin = plugin;
 
         this.connectorConfigUpdateListener = new HashSet<>();

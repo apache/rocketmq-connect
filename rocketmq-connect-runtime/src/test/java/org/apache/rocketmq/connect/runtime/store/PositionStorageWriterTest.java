@@ -17,15 +17,18 @@
 
 package org.apache.rocketmq.connect.runtime.store;
 
+import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
@@ -40,7 +43,7 @@ public class PositionStorageWriterTest {
 
     private PositionManagementService positionManagementService;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     private ServerResponseMocker nameServerMocker;
 
@@ -65,11 +68,11 @@ public class PositionStorageWriterTest {
         offset.put("queueOffset", 0L);
         recordOffset = new RecordOffset(offset);
 
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
         positionManagementService = new PositionManagementServiceImpl();
-        positionManagementService.initialize(connectConfig);
+        positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
         positionStorageWriter = new PositionStorageWriter("testNameSpace", positionManagementService);
     }

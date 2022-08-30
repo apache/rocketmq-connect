@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.assertj.core.api.Assertions;
@@ -42,7 +44,7 @@ public class WorkerSinkTaskContextTest {
     @Mock
     private WorkerSinkTask workerSinkTask;
 
-    private DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer();
+    private DefaultLitePullConsumer defaultMQPullConsumer = new DefaultLitePullConsumer();
 
     private RecordPartition recordPartition;
 

@@ -577,18 +577,36 @@ public class JsonConverter implements RecordConverter {
                 }
                 case MAP: {
                     Map<?, ?> map = (Map<?, ?>) value;
+                    boolean objectMode;
+                    if (schema == null) {
+                        objectMode = true;
+                        for (Map.Entry<?, ?> entry : map.entrySet()) {
+                            if (!(entry.getKey() instanceof String)) {
+                                objectMode = false;
+                                break;
+                            }
+                        }
+                    } else {
+                        objectMode = schema.getKeySchema().getFieldType() == FieldType.STRING;
+                    }
+
                     JSONArray resultArray = new JSONArray();
+                    Map<String , Object> resultMap = new HashMap<>();
                     for (Map.Entry<?, ?> entry : map.entrySet()) {
                         Schema keySchema = schema == null ? null : schema.getKeySchema();
                         Schema valueSchema = schema == null ? null : schema.getValueSchema();
                         Object mapKey = convertToJson(keySchema, entry.getKey());
                         Object mapValue = convertToJson(valueSchema, entry.getValue());
-                        JSONArray entryArray = new JSONArray();
-                        entryArray.add(0, mapKey);
-                        entryArray.add(1, mapValue);
-                        resultArray.add(entryArray);
+                        if (objectMode){
+                            resultMap.put((String) mapKey, mapValue);
+                        }else {
+                            JSONArray entryArray = new JSONArray();
+                            entryArray.add(0, mapKey);
+                            entryArray.add(1, mapValue);
+                            resultArray.add(entryArray);
+                        }
                     }
-                    return resultArray;
+                    return objectMode? resultMap: resultArray;
                 }
                 case STRUCT: {
                     Struct struct = (Struct) value;

@@ -27,6 +27,8 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -50,7 +52,7 @@ public class StandaloneConnectControllerTest {
     private ConfigManagementService configManagementService = new TestConfigManagementService();
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
-
+    private StateManagementService stateManagementService = new StateManagementServiceImpl();
     @Before
     public void before() {
         NameServerMocker.startByDefaultConf(9876, 10911);
@@ -58,8 +60,14 @@ public class StandaloneConnectControllerTest {
         standaloneConfig.setNamesrvAddr("127.0.0.1:9876");
         standaloneConfig.setHttpPort(10001);
         clusterManagementService.initialize(standaloneConfig);
-        standaloneConnectController = new StandaloneConnectController(plugin, standaloneConfig, clusterManagementService,
-            configManagementService, positionManagementService);
+        standaloneConnectController = new StandaloneConnectController(
+                plugin,
+                standaloneConfig,
+                clusterManagementService,
+                configManagementService,
+                positionManagementService,
+                stateManagementService
+        );
     }
 
     @After
