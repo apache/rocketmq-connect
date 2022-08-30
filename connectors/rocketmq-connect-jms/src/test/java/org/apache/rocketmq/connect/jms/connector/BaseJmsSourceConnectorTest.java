@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.jms.connector;
 
 import static org.junit.Assert.assertEquals;
 
+import io.openmessaging.connector.api.component.task.Task;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,7 +27,6 @@ import org.apache.rocketmq.connect.jms.Config;
 import org.junit.Test;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
 import io.openmessaging.internal.DefaultKeyValue;
 
 public class BaseJmsSourceConnectorTest {
@@ -54,29 +54,17 @@ public class BaseJmsSourceConnectorTest {
 	};
 
     @Test
-    public void verifyAndSetConfigTest() {
-        KeyValue keyValue = new DefaultKeyValue();
-
-        for (String requestKey : Config.REQUEST_CONFIG) {
-            assertEquals(connector.verifyAndSetConfig(keyValue), "Request config key: " + requestKey);
-            keyValue.put(requestKey, requestKey);
-        }
-        assertEquals(connector.verifyAndSetConfig(keyValue), "");
-    }
-
-    @Test
     public void taskClassTest() {
         assertEquals(connector.taskClass(), BaseJmsSourceTask.class);
     }
 
     @Test
     public void taskConfigsTest() {
-        assertEquals(connector.taskConfigs().get(0), null);
+        assertEquals(connector.taskConfigs(2).get(0), null);
         KeyValue keyValue = new DefaultKeyValue();
         for (String requestKey : Config.REQUEST_CONFIG) {
             keyValue.put(requestKey, requestKey);
         }
-        connector.verifyAndSetConfig(keyValue);
-        assertEquals(connector.taskConfigs().get(0), keyValue);
+        assertEquals(connector.taskConfigs(2).get(0), keyValue);
     }
 }

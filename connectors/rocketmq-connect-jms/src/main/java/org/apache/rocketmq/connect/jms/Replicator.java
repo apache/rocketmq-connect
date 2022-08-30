@@ -38,7 +38,7 @@ public class Replicator {
     
     private BaseJmsSourceTask baseJmsSourceTask;
 
-    public Replicator(Config config , BaseJmsSourceTask baseJmsSourceTask) {
+    public Replicator(Config config, BaseJmsSourceTask baseJmsSourceTask) {
         this.config = config;
         this.baseJmsSourceTask = baseJmsSourceTask;
     }
