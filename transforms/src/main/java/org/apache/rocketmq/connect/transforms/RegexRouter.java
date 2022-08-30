@@ -27,14 +27,15 @@ import java.util.regex.Pattern;
 
 /**
  * regex router
+ *
  * @param <R>
  */
 public abstract class RegexRouter<R extends ConnectRecord> extends BaseTransformation<R> {
     private static final Logger LOG = LoggerFactory.getLogger(RegexRouter.class);
     public static final String TOPIC = "topic";
     public static final String OVERVIEW_DOC = "Update the record topic using the configured regular expression and replacement string."
-            + "<p/>Under the hood, the regex is compiled to a <code>java.util.regex.Pattern</code>. "
-            + "If the pattern matches the input topic, <code>java.util.regex.Matcher#replaceFirst()</code> is used with the replacement string to obtain the new topic.";
+        + "<p/>Under the hood, the regex is compiled to a <code>java.util.regex.Pattern</code>. "
+        + "If the pattern matches the input topic, <code>java.util.regex.Matcher#replaceFirst()</code> is used with the replacement string to obtain the new topic.";
 
     private interface ConfigName {
         String REGEX = "regex";
@@ -52,7 +53,7 @@ public abstract class RegexRouter<R extends ConnectRecord> extends BaseTransform
 
     @Override
     public R doTransform(R record) {
-        Map<String, Object>  partitionMap = (Map<String, Object>)record.getPosition().getPartition().getPartition();
+        Map<String, Object> partitionMap = (Map<String, Object>) record.getPosition().getPartition().getPartition();
         if (null == partitionMap || !partitionMap.containsKey(TOPIC)) {
             LOG.warn("PartitionMap get topic is null , lack of topic config");
             return record;
