@@ -28,7 +28,8 @@ public class Config {
     @SuppressWarnings("serial")
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
-            add("brokerUrl");
+            add("host");
+            add("port");
             add("destinationType");
             add("destinationName");
         }
@@ -42,7 +43,14 @@ public class Config {
 
     public static final String POSITION = "position";
 
-    public String brokerUrl;
+    public static final String TOPIC_DESTINATION_TYPE = "topic";
+
+    public static final String QUEUE_DESTINATION_TYPE = "queue";
+
+
+    public String host;
+
+    public Integer port;
 
     public String username;
 
@@ -99,36 +107,46 @@ public class Config {
                         }
                     }
                 } catch (Throwable ignored) {
+
                 }
+
             }
         }
-    }    
-    
-    public String getBrokerUrl() {
-		return brokerUrl;
-	}
+    }
 
-	public void setBrokerUrl(String brokerUrl) {
-		this.brokerUrl = brokerUrl;
-	}
+    public String getHost() {
+        return host;
+    }
 
-	public String getUsername() {
-		return username;
-	}
+    public void setHost(String host) {
+        this.host = host;
+    }
 
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    public Integer getPort() {
+        return port;
+    }
 
-	public String getPassword() {
-		return password;
-	}
+    public void setPort(Integer port) {
+        this.port = port;
+    }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    public String getUsername() {
+        return username;
+    }
 
-	public String getDestinationType() {
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getDestinationType() {
         return destinationType;
     }
 

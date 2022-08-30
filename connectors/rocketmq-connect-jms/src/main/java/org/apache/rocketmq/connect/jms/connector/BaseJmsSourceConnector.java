@@ -26,7 +26,7 @@ import io.openmessaging.KeyValue;
 
 public abstract class BaseJmsSourceConnector extends SourceConnector {
 
-    private KeyValue config;
+    protected KeyValue config;
 
     @Override
     public void start(KeyValue config) {
@@ -49,9 +49,11 @@ public abstract class BaseJmsSourceConnector extends SourceConnector {
 
     @Override
     public List<KeyValue> taskConfigs(int maxTask) {
-        List<KeyValue> config = new ArrayList<>();
-        config.add(this.config);
-        return config;
+        List<KeyValue> configs = new ArrayList<>();
+        for (int i = 0; i < maxTask; i++) {
+            configs.add(this.config);
+        }
+        return configs;
     }
     
     public abstract Set<String> getRequiredConfig();
