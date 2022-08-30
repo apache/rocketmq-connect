@@ -210,9 +210,9 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     private void set(PositionChange change, ExtendRecordPartition partition, RecordOffset position){
         String namespace = partition.getNamespace();
         // When serializing the key, we add in the namespace information so the key is [namespace, real key]
-        byte[] key = keyConverter.fromConnectData(namespace, null, Arrays.asList(change.name(), namespace, partition.getPartition()));
+        byte[] key = keyConverter.fromConnectData(namespace, null, Arrays.asList(change.name(), namespace, partition != null? partition.getPartition() : new HashMap<>()));
         ByteBuffer keyBuffer = (key != null) ? ByteBuffer.wrap(key) : null;
-        byte[] value = valueConverter.fromConnectData(namespace, null, position.getOffset());
+        byte[] value = valueConverter.fromConnectData(namespace, null, position != null? position.getOffset() : new HashMap<>());
         ByteBuffer valueBuffer = (value != null) ? ByteBuffer.wrap(value) : null;
         dataSynchronizer.send(keyBuffer, valueBuffer);
     }
@@ -223,9 +223,16 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         @Override
         public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {
             SchemaAndValue schemaAndValueKey = keyConverter.toConnectData(topic, key.array());
+            if (schemaAndValueKey.value() == null || schemaAndValueKey.value() == null) {
+                log.error("The format of the monitored offset change data is wrong and will be discarded , schema and value {}", schemaAndValueKey.toString());
+                return;
+            }
             List<Object> deKey = (List<Object>) schemaAndValueKey.value();
+            if (deKey.isEmpty() || deKey.size() != 3) {
+                log.error("The format of the monitored offset change data is wrong and will be discarded , message {}", deKey);
+                return;
+            }
             String changeKey = (String) deKey.get(0);
-
             boolean changed = false;
             switch (PositionChange.valueOf(changeKey)) {
                 case ONLINE_KEY:

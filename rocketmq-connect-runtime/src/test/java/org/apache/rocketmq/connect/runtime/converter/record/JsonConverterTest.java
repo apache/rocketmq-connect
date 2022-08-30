@@ -896,12 +896,10 @@ public class JsonConverterTest {
         JsonConverter jsonConverter = new JsonConverter();
         jsonConverter.configure(new HashMap<>());
         Map<Object,Object> data = Maps.newConcurrentMap();
-        JSONObject object = new JSONObject();
-        object.put("data","data");
-        data.put(1,"1" );
-        data.put(2,"2");
-        byte[] serData = jsonConverter.fromConnectData("test", null, data);
+        data.put("data","data" );
+        data.put("data01","data02");
+        byte[] serData = jsonConverter.fromConnectData("test", null,Arrays.asList("test", null, null));
         SchemaAndValue deData = jsonConverter.toConnectData("test", serData);
-        Map<Integer , Object> value = (Map<Integer, Object>)deData.value();
+        List<Object> value = (List<Object>)deData.value();
     }
 }
