@@ -898,10 +898,10 @@ public class JsonConverterTest {
         Map<Object,Object> data = Maps.newConcurrentMap();
         JSONObject object = new JSONObject();
         object.put("data","data");
-        data.put("data", object );
-        data.put("data01","data01");
+        data.put(1,"1" );
+        data.put(2,"2");
         byte[] serData = jsonConverter.fromConnectData("test", null, data);
         SchemaAndValue deData = jsonConverter.toConnectData("test", serData);
-        Map<Object, Object> value = (Map<Object, Object>)deData.value();
+        Map<Integer , Object> value = (Map<Integer, Object>)deData.value();
     }
 }
