@@ -30,6 +30,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatu
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.serialization.JsonSerde;
+import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
@@ -140,7 +141,7 @@ public class StateManagementServiceImpl implements StateManagementService {
         this.taskStatusStore = new FileBaseKeyValueStore<>(
                 FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
                 new Serdes.StringSerde(),
-                new JsonSerde(TaskStatus.class));
+                new ListSerde(TaskStatus.class));
         // create topic
         this.prepare(config);
     }
