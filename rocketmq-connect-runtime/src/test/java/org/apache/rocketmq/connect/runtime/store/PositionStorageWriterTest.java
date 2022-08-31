@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.store;
 
-import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import java.io.IOException;
