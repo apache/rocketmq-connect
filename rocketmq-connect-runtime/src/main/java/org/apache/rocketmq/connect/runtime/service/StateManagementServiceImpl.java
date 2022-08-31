@@ -194,6 +194,9 @@ public class StateManagementServiceImpl implements StateManagementService {
      * pre persist
      */
     private void prePersist() {
+        if (connAndTaskStatus.getConnectors().isEmpty()){
+            return;
+        }
         connAndTaskStatus.getConnectors().forEach((connectName, connectorStatus) -> {
             connectorStatusStore.put(connectName, connectorStatus.get());
             Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
