@@ -24,6 +24,7 @@ import io.openmessaging.producer.SendResult;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,8 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -84,9 +87,15 @@ public class PositionManagementServiceImplTest {
 
     private Map<ExtendRecordPartition, RecordOffset> positions;
 
+    private ServerResponseMocker nameServerMocker;
+
+    private ServerResponseMocker brokerMocker;
+
     private final String namespace = "namespace";
     @Before
     public void init() throws Exception {
+        nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
+        brokerMocker =  ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
         connectConfig = new WorkerConfig();
         connectConfig.setHttpPort(8081);
         connectConfig.setNamesrvAddr("localhost:9876");
@@ -156,6 +165,8 @@ public class PositionManagementServiceImplTest {
     public void destory() {
         positionManagementService.stop();
         TestUtils.deleteFile(new File(System.getProperty("user.home") + File.separator + "testConnectorStore"));
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
     @Test

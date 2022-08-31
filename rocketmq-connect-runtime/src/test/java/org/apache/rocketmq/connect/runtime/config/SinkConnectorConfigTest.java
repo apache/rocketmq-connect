@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.config;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class SinkConnectorConfigTest {
@@ -28,14 +29,12 @@ public class SinkConnectorConfigTest {
 
     @Test
     public void parseTopicListTest() {
-        // connect-topicname is null
-        final Set<String> result1 = new SinkConnectorConfig(connectKeyValue).parseTopicList();
-        assert result1 == null;
-
-        // connect-topicname is not null
-        connectKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, "test");
-        final Set<String> result2 = new SinkConnectorConfig(connectKeyValue).parseTopicList();
-        assert !result2.isEmpty();
+        connectKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, "testTopic");
+        connectKeyValue.put(SinkConnectorConfig.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector");
+        final Set<String> result = new SinkConnectorConfig(connectKeyValue).parseTopicList();
+        System.out.println(result.toString());
+        Assert.assertTrue(!result.isEmpty());
+        Assert.assertEquals("[testTopic]", result.toString());
     }
 
     @Test
