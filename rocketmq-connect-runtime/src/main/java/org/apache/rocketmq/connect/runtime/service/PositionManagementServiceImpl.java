@@ -221,6 +221,10 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
         @Override
         public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {
+            if (key == null ){
+                log.warn("The received position information key is empty and cannot be parsed. Discard");
+                return;
+            }
             SchemaAndValue schemaAndValueKey = keyConverter.toConnectData(topic, key.array());
             if (schemaAndValueKey.value() == null || schemaAndValueKey.value() == null) {
                 log.error("The format of the monitored offset change data is wrong and will be discarded , schema and value {}", schemaAndValueKey.toString());

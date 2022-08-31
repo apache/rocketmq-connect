@@ -135,7 +135,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             }
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
-            producer.send(new Message(topicName, body), new SendCallback() {
+            producer.send(message, new SendCallback() {
                 @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                 }
@@ -169,7 +169,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             }
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
-            producer.send(new Message(topicName, body), new SendCallback() {
+            producer.send(message, new SendCallback() {
                 @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                     callback.onCompletion(null, value);
@@ -187,15 +187,17 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     }
 
 
-    private Map.Entry<byte[],byte[]> encode(K key, V value) throws Exception {
+    private Map.Entry<byte[],byte[]> encode(K key, V value) {
+        byte[] keySer = keySerde.serializer().serialize(topicName, key);
+        byte[] valueSer = keySerde.serializer().serialize(topicName,value);
         return new Map.Entry<byte[],byte[]>(){
             @Override
             public byte[] getKey() {
-                return keySerde.serializer().serialize(topicName, value);
+                return keySer;
             }
             @Override
             public byte[] getValue() {
-                return keySerde.serializer().serialize(topicName,value);
+                return valueSer;
             }
             @Override
             public byte[] setValue(byte[] value) {
@@ -204,15 +206,17 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         };
     }
 
-    private Map.Entry<K, V> decode(byte[] key, byte[] value) throws Exception {
+    private Map.Entry<K, V> decode(byte[] key, byte[] value) {
+        K deKey = (K)keySerde.deserializer().deserialize(topicName, key);
+        V deValue = (V)keySerde.deserializer().deserialize(topicName, value);
         return new Map.Entry<K, V>(){
             @Override
             public K getKey() {
-                return (K)keySerde.deserializer().deserialize(topicName, key);
+                return deKey;
             }
             @Override
             public V getValue() {
-                return (V)valueSerde.deserializer().deserialize(topicName, value);
+                return deValue;
             }
             @Override
             public V setValue(V value) {
@@ -229,7 +233,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
                 try {
                     String key = messageExt.getKeys();
-                    Map.Entry<K,V> entry = decode(StringUtils.isEmpty(key)? null : Base64Util.base64Decode(key), messageExt.getBody());
+                    Map.Entry<K,V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
                     dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
                 } catch (Exception e) {
                     log.error("Decode message data error. message: {}, error info: {}", messageExt, e);
