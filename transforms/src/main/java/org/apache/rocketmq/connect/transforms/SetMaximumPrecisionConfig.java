@@ -22,16 +22,16 @@ import io.openmessaging.KeyValue;
  * set maximum precision config
  */
 public class SetMaximumPrecisionConfig {
-  public static final String MAX_PRECISION_CONFIG = "precision.max";
-  static final String MAX_PRECISION_DOC = "The maximum precision allowed.";
+    public static final String MAX_PRECISION_CONFIG = "precision.max";
+    static final String MAX_PRECISION_DOC = "The maximum precision allowed.";
 
-  private final int maxPrecision;
+    private final int maxPrecision;
 
-  public SetMaximumPrecisionConfig(KeyValue config) {
-    this.maxPrecision = config.getInt(MAX_PRECISION_CONFIG);
-  }
+    public SetMaximumPrecisionConfig(KeyValue config) {
+        this.maxPrecision = config.getInt(MAX_PRECISION_CONFIG);
+    }
 
-  public int maxPrecision(){
-    return maxPrecision;
-  }
+    public int maxPrecision() {
+        return maxPrecision;
+    }
 }

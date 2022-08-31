@@ -20,7 +20,7 @@ package org.apache.rocketmq.connect.runtime.errors;
 import io.openmessaging.connector.api.data.RecordConverter;
 import java.util.List;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.StringConverter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -48,7 +48,7 @@ public class ReporterManagerUtilTest {
 
     @Test
     public void sinkTaskReportersTest() {
-        ConnectConfig workerConfig = new ConnectConfig();
+        WorkerConfig workerConfig = new WorkerConfig();
         final List<ErrorReporter> connector = ReporterManagerUtil.sinkTaskReporters("testConnector", connectKeyValue, workerConfig);
         Assert.assertEquals(1, connector.size());
     }

@@ -44,8 +44,8 @@ import java.util.Set;
 public class RestHandler {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-    private final String CONNECTOR_NAME = "connectorName";
-    private final String TASK_NAME = "task";
+    private static final String CONNECTOR_NAME = "connectorName";
+    private static final String TASK_NAME = "task";
     private final AbstractConnectController connectController;
 
     /** connector plugin resource */
