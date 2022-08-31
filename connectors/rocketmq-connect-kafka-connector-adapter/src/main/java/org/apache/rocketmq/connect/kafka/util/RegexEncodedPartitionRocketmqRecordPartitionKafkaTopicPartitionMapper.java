@@ -39,10 +39,10 @@ public class RegexEncodedPartitionRocketmqRecordPartitionKafkaTopicPartitionMapp
                 }
                 return id;
             } catch (NumberFormatException e){
-                throw new ConnectException("can not get brokerNameId from brokerName:"+brokerName, e);
+                throw new ConnectException("can not get brokerNameId from brokerName for regex:"+brokerName, e);
             }
         } else {
-            throw new ConnectException("can not get brokerNameId from brokerName:"+brokerName);
+            throw new ConnectException("can not get brokerNameId from brokerName for find:"+brokerName);
         }
     }
 
