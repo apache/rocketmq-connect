@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
