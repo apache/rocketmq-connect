@@ -21,6 +21,7 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -36,7 +37,6 @@ import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
-import org.apache.rocketmq.connect.runtime.utils.Table;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
@@ -61,6 +61,8 @@ public class StateManagementServiceImpl implements StateManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     private final String statusManagePrefix = "StatusManage";
+
+    public static final String START_SIGNAL = "start-signal";
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
 
@@ -75,7 +77,12 @@ public class StateManagementServiceImpl implements StateManagementService {
             .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
             .build();
 
-
+    /**
+     * start signal
+     */
+    public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
+            .field(START_SIGNAL, SchemaBuilder.string().build())
+            .build();
     /**
      * Synchronize config with other workers.
      */
@@ -146,13 +153,31 @@ public class StateManagementServiceImpl implements StateManagementService {
         connectorStatusStore.load();
         taskStatusStore.load();
         dataSynchronizer.start();
-        sendOnlineConfig();
+        sendStartSignal();
+    }
+
+    private void sendStartSignal() {
+        Struct struct = new Struct(START_SIGNAL_V0);
+        struct.put(START_SIGNAL,START_SIGNAL);
+        dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(statusTopic, START_SIGNAL_V0, struct));
+    }
+
+    /**
+     * Stop dependent services (if needed)
+     */
+    @Override
+    public void stop() {
+        sendOnlineState();
+        prePersist();
+        connectorStatusStore.persist();
+        taskStatusStore.persist();
+        dataSynchronizer.stop();
     }
 
     /**
      * sync send online config
      */
-    private synchronized void sendOnlineConfig() {
+    private synchronized void sendOnlineState() {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName, connectorStatus) -> {
@@ -177,18 +202,6 @@ public class StateManagementServiceImpl implements StateManagementService {
                 put(taskStatus);
             });
         });
-    }
-
-    /**
-     * Stop dependent services (if needed)
-     */
-    @Override
-    public void stop() {
-        sendOnlineConfig();
-        prePersist();
-        connectorStatusStore.persist();
-        taskStatusStore.persist();
-        dataSynchronizer.stop();
     }
 
     /**
@@ -384,7 +397,13 @@ public class StateManagementServiceImpl implements StateManagementService {
     private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
-            if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
+            if (StringUtils.isEmpty(key)){
+                log.error("State change message is illegal, key is empty, the message will be skipped ");
+                return;
+            }
+            if (key.equals(START_SIGNAL)){
+                sendOnlineState();
+            } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
                 readConnectorStatus(key, value);
             } else if (key.startsWith(TASK_STATUS_PREFIX)) {
                 readTaskStatus(key, value);

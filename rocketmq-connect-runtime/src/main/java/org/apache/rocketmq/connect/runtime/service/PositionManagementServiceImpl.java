@@ -222,7 +222,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         @Override
         public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {
             if (key == null ){
-                log.warn("The received position information key is empty and cannot be parsed. Discard");
+                log.warn("The received position information key is empty and cannot be parsed. the message will be skipped");
                 return;
             }
             SchemaAndValue schemaAndValueKey = keyConverter.toConnectData(topic, key.array());

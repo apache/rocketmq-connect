@@ -26,6 +26,7 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -63,6 +64,8 @@ import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECT
 public class ConfigManagementServiceImpl extends AbstractConfigManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
+    public static final String START_SIGNAL = "start-signal";
+
     public static final String TARGET_STATE_PREFIX = "target-state-";
     public static String TARGET_STATE_KEY(String connectorName) {
         return TARGET_STATE_PREFIX + connectorName;
@@ -88,6 +91,14 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private static final String FIELD_STATE = "state";
     private static final String FIELD_EPOCH = "epoch";
     private static final String FIELD_PROPS = "properties";
+
+    /**
+     * start signal
+     */
+    public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
+            .field(START_SIGNAL, SchemaBuilder.string().build())
+            .build();
+
     /**
      * connector configuration
      */
@@ -200,7 +211,13 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         connectorKeyValueStore.load();
         taskKeyValueStore.load();
         dataSynchronizer.start();
-        triggerSendMessage();
+        sendStartSignal();
+    }
+
+    private void sendStartSignal() {
+        Struct struct = new Struct(START_SIGNAL_V0);
+        struct.put(START_SIGNAL,"start");
+        dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(topic, START_SIGNAL_V0, struct));
     }
 
     @Override
@@ -368,6 +385,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         });
 
         taskKeyValueStore.getKVMap().forEach((connectName, taskConfigs) -> {
+            if (taskConfigs == null || taskConfigs.isEmpty()){
+                return;
+            }
             taskConfigs.forEach(taskConfig -> {
                 ConnectorTaskId taskId = new ConnectorTaskId(connectName, taskConfig.getInt(ConnectorConfig.TASK_ID));
                 Struct struct = new Struct(TASK_CONFIGURATION_V0)
@@ -383,8 +403,17 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     private class ConfigChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
+            if (StringUtils.isEmpty(key)){
+                log.error("Config change message is illegal, key is empty, the message will be skipped");
+                return;
+            }
             SchemaAndValue schemaAndValue = converter.toConnectData(topic, value);
-            if (key.startsWith(TARGET_STATE_PREFIX)) {
+            if (key.equals(START_SIGNAL)){
+                // send message in full
+                triggerSendMessage();
+                // reblance
+                triggerListener();
+            } else if (key.startsWith(TARGET_STATE_PREFIX)) {
                 // target state listener
                 String connectorName = key.substring(TARGET_STATE_PREFIX.length());
                 processTargetStateRecord(connectorName, schemaAndValue);

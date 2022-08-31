@@ -21,7 +21,6 @@ import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.data.RecordConverter;
-import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
