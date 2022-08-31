@@ -20,10 +20,13 @@ kafka-connector-adapter参数：
 - **connector.class**: kafka connector的类名
 - **plugin.path**: kafka connector插件路径
 
+
 具体kafka connector参数：
 
-参考具体kafka connector的文档
+- 参考具体kafka connector的文档
 
+当connector-class是org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector时，有特殊参数：
+- **rocketmq.recordPartition.kafkaTopicPartition.mapper**: recordPartition映射到kafkaTopicPartition实现，取值为：encodedTopic、assignEncodedPartition和regexEncodedPartition，默认是encodedTopic
 
 # 快速开始
 
@@ -95,10 +98,11 @@ cat /tmp/test-sink-file.txt
 
 todo
 
-# 如何运行kafka-mongo-connector
+# 如何运行其他kafka connector
 
-todo
+## 1.获取kafka connector的uber jar
+仓库[kafka-connector-plugins](https://github.com/oudb/kafka-connector-plugins)收集了一些常见connector的uber jar
 
-# 如何运行kafka-jdbc-connector
-
-todo
+## 2.运行指南
+1.[mongodb](how-to/kafka-mongo-connector.md)
+1.[neo4j](how-to/kafka-neo4j-connector.md)
