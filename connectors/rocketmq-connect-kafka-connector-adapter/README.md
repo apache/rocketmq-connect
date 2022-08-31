@@ -105,4 +105,5 @@ todo
 
 ## 2.运行指南
 1.[mongodb](how-to/kafka-mongo-connector.md)
-1.[neo4j](how-to/kafka-neo4j-connector.md)
+
+2.[neo4j](how-to/kafka-neo4j-connector.md)
