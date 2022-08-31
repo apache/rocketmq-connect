@@ -30,7 +30,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
@@ -94,14 +94,14 @@ public class ConnectUtilTest {
 
     @Test
     public void initAllocateConnAndTaskStrategyTest(){
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         final AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         Assert.assertEquals("DefaultAllocateConnAndTaskStrategy", strategy.getClass().getSimpleName());
     }
 
     @Test
     public void initDefaultMQProducerTest() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         final DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(connectConfig);
         Assert.assertEquals(NAME_SERVER_ADDR, producer.getNamesrvAddr());
@@ -113,7 +113,7 @@ public class ConnectUtilTest {
 
     @Test
     public void initDefaultMQPullConsumerTest() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         final DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
         Assert.assertEquals(NAME_SERVER_ADDR, consumer.getNamesrvAddr());
@@ -141,7 +141,7 @@ public class ConnectUtilTest {
 
     @Test
     public void initDefaultMQPushConsumerTest() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         final DefaultMQPushConsumer consumer = ConnectUtil.initDefaultMQPushConsumer(connectConfig);
         Assert.assertEquals(NAME_SERVER_ADDR, consumer.getNamesrvAddr());
@@ -153,7 +153,7 @@ public class ConnectUtilTest {
 
     @Test
     public void startMQAdminToolTest() throws MQClientException {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         final DefaultMQAdminExt defaultMQAdminExt = ConnectUtil.startMQAdminTool(connectConfig);
         Assert.assertEquals(NAME_SERVER_ADDR, defaultMQAdminExt.getNamesrvAddr());
@@ -165,7 +165,7 @@ public class ConnectUtilTest {
 
     @Test
     public void createTopicTest() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setTopicName(TEST_TOPIC);
@@ -177,7 +177,7 @@ public class ConnectUtilTest {
 
     @Test
     public void fetchAllConsumerGroupListTest() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         final Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
         Assert.assertTrue(consumerGroupSet.contains("Consumer-group-one"));
@@ -185,7 +185,7 @@ public class ConnectUtilTest {
 
     @Test
     public void createSubGroupTest() {
-        ConnectConfig connectConfig = new ConnectConfig();
+        WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
         final String group = ConnectUtil.createSubGroup(connectConfig, TEST_SUBSCRIPTION_GROUP);
         Assert.assertEquals(TEST_SUBSCRIPTION_GROUP, group);
