@@ -248,7 +248,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                     Map<String, Object> partitions =  (Map<String, Object>) deKey.get(2);
                     ExtendRecordPartition partition = new ExtendRecordPartition(namespace, partitions);
                     // offset
-                    SchemaAndValue schemaAndValueValue = keyConverter.toConnectData(topic, key.array());
+                    SchemaAndValue schemaAndValueValue = valueConverter.toConnectData(topic, result.array());
                     Map<String, Object> offset = (Map<String, Object>)schemaAndValueValue.value();
                     changed = mergePositionInfo(partition, new RecordOffset(offset));
                     break;

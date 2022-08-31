@@ -189,7 +189,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
 
     private Map.Entry<byte[],byte[]> encode(K key, V value) {
         byte[] keySer = keySerde.serializer().serialize(topicName, key);
-        byte[] valueSer = keySerde.serializer().serialize(topicName,value);
+        byte[] valueSer = valueSerde.serializer().serialize(topicName,value);
         return new Map.Entry<byte[],byte[]>(){
             @Override
             public byte[] getKey() {
@@ -208,7 +208,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
 
     private Map.Entry<K, V> decode(byte[] key, byte[] value) {
         K deKey = (K)keySerde.deserializer().deserialize(topicName, key);
-        V deValue = (V)keySerde.deserializer().deserialize(topicName, value);
+        V deValue = (V)valueSerde.deserializer().deserialize(topicName, value);
         return new Map.Entry<K, V>(){
             @Override
             public K getKey() {

@@ -155,13 +155,22 @@ public class StateManagementServiceImpl implements StateManagementService {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName, connectorStatus) -> {
+            if (connectorStatus == null){
+                return;
+            }
             // send status
             put(connectorStatus);
         });
 
         /** task status map */
         Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
+        if (taskStatusMap.isEmpty()){
+            return;
+        }
         taskStatusMap.forEach((connectorName, taskStatusList) -> {
+            if (taskStatusList == null || taskStatusList.isEmpty()){
+                return;
+            }
             taskStatusList.forEach(taskStatus -> {
                 // send status
                 put(taskStatus);
@@ -469,15 +478,15 @@ public class StateManagementServiceImpl implements StateManagementService {
     private TaskStatus parseTaskStatus(ConnectorTaskId taskId, byte[] data) {
         try {
             SchemaAndValue schemaAndValue = converter.toConnectData(statusTopic, data);
-            if (!(schemaAndValue.value() instanceof Map)) {
+            if (!(schemaAndValue.value() instanceof Struct)) {
                 log.error("Invalid task status type {}", schemaAndValue.value().getClass());
                 return null;
             }
-            Map<String, Object> statusMap = (Map<String, Object>) schemaAndValue.value();
-            TaskStatus.State state = TaskStatus.State.valueOf((String) statusMap.get(STATE_KEY_NAME));
-            String trace = (String) statusMap.get(TRACE_KEY_NAME);
-            String workerUrl = (String) statusMap.get(WORKER_ID_KEY_NAME);
-            Long generation = (Long) statusMap.get(GENERATION_KEY_NAME);
+            Struct struct = (Struct) schemaAndValue.value();
+            TaskStatus.State state = TaskStatus.State.valueOf((String) struct.get(STATE_KEY_NAME));
+            String trace = (String) struct.get(TRACE_KEY_NAME);
+            String workerUrl = (String) struct.get(WORKER_ID_KEY_NAME);
+            Long generation = (Long) struct.get(GENERATION_KEY_NAME);
             return new TaskStatus(taskId, state, workerUrl, generation, trace);
         } catch (Exception e) {
             log.error("Failed to deserialize task status", e);

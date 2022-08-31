@@ -248,7 +248,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
         // new Struct
         Struct connectConfig = new Struct(CONNECTOR_CONFIGURATION_V0);
-        connectConfig.put(FIELD_STATE, configs.getTargetState());
+        connectConfig.put(FIELD_STATE, configs.getTargetState().name());
         connectConfig.put(FIELD_EPOCH, configs.getEpoch());
         connectConfig.put(FIELD_PROPS , configs.getProperties());
         byte[] config = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, connectConfig);
@@ -281,6 +281,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      */
     @Override
     public void pauseConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
         Struct connectTargetState = new Struct(TARGET_STATE_V0);
         connectTargetState.put(FIELD_STATE, TargetState.PAUSED.name());
         connectTargetState.put(FIELD_EPOCH, System.currentTimeMillis());
@@ -296,6 +299,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      */
     @Override
     public void resumeConnector(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
         Struct connectTargetState = new Struct(TARGET_STATE_V0);
         connectTargetState.put(FIELD_STATE, TargetState.STARTED.name());
         connectTargetState.put(FIELD_EPOCH, System.currentTimeMillis());
@@ -356,7 +362,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         connectorKeyValueStore.getKVMap().forEach((connectName, connectKeyValue) -> {
             Struct struct = new Struct(CONNECTOR_CONFIGURATION_V0)
                     .put(FIELD_EPOCH, connectKeyValue.getEpoch())
-                    .put(FIELD_STATE, connectKeyValue.getTargetState())
+                    .put(FIELD_STATE, connectKeyValue.getTargetState().name())
                     .put(FIELD_PROPS, connectKeyValue.getProperties());
             byte[] body = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, struct);
             dataSynchronizer.send(CONNECTOR_KEY(connectName), body);
