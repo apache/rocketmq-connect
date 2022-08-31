@@ -36,6 +36,7 @@ import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
+import org.apache.rocketmq.connect.runtime.utils.Table;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
@@ -194,15 +195,21 @@ public class StateManagementServiceImpl implements StateManagementService {
      * pre persist
      */
     private void prePersist() {
-        if (connAndTaskStatus.getConnectors().isEmpty()){
+        Map<String, ConnAndTaskStatus.CacheEntry<ConnectorStatus>> connectors = connAndTaskStatus.getConnectors();
+        if (connectors.isEmpty()){
             return;
         }
-        connAndTaskStatus.getConnectors().forEach((connectName, connectorStatus) -> {
+        connectors.forEach((connectName, connectorStatus) -> {
             connectorStatusStore.put(connectName, connectorStatus.get());
             Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
+            if (cacheTaskStatus == null){
+                return;
+            }
             taskStatusStore.put(connectName, new ArrayList<>());
             cacheTaskStatus.forEach((taskId, taskStatus) -> {
-                taskStatusStore.get(connectName).add(taskStatus.get());
+                if (taskStatus != null){
+                    taskStatusStore.get(connectName).add(taskStatus.get());
+                }
             });
         });
     }
