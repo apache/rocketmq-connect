@@ -26,7 +26,7 @@ import java.util.Objects;
 /**
  * json serializer
  */
-public class JsonSerializer implements Serializer<Object> {
+public class JsonSerializer<T> implements Serializer<T> {
 
 
     /**
@@ -37,7 +37,7 @@ public class JsonSerializer implements Serializer<Object> {
      * @return serialized bytes
      */
     @Override
-    public byte[] serialize(String topic, Object data) {
+    public byte[] serialize(String topic, T data) {
         if (Objects.isNull(data)) {
             return null;
         }

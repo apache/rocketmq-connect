@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
@@ -36,8 +37,9 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
-import org.apache.rocketmq.connect.runtime.converter.ListConverter;
+
+import org.apache.rocketmq.connect.runtime.serialization.JsonSerde;
+import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
@@ -167,14 +169,15 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         // store connector config
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
                 FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
-                new JsonConverter(),
-                new JsonConverter(ConnectKeyValue.class));
+                new Serdes.StringSerde(),
+                new JsonSerde(ConnectKeyValue.class));
 
         // store task config
         this.taskKeyValueStore = new FileBaseKeyValueStore<>(
                 FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
-                new JsonConverter(),
-                new ListConverter(ConnectKeyValue.class));
+                new Serdes.StringSerde(),
+                new ListSerde(ConnectKeyValue.class));
+
         this.prepare(workerConfig);
     }
 

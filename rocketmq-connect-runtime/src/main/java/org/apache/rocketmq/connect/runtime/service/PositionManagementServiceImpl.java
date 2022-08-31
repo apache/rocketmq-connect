@@ -32,9 +32,9 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
@@ -71,7 +71,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     private String topic;
 
-
     public PositionManagementServiceImpl() {}
 
     @Override
@@ -91,8 +90,8 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         );
 
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(workerConfig.getStorePathRootDir()),
-                new RecordPartitionConverter(),
-                new RecordOffsetConverter());
+                new RecordPartitionSerde(),
+                new RecordOffsetSerde());
 
         this.positionUpdateListener = new HashSet<>();
         this.prepare(workerConfig);

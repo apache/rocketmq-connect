@@ -22,8 +22,8 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
@@ -64,8 +64,8 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
 
     @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
-            new RecordPartitionConverter(),
-            new RecordOffsetConverter());
+                new RecordPartitionSerde(),
+                new RecordOffsetSerde());
     }
 
     @Override public StagingMode getStagingMode() {

@@ -15,21 +15,17 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization.store;
 
-import org.junit.Test;
+import io.openmessaging.connector.api.data.RecordOffset;
+import org.apache.rocketmq.connect.runtime.serialization.WrapperSerde;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class ByteConverterTest {
-
-    @Test
-    public void testByteConverter() {
-        String test = "test";
-        ByteConverter bc = new ByteConverter();
-        byte[] b2o = bc.byteToObject(test.getBytes());
-        byte[] o2b = bc.objectToByte(b2o);
-
-        assertThat(new String(o2b)).isEqualTo("test");
+/**
+ * ByteBuffer converter.
+ */
+public class RecordOffsetSerde extends WrapperSerde<RecordOffset> {
+    public RecordOffsetSerde() {
+        super(new RecordOffsetSerializer(), new  RecordOffsetDeserializer());
     }
+
 }

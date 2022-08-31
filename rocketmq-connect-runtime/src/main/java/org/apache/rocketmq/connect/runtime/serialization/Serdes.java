@@ -73,6 +73,7 @@ public class Serdes {
         }
     }
 
+
     /**
      * serde from by type
      *
@@ -184,12 +185,12 @@ public class Serdes {
         return new ByteBufferSerde();
     }
 
+
     /**
      * A serde for nullable {@code byte[]} type.
      */
     static public Serde<byte[]> ByteArray() {
         return new ByteArraySerde();
     }
-
 
 }

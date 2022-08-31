@@ -15,32 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization;
 
 import io.openmessaging.connector.api.data.RecordOffset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class RecordOffsetConverterTest {
+public class RecordOffsetSerdeTest {
 
-    private RecordOffsetConverter recordOffsetConverter =new RecordOffsetConverter();
+    private RecordOffsetSerde recordOffsetSerde =new RecordOffsetSerde();
 
     @Test
     public void objectToByteTest() {
         Map<String, Integer> offset  =new HashMap<>();
         offset.put("nextPosition", 123);
         RecordOffset recordOffset = new RecordOffset(offset);
-        final byte[] actual = recordOffsetConverter.objectToByte(recordOffset);
+        final byte[] actual = recordOffsetSerde.serializer().serialize("", recordOffset);
         Assert.assertEquals("{\"offset\":{\"nextPosition\":123}}", new String(actual));
     }
 
     @Test
     public void byteToObjectTest() {
         String str = "{\"offset\":{\"nextPosition\":123}}";
-        final RecordOffset recordOffset = recordOffsetConverter.byteToObject(str.getBytes(StandardCharsets.UTF_8));
+        final RecordOffset recordOffset = recordOffsetSerde.deserializer().deserialize("", str.getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(123, recordOffset.getOffset().get("nextPosition"));
     }
 

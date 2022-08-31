@@ -15,22 +15,17 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization.store;
 
-import io.openmessaging.connector.api.data.Converter;
+import org.apache.rocketmq.connect.runtime.serialization.WrapperSerde;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 
 /**
- * Byte converter.
+ * ByteBuffer converter.
  */
-public class ByteConverter implements Converter<byte[]> {
+public class RecordPartitionSerde extends WrapperSerde<ExtendRecordPartition> {
 
-    @Override
-    public byte[] objectToByte(byte[] object) {
-        return object;
-    }
-
-    @Override
-    public byte[] byteToObject(byte[] bytes) {
-        return bytes;
+    public RecordPartitionSerde() {
+        super(new RecordPartitionSerializer(), new RecordPartitionDeserializer());
     }
 }
