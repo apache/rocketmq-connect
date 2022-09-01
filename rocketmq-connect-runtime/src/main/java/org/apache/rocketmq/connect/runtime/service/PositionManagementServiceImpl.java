@@ -192,20 +192,20 @@ public class PositionManagementServiceImpl implements PositionManagementService 
             return;
         }
         this.commitStarted = System.currentTimeMillis();
-        if (needSyncPartition.isEmpty()) {
-            log.warn("There is no offset to commit");
-            return;
-        }
         // Full send
         if (!increment) {
-            Set<ExtendRecordPartition> allPartitions = new HashSet<>(positionStore.getKVMap().keySet());
+            Set<ExtendRecordPartition> allPartitions = new HashSet<>();
+            allPartitions.addAll(positionStore.getKVMap().keySet());
             allPartitions.forEach((partition) -> {
                 set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
             });
         }
         //Incremental send
-
         if (increment) {
+            if (needSyncPartition.isEmpty()) {
+                log.warn("There is no offset to commit");
+                return;
+            }
             Set<ExtendRecordPartition> partitionsTmp = new HashSet<>(needSyncPartition);
             partitionsTmp.forEach((partition) -> {
                 set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
