@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
+import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 
@@ -27,6 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import org.apache.rocketmq.common.TopicConfig;
@@ -46,6 +49,8 @@ import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallba
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Thread.sleep;
+
 public class PositionManagementServiceImpl implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
@@ -53,6 +58,11 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * Current position info in store.
      */
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
+
+    /**
+     * need sync position
+     */
+    private Set<ExtendRecordPartition> needSyncPartition;
 
     /**
      * Synchronize data with other workers.
@@ -94,6 +104,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                 new RecordOffsetSerde());
 
         this.positionUpdateListener = new HashSet<>();
+        this.needSyncPartition = new ConcurrentSet<>();
         this.prepare(workerConfig);
     }
 
@@ -135,10 +146,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         positionStore.load();
     }
 
-    @Override
-    public void synchronize() {
-        replicaOffsets();
-    }
 
     @Override
     public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
@@ -153,15 +160,28 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     @Override
     public void putPosition(Map<ExtendRecordPartition, RecordOffset> positions) {
         positionStore.putAll(positions);
-        for (Map.Entry<ExtendRecordPartition, RecordOffset> entry : positions.entrySet()) {
-            set(PositionChange.POSITION_CHANG_KEY, entry.getKey(), entry.getValue());
-        }
+        this.needSyncPartition.addAll(positions.keySet());
     }
 
     @Override
     public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
         positionStore.put(partition, position);
-        set(PositionChange.POSITION_CHANG_KEY, partition, position);
+        // add need sync partition
+        this.needSyncPartition.add(partition);
+    }
+
+    @Override
+    public void synchronize() {
+        if (needSyncPartition.isEmpty()){
+            log.warn("There is no offset to commit");
+            return;
+        }
+        // start send offset
+        needSyncPartition.forEach((partition) ->{
+            set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
+        });
+        // end send offset
+        needSyncPartition.clear();
     }
 
     @Override
@@ -195,9 +215,18 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * send change position
      */
     private void replicaOffsets() {
-        Map<ExtendRecordPartition, RecordOffset> needSyncPosition = new HashMap<>(positionStore.getKVMap());
-        for (Map.Entry<ExtendRecordPartition, RecordOffset> entry : needSyncPosition.entrySet()) {
-            set(PositionChange.POSITION_CHANG_KEY, entry.getKey(), entry.getValue());
+        while (true){
+            // wait for the last send to complete
+            if (!needSyncPartition.isEmpty()){
+                try {
+                    sleep(1000);
+                    continue;
+                } catch (InterruptedException e) {}
+            }
+            needSyncPartition = positionStore.getKVMap().keySet();
+            synchronize();
+            // break
+            break;
         }
     }
 
