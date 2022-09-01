@@ -76,10 +76,10 @@ public class PositionStorageWriterTest {
 
     @After
     public void after() throws IOException {
-        nameServerMocker.shutdown();
-        brokerMocker.shutdown();
         positionManagementService.stop();
         positionStorageWriter.close();
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
 

@@ -20,23 +20,31 @@ package org.apache.rocketmq.connect.runtime.errors;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import java.util.HashMap;
+import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class RetryWithToleranceOperatorTest {
 
     private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL);
 
-    @Mock
     private RecordPartition recordPartition;
 
-    @Mock
     private RecordOffset recordOffset;
+
+    @Before
+    public void before() {
+        Map<String, ?> partition = new HashMap<>();
+        recordPartition = new RecordPartition(partition);
+        Map<String, ?> offset = new HashMap<>();
+        recordOffset = new RecordOffset(offset);
+    }
 
     private  Operation operation = new Operation() {
         @Override public Object call() throws Exception {
