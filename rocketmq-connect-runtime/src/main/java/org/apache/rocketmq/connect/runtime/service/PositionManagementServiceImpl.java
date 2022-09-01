@@ -237,16 +237,13 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     private void replicaOffsets() {
         while (true){
             // wait for the last send to complete
-            if (!needSyncPartition.isEmpty()){
+            if (commiting.get()) {
                 try {
                     sleep(1000);
                     continue;
                 } catch (InterruptedException e) {}
             }
-            synchronized (this) {
-
-                synchronize(false);
-            }
+            synchronize(false);
             break;
         }
     }

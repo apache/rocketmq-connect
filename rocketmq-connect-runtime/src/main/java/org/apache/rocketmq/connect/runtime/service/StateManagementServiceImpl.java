@@ -170,7 +170,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     @Override
     public void stop() {
-        replicaStates();
+        replicaTargetState();
         prePersist();
         connectorStatusStore.persist();
         taskStatusStore.persist();
@@ -180,8 +180,8 @@ public class StateManagementServiceImpl implements StateManagementService {
     /**
      * sync send online config
      */
-    private synchronized void replicaStates() {
-        /**connector status map*/
+    private void replicaTargetState() {
+        /** connector status store*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName, connectorStatus) -> {
             if (connectorStatus == null){
@@ -191,7 +191,7 @@ public class StateManagementServiceImpl implements StateManagementService {
             put(connectorStatus);
         });
 
-        /** task status map */
+        /** task status store */
         Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
         if (taskStatusMap.isEmpty()){
             return;
@@ -404,7 +404,7 @@ public class StateManagementServiceImpl implements StateManagementService {
                 return;
             }
             if (key.equals(START_SIGNAL)){
-                replicaStates();
+                replicaTargetState();
             } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
                 readConnectorStatus(key, value);
             } else if (key.startsWith(TASK_STATUS_PREFIX)) {
@@ -428,7 +428,6 @@ public class StateManagementServiceImpl implements StateManagementService {
             return;
         }
         ConnectorStatus status = parseConnectorStatus(connector, value);
-
         if (status == null || ConnectorStatus.State.DESTROYED == status.getState()) {
             log.trace("Removing connector status for {}", connector);
             remove(connector);
@@ -437,7 +436,13 @@ public class StateManagementServiceImpl implements StateManagementService {
         synchronized (this) {
             log.trace("Received connector {} status update {}", connector, status);
             ConnAndTaskStatus.CacheEntry<ConnectorStatus> entry = connAndTaskStatus.getOrAdd(connector);
-            entry.put(status);
+            if (entry.get() != null) {
+                if (status.getGeneration() > entry.get().getGeneration() ){
+                    entry.put(status);
+                }
+            } else {
+                entry.put(status);
+            }
         }
     }
 
@@ -487,7 +492,13 @@ public class StateManagementServiceImpl implements StateManagementService {
         synchronized (this) {
             log.trace("Received task {} status update {}", id, status);
             ConnAndTaskStatus.CacheEntry<TaskStatus> entry = connAndTaskStatus.getOrAdd(id);
-            entry.put(status);
+            if (entry.get() != null) {
+                if (status.getGeneration() > entry.get().getGeneration() ){
+                    entry.put(status);
+                }
+            } else {
+                entry.put(status);
+            }
         }
     }
 
