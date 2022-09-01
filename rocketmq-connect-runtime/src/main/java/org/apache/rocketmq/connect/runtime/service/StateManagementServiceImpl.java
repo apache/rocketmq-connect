@@ -154,10 +154,10 @@ public class StateManagementServiceImpl implements StateManagementService {
         connectorStatusStore.load();
         taskStatusStore.load();
         dataSynchronizer.start();
-        sendStartSignal();
+        startSignal();
     }
 
-    private void sendStartSignal() {
+    private void startSignal() {
         Struct struct = new Struct(START_SIGNAL_V0);
         struct.put(START_SIGNAL,START_SIGNAL);
         dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(statusTopic, START_SIGNAL_V0, struct));
@@ -168,7 +168,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     @Override
     public void stop() {
-        sendOnlineState();
+        replicaStates();
         prePersist();
         connectorStatusStore.persist();
         taskStatusStore.persist();
@@ -178,7 +178,7 @@ public class StateManagementServiceImpl implements StateManagementService {
     /**
      * sync send online config
      */
-    private synchronized void sendOnlineState() {
+    private synchronized void replicaStates() {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName, connectorStatus) -> {
@@ -402,7 +402,7 @@ public class StateManagementServiceImpl implements StateManagementService {
                 return;
             }
             if (key.equals(START_SIGNAL)){
-                sendOnlineState();
+                replicaStates();
             } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
                 readConnectorStatus(key, value);
             } else if (key.startsWith(TASK_STATUS_PREFIX)) {
