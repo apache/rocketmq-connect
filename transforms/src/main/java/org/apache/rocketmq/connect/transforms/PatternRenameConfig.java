@@ -30,53 +30,52 @@ import java.util.regex.Pattern;
  */
 public class PatternRenameConfig {
 
-  public static final String FIELD_PATTERN_CONF = "field.pattern";
-  static final String FIELD_PATTERN_DOC = "";
+    public static final String FIELD_PATTERN_CONF = "field.pattern";
+    static final String FIELD_PATTERN_DOC = "";
 
-  public static final String FIELD_PATTERN_FLAGS_CONF = "field.pattern.flags";
-  static final String FIELD_PATTERN_FLAGS_DOC = "";
+    public static final String FIELD_PATTERN_FLAGS_CONF = "field.pattern.flags";
+    static final String FIELD_PATTERN_FLAGS_DOC = "";
 
-  public static final String FIELD_REPLACEMENT_CONF = "field.replacement";
-  static final String FIELD_REPLACEMENT_DOC = "";
+    public static final String FIELD_REPLACEMENT_CONF = "field.replacement";
+    static final String FIELD_REPLACEMENT_DOC = "";
 
-  static final Map<String, Integer> FLAG_VALUES;
+    static final Map<String, Integer> FLAG_VALUES;
 
-  static {
-    Map<String, Integer> map = new HashMap<>();
-    map.put("UNICODE_CHARACTER_CLASS", Pattern.UNICODE_CHARACTER_CLASS);
-    map.put("CANON_EQ", Pattern.CANON_EQ);
-    map.put("UNICODE_CASE", Pattern.UNICODE_CASE);
-    map.put("DOTALL", Pattern.DOTALL);
-    map.put("LITERAL", Pattern.LITERAL);
-    map.put("MULTILINE", Pattern.MULTILINE);
-    map.put("COMMENTS", Pattern.COMMENTS);
-    map.put("CASE_INSENSITIVE", Pattern.CASE_INSENSITIVE);
-    map.put("UNIX_LINES", Pattern.UNIX_LINES);
-    FLAG_VALUES = ImmutableMap.copyOf(map);
-  }
-
-  public final Pattern pattern;
-  public final String replacement;
-
-  public PatternRenameConfig(KeyValue config) {
-    ExtendKeyValue extendConfig = new ExtendKeyValue(config);
-    final String pattern = extendConfig.getString(FIELD_PATTERN_CONF);
-    final List<String> flagList = extendConfig.getList(FIELD_PATTERN_FLAGS_CONF);
-    int patternFlags = 0;
-    for (final String f : flagList) {
-      final int flag = FLAG_VALUES.get(f);
-      patternFlags = patternFlags | flag;
+    static {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("UNICODE_CHARACTER_CLASS", Pattern.UNICODE_CHARACTER_CLASS);
+        map.put("CANON_EQ", Pattern.CANON_EQ);
+        map.put("UNICODE_CASE", Pattern.UNICODE_CASE);
+        map.put("DOTALL", Pattern.DOTALL);
+        map.put("LITERAL", Pattern.LITERAL);
+        map.put("MULTILINE", Pattern.MULTILINE);
+        map.put("COMMENTS", Pattern.COMMENTS);
+        map.put("CASE_INSENSITIVE", Pattern.CASE_INSENSITIVE);
+        map.put("UNIX_LINES", Pattern.UNIX_LINES);
+        FLAG_VALUES = ImmutableMap.copyOf(map);
     }
-    this.pattern = Pattern.compile(pattern, patternFlags);
-    this.replacement = config.getString(FIELD_REPLACEMENT_CONF);
-  }
 
+    public final Pattern pattern;
+    public final String replacement;
 
-  public Pattern pattern() {
-    return pattern;
-  }
+    public PatternRenameConfig(KeyValue config) {
+        ExtendKeyValue extendConfig = new ExtendKeyValue(config);
+        final String pattern = extendConfig.getString(FIELD_PATTERN_CONF);
+        final List<String> flagList = extendConfig.getList(FIELD_PATTERN_FLAGS_CONF);
+        int patternFlags = 0;
+        for (final String f : flagList) {
+            final int flag = FLAG_VALUES.get(f);
+            patternFlags = patternFlags | flag;
+        }
+        this.pattern = Pattern.compile(pattern, patternFlags);
+        this.replacement = config.getString(FIELD_REPLACEMENT_CONF);
+    }
 
-  public String replacement() {
-    return replacement;
-  }
+    public Pattern pattern() {
+        return pattern;
+    }
+
+    public String replacement() {
+        return replacement;
+    }
 }

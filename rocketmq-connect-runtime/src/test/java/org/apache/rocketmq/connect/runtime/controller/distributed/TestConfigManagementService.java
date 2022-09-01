@@ -53,7 +53,6 @@ public class TestConfigManagementService implements ConfigManagementService {
 
     @Override
     public void pauseConnector(String connectorName) {
-
     }
 
     @Override

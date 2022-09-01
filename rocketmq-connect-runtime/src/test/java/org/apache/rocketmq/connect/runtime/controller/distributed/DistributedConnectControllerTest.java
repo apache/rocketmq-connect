@@ -61,6 +61,7 @@ public class DistributedConnectControllerTest {
 
     private ServerResponseMocker brokerMocker;
 
+
     @Before
     public void before() throws InterruptedException {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
@@ -74,6 +75,8 @@ public class DistributedConnectControllerTest {
                 configManagementService,
                 positionManagementService,
                 stateManagementService );
+        distributedConnectController = new DistributedConnectController(plugin, distributedConfig, clusterManagementService,
+            configManagementService, positionManagementService, stateManagementService);
     }
 
     @After

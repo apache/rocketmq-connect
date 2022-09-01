@@ -204,7 +204,6 @@ public class StateManagementServiceImpl implements StateManagementService {
             });
         });
     }
-
     /**
      * pre persist
      */

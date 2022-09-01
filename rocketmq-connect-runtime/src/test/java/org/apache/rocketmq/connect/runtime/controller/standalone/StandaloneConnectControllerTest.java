@@ -53,6 +53,8 @@ public class StandaloneConnectControllerTest {
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
     private StateManagementService stateManagementService = new StateManagementServiceImpl();
+
+
     @Before
     public void before() {
         NameServerMocker.startByDefaultConf(9876, 10911);
@@ -68,6 +70,8 @@ public class StandaloneConnectControllerTest {
                 positionManagementService,
                 stateManagementService
         );
+        standaloneConnectController = new StandaloneConnectController(plugin, standaloneConfig, clusterManagementService,
+            configManagementService, positionManagementService, stateManagementService);
     }
 
     @After
