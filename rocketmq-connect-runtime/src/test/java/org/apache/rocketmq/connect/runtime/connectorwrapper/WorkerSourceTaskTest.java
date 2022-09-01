@@ -89,6 +89,10 @@ public class WorkerSourceTaskTest {
 
     ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
+    private ServerResponseMocker nameServerMocker;
+
+    private ServerResponseMocker brokerMocker;
+
     @Before
     public void before() throws MQClientException, InterruptedException {
         connectConfig = new WorkerConfig();
@@ -101,13 +105,15 @@ public class WorkerSourceTaskTest {
         workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),
             connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
             connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator,null);
-        NameServerMocker.startByDefaultConf(9876, 10911);
-        ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
+        nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
+        brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
     }
 
     @After
     public void after() {
         executorService.shutdown();
+        nameServerMocker.shutdown();
+        brokerMocker.shutdown();
     }
 
     @Test
