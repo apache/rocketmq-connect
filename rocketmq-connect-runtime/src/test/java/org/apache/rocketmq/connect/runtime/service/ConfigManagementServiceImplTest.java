@@ -37,7 +37,6 @@ import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -58,7 +57,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConfigManagementServiceImplTest {
@@ -114,8 +112,6 @@ public class ConfigManagementServiceImplTest {
         connectKeyValue = new ConnectKeyValue();
         connectKeyValue.put(ConnectorConfig.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector");
         connectKeyValue.put(ConnectorConfig.VALUE_CONVERTER, "source-record-converter");
-
-        when(plugin.newConnector(any())).thenReturn(new TestConnector());
 
         doAnswer(new Answer() {
             @Override

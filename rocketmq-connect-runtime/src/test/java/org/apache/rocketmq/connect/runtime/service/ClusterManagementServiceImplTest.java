@@ -57,10 +57,10 @@ public class ClusterManagementServiceImplTest {
 
     @Before
     public void before() {
-        workerConfig = new WorkerConfig();
-        workerConfig.setNamesrvAddr("localhost:9876");
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
+        workerConfig = new WorkerConfig();
+        workerConfig.setNamesrvAddr("localhost:9876");
         clusterManagementService.initialize(workerConfig);
         clusterManagementService.start();
         workerChangeListener = clusterManagementService.new WorkerChangeListener();
@@ -68,9 +68,9 @@ public class ClusterManagementServiceImplTest {
 
     @After
     public void after() {
-        nameServerMocker.shutdown();
-        brokerMocker.shutdown();
         clusterManagementService.stop();
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
     @Test
