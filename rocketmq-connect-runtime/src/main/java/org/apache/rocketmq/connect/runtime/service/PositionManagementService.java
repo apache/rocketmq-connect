@@ -62,7 +62,7 @@ public interface PositionManagementService {
     /**
      * Synchronize to other nodes.
      */
-    void synchronize();
+    void synchronize(boolean increment);
 
     /**
      * Get the current position table.

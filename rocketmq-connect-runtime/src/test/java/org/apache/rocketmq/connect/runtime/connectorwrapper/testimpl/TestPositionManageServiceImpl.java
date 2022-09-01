@@ -48,7 +48,7 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public void synchronize() {
+    public void synchronize(boolean increment) {
 
     }
 

@@ -109,7 +109,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
     }
 
     @Override
-    public void synchronize() {
+    public void synchronize(boolean increment) {
     }
 
     @Override

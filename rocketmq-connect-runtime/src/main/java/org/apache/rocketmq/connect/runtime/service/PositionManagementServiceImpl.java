@@ -28,8 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.openmessaging.connector.api.data.SchemaAndValue;
+import kotlin.jvm.Synchronized;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
@@ -56,6 +58,8 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * Current position info in store.
      */
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
+
+    private AtomicBoolean commiting = new AtomicBoolean(false);
 
     /**
      * need sync position
@@ -169,17 +173,35 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public synchronized void synchronize() {
+    public void synchronize(boolean increment) {
+        if (!commiting.compareAndSet(false, true)){
+            log.warn("Offset is being committed, ignoring this commit !!");
+            return;
+        }
         if (needSyncPartition.isEmpty()){
             log.warn("There is no offset to commit");
             return;
         }
-        // start send offset
-        needSyncPartition.forEach((partition) ->{
-            set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
-        });
+        // Full send
+        if (!increment){
+            Set<ExtendRecordPartition> allPartitions = new HashSet<>(positionStore.getKVMap().keySet());
+            allPartitions.forEach((partition) ->{
+                set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
+            });
+        }
+        //Incremental send
+
+        if (increment){
+            Set<ExtendRecordPartition> partitionsTmp = new HashSet<>(needSyncPartition);
+            partitionsTmp.forEach((partition) ->{
+                set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
+            });
+        }
         // end send offset
-        needSyncPartition.clear();
+        if (increment){
+            needSyncPartition.clear();
+        }
+        commiting.compareAndSet(true, false);
     }
 
     @Override
@@ -221,9 +243,10 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                     continue;
                 } catch (InterruptedException e) {}
             }
-            needSyncPartition = positionStore.getKVMap().keySet();
-            synchronize();
-            // break
+            synchronized (this) {
+
+                synchronize(false);
+            }
             break;
         }
     }
