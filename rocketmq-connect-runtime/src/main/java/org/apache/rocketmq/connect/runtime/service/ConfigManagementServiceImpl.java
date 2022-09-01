@@ -570,7 +570,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
             return true;
         }
 
-        // config update
+        // exist and update config
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectName);
         if (!newConfig.equals(oldConfig)) {
             // compare and swap

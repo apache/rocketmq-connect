@@ -120,7 +120,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     @Override
     public void stop() {
-        sendChangePosition();
+        replicaOffsets();
         positionStore.persist();
         dataSynchronizer.stop();
     }
@@ -137,7 +137,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     @Override
     public void synchronize() {
-        sendChangePosition();
+        replicaOffsets();
     }
 
     @Override
@@ -194,7 +194,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     /**
      * send change position
      */
-    private void sendChangePosition() {
+    private void replicaOffsets() {
         Map<ExtendRecordPartition, RecordOffset> needSyncPosition = new HashMap<>(positionStore.getKVMap());
         for (Map.Entry<ExtendRecordPartition, RecordOffset> entry : needSyncPosition.entrySet()) {
             set(PositionChange.POSITION_CHANG_KEY, entry.getKey(), entry.getValue());
@@ -206,7 +206,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * @param partition
      * @param position
      */
-    private void set(PositionChange change, ExtendRecordPartition partition, RecordOffset position){
+    private synchronized void set(PositionChange change, ExtendRecordPartition partition, RecordOffset position){
         String namespace = partition.getNamespace();
         // When serializing the key, we add in the namespace information so the key is [namespace, real key]
         byte[] key = keyConverter.fromConnectData(namespace, null, Arrays.asList(change.name(), namespace, partition != null? partition.getPartition() : new HashMap<>()));
@@ -240,7 +240,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
             switch (PositionChange.valueOf(changeKey)) {
                 case ONLINE_KEY:
                     changed = true;
-                    sendChangePosition();
+                    replicaOffsets();
                     break;
                 case POSITION_CHANG_KEY:
                     // partition
@@ -250,7 +250,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                     // offset
                     SchemaAndValue schemaAndValueValue = valueConverter.toConnectData(topic, result.array());
                     Map<String, Object> offset = (Map<String, Object>)schemaAndValueValue.value();
-                    changed = mergePositionInfo(partition, new RecordOffset(offset));
+                    changed = mergeOffset(partition, new RecordOffset(offset));
                     break;
                 default:
                     break;
@@ -275,7 +275,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * @param offset
      * @return
      */
-    private boolean mergePositionInfo(ExtendRecordPartition partition, RecordOffset offset) {
+    private boolean mergeOffset(ExtendRecordPartition partition, RecordOffset offset) {
         if (null == partition || partition.getPartition().isEmpty()) {
             return false;
         }

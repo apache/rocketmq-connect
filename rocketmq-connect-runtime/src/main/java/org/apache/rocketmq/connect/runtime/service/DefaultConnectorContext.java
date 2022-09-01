@@ -17,14 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import java.util.Set;
 
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -168,7 +168,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
          * @throws Exception if unable to compute a result
          */
         @Override
-        public Void call() throws Exception {
+        public Void call()  {
             try {
                 // has been canceled
                 if (flushId != currentFlushId) {
