@@ -32,7 +32,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class WorkerErrorRecordReporterTest {
 
     private WorkerErrorRecordReporter workerErrorRecordReporter;
@@ -45,11 +44,12 @@ public class WorkerErrorRecordReporterTest {
 
     private RecordPartition recordPartition;
 
-    @Mock
     private RecordOffset recordOffset;
 
     @Before
     public void before() {
+        Map<String, Object> offset = new HashMap<>();
+        recordOffset = new RecordOffset(offset);
         retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 2000, ToleranceType.ALL);
         recordConverter = new StringConverter();
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);

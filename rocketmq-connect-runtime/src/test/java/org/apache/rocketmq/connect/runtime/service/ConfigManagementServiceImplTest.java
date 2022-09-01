@@ -20,6 +20,8 @@ package org.apache.rocketmq.connect.runtime.service;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +35,8 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -40,6 +44,7 @@ import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,11 +79,16 @@ public class ConfigManagementServiceImplTest {
 
     private ConnectKeyValue connectKeyValue;
 
-    @Mock
     private Plugin plugin;
+
+    private ServerResponseMocker nameServerMocker;
+
+    private ServerResponseMocker brokerMocker;
 
     @Before
     public void init() throws Exception {
+        nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
+        brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
         String consumerGroup = UUID.randomUUID().toString();
         String producerGroup = UUID.randomUUID().toString();
 
@@ -86,7 +96,7 @@ public class ConfigManagementServiceImplTest {
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setRmqConsumerGroup("testConsumerGroup");
-        connectorName = "testConnectorName";
+        connectorName = "testConnector";
 
         connectConfig.setRmqConsumerGroup(consumerGroup);
         connectConfig.setRmqProducerGroup(producerGroup);
@@ -131,6 +141,17 @@ public class ConfigManagementServiceImplTest {
         final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("taskKeyValueStore");
         taskKeyValueStoreField.setAccessible(true);
         taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
+        List<String> pluginPaths = new ArrayList<>();
+        pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
+        plugin = new Plugin(pluginPaths);
+        configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
+        configManagementService.start();
+        //final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("connectorKeyValueStore");
+        //connectorKeyValueStoreField.setAccessible(true);
+        //connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
+//        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("taskKeyValueStore");
+//        taskKeyValueStoreField.setAccessible(true);
+//        taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
 
         final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);
@@ -143,30 +164,22 @@ public class ConfigManagementServiceImplTest {
         consumerField.setAccessible(true);
         consumerField.set((BrokerBasedLog<String, ConnAndTaskConfigs>) dataSynchronizerField.get(configManagementService), consumer);
 
-        configManagementService.start();
     }
 
     @After
     public void destory() {
         configManagementService.stop();
         TestUtils.deleteFile(new File(System.getProperty("user.home") + File.separator + "testConnectorStore"));
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
+
     }
 
     @Test
     public void testPutConnectorConfig() throws Exception {
+        final String result = configManagementService.putConnectorConfig(connectorName, connectKeyValue);
+        Assert.assertEquals("testConnector", result);
 
-        ConnectKeyValue connectKeyValue1 = connectorKeyValueStore.get(connectorName);
-        List<ConnectKeyValue> connectKeyValues = taskKeyValueStore.get(connectorName);
-
-        assertNull(connectKeyValue1);
-        assertNull(connectKeyValues);
-
-        configManagementService.putConnectorConfig(connectorName, connectKeyValue);
-
-        connectKeyValue1 = connectorKeyValueStore.get(connectorName);
-        connectKeyValues = taskKeyValueStore.get(connectorName);
-        assertNotNull(connectKeyValue1);
-        assertNotNull(connectKeyValues);
     }
 
     @Test

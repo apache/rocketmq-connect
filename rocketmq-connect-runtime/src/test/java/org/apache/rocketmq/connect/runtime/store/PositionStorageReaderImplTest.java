@@ -86,8 +86,8 @@ public class PositionStorageReaderImplTest {
     @After
     public void after() {
         positionManagementService.stop();
-        nameServerMocker.shutdown();
         brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
     @Test
