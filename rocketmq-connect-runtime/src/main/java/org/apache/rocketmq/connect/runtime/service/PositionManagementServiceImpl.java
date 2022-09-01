@@ -28,8 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import org.apache.rocketmq.common.TopicConfig;
@@ -171,7 +169,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public void synchronize() {
+    public synchronized void synchronize() {
         if (needSyncPartition.isEmpty()){
             log.warn("There is no offset to commit");
             return;
