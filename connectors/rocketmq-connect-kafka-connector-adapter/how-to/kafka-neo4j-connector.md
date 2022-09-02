@@ -50,3 +50,8 @@ sh mqadmin sendMessage -n localhost:9876 -t my-topic -p '{"name": "Name", "surna
 query：
 
 MATCH  (ee:Person) WHERE ee.name ='Name' RETURN  ee;
+
+
+更多关于connector：
+
+https://neo4j.com/labs/kafka/4.0/kafka-connect/

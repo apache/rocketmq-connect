@@ -30,3 +30,7 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 	"change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.mongodb.ChangeStreamHandler"
 }'
 ```
+
+更多关于connector：
+
+https://www.mongodb.com/docs/kafka-connector/current/
