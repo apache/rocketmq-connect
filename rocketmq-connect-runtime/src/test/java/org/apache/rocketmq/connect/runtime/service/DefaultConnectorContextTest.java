@@ -84,6 +84,7 @@ public class DefaultConnectorContextTest {
         stateManagementService = new StateManagementServiceImpl();
         stateManagementService.initialize(workerConfig);
 
+        standaloneConfig.setHttpPort(8083);
         standaloneConnectController = new StandaloneConnectController(plugin, standaloneConfig, clusterManagementService,
             configManagementService, positionManagementService, stateManagementService);
         Set<WorkerConnector> workerConnectors = new HashSet<>();
