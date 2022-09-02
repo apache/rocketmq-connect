@@ -23,6 +23,7 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.jetbrains.annotations.NotNull;
 
 public class ServiceProviderUtil {
@@ -91,6 +92,33 @@ public class ServiceProviderUtil {
             positionManagementService = universalPositionManagementService;
         }
         return positionManagementService;
+    }
+
+    /**
+     * state management service
+     * @param stagingMode
+     * @return
+     */
+    @NotNull public static StateManagementService getStateManagementServices(StagingMode stagingMode) {
+        StateManagementService stateManagementService = null;
+        StateManagementService universalStateManagementService = null;
+        ServiceLoader<StateManagementService> stateManagementServices = ServiceLoader.load(StateManagementService.class);
+        Iterator<StateManagementService> stateManagementServiceIterator = stateManagementServices.iterator();
+        while (stateManagementServiceIterator.hasNext()) {
+            StateManagementService stateManagementService1 = stateManagementServiceIterator.next();
+            if (stateManagementService1.getStagingMode() == stagingMode) {
+                stateManagementService = stateManagementService1;
+                break;
+            }
+            if (stateManagementService1.getStagingMode() == StagingMode.UNIVERSAL) {
+                universalStateManagementService = stateManagementService1;
+                break;
+            }
+        }
+        if (null == stateManagementService) {
+            stateManagementService = universalStateManagementService;
+        }
+        return stateManagementService;
     }
 }
 

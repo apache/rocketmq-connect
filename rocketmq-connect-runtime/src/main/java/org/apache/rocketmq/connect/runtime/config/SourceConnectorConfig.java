@@ -13,15 +13,22 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
-package org.apache.rocketmq.connect.hudi.strategy;
+package org.apache.rocketmq.connect.runtime.config;
 
-import io.openmessaging.KeyValue;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 
-import java.util.List;
+/**
+ * source connector config
+ */
+public class SourceConnectorConfig extends ConnectorConfig {
 
+    public static final String CONNECT_TOPICNAME = "connect.topicname";
 
-public interface ITaskDivideStrategy {
-    List<KeyValue> divide(KeyValue source);
+    public SourceConnectorConfig(ConnectKeyValue config) {
+        super(config);
+    }
+
 }

@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.service.memory;
 
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 
@@ -36,7 +36,7 @@ public class MemoryClusterManagementServiceImpl implements ClusterManagementServ
 
     }
 
-    @Override public void initialize(ConnectConfig connectConfig) {
+    @Override public void initialize(WorkerConfig connectConfig) {
         this.configure(connectConfig);
     }
 
@@ -46,7 +46,7 @@ public class MemoryClusterManagementServiceImpl implements ClusterManagementServ
      * @param config can be DistributedConfig or StandaloneConfig
      */
     @Override
-    public void configure(ConnectConfig config) {
+    public void configure(WorkerConfig config) {
         this.config = (StandaloneConfig) config;
     }
 

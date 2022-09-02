@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FilterTransform implements Transform<ConnectRecord> {
-
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILE_CONNECTOR);
 
     private KeyValue keyValue;

@@ -19,170 +19,66 @@ package org.apache.rocketmq.connect.runtime.controller.isolation;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.Task;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.connector.api.data.RecordConverter;
+import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.openmessaging.connector.api.errors.ConnectException;
-import org.reflections.Configuration;
-import org.reflections.Reflections;
-import org.reflections.ReflectionsException;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.ConfigurationBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+public class Plugin {
 
-public class Plugin extends URLClassLoader {
+    public enum ClassLoaderUsage {
+        CURRENT_CLASSLOADER,
+        PLUGINS
+    }
+
     private static final Logger log = LoggerFactory.getLogger(Plugin.class);
+    private final DelegatingClassLoader delegatingLoader;
 
-    private final List<String> pluginPaths;
-
-    private Map<String, PluginWrapper> classLoaderMap = new HashMap<>();
-
-    public Plugin(List<String> pluginPaths) {
-        this(pluginPaths, Plugin.class.getClassLoader());
+    public Plugin(List<String> pluginLocations) {
+        delegatingLoader = newDelegatingClassLoader(pluginLocations);
+        delegatingLoader.initLoaders();
     }
 
-    public Plugin(List<String> pluginPaths, ClassLoader parent) {
-        super(new URL[0], parent);
-        this.pluginPaths = pluginPaths;
+    public void initLoaders() {
+        delegatingLoader.initLoaders();
     }
 
-    public void initPlugin() {
-        for (String configPath : pluginPaths) {
-            loadPlugin(configPath);
-        }
-    }
-
-    private void loadPlugin(String path) {
-        Path pluginPath = Paths.get(path).toAbsolutePath();
-        path = pluginPath.toString();
-        try {
-            if (Files.isDirectory(pluginPath)) {
-                for (Path pluginLocation : PluginUtils.pluginLocations(pluginPath)) {
-                    registerPlugin(pluginLocation);
-                }
-            } else if (PluginUtils.isArchive(pluginPath)) {
-                registerPlugin(pluginPath);
-            }
-        } catch (IOException e) {
-            log.error("register plugin error, path: {}, e: {}", path, e);
-        }
-    }
-
-    private void doLoad(
-        ClassLoader loader,
-        URL[] urls
-    ) {
-        ConfigurationBuilder builder = new ConfigurationBuilder();
-        builder.setClassLoaders(new ClassLoader[] {loader});
-        builder.addUrls(urls);
-        builder.setScanners(new SubTypesScanner());
-        builder.useParallelExecutor();
-        Reflections reflections = new PluginReflections(builder);
-        getPlugin(reflections, Connector.class, loader);
-        getPlugin(reflections, Task.class, loader);
-        getPlugin(reflections, Transform.class, loader);
-    }
-
-    private <T> Collection<Class<? extends T>> getPlugin(
-        Reflections reflections,
-        Class<T> klass,
-        ClassLoader loader
-    ) {
-        Set<Class<? extends T>> plugins = reflections.getSubTypesOf(klass);
-        Collection<Class<? extends T>> result = new ArrayList<>();
-        for (Class<? extends T> plugin : plugins) {
-            classLoaderMap.put(plugin.getName(), new PluginWrapper(plugin, loader));
-            result.add(plugin);
-
-        }
-        return result;
-    }
-
-    private static class PluginReflections extends Reflections {
-
-        public PluginReflections(Configuration configuration) {
-            super(configuration);
-        }
-
-        @Override
-        protected void scan(URL url) {
-            try {
-                super.scan(url);
-            } catch (ReflectionsException e) {
-                Logger log = Reflections.log;
-                if (log != null && log.isWarnEnabled()) {
-                    log.warn("Scan url error. ignoring the exception and continuing", e);
-                }
-            }
-        }
-    }
-
-    private static PluginClassLoader newPluginClassLoader(
-        final URL pluginLocation,
-        final URL[] urls,
-        final ClassLoader parent
-    ) {
+    protected DelegatingClassLoader newDelegatingClassLoader(final List<String> paths) {
         return AccessController.doPrivileged(
-            (PrivilegedAction<PluginClassLoader>) () -> new PluginClassLoader(pluginLocation, urls, parent)
+                (PrivilegedAction<DelegatingClassLoader>) () -> new DelegatingClassLoader(paths)
         );
     }
 
-    private void registerPlugin(Path pluginLocation)
-        throws IOException {
-        log.info("Loading plugin from: {}", pluginLocation);
-        List<URL> pluginUrls = new ArrayList<>();
-        for (Path path : PluginUtils.pluginUrls(pluginLocation)) {
-            pluginUrls.add(path.toUri().toURL());
-        }
-        URL[] urls = pluginUrls.toArray(new URL[0]);
-        if (log.isDebugEnabled()) {
-            log.debug("Loading plugin urls: {}", Arrays.toString(urls));
-        }
-        PluginClassLoader loader = newPluginClassLoader(
-            pluginLocation.toUri().toURL(),
-            urls,
-            this
-        );
-        doLoad(loader, urls);
+    public DelegatingClassLoader delegatingLoader() {
+        return delegatingLoader;
     }
 
-    public ClassLoader getPluginClassLoader(String pluginName) {
-        PluginWrapper pluginWrapper = classLoaderMap.get(pluginName);
-        if (null != pluginWrapper) {
-            return pluginWrapper.getClassLoader();
-        }
-        return null;
+    public Set<PluginWrapper<SinkConnector>> sinkConnectors() {
+        return delegatingLoader.sinkConnectors();
     }
 
-    public Task newTask(Class<? extends Task> taskClass) {
-        return newPlugin(taskClass);
+    public Set<PluginWrapper<SourceConnector>> sourceConnectors() {
+        return delegatingLoader.sourceConnectors();
     }
 
-    protected static <T> T newPlugin(Class<T> klass) {
-        // KAFKA-8340: The thread classloader is used during static initialization and must be
-        // set to the plugin's classloader during instantiation
-        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
-        try {
-            return klass.getDeclaredConstructor().newInstance();
-        } catch (Throwable t) {
-            throw new ConnectException("Instantiation error", t);
-        } finally {
-            compareAndSwapLoaders(savedLoader);
-        }
+    public Set<PluginWrapper<RecordConverter>> converters() {
+        return delegatingLoader.converters();
+    }
+
+    public Set<PluginWrapper<Transform<?>>> transformations() {
+        return delegatingLoader.transformations();
     }
 
     public ClassLoader currentThreadLoader() {
@@ -191,10 +87,183 @@ public class Plugin extends URLClassLoader {
 
     public static ClassLoader compareAndSwapLoaders(ClassLoader loader) {
         ClassLoader current = Thread.currentThread().getContextClassLoader();
-        if (null != current && !current.equals(loader)) {
+        if (!current.equals(loader)) {
             Thread.currentThread().setContextClassLoader(loader);
         }
         return current;
+    }
+
+    protected static <U> Class<? extends U> pluginClass(
+            DelegatingClassLoader loader,
+            String classOrAlias,
+            Class<U> pluginClass
+    ) throws ClassNotFoundException {
+        Class<?> klass = loader.loadClass(classOrAlias, false);
+        if (pluginClass.isAssignableFrom(klass)) {
+            return (Class<? extends U>) klass;
+        }
+
+        throw new ClassNotFoundException(
+                "Requested class: "
+                        + classOrAlias
+                        + " does not extend " + pluginClass.getSimpleName()
+        );
+    }
+
+    public Connector newConnector(String connectorClassOrAlias) {
+        Class<? extends Connector> klass = connectorClass(connectorClassOrAlias);
+        return newPlugin(klass);
+    }
+
+    public Class<? extends Connector> connectorClass(String connectorClassOrAlias) {
+        Class<? extends Connector> klass;
+        try {
+            klass = pluginClass(delegatingLoader, connectorClassOrAlias, Connector.class);
+        } catch (ClassNotFoundException e) {
+            List<PluginWrapper<? extends Connector>> matches = new ArrayList<>();
+            Set<PluginWrapper<Connector>> connectors = delegatingLoader.connectors();
+            for (PluginWrapper<? extends Connector> plugin : connectors) {
+                Class<?> pluginClass = plugin.pluginClass();
+                String simpleName = pluginClass.getSimpleName();
+                if (simpleName.equals(connectorClassOrAlias)
+                        || simpleName.equals(connectorClassOrAlias + "Connector")) {
+                    matches.add(plugin);
+                }
+            }
+            if (matches.isEmpty()) {
+                throw new ConnectException(
+                        "Failed to find any class that implements Connector and which name matches "
+                                + connectorClassOrAlias
+                                + ", available connectors are: "
+                                + Utils.join(connectors, ", ")
+                );
+            }
+
+            // conflict connector
+            if (matches.size() > 1) {
+                throw new ConnectException(
+                        "More than one connector matches alias "
+                                + connectorClassOrAlias
+                                + ". Please use full package and class name instead. Classes found: "
+                                + Utils.join(connectors, ", ")
+                );
+            }
+
+            PluginWrapper<? extends Connector> entry = matches.get(0);
+            klass = entry.pluginClass();
+        }
+        return klass;
+    }
+
+    public Task newTask(Class<? extends Task> taskClass) {
+        return newPlugin(taskClass);
+    }
+
+    public RecordConverter newConverter(ConnectKeyValue config, String classPropertyName, String defaultConverter, ClassLoaderUsage classLoaderUsage) {
+        if (!config.containsKey(classPropertyName)) {
+            config.put(classPropertyName, defaultConverter);
+        }
+        Class<? extends RecordConverter> klass = null;
+        switch (classLoaderUsage) {
+            case CURRENT_CLASSLOADER:
+                klass = pluginClassFromConfig(config, classPropertyName, RecordConverter.class, delegatingLoader.converters());
+                break;
+            case PLUGINS:
+                String converterClassOrAlias = Utils.getClass(config, classPropertyName).getName();
+                try {
+                    klass = pluginClass(delegatingLoader, converterClassOrAlias, RecordConverter.class);
+                } catch (ClassNotFoundException e) {
+                    throw new ConnectException(
+                            "Failed to find any class that implements Converter and which name matches "
+                                    + converterClassOrAlias + ", available converters are: "
+                                    + pluginNames(delegatingLoader.converters())
+                    );
+                }
+                break;
+        }
+        if (klass == null) {
+            throw new ConnectException("Unable to initialize the Converter specified in '" + classPropertyName + "'");
+        }
+
+        // Configure the Converter using only the old configuration mechanism ...
+        String configPrefix = classPropertyName + ".";
+        Map<String, String> converterConfig = config.originalsWithPrefix(configPrefix);
+        log.debug("Configuring the converter with configuration keys:{}{}", System.lineSeparator(), converterConfig.keySet());
+
+        RecordConverter plugin;
+        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
+        try {
+            plugin = newPlugin(klass);
+            plugin.configure(converterConfig);
+        } finally {
+            compareAndSwapLoaders(savedLoader);
+        }
+        return plugin;
+    }
+
+
+    public <T> List<T> newPlugins(List<String> klassNames, ConnectKeyValue config, Class<T> pluginKlass) {
+        List<T> plugins = new ArrayList<>();
+        if (klassNames != null) {
+            for (String klassName : klassNames) {
+                plugins.add(newPlugin(klassName, config, pluginKlass));
+            }
+        }
+        return plugins;
+    }
+
+    protected static <T> T newPlugin(Class<T> klass) {
+        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
+        try {
+            return Utils.newInstance(klass);
+        } catch (Throwable t) {
+            throw new ConnectException("Instantiation error", t);
+        } finally {
+            compareAndSwapLoaders(savedLoader);
+        }
+    }
+
+
+    public <T> T newPlugin(String klassName, ConnectKeyValue config, Class<T> pluginKlass) {
+        T plugin;
+        Class<? extends T> klass;
+        try {
+            klass = pluginClass(delegatingLoader, klassName, pluginKlass);
+        } catch (ClassNotFoundException e) {
+            String msg = String.format("Failed to find any class that implements %s and which "
+                    + "name matches %s", pluginKlass, klassName);
+            throw new ConnectException(msg);
+        }
+        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
+        try {
+            plugin = newPlugin(klass);
+        } finally {
+            compareAndSwapLoaders(savedLoader);
+        }
+        return plugin;
+    }
+
+    private static <T> String pluginNames(Collection<PluginWrapper<T>> plugins) {
+        return Utils.join(plugins, ", ");
+    }
+
+
+    protected <U> Class<? extends U> pluginClassFromConfig(
+            ConnectKeyValue config,
+            String propertyName,
+            Class<U> pluginClass,
+            Collection<PluginWrapper<U>> plugins
+    ) {
+        Class<?> klass = Utils.getClass(config, propertyName);
+        if (pluginClass.isAssignableFrom(klass)) {
+            return (Class<? extends U>) klass;
+        }
+        throw new ConnectException(
+                "Failed to find any class that implements " + pluginClass.getSimpleName()
+                        + " for the config "
+                        + propertyName + ", available classes are: "
+                        + pluginNames(plugins)
+        );
     }
 
 }

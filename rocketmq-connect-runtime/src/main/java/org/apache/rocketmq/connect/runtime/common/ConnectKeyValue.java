@@ -18,6 +18,8 @@
 package org.apache.rocketmq.connect.runtime.common;
 
 import io.openmessaging.KeyValue;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Default Implements of {@link KeyValue} for runtime, which can be parsed by fastJson.
  */
-public class ConnectKeyValue implements KeyValue, Serializable {
+public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
+
+    private TargetState targetState;
 
     /**
      * All data are reserved in this map.
@@ -125,6 +129,14 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         this.properties = properties;
     }
 
+
+    /**
+     * Gets all original settings with the given prefix.
+     */
+    public Map<String, String> originalsWithPrefix(String prefix) {
+        return originalsWithPrefix(prefix, true);
+    }
+
     /**
      * Gets all original settings with the given prefix.
      * @param prefix the prefix to use as a filter
@@ -145,9 +157,16 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         return result;
     }
 
+    public TargetState getTargetState() {
+        return targetState;
+    }
+
+    public void setTargetState(TargetState targetState) {
+        this.targetState = targetState;
+    }
+
     @Override
     public boolean equals(Object obj) {
-
         if (obj != null && obj.getClass() == this.getClass()) {
             ConnectKeyValue keyValue = (ConnectKeyValue) obj;
             return this.properties.equals(keyValue.getProperties());
@@ -155,16 +174,31 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         return false;
     }
 
+
     @Override
     public int hashCode() {
         return properties.hashCode();
     }
 
-    @Override public String toString() {
+
+    @Override
+    public Object clone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Override
+    public String toString() {
         return "ConnectKeyValue{" +
             "properties=" + properties +
             '}';
     }
+
+
 
 
 }

@@ -29,7 +29,8 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
@@ -64,7 +65,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
     private SinkTask sinkTask;
     private final OffsetStorageReader positionStorageReader;
 
-    public WorkerDirectTask(ConnectConfig workerConfig,
+    public WorkerDirectTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,
                             SourceTask sourceTask,
                             ClassLoader classLoader,
@@ -75,7 +76,8 @@ public class WorkerDirectTask extends WorkerSourceTask {
                             ConnectStatsManager connectStatsManager,
                             ConnectStatsService connectStatsService,
                             TransformChain<ConnectRecord> transformChain,
-                            RetryWithToleranceOperator retryWithToleranceOperator) {
+                            RetryWithToleranceOperator retryWithToleranceOperator,
+                            WrapperStatusListener statusListener) {
         super(workerConfig,
                 id,
                 sourceTask,
@@ -89,12 +91,14 @@ public class WorkerDirectTask extends WorkerSourceTask {
                 connectStatsManager,
                 connectStatsService,
                 transformChain,
-                retryWithToleranceOperator
+                retryWithToleranceOperator,
+                statusListener
         );
         this.sourceTask = sourceTask;
         this.sinkTask = sinkTask;
         this.positionStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
     }
+
 
     private void sendRecord(Collection<ConnectRecord> sourceDataEntries) {
         List<ConnectRecord> records = new ArrayList<>(sourceDataEntries.size());

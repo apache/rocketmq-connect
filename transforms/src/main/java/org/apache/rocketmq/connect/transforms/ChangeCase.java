@@ -33,97 +33,98 @@ import java.util.Map;
 
 /**
  * change case
+ *
  * @param <R>
  */
 public abstract class ChangeCase<R extends ConnectRecord> extends BaseTransformation<R> {
-  private static final Logger log = LoggerFactory.getLogger(ChangeCase.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChangeCase.class);
 
-  class State {
-    public final Map<String, String> columnMapping;
-    public final Schema schema;
-    State(Map<String, String> columnMapping, Schema schema) {
-      this.columnMapping = columnMapping;
-      this.schema = schema;
+    class State {
+        public final Map<String, String> columnMapping;
+        public final Schema schema;
+
+        State(Map<String, String> columnMapping, Schema schema) {
+            this.columnMapping = columnMapping;
+            this.schema = schema;
+        }
     }
-  }
 
-  Map<Schema, State> schemaState = new HashMap<>();
-  private ChangeCaseConfig config;
-  @Override
-  public void start(KeyValue config) {
-    this.config = new ChangeCaseConfig(config);
-  }
+    Map<Schema, State> schemaState = new HashMap<>();
+    private ChangeCaseConfig config;
 
-  @Override
-  protected SchemaAndValue processStruct(R record, Schema inputSchema, Struct input) {
-    // state
-    final State state = this.schemaState.computeIfAbsent(inputSchema, schema -> {
-      final SchemaBuilder builder = SchemaBuilder.struct();
-      if (!Strings.isNullOrEmpty(schema.getName())) {
-        builder.name(schema.getName());
-      }
-      if (schema.isOptional()) {
-        builder.optional();
-      }
-      final Map<String, String> columnMapping = new LinkedHashMap<>();
-      for (Field field : schema.getFields()) {
-        final String newFieldName = this.config.from.to(this.config.to, field.getName());
-        log.trace("processStruct() - Mapped '{}' to '{}'", field.getName(), newFieldName);
-        columnMapping.put(field.getName(), newFieldName);
-        builder.field(newFieldName, field.getSchema());
-      }
-      return new State(columnMapping, builder.build());
-    });
-
-
-    final Struct outputStruct = new Struct(state.schema);
-    for (Map.Entry<String, String> kvp : state.columnMapping.entrySet()) {
-      final Object value = input.get(kvp.getKey());
-      outputStruct.put(kvp.getValue(), value);
-    }
-    return new SchemaAndValue(state.schema, outputStruct);
-  }
-
-  /**
-   * transform key
-   */
-  public static class Key extends ChangeCase<ConnectRecord> {
     @Override
-    public ConnectRecord doTransform(ConnectRecord r) {
-      final SchemaAndValue transformed = process(r, r.getKeySchema(), r.getKey());
-      ConnectRecord record = new ConnectRecord(
-              r.getPosition().getPartition(),
-              r.getPosition().getOffset(),
-              r.getTimestamp(),
-              transformed.schema(),
-              transformed.value(),
-              r.getSchema(),
-              r.getData()
-      );
-      record.setExtensions(r.getExtensions());
-      return record;
+    public void start(KeyValue config) {
+        this.config = new ChangeCaseConfig(config);
     }
-  }
 
-
-  /**
-   * transform value
-   */
-  public static class Value extends ChangeCase<ConnectRecord> {
     @Override
-    public ConnectRecord doTransform(ConnectRecord r) {
-      final SchemaAndValue transformed = process(r, r.getSchema(), r.getData());
-      ConnectRecord record = new ConnectRecord(
-              r.getPosition().getPartition(),
-              r.getPosition().getOffset(),
-              r.getTimestamp(),
-              r.getKeySchema(),
-              r.getKey(),
-              transformed.schema(),
-              transformed.value()
-      );
-      record.setExtensions(r.getExtensions());
-      return record;
+    protected SchemaAndValue processStruct(R record, Schema inputSchema, Struct input) {
+        // state
+        final State state = this.schemaState.computeIfAbsent(inputSchema, schema -> {
+            final SchemaBuilder builder = SchemaBuilder.struct();
+            if (!Strings.isNullOrEmpty(schema.getName())) {
+                builder.name(schema.getName());
+            }
+            if (schema.isOptional()) {
+                builder.optional();
+            }
+            final Map<String, String> columnMapping = new LinkedHashMap<>();
+            for (Field field : schema.getFields()) {
+                final String newFieldName = this.config.from.to(this.config.to, field.getName());
+                LOGGER.trace("processStruct() - Mapped '{}' to '{}'", field.getName(), newFieldName);
+                columnMapping.put(field.getName(), newFieldName);
+                builder.field(newFieldName, field.getSchema());
+            }
+            return new State(columnMapping, builder.build());
+        });
+
+        final Struct outputStruct = new Struct(state.schema);
+        for (Map.Entry<String, String> kvp : state.columnMapping.entrySet()) {
+            final Object value = input.get(kvp.getKey());
+            outputStruct.put(kvp.getValue(), value);
+        }
+        return new SchemaAndValue(state.schema, outputStruct);
     }
-  }
+
+    /**
+     * transform key
+     */
+    public static class Key extends ChangeCase<ConnectRecord> {
+        @Override
+        public ConnectRecord doTransform(ConnectRecord r) {
+            final SchemaAndValue transformed = process(r, r.getKeySchema(), r.getKey());
+            ConnectRecord record = new ConnectRecord(
+                r.getPosition().getPartition(),
+                r.getPosition().getOffset(),
+                r.getTimestamp(),
+                transformed.schema(),
+                transformed.value(),
+                r.getSchema(),
+                r.getData()
+            );
+            record.setExtensions(r.getExtensions());
+            return record;
+        }
+    }
+
+    /**
+     * transform value
+     */
+    public static class Value extends ChangeCase<ConnectRecord> {
+        @Override
+        public ConnectRecord doTransform(ConnectRecord r) {
+            final SchemaAndValue transformed = process(r, r.getSchema(), r.getData());
+            ConnectRecord record = new ConnectRecord(
+                r.getPosition().getPartition(),
+                r.getPosition().getOffset(),
+                r.getTimestamp(),
+                r.getKeySchema(),
+                r.getKey(),
+                transformed.schema(),
+                transformed.value()
+            );
+            record.setExtensions(r.getExtensions());
+            return record;
+        }
+    }
 }

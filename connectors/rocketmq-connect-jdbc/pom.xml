@@ -40,7 +40,7 @@
         <!-- Compiler settings properties -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <rocketmq.version>4.7.0</rocketmq.version>
+        <rocketmq.version>4.7.1</rocketmq.version>
 
         <!--test jar-->
         <junit.version>4.13.1</junit.version>
@@ -162,7 +162,7 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.16</version>
+            <version>8.0.30</version>
         </dependency>
 
         <dependency>

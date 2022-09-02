@@ -18,13 +18,14 @@
 package org.apache.rocketmq.connect.runtime.stats;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
@@ -88,9 +89,9 @@ public class ConnectStatsManager {
 
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String worker;
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
-    public ConnectStatsManager(ConnectConfig connectConfig) {
+    public ConnectStatsManager(WorkerConfig connectConfig) {
         this.connectConfig = connectConfig;
         this.worker = connectConfig.getWorkerId();
         init();
@@ -294,5 +295,29 @@ public class ConnectStatsManager {
 
     public void incSinkRecordReadTotalTimes() {
         this.statsTable.get(SINK_RECORD_READ_TOTAL_TIMES).addValue(worker, 1, 1);
+    }
+
+    public void initAdditionalItems(List<String> additionalItems) {
+        for (String additionalItem : additionalItems) {
+            if (this.statsTable.containsKey(additionalItem)) {
+                log.warn("Already exists statsItem : " + additionalItem + ", just skip");
+                continue;
+            }
+            this.statsTable.put(additionalItem, new StatsItemSet(additionalItem, scheduledExecutorService, log));
+        }
+    }
+
+    public void incAdditionalItem(String additionalItem, String key,  int incValue, int incTimes) {
+        StatsItemSet statsItemSet = this.statsTable.get(additionalItem);
+        if (statsItemSet != null) {
+            statsItemSet.addValue(key, incValue, incTimes);
+        }
+    }
+
+    public void removeAdditionalItem(String additionalItem, String key) {
+        StatsItemSet statsItemSet = this.statsTable.get(additionalItem);
+        if (statsItemSet != null) {
+            statsItemSet.delValue(key);
+        }
     }
 }

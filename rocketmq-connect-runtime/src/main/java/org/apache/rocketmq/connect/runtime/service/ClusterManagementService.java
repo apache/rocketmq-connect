@@ -18,16 +18,14 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import java.util.List;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 
 /**
  * Interface for cluster management.
  */
 public interface ClusterManagementService {
 
-    Long WORKER_TIME_OUT = 30 * 1000L;
-
-    void initialize(ConnectConfig connectConfig);
+    void initialize(WorkerConfig connectConfig);
 
     /**
      * Start the cluster manager.
@@ -44,7 +42,7 @@ public interface ClusterManagementService {
      *
      * @param config can be DistributedConfig or StandaloneConfig
      */
-    default void configure(ConnectConfig config) {
+    default void configure(WorkerConfig config) {
 
     }
 
@@ -69,8 +67,16 @@ public interface ClusterManagementService {
      */
     void registerListener(WorkerStatusListener listener);
 
+    /**
+     * get current run worker
+     * @return
+     */
     String getCurrentWorker();
 
+    /**
+     * staging mode
+     * @return
+     */
     StagingMode getStagingMode();
 
     interface WorkerStatusListener {

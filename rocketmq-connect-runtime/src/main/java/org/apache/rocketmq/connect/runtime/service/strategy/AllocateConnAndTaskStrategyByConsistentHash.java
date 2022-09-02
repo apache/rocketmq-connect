@@ -28,7 +28,7 @@ import org.apache.rocketmq.common.consistenthash.Node;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +39,8 @@ public class AllocateConnAndTaskStrategyByConsistentHash implements AllocateConn
     private HashFunction hashFunc;
 
     public AllocateConnAndTaskStrategyByConsistentHash() {
-        virtualNodes = Integer.parseInt(System.getProperty(RuntimeConfigDefine.VIRTUAL_NODE, "0"));
-        String funcName = System.getProperty(RuntimeConfigDefine.HASH_FUNC);
+        virtualNodes = Integer.parseInt(System.getProperty(ConnectorConfig.VIRTUAL_NODE, "0"));
+        String funcName = System.getProperty(ConnectorConfig.HASH_FUNC);
         if (StringUtils.isNoneEmpty(funcName)) {
             try {
                 hashFunc = (HashFunction) Class.forName(funcName).newInstance();
