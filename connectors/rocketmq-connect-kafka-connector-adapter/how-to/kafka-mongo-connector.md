@@ -50,16 +50,18 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 ## 3.mongo sink connector
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/mongo-sink -d '{
-"connector-class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector",
-	"connect-topicname": "mongoTopic",
-	"connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
-	"plugin.path": "/kafka/connectors",
-	"topics": "mongoTopic",
-	"connection.uri": "mongodb://127.0.0.1:27017/?replicaSet=rs0",
-	"database": "quickstart",
-	"collection": "topicData",
-	"change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.mongodb.ChangeStreamHandler"
-}'
+   "connector-class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector",
+   	"connect-topicname": "mongoTopic",
+   	"connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+   	"plugin.path": "/kafka-connecor-plugins/mongodb-connector",
+   	"topics": "mongoTopic",
+	"rocketmq.recordPartition.kafkaTopicPartition.mapper": "assignEncodedPartition",
+	"assignEncodedPartition.assignments": "broker-0:0,broker-1:1",
+   	"connection.uri": "mongodb://127.0.0.1:27017/?replicaSet=rs0",
+   	"database": "quickstart",
+   	"collection": "topicData",
+   	"change.data.capture.handler": "com.mongodb.kafka.connect.sink.cdc.mongodb.ChangeStreamHandler"
+   }'
 ```
 
 
