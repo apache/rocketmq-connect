@@ -82,7 +82,10 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             newKeyValue.put(ConnectorConfig.TASK_ID, taskId);
             newKeyValue.put(ConnectorConfig.TASK_CLASS, connector.taskClass().getName());
             newKeyValue.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
-            newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
+            String connectTopicName = configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
+            if(connectTopicName!=null){
+                newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, connectTopicName);
+            }
             newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
             Set<String> connectConfigKeySet = configs.keySet();
             for (String connectConfigKey : connectConfigKeySet) {

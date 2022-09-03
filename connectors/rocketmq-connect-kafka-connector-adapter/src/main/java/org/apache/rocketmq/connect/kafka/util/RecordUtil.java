@@ -37,7 +37,10 @@ public class RecordUtil {
     }
     public static ConnectRecord toConnectRecord(SourceRecord sourceRecord, Converter keyConverter, Converter valueConverter,
                                          HeaderConverter headerConverter){
-        RecordPartition recordPartition = new RecordPartition(new HashMap<>(sourceRecord.sourcePartition()));
+        Map<String, Object> partition = new HashMap<>();
+        partition.put("topic", sourceRecord.topic());
+        partition.putAll(sourceRecord.sourcePartition());
+        RecordPartition recordPartition = new RecordPartition(partition);
         RecordOffset recordOffset = new RecordOffset(new HashMap<>(sourceRecord.sourceOffset()));
         Long timestamp = sourceRecord.timestamp();
 

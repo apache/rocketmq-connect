@@ -15,27 +15,28 @@ docker run \
 ## 2.运行neo4j sink connector
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/neo4jSinkConnector -d '{
-"connector-class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector",
-	"connect-topicname": "my-topic",
-	"rocketmq.recordPartition.kafkaTopicPartition.mapper": "assignEncodedPartition",
-	"assignEncodedPartition.assignments": "broker-0:0,broker-1:1",
-	"topics": "my-topic",
-	"connector.class": "streams.kafka.connect.sink.Neo4jSinkConnector",
-	"key.converter": "org.apache.kafka.connect.json.JsonConverter",
-	"key.converter.schemas.enable": false,
-	"value.converter": "org.apache.kafka.connect.json.JsonConverter",
-	"value.converter.schemas.enable": false,
-	"errors.retry.timeout": "-1",
-	"errors.retry.delay.max.ms": "1000",
-	"errors.tolerance": "all",
-	"errors.log.enable": true,
-	"errors.log.include.messages": true,
-	"neo4j.server.uri": "bolt://localhost:7687",
-	"neo4j.authentication.basic.username": "neo4j",
-	"neo4j.authentication.basic.password": "connect",
-	"neo4j.encryption.enabled": false,
-	"neo4j.topic.cypher.my-topic": "MERGE (p:Person{name: event.name, surname: event.surname}) MERGE (f:Family{name: event.surname}) MERGE (p)-[:BELONGS_TO]->(f)",
-	"plugin.path": "/kafka-connecor-plugins/neo4j-connector"
+    "connector.class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector",
+    "connect.topicnames":"my-topic",
+	"kafka.connector.configs":{
+		"rocketmq.recordPartition.kafkaTopicPartition.mapper": "assignEncodedPartition",
+		"assignEncodedPartition.assignments": "broker-0:0,broker-1:1",
+		"connector.class": "streams.kafka.connect.sink.Neo4jSinkConnector",
+		"key.converter": "org.apache.kafka.connect.json.JsonConverter",
+		"key.converter.schemas.enable": false,
+		"value.converter": "org.apache.kafka.connect.json.JsonConverter",
+		"value.converter.schemas.enable": false,
+		"errors.retry.timeout": "-1",
+		"errors.retry.delay.max.ms": "1000",
+		"errors.tolerance": "all",
+		"errors.log.enable": true,
+		"errors.log.include.messages": true,
+		"neo4j.server.uri": "bolt://localhost:7687",
+		"neo4j.authentication.basic.username": "neo4j",
+		"neo4j.authentication.basic.password": "connect",
+		"neo4j.encryption.enabled": false,
+		"neo4j.topic.cypher.my-topic": "MERGE (p:Person{name: event.name, surname: event.surname}) MERGE (f:Family{name: event.surname}) MERGE (p)-[:BELONGS_TO]->(f)",
+		"plugin.path": "/kafka-connecor-plugins/neo4j-connector"
+	}
 }'
 ```
 其中assignEncodedPartition.assignments指定brokerName的编码，例子是broker-0:0,broker-1:1

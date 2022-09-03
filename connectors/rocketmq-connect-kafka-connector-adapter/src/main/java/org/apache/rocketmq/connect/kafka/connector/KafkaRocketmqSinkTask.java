@@ -82,7 +82,7 @@ public class KafkaRocketmqSinkTask extends SinkTask {
 
     @Override
     public void start(KeyValue config) {
-        Map<String, String> kafkaTaskProps = ConfigUtil.keyValueConfigToMap(config);
+        Map<String, String> kafkaTaskProps = ConfigUtil.getKafkaConnectorConfigs(config);
         log.info("kafka connector task config is {}", kafkaTaskProps);
         Plugins kafkaPlugins =  KafkaPluginsUtil.getPlugins(Collections.singletonMap(KafkaPluginsUtil.PLUGIN_PATH, kafkaTaskProps.get(ConfigDefine.PLUGIN_PATH)));
         String connectorClass = kafkaTaskProps.get(ConfigDefine.CONNECTOR_CLASS);
