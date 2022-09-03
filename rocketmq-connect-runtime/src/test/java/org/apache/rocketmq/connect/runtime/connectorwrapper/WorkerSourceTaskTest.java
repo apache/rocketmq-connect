@@ -33,7 +33,6 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
@@ -41,8 +40,6 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -92,9 +89,9 @@ public class WorkerSourceTaskTest {
 
     ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
-    private WrapperStatusListener wrapperStatusListener;
+    private ServerResponseMocker nameServerMocker;
 
-    private StateManagementService stateManagementService;
+    private ServerResponseMocker brokerMocker;
 
     @Before
     public void before() throws MQClientException, InterruptedException {
@@ -105,18 +102,18 @@ public class WorkerSourceTaskTest {
         keyValue.put(ConnectorConfig.TRANSFORMS, "testTransform");
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
-        stateManagementService = new StateManagementServiceImpl();
-        wrapperStatusListener = new WrapperStatusListener(stateManagementService, "worker1");
         workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),
             connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
-            connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, wrapperStatusListener);
-        NameServerMocker.startByDefaultConf(9876, 10911);
-        ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
+            connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator,null);
+        nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
+        brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
     }
 
     @After
     public void after() {
         executorService.shutdown();
+        nameServerMocker.shutdown();
+        brokerMocker.shutdown();
     }
 
     @Test

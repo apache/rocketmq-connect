@@ -135,20 +135,28 @@ public class StateManagementServiceImpl implements StateManagementService {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName, connectorStatus) -> {
+            if (connectorStatus == null){
+                return;
+            }
             // send status
             put(connectorStatus);
         });
 
         /** task status map */
         Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
+        if (taskStatusMap.isEmpty()){
+            return;
+        }
         taskStatusMap.forEach((connectorName, taskStatusList) -> {
+            if (taskStatusList == null || taskStatusList.isEmpty()){
+                return;
+            }
             taskStatusList.forEach(taskStatus -> {
                 // send status
                 put(taskStatus);
             });
         });
     }
-
     /**
      * Stop dependent services (if needed)
      */
@@ -165,12 +173,21 @@ public class StateManagementServiceImpl implements StateManagementService {
      * pre persist
      */
     private void prePersist() {
-        connAndTaskStatus.getConnectors().forEach((connectName, connectorStatus) -> {
+        Map<String, ConnAndTaskStatus.CacheEntry<ConnectorStatus>> connectors = connAndTaskStatus.getConnectors();
+        if (connectors.isEmpty()){
+            return;
+        }
+        connectors.forEach((connectName, connectorStatus) -> {
             connectorStatusStore.put(connectName, connectorStatus.get());
             Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
+            if (cacheTaskStatus == null){
+                return;
+            }
             taskStatusStore.put(connectName, new ArrayList<>());
             cacheTaskStatus.forEach((taskId, taskStatus) -> {
-                taskStatusStore.get(connectName).add(taskStatus.get());
+                if (taskStatus != null){
+                    taskStatusStore.get(connectName).add(taskStatus.get());
+                }
             });
         });
     }
