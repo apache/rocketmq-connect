@@ -135,7 +135,7 @@ public class StateManagementServiceImpl implements StateManagementService {
         /**connector status map*/
         Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
         connectorStatusMap.forEach((connectorName, connectorStatus) -> {
-            if (connectorStatus == null){
+            if (connectorStatus == null) {
                 return;
             }
             // send status
@@ -144,11 +144,11 @@ public class StateManagementServiceImpl implements StateManagementService {
 
         /** task status map */
         Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
-        if (taskStatusMap.isEmpty()){
+        if (taskStatusMap.isEmpty()) {
             return;
         }
         taskStatusMap.forEach((connectorName, taskStatusList) -> {
-            if (taskStatusList == null || taskStatusList.isEmpty()){
+            if (taskStatusList == null || taskStatusList.isEmpty()) {
                 return;
             }
             taskStatusList.forEach(taskStatus -> {
@@ -157,6 +157,7 @@ public class StateManagementServiceImpl implements StateManagementService {
             });
         });
     }
+
     /**
      * Stop dependent services (if needed)
      */
@@ -174,18 +175,18 @@ public class StateManagementServiceImpl implements StateManagementService {
      */
     private void prePersist() {
         Map<String, ConnAndTaskStatus.CacheEntry<ConnectorStatus>> connectors = connAndTaskStatus.getConnectors();
-        if (connectors.isEmpty()){
+        if (connectors.isEmpty()) {
             return;
         }
         connectors.forEach((connectName, connectorStatus) -> {
             connectorStatusStore.put(connectName, connectorStatus.get());
             Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
-            if (cacheTaskStatus == null){
+            if (cacheTaskStatus == null) {
                 return;
             }
             taskStatusStore.put(connectName, new ArrayList<>());
             cacheTaskStatus.forEach((taskId, taskStatus) -> {
-                if (taskStatus != null){
+                if (taskStatus != null) {
                     taskStatusStore.get(connectName).add(taskStatus.get());
                 }
             });
