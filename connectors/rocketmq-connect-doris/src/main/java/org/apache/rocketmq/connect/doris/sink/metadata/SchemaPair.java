@@ -18,7 +18,6 @@ package org.apache.rocketmq.connect.doris.sink.metadata;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.Schema;
-
 import java.util.Objects;
 
 /**

@@ -27,13 +27,11 @@ import org.apache.rocketmq.connect.doris.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.doris.sink.metadata.SchemaPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -45,10 +43,7 @@ public class BufferedRecords {
 
     private final TableId tableId;
     private final DorisSinkConfig config;
-    //    private final DatabaseDialect dbDialect;
     private final DbStructure dbStructure;
-//    private final Connection connection;
-
     private List<ConnectRecord> records = new ArrayList<>();
     private Schema keySchema;
     private Schema schema;
@@ -56,8 +51,6 @@ public class BufferedRecords {
     private RecordValidator recordValidator;
     private List<ConnectRecord> updatePreparedRecords = new ArrayList<>();
     private List<ConnectRecord> deletePreparedRecords = new ArrayList<>();
-    //    private DatabaseDialect.StatementBinder updateStatementBinder;
-//    private DatabaseDialect.StatementBinder deleteStatementBinder;
     private boolean deletesInBatch = false;
     private DorisStreamLoader loader;
 
@@ -68,9 +61,7 @@ public class BufferedRecords {
     ) {
         this.tableId = tableId;
         this.config = config;
-//        this.dbDialect = dbDialect;
         this.dbStructure = dbStructure;
-//        this.connection = connection;
         this.recordValidator = RecordValidator.create(config);
         this.loader = DorisStreamLoader.create(config);
     }
@@ -83,60 +74,60 @@ public class BufferedRecords {
      * @throws SQLException
      */
     public List<ConnectRecord> add(ConnectRecord record) throws SQLException {
-//        recordValidator.validate(record);
+        recordValidator.validate(record);
         final List<ConnectRecord> flushed = new ArrayList<>();
-//        boolean schemaChanged = false;
-//        if (!Objects.equals(keySchema, record.getKeySchema())) {
-//            keySchema = record.getKeySchema();
-//            schemaChanged = true;
-//        }
-//        if (isNull(record.getSchema())) {
-//            // For deletes, value and optionally value schema come in as null.
-//            // We don't want to treat this as a schema change if key schemas is the same
-//            // otherwise we flush unnecessarily.
-//            if (config.isDeleteEnabled()) {
-//                deletesInBatch = true;
-//            }
-//        } else if (Objects.equals(schema, record.getSchema())) {
-//            if (config.isDeleteEnabled() && deletesInBatch) {
-//                // flush so an insert after a delete of same record isn't lost
-//                flushed.addAll(flush());
-//            }
-//        } else {
-//            // value schema is not null and has changed. This is a real schema change.
-//            schema = record.getSchema();
-//            schemaChanged = true;
-//        }
-//
-//        if (schemaChanged) {
-//            // Each batch needs to have the same schemas, so get the buffered records out
-//            flushed.addAll(flush());
-//            // re-initialize everything that depends on the record schema
-//            final SchemaPair schemaPair = new SchemaPair(
-//                    record.getKeySchema(),
-//                    record.getSchema(),
-//                    record.getExtensions()
-//            );
-//            // extract field
-//            fieldsMetadata = FieldsMetadata.extract(
-//                    tableId.tableName(),
-//                    config.pkMode,
-//                    config.getPkFields(),
-//                    config.getFieldsWhitelist(),
-//                    schemaPair
-//            );
-//            // create or alter table
-////            dbStructure.createOrAmendIfNecessary(
-////                    config,
-////                    tableId,
-////                    fieldsMetadata
-////            );
-//        }
+        boolean schemaChanged = false;
+        if (!Objects.equals(keySchema, record.getKeySchema())) {
+            keySchema = record.getKeySchema();
+            schemaChanged = true;
+        }
+        if (isNull(record.getSchema())) {
+            // For deletes, value and optionally value schema come in as null.
+            // We don't want to treat this as a schema change if key schemas is the same
+            // otherwise we flush unnecessarily.
+            if (config.isDeleteEnabled()) {
+                deletesInBatch = true;
+            }
+        } else if (Objects.equals(schema, record.getSchema())) {
+            if (config.isDeleteEnabled() && deletesInBatch) {
+                // flush so an insert after a delete of same record isn't lost
+                flushed.addAll(flush());
+            }
+        } else {
+            // value schema is not null and has changed. This is a real schema change.
+            schema = record.getSchema();
+            schemaChanged = true;
+        }
+
+        if (schemaChanged) {
+            // Each batch needs to have the same schemas, so get the buffered records out
+            flushed.addAll(flush());
+            // re-initialize everything that depends on the record schema
+            final SchemaPair schemaPair = new SchemaPair(
+                    record.getKeySchema(),
+                    record.getSchema(),
+                    record.getExtensions()
+            );
+            // extract field
+            fieldsMetadata = FieldsMetadata.extract(
+                    tableId.tableName(),
+                    config.pkMode,
+                    config.getPkFields(),
+                    config.getFieldsWhitelist(),
+                    schemaPair
+            );
+            // create or alter table
+            dbStructure.createOrAmendIfNecessary(
+                    config,
+                    tableId,
+                    fieldsMetadata
+            );
+        }
 
         // set deletesInBatch if schema value is not null
-//        if (isNull(record.getData()) && config.isDeleteEnabled()) {
-//            deletesInBatch = true;
-//        }
+        if (isNull(record.getData()) && config.isDeleteEnabled()) {
+            deletesInBatch = true;
+        }
 
         records.add(record);
         if (records.size() >= config.getBatchSize()) {
@@ -159,7 +150,7 @@ public class BufferedRecords {
             }
         }
         Optional<Long> totalUpdateCount = executeUpdates();
-        long totalDeleteCount = executeDeletes();
+        Optional<Long> totalDeleteCount = executeDeletes();
         final long expectedCount = updateRecordCount();
         log.trace("{} records:{} resulting in totalUpdateCount:{} totalDeleteCount:{}",
                 config.getInsertMode(),
@@ -169,9 +160,6 @@ public class BufferedRecords {
         );
         if (totalUpdateCount.filter(total -> total != expectedCount).isPresent()
                 && config.getInsertMode() == DorisSinkConfig.InsertMode.INSERT) {
-//            if (dbDialect.name().equals(GenericDatabaseDialect.DialectName.generateDialectName(dbDialect.getDialectClass())) && totalUpdateCount.get() == 0) {
-//                // openMLDB execute success result 0; do nothing
-//            } else {
             throw new ConnectException(
                     String.format(
                             "Update count (%d) did not sum up to total number of records inserted (%d)",
@@ -179,7 +167,6 @@ public class BufferedRecords {
                             expectedCount
                     )
             );
-//            }
         }
         if (!totalUpdateCount.isPresent()) {
             log.info(
@@ -202,13 +189,11 @@ public class BufferedRecords {
         if (updatePreparedRecords.isEmpty()) {
             return count;
         }
-        StringBuilder updateJsonStringBuilder = new StringBuilder();
         for (ConnectRecord record : updatePreparedRecords) {
             String jsonData = DorisDialect.convertToUpdateJsonString(record);
             try {
-//                DorisStreamLoader loader = new DorisStreamLoader();
                 log.info("[executeUpdates]" + jsonData);
-                loader.loadJson(jsonData, config.getTableName());
+                loader.loadJson(jsonData, record.getSchema().getName());
             } catch (DorisException e) {
                 log.error("executeUpdates failed");
                 throw e;
@@ -219,44 +204,28 @@ public class BufferedRecords {
                     ? count.map(total -> total + 1)
                     : Optional.of(1L);
         }
-        // batch
-//        StringBuilder updateJsonStringBuilder = new StringBuilder();
-//        for (ConnectRecord record: updatePreparedRecords) {
-//            updateJsonStringBuilder.append(DorisDialect.convertToUpdateJsonString(record, updateJsonStringBuilder.length() == 0));
-//        }
-//        if (updateJsonStringBuilder.length() != 0) {
-//            try {
-//                DorisStreamLoader loader = new DorisStreamLoader();
-//                loader.loadJson(updateJsonStringBuilder.toString());
-//            } catch (DorisException e) {
-//                log.error("executeUpdates failed");
-//                throw e;
-//            } catch (Exception e) {
-//                throw new DorisException("doris error");
-//            }
-//        }
         return count;
     }
 
-    private long executeDeletes() throws SQLException {
-        long totalDeleteCount = 0;
+    private Optional<Long> executeDeletes() throws SQLException {
+        Optional<Long> totalDeleteCount = Optional.empty();
         if (deletePreparedRecords.isEmpty()) {
             return totalDeleteCount;
         }
-        StringBuilder deleteJsonStringBuilder = new StringBuilder();
-//        for (ConnectRecord record: deletePreparedRecords) {
-//            deleteJsonStringBuilder.append(DorisDialect.convertToDeleteJsonString(record, updateJsonStringBuilder.length() == 0));
-//        }
-        if (deleteJsonStringBuilder.length() != 0) {
+        for (ConnectRecord record : updatePreparedRecords) {
+            String jsonData = DorisDialect.convertToDeleteJsonString(record);
             try {
-//                DorisStreamLoader loader = new DorisStreamLoader();
-//                loader.loadJson(deleteJsonStringBuilder.toString());
+                log.info("[executeDelete]" + jsonData);
+                loader.loadJson(jsonData, record.getSchema().getName());
             } catch (DorisException e) {
-                log.error("executeUpdates failed");
+                log.error("executeDelete failed");
                 throw e;
             } catch (Exception e) {
                 throw new DorisException("doris error");
             }
+            totalDeleteCount = totalDeleteCount.isPresent()
+                    ? totalDeleteCount.map(total -> total + 1)
+                    : Optional.of(1L);
         }
         return totalDeleteCount;
     }

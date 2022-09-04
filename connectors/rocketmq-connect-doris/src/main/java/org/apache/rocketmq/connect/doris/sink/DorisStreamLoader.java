@@ -30,7 +30,6 @@ import org.apache.http.util.EntityUtils;
 import org.apache.rocketmq.connect.doris.connector.DorisSinkConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -56,6 +55,7 @@ public class DorisStreamLoader {
     private String passwd;
     //http path of stream load task submission
     private final String loadUrlWithoutTable;
+
     private DorisStreamLoader(String host, int port, String database, String user, String passwd) {
         this.host = host;
         this.port = port;

@@ -19,7 +19,6 @@ package org.apache.rocketmq.connect.doris.sink.metadata;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 
-
 public class SinkRecordField {
 
     private final Schema schema;
@@ -53,7 +52,6 @@ public class SinkRecordField {
     }
 
     public Object defaultValue() {
-//    return schema.defaultValue();
         return null;
     }
 

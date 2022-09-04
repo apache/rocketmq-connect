@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.connect.doris.exception;
 
-
 /**
  * config exception
  */

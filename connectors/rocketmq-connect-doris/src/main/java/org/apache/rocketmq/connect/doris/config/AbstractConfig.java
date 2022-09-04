@@ -15,13 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.connect.doris.config;
-
-
-
-//import com.google.common.collect.Lists;
 import io.openmessaging.KeyValue;
-//import org.apache.rocketmq.connect.doris.util.QuoteMethod;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,7 +51,6 @@ public abstract class AbstractConfig {
      * quote.sql.identifiers
      */
     public static final String QUOTE_SQL_IDENTIFIERS_CONFIG = "quote.sql.identifiers";
-//    public static final String QUOTE_SQL_IDENTIFIERS_DEFAULT = QuoteMethod.ALWAYS.name().toString();
     public static final String QUOTE_SQL_IDENTIFIERS_DOC =
             "When to quote table names, column names, and other identifiers in SQL statements. "
                     + "For backward compatibility, the default is ``always``.";
@@ -76,7 +69,6 @@ public abstract class AbstractConfig {
         connectionDbPassword = config.getString(CONNECTION_PASSWORD_CONFIG);
         attempts = config.getInt(CONNECTION_ATTEMPTS_CONFIG, CONNECTION_ATTEMPTS_DEFAULT);
         backoffMs = config.getLong(CONNECTION_BACKOFF_CONFIG, CONNECTION_BACKOFF_DEFAULT);
-//        quoteSqlIdentifiers = config.getString(QUOTE_SQL_IDENTIFIERS_CONFIG, QUOTE_SQL_IDENTIFIERS_DEFAULT);
     }
 
 

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.connect.doris.util;
 
-//import org.apache.rocketmq.connect.doris.schema.column.ColumnId;
-
 public class ExpressionBuilder {
 
     /**

@@ -18,7 +18,6 @@ package org.apache.rocketmq.connect.doris.connector;
 
 import io.openmessaging.KeyValue;
 import org.apache.rocketmq.connect.doris.config.AbstractConfig;
-//import org.apache.rocketmq.connect.doris.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.doris.exception.ConfigException;
 import org.apache.rocketmq.connect.doris.schema.table.TableId;
 import org.apache.rocketmq.connect.doris.util.TableType;
@@ -188,12 +187,6 @@ public class DorisSinkConfig extends AbstractConfig {
     private TimeZone timeZone;
     private EnumSet<TableType> tableTypes;
 
-    public String getTableName() {
-        return tableName;
-    }
-
-    private String tableName;
-
     public String getHost() {
         return host;
     }
@@ -252,7 +245,6 @@ public class DorisSinkConfig extends AbstractConfig {
         String dbTimeZone = config.getString(DB_TIMEZONE_CONFIG, DB_TIMEZONE_DEFAULT);
         timeZone = TimeZone.getTimeZone(ZoneId.of(dbTimeZone));
         tableTypes = TableType.parse(getList(config, TABLE_TYPES_CONFIG, TABLE_TYPES_DEFAULT));
-        this.tableName = config.getString(TABLE_NAME).trim();
     }
 
     public String getTableNameFormat() {
@@ -314,30 +306,6 @@ public class DorisSinkConfig extends AbstractConfig {
     public EnumSet<TableType> getTableTypes() {
         return tableTypes;
     }
-
-//    /**
-//     * filter white table
-//     *
-//     * @param dbDialect
-//     * @param tableId
-//     * @return
-//     */
-//    public boolean filterWhiteTable(DatabaseDialect dbDialect, TableId tableId) {
-//        // not filter table
-//        if (tableWhitelist.isEmpty()) {
-//            return true;
-//        }
-//        for (String tableName : tableWhitelist) {
-//            TableId table = dbDialect.parseToTableId(tableName);
-//            if (table.catalogName() != null && table.catalogName().equals(tableId.catalogName())) {
-//                return true;
-//            }
-//            if (table.tableName().equals(tableId.tableName())) {
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
 
     public boolean filterWhiteTable(TableId tableId) {
         // not filter table

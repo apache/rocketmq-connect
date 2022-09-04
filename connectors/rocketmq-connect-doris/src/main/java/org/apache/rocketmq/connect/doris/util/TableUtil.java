@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.doris.util;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.Struct;
 import org.apache.rocketmq.connect.doris.schema.table.TableId;
 
 public class TableUtil {
@@ -27,6 +28,7 @@ public class TableUtil {
     }
     public static TableId destinationTable(ConnectRecord record) {
         // todo table from header
-        return new TableId(null, null, record.getSchema().getName());
+        Struct struct = (Struct) record.getData();
+        return new TableId(null, null, struct.getSchema().getName());
     }
 }
