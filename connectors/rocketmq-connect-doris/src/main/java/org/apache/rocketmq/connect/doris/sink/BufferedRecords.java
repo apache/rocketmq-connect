@@ -116,12 +116,6 @@ public class BufferedRecords {
                     config.getFieldsWhitelist(),
                     schemaPair
             );
-            // create or alter table
-            dbStructure.createOrAmendIfNecessary(
-                    config,
-                    tableId,
-                    fieldsMetadata
-            );
         }
 
         // set deletesInBatch if schema value is not null

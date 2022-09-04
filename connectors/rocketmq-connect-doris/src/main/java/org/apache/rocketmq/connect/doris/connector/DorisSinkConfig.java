@@ -186,7 +186,6 @@ public class DorisSinkConfig extends AbstractConfig {
     private Set<String> tableWhitelist;
     private TimeZone timeZone;
     private EnumSet<TableType> tableTypes;
-
     public String getHost() {
         return host;
     }
