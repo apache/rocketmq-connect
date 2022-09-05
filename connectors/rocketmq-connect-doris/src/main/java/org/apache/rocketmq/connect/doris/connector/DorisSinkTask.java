@@ -102,21 +102,6 @@ public class DorisSinkTask extends SinkTask {
     @Override
     public void stop() {
         log.info("Stopping task");
-//        try {
-//            updater.closeQuietly();
-//        } finally {
-//            try {
-//                if (dialect != null) {
-//                    dialect.close();
-//                }
-//            } catch (Throwable t) {
-//                log.warn("Error while closing the {} dialect: ", dialect.name(), t);
-//            } finally {
-//                dialect = null;
-//            }
-//        }
     }
-
-
 }
 
