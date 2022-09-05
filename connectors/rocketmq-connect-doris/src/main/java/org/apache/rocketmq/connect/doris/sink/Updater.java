@@ -50,9 +50,9 @@ public class Updater {
             for (ConnectRecord record : records) {
                 // destination table
                 final TableId tableId = TableUtil.destinationTable(record);
-//                if (!config.filterWhiteTable(tableId)) {
-//                    continue;
-//                }
+                if (!config.filterWhiteTable(tableId)) {
+                    continue;
+                }
                 BufferedRecords buffer = bufferByTable.get(tableId);
                 if (buffer == null) {
                     buffer = new BufferedRecords(config, tableId, dbStructure);
