@@ -145,7 +145,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
                 if (error != null) {
                     log.error("Failed to persist positions to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist positions to storage: {} , {} ", partition, position);
+                    log.trace("Successes to persist positions to storage: {} , {} ", partition, position);
                 }
             }
         });

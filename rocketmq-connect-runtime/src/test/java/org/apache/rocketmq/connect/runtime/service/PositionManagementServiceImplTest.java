@@ -92,11 +92,13 @@ public class PositionManagementServiceImplTest {
     private ServerResponseMocker brokerMocker;
 
     private final String namespace = "namespace";
+
     @Before
     public void init() throws Exception {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker =  ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
         connectConfig = new WorkerConfig();
+
         connectConfig.setHttpPort(8081);
         connectConfig.setNamesrvAddr("localhost:9876");
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");

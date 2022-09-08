@@ -36,6 +36,7 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
@@ -80,6 +81,9 @@ public class ConfigManagementServiceImplTest {
 
     private Plugin plugin;
 
+    @Mock
+    private DelegatingClassLoader delegatingClassLoader;
+
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
@@ -88,6 +92,7 @@ public class ConfigManagementServiceImplTest {
     public void init() throws Exception {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
+
         String consumerGroup = UUID.randomUUID().toString();
         String producerGroup = UUID.randomUUID().toString();
 
@@ -138,12 +143,13 @@ public class ConfigManagementServiceImplTest {
         plugin = new Plugin(pluginPaths);
         configManagementService.initialize(connectConfig, plugin);
         configManagementService.start();
-        //final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("connectorKeyValueStore");
-        //connectorKeyValueStoreField.setAccessible(true);
-        //connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
-//        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("taskKeyValueStore");
-//        taskKeyValueStoreField.setAccessible(true);
-//        taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
+
+        final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
+        connectorKeyValueStoreField.setAccessible(true);
+        connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
+        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
+        taskKeyValueStoreField.setAccessible(true);
+        taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
 
         final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);
@@ -164,7 +170,6 @@ public class ConfigManagementServiceImplTest {
         TestUtils.deleteFile(new File(System.getProperty("user.home") + File.separator + "testConnectorStore"));
         brokerMocker.shutdown();
         nameServerMocker.shutdown();
-
     }
 
     @Test
