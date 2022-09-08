@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -40,7 +40,7 @@ public class PositionStorageWriterTest {
 
     private PositionManagementService positionManagementService;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     private ServerResponseMocker nameServerMocker;
 
@@ -65,7 +65,7 @@ public class PositionStorageWriterTest {
         offset.put("queueOffset", 0L);
         recordOffset = new RecordOffset(offset);
 
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
         positionManagementService = new PositionManagementServiceImpl();
@@ -76,10 +76,10 @@ public class PositionStorageWriterTest {
 
     @After
     public void after() throws IOException {
-        nameServerMocker.shutdown();
-        brokerMocker.shutdown();
         positionManagementService.stop();
         positionStorageWriter.close();
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
 

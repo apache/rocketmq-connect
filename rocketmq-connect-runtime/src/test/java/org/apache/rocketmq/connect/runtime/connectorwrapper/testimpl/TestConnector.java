@@ -19,13 +19,13 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.connector.Connector;
-import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestConnector extends Connector {
+public class TestConnector extends SourceConnector {
 
     private KeyValue config;
 
@@ -50,6 +50,7 @@ public class TestConnector extends Connector {
 
     @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> configs = new ArrayList<>();
+        this.config = new DefaultKeyValue();
         configs.add(this.config);
         return configs;
     }

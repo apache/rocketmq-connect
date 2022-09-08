@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -49,7 +49,7 @@ public class PositionStorageReaderImplTest {
 
     private RecordOffset recordOffset;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     private ServerResponseMocker nameServerMocker;
 
@@ -60,7 +60,7 @@ public class PositionStorageReaderImplTest {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
 
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
         positionManagementService = new PositionManagementServiceImpl();
@@ -85,8 +85,8 @@ public class PositionStorageReaderImplTest {
     @After
     public void after() {
         positionManagementService.stop();
-        nameServerMocker.shutdown();
         brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
     @Test

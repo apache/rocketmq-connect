@@ -87,13 +87,16 @@ export LANG=en_US.UTF-8
 # JVM Parameters Configuration
 #===========================================================================================
 
-JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g -XX:PermSize=128m -XX:MaxPermSize=320m"
+JAVA_OPT="${JAVA_OPT} -server -Xms2g -Xmx2g"
 JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0 -XX:SurvivorRatio=8 -XX:+DisableExplicitGC"
 JAVA_OPT="${JAVA_OPT} -verbose:gc"
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
 JAVA_OPT="${JAVA_OPT} -XX:MaxDirectMemorySize=10g"
 JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages -XX:-UseBiasedLocking"
+if [[ $(check_java_version "$JAVA" "1.8") == "false" ]]; then
+  JAVA_OPT="${JAVA_OPT} -XX:PermSize=128m -XX:MaxPermSize=320m"
+fi
 if [[ $(check_java_version "$JAVA" "9") == "false" ]]; then
   JAVA_OPT="${JAVA_OPT} -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
   JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"

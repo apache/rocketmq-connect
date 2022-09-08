@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
+import com.sun.nio.zipfs.JarFileSystemProvider;
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
@@ -27,11 +28,10 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
-import sun.nio.fs.MacOSXFileSystemProvider;
 
 public class TestFileSystem extends FileSystem {
     @Override public FileSystemProvider provider() {
-        return new MacOSXFileSystemProvider();
+        return new JarFileSystemProvider();
     }
 
     @Override public void close() throws IOException {
