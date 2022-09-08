@@ -48,6 +48,15 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatus
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
+import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
+import org.apache.rocketmq.connect.runtime.metrics.MetricName;
+import org.apache.rocketmq.connect.runtime.metrics.Sensor;
+import org.apache.rocketmq.connect.runtime.metrics.stats.Avg;
+import org.apache.rocketmq.connect.runtime.metrics.stats.CumulativeCount;
+import org.apache.rocketmq.connect.runtime.metrics.stats.Max;
+import org.apache.rocketmq.connect.runtime.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -89,6 +98,8 @@ public class WorkerSourceTask extends WorkerTask {
     private final SourceTask sourceTask;
 
     protected final WorkerSourceTaskContext sourceTaskContext;
+
+    private final SourceTaskMetricsGroup sourceTaskMetricsGroup;
 
     /**
      * Used to read the position of source data source.
@@ -163,6 +174,7 @@ public class WorkerSourceTask extends WorkerTask {
         this.producerSendException = new AtomicReference<>();
         this.offsetManagement = new RecordOffsetManagement();
         this.committableOffsets = RecordOffsetManagement.CommittableOffsets.EMPTY;
+        this.sourceTaskMetricsGroup = new SourceTaskMetricsGroup(id, new ConnectMetrics(workerConfig));
     }
 
     private List<ConnectRecord> poll() throws InterruptedException {
@@ -463,9 +475,10 @@ public class WorkerSourceTask extends WorkerTask {
         log.info("{} Source task finished initialization and start", this);
     }
 
-    protected void recordPollReturned(int numRecordsInBatch) {
-        connectStatsManager.incSourceRecordPollTotalNums(numRecordsInBatch);
-        connectStatsManager.incSourceRecordPollNums(id().toString() + "", numRecordsInBatch);
+    protected void recordPollReturned(int numRecordsInBatch, long millTime) {
+        sourceTaskMetricsGroup.recordPoll(numRecordsInBatch, millTime);
+//        connectStatsManager.incSourceRecordPollTotalNums(numRecordsInBatch);
+//        connectStatsManager.incSourceRecordPollNums(id().toString() + "", numRecordsInBatch);
     }
 
     /**
@@ -493,9 +506,10 @@ public class WorkerSourceTask extends WorkerTask {
             if (CollectionUtils.isEmpty(toSendRecord)) {
                 try {
                     prepareToPollTask();
+                    long start = System.currentTimeMillis();
                     toSendRecord = poll();
                     if (null != toSendRecord && toSendRecord.size() > 0) {
-                        recordPollReturned(toSendRecord.size());
+                        recordPollReturned(toSendRecord.size(), System.currentTimeMillis()-start);
                     }
                     if (toSendRecord == null) {
                         continue;
@@ -636,4 +650,56 @@ public class WorkerSourceTask extends WorkerTask {
         connectStatsManager.incSourceRecordWriteNums(id().toString());
     }
 
+
+    static class SourceTaskMetricsGroup implements AutoCloseable {
+        private final Sensor sourceRecordPoll;
+        private final Sensor sourceRecordWrite;
+        private final Sensor sourceRecordActiveCount;
+        private final Sensor pollTime;
+        private int activeRecordCount;
+
+        private MetricGroup metricGroup;
+        public SourceTaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
+            ConnectMetricsTemplates templates = connectMetrics.templates();
+            metricGroup = connectMetrics.group(
+                    templates.connectorTagName(), id.connector(),
+                    templates.taskTagName(), Integer.toString(id.task()));
+            // remove any previously created metrics in this group to prevent collisions.
+
+            sourceRecordPoll = metricGroup.sensor();
+            sourceRecordPoll.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollRate)));
+            sourceRecordPoll.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollTotal)));
+
+            sourceRecordWrite = new Sensor();
+            sourceRecordWrite.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteRate)));
+            sourceRecordWrite.addStat(new CumulativeCount(connectMetrics.registry(),metricGroup.name(templates.sourceRecordWriteTotal)));
+
+            pollTime = new Sensor();
+            pollTime.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeMax)));
+            pollTime.addStat(new Avg(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeAvg)));
+
+            sourceRecordActiveCount = new Sensor();
+            sourceRecordActiveCount.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordActiveCountMax)));
+            sourceRecordActiveCount.addStat(new Avg(connectMetrics.registry(), metricGroup.name(templates.sourceRecordActiveCountAvg)));
+        }
+
+        @Override
+        public void close() {
+            metricGroup.close();
+        }
+
+        void recordPoll(int batchSize, long duration) {
+            sourceRecordPoll.record(batchSize);
+            pollTime.record(duration);
+            activeRecordCount += batchSize;
+            sourceRecordActiveCount.record(activeRecordCount);
+        }
+
+        void recordWrite(int recordCount) {
+            sourceRecordWrite.record(recordCount);
+            activeRecordCount -= recordCount;
+            activeRecordCount = Math.max(0, activeRecordCount);
+            sourceRecordActiveCount.record(activeRecordCount);
+        }
+    }
 }
