@@ -44,7 +44,6 @@ public class WorkerSinkTaskContextTest {
 
     private DefaultLitePullConsumer consumer = new DefaultLitePullConsumer();
 
-
     private RecordPartition recordPartition;
 
     private RecordOffset recordOffset;
