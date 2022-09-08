@@ -49,7 +49,7 @@ public class Min implements MeasureStat {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws Exception {
         this.registry.remove(name.toString());
     }
 }

@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,7 @@ public class DeadLetterQueueReporter implements ErrorReporter {
     public static final String ERROR_HEADER_ORIG_PARTITION = HEADER_PREFIX + "partition";
     public static final String ERROR_HEADER_ORIG_OFFSET = HEADER_PREFIX + "offset";
     public static final String ERROR_HEADER_CONNECTOR_NAME = HEADER_PREFIX + "connector.name";
+    public static final String ERROR_HEADER_TASK_ID = HEADER_PREFIX + "task.id";
     public static final String ERROR_HEADER_CLUSTER_ID = HEADER_PREFIX + "cluster.id";
     public static final String ERROR_HEADER_STAGE = HEADER_PREFIX + "stage";
     public static final String ERROR_HEADER_EXECUTING_CLASS = HEADER_PREFIX + "class.name";
@@ -81,20 +83,21 @@ public class DeadLetterQueueReporter implements ErrorReporter {
      */
     private final DeadLetterQueueConfig deadLetterQueueConfig;
 
-    private String connectorName;
+    private ConnectorTaskId connectorTaskId;
 
-
+    private final ErrorMetricsGroup errorMetricsGroup;
     /**
      * build reporter
      *
-     * @param connectorName
+     * @param connectorTaskId
      * @param sinkConfig
      * @param workerConfig
      * @return
      */
-    public static DeadLetterQueueReporter build(String connectorName,
+    public static DeadLetterQueueReporter build(ConnectorTaskId connectorTaskId,
                                                 ConnectKeyValue sinkConfig,
-                                                WorkerConfig workerConfig) {
+                                                WorkerConfig workerConfig,
+                                                ErrorMetricsGroup errorMetricsGroup) {
 
         DeadLetterQueueConfig deadLetterQueueConfig = new DeadLetterQueueConfig(sinkConfig);
         String dlqTopic = deadLetterQueueConfig.dlqTopicName();
@@ -108,7 +111,7 @@ public class DeadLetterQueueReporter implements ErrorReporter {
             ConnectUtil.createTopic(workerConfig, topicConfig);
         }
         DefaultMQProducer dlqProducer = ConnectUtil.initDefaultMQProducer(workerConfig);
-        return new DeadLetterQueueReporter(dlqProducer, sinkConfig, connectorName);
+        return new DeadLetterQueueReporter(dlqProducer, sinkConfig, connectorTaskId, errorMetricsGroup);
     }
 
     /**
@@ -116,18 +119,20 @@ public class DeadLetterQueueReporter implements ErrorReporter {
      *
      * @param producer
      * @param connConfig
-     * @param connectorName
+     * @param connectorTaskId
      */
     DeadLetterQueueReporter(DefaultMQProducer producer,
                             ConnectKeyValue connConfig,
-                            String connectorName) {
+                            ConnectorTaskId connectorTaskId,
+                            ErrorMetricsGroup errorMetricsGroup) {
         Objects.requireNonNull(producer);
         Objects.requireNonNull(connConfig);
-        Objects.requireNonNull(connectorName);
+        Objects.requireNonNull(connectorTaskId);
         this.producer = producer;
         this.config = connConfig;
-        this.connectorName = connectorName;
+        this.connectorTaskId = connectorTaskId;
         this.deadLetterQueueConfig = new DeadLetterQueueConfig(connConfig);
+        this.errorMetricsGroup = errorMetricsGroup;
     }
 
     /**
@@ -138,8 +143,11 @@ public class DeadLetterQueueReporter implements ErrorReporter {
         if (this.deadLetterQueueConfig.dlqTopicName().trim().isEmpty()) {
             return;
         }
+
+        errorMetricsGroup.recordDeadLetterQueueProduceRequest();
         MessageExt originalMessage = context.consumerRecord();
         if (originalMessage == null) {
+            errorMetricsGroup.recordDeadLetterQueueProduceFailed();
             return;
         }
 
@@ -160,6 +168,7 @@ public class DeadLetterQueueReporter implements ErrorReporter {
 
                 @Override
                 public void onException(Throwable throwable) {
+                    errorMetricsGroup.recordDeadLetterQueueProduceFailed();
                     log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(originalMessage), throwable);
                 }
             });
@@ -192,7 +201,8 @@ public class DeadLetterQueueReporter implements ErrorReporter {
         }
         producerRecord.putUserProperty(ERROR_HEADER_STAGE, context.stage().name());
         producerRecord.putUserProperty(ERROR_HEADER_EXECUTING_CLASS, context.executingClass().getName());
-        producerRecord.putUserProperty(ERROR_HEADER_CONNECTOR_NAME, connectorName);
+        producerRecord.putUserProperty(ERROR_HEADER_CONNECTOR_NAME, connectorTaskId.connector());
+        producerRecord.putUserProperty(ERROR_HEADER_TASK_ID, connectorTaskId.task()+"");
         if (context.error() != null) {
             Throwable error = context.error();
             headers.put(ERROR_HEADER_EXCEPTION, error.getClass().getName());

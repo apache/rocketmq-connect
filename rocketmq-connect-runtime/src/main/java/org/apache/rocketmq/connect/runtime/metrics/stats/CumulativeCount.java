@@ -20,7 +20,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
-import java.io.IOException;
 
 /**
  * cumulative count
@@ -52,7 +51,7 @@ public class CumulativeCount implements MeasureStat {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws Exception {
         this.registry.remove(name.toString());
     }
 }

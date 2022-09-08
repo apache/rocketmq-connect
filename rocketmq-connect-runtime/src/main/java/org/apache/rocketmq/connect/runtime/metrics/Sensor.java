@@ -2,15 +2,13 @@ package org.apache.rocketmq.connect.runtime.metrics;
 
 import org.apache.rocketmq.connect.runtime.metrics.stats.MeasureStat;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
  * sensor
  */
-public class Sensor implements Closeable {
+public class Sensor implements AutoCloseable {
     private final Set<MeasureStat> stats;
     public Sensor(){
         stats = new LinkedHashSet<>();
@@ -45,7 +43,7 @@ public class Sensor implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws Exception {
         // increment all the stats
         for (MeasureStat stat : this.stats) {
             stat.close();

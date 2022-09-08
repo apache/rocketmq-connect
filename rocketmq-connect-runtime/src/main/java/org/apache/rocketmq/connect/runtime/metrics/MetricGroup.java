@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.metrics;
 
-import io.openmessaging.connector.api.errors.ConnectException;
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -27,7 +24,7 @@ import java.util.Set;
 /**
  * metric group
  */
-public class MetricGroup implements Closeable {
+public class MetricGroup implements AutoCloseable {
     private Set<Sensor> metrics = new HashSet<>();
     private final Map<String, String> tags;
     public MetricGroup(Map<String, String> tags){
@@ -49,8 +46,8 @@ public class MetricGroup implements Closeable {
         metrics.forEach(metric->{
             try {
                 metric.close();
-            } catch (IOException e) {
-                throw new ConnectException(e);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         });
     }

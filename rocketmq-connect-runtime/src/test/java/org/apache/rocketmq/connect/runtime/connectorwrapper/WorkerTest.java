@@ -44,8 +44,10 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceT
 import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
@@ -129,7 +131,7 @@ public class WorkerTest {
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setNamesrvAddr("localhost:9876");
         stateManagementService = new StateManagementServiceImpl();
-        stateManagementService.initialize(connectConfig);
+        stateManagementService.initialize(connectConfig, new JsonConverter());
         worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, stateManagementService);
 
         Set<WorkerConnector> workingConnectors = new HashSet<>();
@@ -151,8 +153,8 @@ public class WorkerTest {
             connectKeyValue.getProperties().put("key2", "TEST-TASK-" + i + "2");
 
             // create retry operator
-            RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
-            retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
+            RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(new WorkerConfig())));
+            retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("TEST-CONN",1 ), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("TEST-CONN",1 ), new ConnectMetrics(new WorkerConfig()))));
             final WorkerSourceTask task = new WorkerSourceTask(new WorkerConfig(),
                 new ConnectorTaskId("TEST-CONN-" + i, i),
                 new TestSourceTask(),
@@ -165,7 +167,7 @@ public class WorkerTest {
                 new AtomicReference(WorkerState.STARTED),
                 connectStatsManager, connectStatsService,
                 transformChain,
-                retryWithToleranceOperator, wrapperStatusListener);
+                retryWithToleranceOperator, wrapperStatusListener, new ConnectMetrics(new WorkerConfig()));
            runnables.add(task);
         }
         worker.setWorkingTasks(runnables);

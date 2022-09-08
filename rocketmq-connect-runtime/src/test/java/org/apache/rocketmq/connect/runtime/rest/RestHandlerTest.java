@@ -50,8 +50,10 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
+import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.rest.entities.PluginInfo;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
@@ -207,16 +209,16 @@ public class RestHandlerTest {
         };
         TransformChain<ConnectRecord> transformChain = new TransformChain<ConnectRecord>(new DefaultKeyValue(), new Plugin(new ArrayList<>()));
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
-        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("testConnectorName1", connectKeyValue));
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1), new ConnectMetrics(new WorkerConfig())));
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 1), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1), new ConnectMetrics(new WorkerConfig()))));
 
-        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(),new ConnectorTaskId("testConnectorName1", 1), sourceTask,null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator, null);
+        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(),new ConnectorTaskId("testConnectorName1", 1), sourceTask,null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator, null, new ConnectMetrics(new WorkerConfig()));
 
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
-        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters("testConnectorName2", connectKeyValue));
+        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName",2),new ConnectMetrics(new WorkerConfig())));
+        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName",2), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName",2), new ConnectMetrics(new WorkerConfig()))));
 
-        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName2", 1), sourceTask,null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator02, null);
+        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName", 2), sourceTask,null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator02, null, new ConnectMetrics(new WorkerConfig()));
         workerTasks = new HashSet<Runnable>() {
             {
                 add(workerSourceTask1);

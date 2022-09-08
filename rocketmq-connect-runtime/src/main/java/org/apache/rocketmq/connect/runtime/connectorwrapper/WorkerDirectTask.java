@@ -32,6 +32,7 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -77,7 +78,8 @@ public class WorkerDirectTask extends WorkerSourceTask {
                             ConnectStatsService connectStatsService,
                             TransformChain<ConnectRecord> transformChain,
                             RetryWithToleranceOperator retryWithToleranceOperator,
-                            WrapperStatusListener statusListener) {
+                            WrapperStatusListener statusListener,
+                            ConnectMetrics connectMetrics) {
         super(workerConfig,
                 id,
                 sourceTask,
@@ -92,7 +94,8 @@ public class WorkerDirectTask extends WorkerSourceTask {
                 connectStatsService,
                 transformChain,
                 retryWithToleranceOperator,
-                statusListener
+                statusListener,
+                connectMetrics
         );
         this.sourceTask = sourceTask;
         this.sinkTask = sinkTask;

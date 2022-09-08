@@ -36,9 +36,11 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatus
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -82,7 +84,7 @@ public class WorkerSinkTaskTest {
 
     private TransformChain<ConnectRecord> transformChain;
 
-    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL);
+    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("connect",1),new ConnectMetrics(new WorkerConfig())));
 
     private WorkerErrorRecordReporter workerErrorRecordReporter;
 
@@ -95,9 +97,24 @@ public class WorkerSinkTaskTest {
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
-        workerSinkTask = new WorkerSinkTask(connectConfig, connectorTaskId, sinkTask, WorkerSinkTaskTest.class.getClassLoader(), connectKeyValue,
-            recordConverter, recordConverter, defaultMQPullConsumer, workerState, connectStatsManager, connectStatsService,
-            transformChain, retryWithToleranceOperator, workerErrorRecordReporter, new WrapperStatusListener(new StateManagementServiceImpl(),"workId"));
+        workerSinkTask = new WorkerSinkTask(
+                connectConfig,
+                connectorTaskId,
+                sinkTask,
+                WorkerSinkTaskTest.class.getClassLoader(),
+                connectKeyValue,
+                recordConverter,
+                recordConverter,
+                defaultMQPullConsumer,
+                workerState,
+                connectStatsManager,
+                connectStatsService,
+                transformChain,
+                retryWithToleranceOperator,
+                workerErrorRecordReporter,
+                new WrapperStatusListener(new StateManagementServiceImpl(),"workId"),
+                new ConnectMetrics(new WorkerConfig())
+        );
     }
 
     @After

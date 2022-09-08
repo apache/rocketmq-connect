@@ -46,6 +46,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatus
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
@@ -162,7 +163,8 @@ public class WorkerSinkTask extends WorkerTask {
                           TransformChain<ConnectRecord> transformChain,
                           RetryWithToleranceOperator retryWithToleranceOperator,
                           WorkerErrorRecordReporter errorRecordReporter,
-                          WrapperStatusListener statusListener) {
+                          WrapperStatusListener statusListener,
+                          ConnectMetrics connectMetrics) {
         super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
         this.sinkTask = sinkTask;
         this.consumer = consumer;

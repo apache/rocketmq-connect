@@ -52,12 +52,15 @@ public class RetryWithToleranceOperator implements AutoCloseable {
     private long totalFailures = 0;
     protected ProcessingContext context = new ProcessingContext();
 
+    private ErrorMetricsGroup errorMetricsGroup;
     public RetryWithToleranceOperator(long errorRetryTimeout,
                                       long maxDelayInMillis,
-                                      ToleranceType toleranceType) {
+                                      ToleranceType toleranceType,
+                                      ErrorMetricsGroup errorMetricsGroup) {
         this.retryTimeout = errorRetryTimeout;
         this.maxDelayInMillis = maxDelayInMillis;
         this.toleranceType = toleranceType;
+        this.errorMetricsGroup = errorMetricsGroup;
     }
 
     public void executeFailed(ErrorReporter.Stage stage,
@@ -69,8 +72,11 @@ public class RetryWithToleranceOperator implements AutoCloseable {
         context.consumerRecord(consumerRecord);
         context.currentContext(stage, executingClass);
         context.error(error);
+        errorMetricsGroup.recordFailure();
         context.report();
+        // failure
         if (!withinToleranceLimits()) {
+            errorMetricsGroup.recordError();
             throw new ConnectException("Tolerance exceeded in error handler", error);
         }
     }
@@ -83,8 +89,10 @@ public class RetryWithToleranceOperator implements AutoCloseable {
         context.sourceRecord(sourceRecord);
         context.currentContext(stage, executingClass);
         context.error(error);
+        errorMetricsGroup.recordFailure();
         context.report();
         if (!withinToleranceLimits()) {
+            errorMetricsGroup.recordError();
             throw new ConnectException("Tolerance exceeded in Source Worker error handler", error);
         }
     }
@@ -106,6 +114,7 @@ public class RetryWithToleranceOperator implements AutoCloseable {
             return execAndHandleError(operation, ex);
         } finally {
             if (context.failed()) {
+                errorMetricsGroup.recordError();
                 context.report();
             }
         }
@@ -124,6 +133,7 @@ public class RetryWithToleranceOperator implements AutoCloseable {
                 return operation.call();
             } catch (RetriableException e) {
                 log.trace("Caught a retriable exception while executing {} operation with {}", context.stage(), context.executingClass());
+                errorMetricsGroup.recordFailure();
                 if (checkRetry(startTime)) {
                     backoff(attempt, deadline);
                     if (Thread.currentThread().isInterrupted()) {
@@ -131,6 +141,7 @@ public class RetryWithToleranceOperator implements AutoCloseable {
                         context.error(e);
                         return null;
                     }
+                    errorMetricsGroup.recordRetry();
                 } else {
                     log.trace("Can't retry. start={}, attempt={}, deadline={}", startTime, attempt, deadline);
                     context.error(e);
@@ -150,12 +161,13 @@ public class RetryWithToleranceOperator implements AutoCloseable {
             V result = execAndRetry(operation);
             if (context.failed()) {
                 markAsFailed();
+                errorMetricsGroup.recordSkipped();
             }
             return result;
         } catch (Exception e) {
+            errorMetricsGroup.recordFailure();
             markAsFailed();
             context.error(e);
-
             if (!tolerated.isAssignableFrom(e.getClass())) {
                 throw new ConnectException("Unhandled exception in error handler", e);
             }
@@ -163,6 +175,7 @@ public class RetryWithToleranceOperator implements AutoCloseable {
             if (!withinToleranceLimits()) {
                 throw new ConnectException("Tolerance exceeded in error handler", e);
             }
+            errorMetricsGroup.recordSkipped();
             return null;
         }
     }

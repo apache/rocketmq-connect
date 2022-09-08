@@ -21,7 +21,7 @@ import java.io.Closeable;
 /**
  * measure stat
  */
-public interface MeasureStat extends Closeable {
+public interface MeasureStat extends AutoCloseable {
 
 
     /**

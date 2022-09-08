@@ -51,7 +51,6 @@ import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
 import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
 import org.apache.rocketmq.connect.runtime.metrics.stats.Avg;
 import org.apache.rocketmq.connect.runtime.metrics.stats.CumulativeCount;
@@ -66,7 +65,6 @@ import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,7 +156,8 @@ public class WorkerSourceTask extends WorkerTask {
                             ConnectStatsService connectStatsService,
                             TransformChain<ConnectRecord> transformChain,
                             RetryWithToleranceOperator retryWithToleranceOperator,
-                            WrapperStatusListener statusListener) {
+                            WrapperStatusListener statusListener,
+                            ConnectMetrics connectMetrics) {
         super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
 
         this.sourceTask = sourceTask;
@@ -174,7 +173,7 @@ public class WorkerSourceTask extends WorkerTask {
         this.producerSendException = new AtomicReference<>();
         this.offsetManagement = new RecordOffsetManagement();
         this.committableOffsets = RecordOffsetManagement.CommittableOffsets.EMPTY;
-        this.sourceTaskMetricsGroup = new SourceTaskMetricsGroup(id, new ConnectMetrics(workerConfig));
+        this.sourceTaskMetricsGroup = new SourceTaskMetricsGroup(id, connectMetrics);
     }
 
     private List<ConnectRecord> poll() throws InterruptedException {
@@ -218,6 +217,9 @@ public class WorkerSourceTask extends WorkerTask {
      */
     private Boolean sendRecord() throws InterruptedException {
         int processed = 0;
+
+
+        final SourceRecordWriteCounter counter = new SourceRecordWriteCounter(toSendRecord.size(), sourceTaskMetricsGroup);
         for (ConnectRecord preTransformRecord : toSendRecord) {
             retryWithToleranceOperator.sourceRecord(preTransformRecord);
             ConnectRecord record = transformChain.doTransforms(preTransformRecord);
@@ -225,7 +227,9 @@ public class WorkerSourceTask extends WorkerTask {
             Message sourceMessage = convertTransformedRecord(topic, record);
             if (sourceMessage == null || retryWithToleranceOperator.failed()) {
                 // commit record
-                recordFailed(preTransformRecord);
+//                recordFailed(preTransformRecord);
+
+                counter.skipRecord();
                 continue;
             }
             log.trace("{} Appending record to the topic {} , value {}", this, topic, record.getData());
@@ -237,8 +241,8 @@ public class WorkerSourceTask extends WorkerTask {
                     @Override
                     public void onSuccess(SendResult result) {
                         log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
-                        // metrics
-                        incWriteRecordStat();
+                        // complete record
+                        counter.completeRecord();
                         // commit record for custom
                         recordSent(preTransformRecord, sourceMessage, result);
                         // ack record position
@@ -247,9 +251,10 @@ public class WorkerSourceTask extends WorkerTask {
 
                     @Override
                     public void onException(Throwable throwable) {
+
                         log.error("Source task send record failed ,error msg {}. message {}", throwable.getMessage(), JSON.toJSONString(sourceMessage), throwable);
-                        // fail record metrics
-                        inWriteRecordFail();
+                        // skip record
+                        counter.skipRecord();
                         // record send failed
                         recordSendFailed(false, sourceMessage, preTransformRecord, throwable);
                     }
@@ -271,16 +276,18 @@ public class WorkerSourceTask extends WorkerTask {
                 toSendRecord = toSendRecord.subList(processed, toSendRecord.size());
                 // remove pre submit position, for retry
                 submittedRecordPosition.ifPresent(RecordOffsetManagement.SubmittedPosition::remove);
+                // retry metrics
+                counter.retryRemaining();
                 return false;
-            } catch (MQClientException | RemotingException e) {
-                log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
-                inWriteRecordFail();
-                recordSendFailed(true, sourceMessage, preTransformRecord, e);
             } catch (InterruptedException e) {
                 log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
-                inWriteRecordFail();
+                // throw e and stop task
                 throw e;
+            }  catch (Exception e) {
+                log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
+                recordSendFailed(true, sourceMessage, preTransformRecord, e);
             }
+
             processed++;
         }
         toSendRecord = null;
@@ -475,11 +482,6 @@ public class WorkerSourceTask extends WorkerTask {
         log.info("{} Source task finished initialization and start", this);
     }
 
-    protected void recordPollReturned(int numRecordsInBatch, long millTime) {
-        sourceTaskMetricsGroup.recordPoll(numRecordsInBatch, millTime);
-//        connectStatsManager.incSourceRecordPollTotalNums(numRecordsInBatch);
-//        connectStatsManager.incSourceRecordPollNums(id().toString() + "", numRecordsInBatch);
-    }
 
     /**
      * execute poll and send record
@@ -640,12 +642,20 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
+
+    protected void recordPollReturned(int numRecordsInBatch, long millTime) {
+        sourceTaskMetricsGroup.recordPoll(numRecordsInBatch, millTime);
+//        connectStatsManager.incSourceRecordPollTotalNums(numRecordsInBatch);
+//        connectStatsManager.incSourceRecordPollNums(id().toString() + "", numRecordsInBatch);
+    }
+
     private void inWriteRecordFail() {
         connectStatsManager.incSourceRecordWriteTotalFailNums();
         connectStatsManager.incSourceRecordWriteFailNums(id().toString());
     }
 
     private void incWriteRecordStat() {
+
         connectStatsManager.incSourceRecordWriteTotalNums();
         connectStatsManager.incSourceRecordWriteNums(id().toString());
     }
@@ -700,6 +710,39 @@ public class WorkerSourceTask extends WorkerTask {
             activeRecordCount -= recordCount;
             activeRecordCount = Math.max(0, activeRecordCount);
             sourceRecordActiveCount.record(activeRecordCount);
+        }
+    }
+
+    static class SourceRecordWriteCounter {
+        private final SourceTaskMetricsGroup metricsGroup;
+        private final int batchSize;
+        private boolean completed = false;
+        private int counter;
+        public SourceRecordWriteCounter(int batchSize, SourceTaskMetricsGroup metricsGroup) {
+            assert batchSize > 0;
+            assert metricsGroup != null;
+            this.batchSize = batchSize;
+            counter = batchSize;
+            this.metricsGroup = metricsGroup;
+        }
+        public void skipRecord() {
+            if (counter > 0 && --counter == 0) {
+                finishedAllWrites();
+            }
+        }
+        public void completeRecord() {
+            if (counter > 0 && --counter == 0) {
+                finishedAllWrites();
+            }
+        }
+        public void retryRemaining() {
+            finishedAllWrites();
+        }
+        private void finishedAllWrites() {
+            if (!completed) {
+                metricsGroup.recordWrite(batchSize - counter);
+                completed = true;
+            }
         }
     }
 }

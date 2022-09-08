@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.connect.runtime.metrics;
 
+import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -31,6 +34,8 @@ public class ConnectMetrics {
     private final ConnectMetricsTemplates templates = new ConnectMetricsTemplates();
     public ConnectMetrics(WorkerConfig config){
         this.workerId = config.getWorkerId();
+        ConsoleReporter reporter = ConsoleReporter.forRegistry(metricRegistry).build();
+        reporter.start(5, TimeUnit.SECONDS);
     }
 
     public String workerId(){

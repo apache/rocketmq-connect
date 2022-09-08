@@ -37,8 +37,10 @@ import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -129,6 +131,8 @@ public class Worker {
 
     private final ConfigManagementService configManagementService;
 
+    private final ConnectMetrics connectMetrics;
+
     public Worker(WorkerConfig workerConfig,
                   PositionManagementService positionManagementService,
                   ConfigManagementService configManagementService,
@@ -145,6 +149,7 @@ public class Worker {
         this.sourceTaskOffsetCommitter = Optional.of(new SourceTaskOffsetCommitter(workerConfig));
         this.statusListener = new WrapperStatusListener(stateManagementService, workerConfig.getWorkerId());
         this.executor = Executors.newCachedThreadPool();
+        this.connectMetrics =  new ConnectMetrics(workerConfig);
     }
 
     public void start() {
@@ -784,6 +789,9 @@ public class Worker {
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
                 int taskId = keyValue.getInt(ConnectorConfig.TASK_ID);
                 ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
+
+                ErrorMetricsGroup errorMetricsGroup = new ErrorMetricsGroup(id, this.connectMetrics);
+
                 String taskType = keyValue.getString(ConnectorConfig.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
                     createDirectTask(id, keyValue);
@@ -822,11 +830,11 @@ public class Worker {
                         DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
-                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
+                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, errorMetricsGroup);
+                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id, keyValue, errorMetricsGroup));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
-                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, statusListener);
+                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, statusListener, this.connectMetrics);
 
                         Future future = taskExecutor.submit(workerSourceTask);
                         // schedule offset committer
@@ -844,12 +852,12 @@ public class Worker {
                         }
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
-                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
+                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, errorMetricsGroup);
+                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(id, keyValue, workerConfig, errorMetricsGroup));
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
                                 (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
-                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter), statusListener);
+                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter), statusListener, this.connectMetrics);
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
@@ -892,8 +900,8 @@ public class Worker {
 
         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id.connector(), keyValue));
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue,  new ErrorMetricsGroup(id, this.connectMetrics));
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id, keyValue, new ErrorMetricsGroup(id, this.connectMetrics)));
 
         WorkerDirectTask workerDirectTask = new WorkerDirectTask(
                 workerConfig,
@@ -908,7 +916,8 @@ public class Worker {
                 connectStatsService,
                 transformChain,
                 retryWithToleranceOperator,
-                statusListener);
+                statusListener,
+                connectMetrics);
 
         Future future = taskExecutor.submit(workerDirectTask);
 

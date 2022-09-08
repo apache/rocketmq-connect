@@ -62,6 +62,8 @@ public class StandaloneConnectStartup {
     public static Properties properties = null;
 
     public static void main(String[] args) {
+
+        args =new String[]{"-c /Users/sunxiaojian/work/test-config/connect-standalone-copy.conf"};
         start(createConnectController(args));
     }
 
@@ -108,16 +110,16 @@ public class StandaloneConnectStartup {
                 }
             }
 
-            if (null == config.getConnectHome()) {
-                System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
-                System.exit(-2);
-            }
-
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-            JoranConfigurator configurator = new JoranConfigurator();
-            configurator.setContext(lc);
-            lc.reset();
-            configurator.doConfigure(config.getConnectHome() + "/conf/logback.xml");
+//            if (null == config.getConnectHome()) {
+//                System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
+//                System.exit(-2);
+//            }
+//
+//            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+//            JoranConfigurator configurator = new JoranConfigurator();
+//            configurator.setContext(lc);
+//            lc.reset();
+//            configurator.doConfigure(config.getConnectHome() + "/conf/logback.xml");
 
             List<String> pluginPaths = new ArrayList<>(16);
             if (StringUtils.isNotEmpty(config.getPluginPaths())) {

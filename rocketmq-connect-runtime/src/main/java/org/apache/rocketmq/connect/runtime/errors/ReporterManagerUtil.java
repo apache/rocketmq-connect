@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.errors;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,12 +36,16 @@ public class ReporterManagerUtil {
      * @param connConfig
      * @return
      */
-    public static RetryWithToleranceOperator createRetryWithToleranceOperator(ConnectKeyValue connConfig) {
+    public static RetryWithToleranceOperator createRetryWithToleranceOperator(
+            ConnectKeyValue connConfig,
+            ErrorMetricsGroup errorMetricsGroup
+    ) {
         DeadLetterQueueConfig deadLetterQueueConfig = new DeadLetterQueueConfig(connConfig);
         return new RetryWithToleranceOperator(
                 deadLetterQueueConfig.errorRetryTimeout(),
                 deadLetterQueueConfig.errorMaxDelayInMillis(),
-                deadLetterQueueConfig.errorToleranceType()
+                deadLetterQueueConfig.errorToleranceType(),
+                errorMetricsGroup
         );
     }
 
@@ -66,21 +71,22 @@ public class ReporterManagerUtil {
     /**
      * build sink task reporter
      *
-     * @param connectName
+     * @param connectorTaskId
      * @param connConfig
      * @param workerConfig
      * @return
      */
-    public static List<ErrorReporter> sinkTaskReporters(String connectName,
+    public static List<ErrorReporter> sinkTaskReporters(ConnectorTaskId connectorTaskId,
                                                         ConnectKeyValue connConfig,
-                                                        WorkerConfig workerConfig) {
+                                                        WorkerConfig workerConfig,
+                                                        ErrorMetricsGroup errorMetricsGroup) {
         // ensure reporter order
         ArrayList<ErrorReporter> reporters = new ArrayList<>();
-        LogReporter logReporter = new LogReporter(connectName, connConfig);
+        LogReporter logReporter = new LogReporter(connectorTaskId, connConfig, errorMetricsGroup);
         reporters.add(logReporter);
 
         // dead letter queue reporter
-        DeadLetterQueueReporter reporter = DeadLetterQueueReporter.build(connectName, connConfig, workerConfig);
+        DeadLetterQueueReporter reporter = DeadLetterQueueReporter.build(connectorTaskId, connConfig, workerConfig, errorMetricsGroup);
         if (reporter != null) {
             reporters.add(reporter);
         }
@@ -90,16 +96,16 @@ public class ReporterManagerUtil {
     /**
      * build source task reporter
      *
-     * @param connectName
+     * @param connectorTaskId
      * @param connConfig
      * @return
      */
-    public static List<ErrorReporter> sourceTaskReporters(String connectName,
-                                                          ConnectKeyValue connConfig) {
+    public static List<ErrorReporter> sourceTaskReporters(ConnectorTaskId connectorTaskId,
+                                                          ConnectKeyValue connConfig,
+                                                          ErrorMetricsGroup errorMetricsGroup) {
         List<ErrorReporter> reporters = new ArrayList<>();
-        LogReporter logReporter = new LogReporter(connectName, connConfig);
+        LogReporter logReporter = new LogReporter(connectorTaskId, connConfig, errorMetricsGroup);
         reporters.add(logReporter);
-
         return reporters;
     }
 }
