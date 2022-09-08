@@ -67,8 +67,6 @@ public class InitSync {
             countDownLatch.await();
         } catch (InterruptedException e) {
             logger.error("init sync wait countDownLatch interrupted");
-        } finally {
-            copyExecutor.shutdown();
         }
     }
 
@@ -76,7 +74,6 @@ public class InitSync {
         interestCollections = getInterestCollection();
         copyThreadCount = Math.min(interestCollections.size(), context.getCopyThread());
         copyExecutor = Executors.newFixedThreadPool(copyThreadCount, new ThreadFactory() {
-
             AtomicInteger threads = new AtomicInteger();
 
             @Override

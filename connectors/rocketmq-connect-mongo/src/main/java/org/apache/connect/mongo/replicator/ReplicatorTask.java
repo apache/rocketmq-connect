@@ -61,7 +61,7 @@ public class ReplicatorTask implements Runnable {
         boolean needDataSync = !userConfigOrRuntimePosition.isValid()
             || userConfigOrRuntimePosition.isInitSync()
             // userConfigOrRuntimePosition.position < firstAvailablePosition maybe lost some operations
-            || userConfigOrRuntimePosition.converBsonTimeStamp().compareTo(firstAvailablePosition) < 0;
+            || userConfigOrRuntimePosition.convertBsonTimeStamp().compareTo(firstAvailablePosition) < 0;
 
         if (needDataSync) {
             recordLastOplogPosition();
@@ -76,7 +76,7 @@ public class ReplicatorTask implements Runnable {
 
         MongoDatabase localDataBase = mongoClient.getDatabase(Constants.MONGO_LOCAL_DATABASE);
         FindIterable<Document> iterable = localDataBase.getCollection(Constants.MONGO_OPLOG_RS).find(
-            Filters.gt("ts", replicaSetConfig.getPosition().converBsonTimeStamp()));
+            Filters.gt("ts", replicaSetConfig.getPosition().convertBsonTimeStamp()));
 
         MongoCursor<Document> cursor = iterable.sort(new Document("$natural", 1))
             .noCursorTimeout(true)

@@ -31,6 +31,25 @@ public class Constants {
     public static final String OBJECT_ID = "o2";
 
     public static final String CREATED = "created";
+
     public static final String PATCH = "patch";
+
+    public static final String DOCUMENT = "document";
+
+    public static final String COLLECTION_NAME = "collectionName";
+
+    public static final String REPLICA_SET_NAME = "replicaSetName";
+
+    public static final String INCREMENT = "increment";
+
+    public static final String INIT_SYNC = "initSync";
+
+    public static String SCHEMA_CREATED_NAME = "mongo_created";
+
+    public static String SCHEMA_OPLOG_NAME = "mongo_oplog";
+
+    public static String MONGO = "MONGO";
+
+    public static final String MAX_TASK = "max.tasks";
 
 }
