@@ -152,12 +152,12 @@ public class ConfigManagementServiceImplTest {
         configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
         configManagementService.start();
 
-        final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
-        connectorKeyValueStoreField.setAccessible(true);
-        connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
-        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
-        taskKeyValueStoreField.setAccessible(true);
-        taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
+        final Field connectorKeyValueStoreField2 = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
+        connectorKeyValueStoreField2.setAccessible(true);
+        connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField2.get(configManagementService);
+        final Field taskKeyValueStoreField2 = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
+        taskKeyValueStoreField2.setAccessible(true);
+        taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField2.get(configManagementService);
 
         final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);
