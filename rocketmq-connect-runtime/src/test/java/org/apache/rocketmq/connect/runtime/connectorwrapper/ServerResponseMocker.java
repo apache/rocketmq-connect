@@ -32,6 +32,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.DataVersion;
@@ -147,12 +149,19 @@ public abstract class ServerResponseMocker {
                     response.setBody(JSON.toJSONBytes(wrapper));
                     break;
                 }
+
                 case RequestCode.GET_ROUTEINFO_BY_TOPIC: {
                     final TopicRouteData topicRouteData = buildTopicRouteData();
                     response.setBody(JSON.toJSONBytes(topicRouteData));
                     break;
                 }
 
+                case RequestCode.GET_CONSUMER_LIST_BY_GROUP: {
+                    GetConsumerListByGroupResponseBody getConsumerListByGroupResponseBody = new GetConsumerListByGroupResponseBody();
+                    getConsumerListByGroupResponseBody.setConsumerIdList(Collections.singletonList("mockConsumer1"));
+                    response.setBody(JSON.toJSONBytes(getConsumerListByGroupResponseBody));
+                    break;
+                }
                 default:
                     break;
             }
