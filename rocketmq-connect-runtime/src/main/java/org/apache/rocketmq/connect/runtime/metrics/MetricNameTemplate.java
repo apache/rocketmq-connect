@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.connect.runtime.metrics;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -24,79 +23,36 @@ import java.util.Set;
 public class MetricNameTemplate {
     private final String name;
     private final String group;
-    private final String description;
     private LinkedHashSet<String> tags;
 
-    /**
-     * Create a new template. Note that the order of the tags will be preserved if the supplied
-     * {@code tagsNames} set has an order.
-     *
-     * @param name the name of the metric; may not be null
-     * @param group the name of the group; may not be null
-     * @param description the description of the metric; may not be null
-     * @param tagsNames the set of metric tag names, which can/should be a set that maintains order; may not be null
-     */
-    public MetricNameTemplate(String name, String group, String description, Set<String> tagsNames) {
+    public MetricNameTemplate(String name, String group, Set<String> tagsNames) {
         this.name = Objects.requireNonNull(name);
         this.group = Objects.requireNonNull(group);
-        this.description = Objects.requireNonNull(description);
         this.tags = new LinkedHashSet<>(Objects.requireNonNull(tagsNames));
     }
 
-    /**
-     * Create a new template. Note that the order of the tags will be preserved.
-     *
-     * @param name the name of the metric; may not be null
-     * @param group the name of the group; may not be null
-     * @param description the description of the metric; may not be null
-     * @param tagsNames the names of the metric tags in the preferred order; none of the tag names should be null
-     */
-    public MetricNameTemplate(String name, String group, String description, String... tagsNames) {
-        this(name, group, description, getTags(tagsNames));
+    public String getName() {
+        return name;
     }
 
-    private static LinkedHashSet<String> getTags(String... keys) {
-        LinkedHashSet<String> tags = new LinkedHashSet<>();
+    public String getGroup() {
+        return group;
+    }
 
-        Collections.addAll(tags, keys);
-
+    public LinkedHashSet<String> getTags() {
         return tags;
     }
 
-    /**
-     * Get the name of the metric.
-     *
-     * @return the metric name; never null
-     */
-    public String name() {
-        return this.name;
+    public void setTags(LinkedHashSet<String> tags) {
+        this.tags = tags;
     }
 
-    /**
-     * Get the name of the group.
-     *
-     * @return the group name; never null
-     */
-    public String group() {
-        return this.group;
-    }
-
-    /**
-     * Get the description of the metric.
-     *
-     * @return the metric description; never null
-     */
-    public String description() {
-        return this.description;
-    }
-
-    /**
-     * Get the set of tag names for the metric.
-     *
-     * @return the ordered set of tag names; never null but possibly empty
-     */
-    public Set<String> tags() {
-        return tags;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetricNameTemplate that = (MetricNameTemplate) o;
+        return Objects.equals(name, that.name) && Objects.equals(group, that.group) && Objects.equals(tags, that.tags);
     }
 
     @Override
@@ -105,18 +61,11 @@ public class MetricNameTemplate {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        MetricNameTemplate other = (MetricNameTemplate) o;
-        return Objects.equals(name, other.name) && Objects.equals(group, other.group) &&
-                Objects.equals(tags, other.tags);
-    }
-
-    @Override
     public String toString() {
-        return String.format("name=%s, group=%s, tags=%s", name, group, tags);
+        return "MetricNameTemplate{" +
+                "name='" + name + '\'' +
+                ", group='" + group + '\'' +
+                ", tags=" + tags +
+                '}';
     }
 }
