@@ -16,35 +16,21 @@
  */
 package org.apache.rocketmq.connect.runtime.metrics.stats;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
 /**
- * rate
+ * measure stat
  */
-public class Rate implements Stat {
-    private final Meter meter;
-    private MetricRegistry registry;
-    private MetricName name;
-    public Rate(MetricRegistry registry, MetricName name){
-        this.registry = registry;
-        this.name = name;
-        this.meter = registry.meter(name.toString());
-    }
+public interface Stat extends AutoCloseable {
 
-    @Override
-    public void record(long value) {
-        this.meter.mark(value);
-    }
 
-    @Override
-    public void record() {
-        this.meter.mark();
-    }
+    /**
+     * record
+     * @param value
+     */
+    void record(long value);
 
-    @Override
-    public void close() throws Exception {
-        this.registry.remove(name.toString());
-    }
+    /**
+     * record
+     */
+    void record();
 }

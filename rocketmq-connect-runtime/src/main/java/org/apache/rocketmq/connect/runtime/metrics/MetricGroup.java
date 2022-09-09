@@ -32,7 +32,7 @@ public class MetricGroup implements AutoCloseable {
     }
 
     public MetricName name(MetricNameTemplate template) {
-        return new MetricName(template.group(), template.name(), tags);
+        return new MetricName(template.getName(), template.getGroup(), tags);
     }
 
     public Sensor sensor(){

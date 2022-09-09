@@ -127,6 +127,7 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param meter the meter
      */
     public void onMeterAdded(String name, Meter meter){
+
     }
 
     public abstract void onMeterAdded(MetricName name, Meter meter);

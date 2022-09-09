@@ -20,9 +20,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
-import java.io.IOException;
-
-public class Min implements MeasureStat {
+public class Min implements Stat {
 
     private final Histogram histogram;
     private MetricRegistry registry;

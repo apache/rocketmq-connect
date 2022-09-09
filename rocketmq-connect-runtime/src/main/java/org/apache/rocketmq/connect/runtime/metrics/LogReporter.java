@@ -1,7 +1,5 @@
 package org.apache.rocketmq.connect.runtime.metrics;
 
-
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
@@ -10,19 +8,16 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * rocketmq exporter
+ * log reporter
  */
-public class RocketMqExporter extends MetricsReporter {
-
-    public RocketMqExporter(MetricRegistry registry) {
+public class LogReporter extends MetricsReporter{
+    /**
+     * @param registry
+     */
+    public LogReporter(MetricRegistry registry) {
         super(registry);
-    }
-
-    public void configure(Map<String, ?> configs){
-
     }
 
     @Override

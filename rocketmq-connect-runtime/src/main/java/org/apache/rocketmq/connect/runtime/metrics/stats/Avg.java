@@ -23,7 +23,7 @@ import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 /**
  * avg
  */
-public class Avg implements MeasureStat {
+public class Avg implements Stat {
 
     private final Histogram histogram;
     private final MetricRegistry registry;

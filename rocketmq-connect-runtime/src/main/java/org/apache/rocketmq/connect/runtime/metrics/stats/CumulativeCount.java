@@ -24,7 +24,7 @@ import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 /**
  * cumulative count
  */
-public class CumulativeCount implements MeasureStat {
+public class CumulativeCount implements Stat {
 
     private final Counter counter;
     private final MetricRegistry registry;

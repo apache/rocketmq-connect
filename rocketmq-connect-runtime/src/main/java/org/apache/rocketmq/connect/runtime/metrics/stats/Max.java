@@ -20,9 +20,7 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
-import java.io.IOException;
-
-public class Max implements MeasureStat {
+public class Max implements Stat {
     private final Histogram histogram;
     private final MetricRegistry registry;
     private final MetricName name;

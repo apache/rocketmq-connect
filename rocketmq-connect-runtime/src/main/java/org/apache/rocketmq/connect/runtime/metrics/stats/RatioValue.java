@@ -16,22 +16,24 @@
  */
 package org.apache.rocketmq.connect.runtime.metrics.stats;
 
+import com.codahale.metrics.RatioGauge;
 
 /**
- * measure stat
+ * ratio gauge
  */
-public interface MeasureStat extends AutoCloseable {
+public class RatioValue extends RatioGauge {
+    private final Value numerator;
+    private final Value denominator;
+    public RatioValue(Value numerator, Value denominator) {
+        this.numerator = numerator;
+        this.denominator = denominator;
+    }
 
-
-    /**
-     * record
-     * @param value
-     */
-    void record(long value);
-
-    /**
-     * record
-     */
-    void record();
-
+    @Override
+    protected Ratio getRatio() {
+        return Ratio.of(
+                numerator.value(),
+                denominator.value()
+        );
+    }
 }
