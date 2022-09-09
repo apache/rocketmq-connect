@@ -19,11 +19,18 @@ package org.apache.rocketmq.connect.redis.connector;
 
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.io.IOException;
 import io.openmessaging.KeyValue;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.Options;
+import org.apache.rocketmq.connect.redis.common.RedisConstants;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
 import org.apache.rocketmq.connect.redis.converter.RedisEntryConverter;
 import org.apache.rocketmq.connect.redis.handler.DefaultRedisEventHandler;
@@ -60,15 +67,26 @@ public class RedisSourceTask extends SourceTask {
     }
 
 
-    @Override public List<ConnectRecord> poll() {
+    @Override
+    public List<ConnectRecord> poll() {
         try {
             KVEntry event = this.eventProcessor.poll();
             if (event == null) {
                 return null;
             }
             event.queueName(Options.REDIS_QEUEUE.name());
-
-            List<ConnectRecord> res = this.kvEntryConverter.kVEntryToDataEntries(event);
+            final OffsetStorageReader reader = this.sourceTaskContext.offsetStorageReader();
+            final RecordOffset recordOffset = reader.readOffset(buildRecordPartition(event.getPartition()));
+            if (recordOffset != null) {
+                final Map<String, ?> offset = recordOffset.getOffset();
+                final Object obj = offset.get(RedisConstants.OFFSET);
+                if (obj != null) {
+                    if (event.getOffset() <= Long.valueOf(obj.toString())) {
+                        return new ArrayList<>();
+                    }
+                }
+            }
+            List<ConnectRecord> res = this.kvEntryConverter.kVEntryToConnectRecord(event);
             LOGGER.info("send data entries: {}", res);
             return res;
         } catch (InterruptedException e) {
@@ -124,6 +142,13 @@ public class RedisSourceTask extends SourceTask {
         @Override public void onStop(RedisEventProcessor eventProcessor) {
             stop();
         }
+    }
+
+    private RecordPartition buildRecordPartition(String partition) {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put("partition", partition);
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
     }
 
 }

@@ -30,12 +30,16 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import static com.moilioncircle.redis.replicator.Constants.RDB_TYPE_STRING;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RedisSourceTaskTest {
     private KeyValue keyValue;
     private RedisSourceTask task;
@@ -45,6 +49,7 @@ public class RedisSourceTaskTest {
         try {
             initKeyValue();
             this.task = new RedisSourceTask();
+            this.task.init(new TestSourceTaskContext());
             this.task.start(this.keyValue);
         } catch (JedisConnectionException e) {
 
@@ -54,7 +59,7 @@ public class RedisSourceTaskTest {
     @Test
     public void testTask() throws Exception {
         if (this.task != null) {
-            RedisEvent redisEvent = getRedisEvent();
+            RedisEvent redisEvent = this.getRedisEvent();
             this.task.getEventProcessor().commit(redisEvent);
             Collection<ConnectRecord> col = this.task.poll();
             Assert.assertNotNull(col);

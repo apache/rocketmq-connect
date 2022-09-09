@@ -15,14 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.redis.converter;
+package org.apache.rocketmq.redis.test.connector;
 
-import io.openmessaging.connector.api.data.ConnectRecord;
-import java.util.List;
-import org.apache.rocketmq.connect.redis.pojo.KVEntry;
+import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
+import io.openmessaging.internal.DefaultKeyValue;
 
-public interface KVEntryConverter {
+public class TestSourceTaskContext implements SourceTaskContext {
+    @Override public OffsetStorageReader offsetStorageReader() {
+        return new TestPositionStorageReader();
+    }
 
-    List<ConnectRecord> kVEntryToConnectRecord(KVEntry kvEntry);
+    @Override public String getConnectorName() {
+        return null;
+    }
 
+    @Override public String getTaskName() {
+        return null;
+    }
+
+    @Override public KeyValue configs() {
+        return new DefaultKeyValue();
+    }
 }

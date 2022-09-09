@@ -25,7 +25,6 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
-import io.openmessaging.connector.api.data.Struct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,27 +36,30 @@ import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 public class RedisEntryConverter implements KVEntryConverter {
     private final int maxValueSize = 500;
 
-    @Override public List<ConnectRecord> kVEntryToDataEntries(KVEntry kvEntry) {
+    @Override
+    public List<ConnectRecord> kVEntryToConnectRecord(KVEntry kvEntry) {
         String partition = kvEntry.getPartition();
         if (partition == null) {
             throw new IllegalStateException("partition info error.");
         }
+
         List<ConnectRecord> res = new ArrayList<>();
         List<Object> values = splitValue(kvEntry.getValueType(), kvEntry.getValue(), this.maxValueSize);
         for (int i = 0; i < values.size(); i++) {
-            Schema schema = SchemaBuilder.struct().name(Options.REDIS_QEUEUE.name()).build();
-            final List<Field> fields = buildFields();
-            schema.setFields(fields);
-
+            Schema keySchema = SchemaBuilder.string().name(Options.REDIS_KEY.name()).build();
+            keySchema.setFields(buildFields());
             final Object data = values.get(i);
             if (data == null  || data.toString().equals("")) {
                 continue;
             }
-            res.add(new ConnectRecord(buildRecordPartition(partition),
+            res.add(new ConnectRecord(
+                buildRecordPartition(partition),
                 buildRecordOffset(kvEntry.getOffset()),
                 System.currentTimeMillis(),
-                schema,
-                buildPayLoad(fields, kvEntry, schema)));
+                keySchema,
+                kvEntry.getKey(),
+                null,
+                JSON.toJSONString(kvEntry.getValue())));
         }
         return res;
     }
@@ -85,16 +87,6 @@ public class RedisEntryConverter implements KVEntryConverter {
         fields.add(new Field(3, Options.REDIS_PARAMS.name(), stringSchema));
         return fields;
     }
-
-    private Struct buildPayLoad(List<Field> fields, KVEntry kvEntry, Schema schema) {
-        Struct payLoad = new Struct(schema);
-        payLoad.put(fields.get(0), kvEntry.getCommand());
-        payLoad.put(fields.get(1), kvEntry.getKey());
-        payLoad.put(fields.get(2), JSON.toJSONString(kvEntry.getValue()));
-        payLoad.put(fields.get(3), JSON.toJSONString(kvEntry.getParams()));
-        return payLoad;
-    }
-
 
     private List<Object> splitValue(FieldType valueType, Object value, Integer maxValueSize) {
         List<Object> res = new ArrayList<>();

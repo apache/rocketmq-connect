@@ -1,11 +1,9 @@
 package org.apache.rocketmq.redis.test.pojo;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
-import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import io.openmessaging.connector.api.data.FieldType;
 import org.apache.rocketmq.connect.redis.common.Options;
@@ -17,6 +15,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class KVEntryTest {
+
 
     @Test
     public void testConstruct(){
@@ -46,7 +45,7 @@ public class KVEntryTest {
         Assert.assertNotNull(entry.toString());
 
 
-        List<ConnectRecord> entries = getConverter().kVEntryToDataEntries(entry);
+        List<ConnectRecord> entries = getConverter().kVEntryToConnectRecord(entry);
         Assert.assertNotNull(entries);
     }
 

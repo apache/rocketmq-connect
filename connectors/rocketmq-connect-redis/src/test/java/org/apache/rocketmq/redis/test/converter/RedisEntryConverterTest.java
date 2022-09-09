@@ -38,7 +38,7 @@ public class RedisEntryConverterTest {
     public void test(){
         KVEntry entry = getKVEntry();
         KVEntryConverter converter = new RedisEntryConverter();
-        Collection<ConnectRecord> res = converter.kVEntryToDataEntries(entry);
+        Collection<ConnectRecord> res = converter.kVEntryToConnectRecord(entry);
         Assert.assertNotNull(res);
         Assert.assertEquals(1, res.size());
     }
@@ -49,15 +49,15 @@ public class RedisEntryConverterTest {
 
 
         KVEntry entry = getArrayKVEntry(999);
-        Collection res = converter.kVEntryToDataEntries(entry);
+        Collection res = converter.kVEntryToConnectRecord(entry);
         Assert.assertEquals(2, res.size());
 
         KVEntry entry1 = getArrayKVEntry(1001);
-        Collection res1 = converter.kVEntryToDataEntries(entry1);
+        Collection res1 = converter.kVEntryToConnectRecord(entry1);
         Assert.assertEquals(3, res1.size());
 
         KVEntry entry2 = getArrayKVEntry(1000);
-        Collection res2 = converter.kVEntryToDataEntries(entry2);
+        Collection res2 = converter.kVEntryToConnectRecord(entry2);
         Assert.assertEquals(2, res2.size());
     }
 
@@ -81,7 +81,7 @@ public class RedisEntryConverterTest {
         }
         entry.value(values);
 
-        List<ConnectRecord> entryList = converter.kVEntryToDataEntries(entry);
+        List<ConnectRecord> entryList = converter.kVEntryToConnectRecord(entry);
         Assert.assertNotNull(entryList);
         Assert.assertEquals(21, entryList.size());
     }
