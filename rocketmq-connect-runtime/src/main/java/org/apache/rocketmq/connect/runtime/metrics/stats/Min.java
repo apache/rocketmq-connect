@@ -37,11 +37,6 @@ public class Min implements Stat {
     }
 
     @Override
-    public void record() {
-        histogram.update(1L);
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

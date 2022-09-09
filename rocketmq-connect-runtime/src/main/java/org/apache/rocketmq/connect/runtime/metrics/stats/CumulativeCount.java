@@ -41,11 +41,6 @@ public class CumulativeCount implements Stat {
     }
 
     @Override
-    public void record() {
-        counter.inc();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

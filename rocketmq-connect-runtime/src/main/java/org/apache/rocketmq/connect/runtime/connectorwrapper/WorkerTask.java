@@ -150,6 +150,7 @@ public abstract class WorkerTask implements Runnable {
 
     public void doClose() {
         try {
+            taskMetricsGroup.close();
             state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
             close();
             state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);

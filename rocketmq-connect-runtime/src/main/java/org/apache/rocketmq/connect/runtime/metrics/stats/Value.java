@@ -31,11 +31,6 @@ public class Value implements Stat, Measure {
     }
 
     @Override
-    public void record() {
-        this.value = 1;
-    }
-
-    @Override
     public void close() throws Exception {
         registry.remove(name.toString());
     }

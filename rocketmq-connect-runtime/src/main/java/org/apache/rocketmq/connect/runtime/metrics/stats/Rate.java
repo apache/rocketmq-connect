@@ -39,11 +39,6 @@ public class Rate implements Stat {
     }
 
     @Override
-    public void record() {
-        this.meter.mark();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

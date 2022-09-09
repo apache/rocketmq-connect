@@ -16,24 +16,43 @@
  */
 package org.apache.rocketmq.connect.runtime.metrics.stats;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.RatioGauge;
+import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
 /**
  * ratio gauge
  */
-public class RatioValue extends RatioGauge {
-    private final Value numerator;
-    private final Value denominator;
-    public RatioValue(Value numerator, Value denominator) {
-        this.numerator = numerator;
-        this.denominator = denominator;
+public class RatioValue implements Stat, Measure{
+    private MetricRegistry registry;
+    private MetricName name;
+    private RatioGauge ratioGauge;
+    public RatioValue(MetricRegistry registry, MetricName name,  Value numerator, Value denominator) {
+         this.registry = registry;
+         this.name = name;
+         this.ratioGauge = registry.register(name.toString(), new RatioGauge() {
+            @Override
+            protected Ratio getRatio() {
+                return Ratio.of(
+                        numerator.value(),
+                        denominator.value()
+                );
+            }
+        });
     }
 
     @Override
-    protected Ratio getRatio() {
-        return Ratio.of(
-                numerator.value(),
-                denominator.value()
-        );
+    public void record(long value) {
+        // NO-op
+    }
+
+    @Override
+    public void close() throws Exception {
+        this.registry.remove(name.toString());
+    }
+
+    @Override
+    public double value() {
+        return this.ratioGauge.getValue();
     }
 }

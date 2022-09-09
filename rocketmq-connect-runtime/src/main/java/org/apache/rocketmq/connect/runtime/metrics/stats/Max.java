@@ -35,10 +35,6 @@ public class Max implements Stat {
         histogram.update(value);
     }
 
-    @Override
-    public void record() {
-        histogram.update(1L);
-    }
 
     @Override
     public void close() throws Exception {

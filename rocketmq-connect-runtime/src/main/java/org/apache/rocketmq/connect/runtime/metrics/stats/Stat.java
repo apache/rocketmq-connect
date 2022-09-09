@@ -28,9 +28,4 @@ public interface Stat extends AutoCloseable {
      * @param value
      */
     void record(long value);
-
-    /**
-     * record
-     */
-    void record();
 }
