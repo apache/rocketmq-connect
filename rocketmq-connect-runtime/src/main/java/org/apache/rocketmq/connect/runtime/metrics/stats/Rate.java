@@ -46,11 +46,6 @@ public class Rate implements MeasureStat {
     }
 
     @Override
-    public double measure() {
-        return this.meter.getMeanRate();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

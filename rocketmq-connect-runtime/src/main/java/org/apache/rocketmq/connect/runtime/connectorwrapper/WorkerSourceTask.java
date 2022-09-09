@@ -158,7 +158,7 @@ public class WorkerSourceTask extends WorkerTask {
                             RetryWithToleranceOperator retryWithToleranceOperator,
                             WrapperStatusListener statusListener,
                             ConnectMetrics connectMetrics) {
-        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener, connectMetrics);
 
         this.sourceTask = sourceTask;
         this.offsetStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
@@ -219,7 +219,7 @@ public class WorkerSourceTask extends WorkerTask {
         int processed = 0;
 
 
-        final SourceRecordWriteCounter counter = new SourceRecordWriteCounter(toSendRecord.size(), sourceTaskMetricsGroup);
+        final CalcSourceRecordWrite counter = new CalcSourceRecordWrite(toSendRecord.size(), sourceTaskMetricsGroup);
         for (ConnectRecord preTransformRecord : toSendRecord) {
             retryWithToleranceOperator.sourceRecord(preTransformRecord);
             ConnectRecord record = transformChain.doTransforms(preTransformRecord);
@@ -227,8 +227,7 @@ public class WorkerSourceTask extends WorkerTask {
             Message sourceMessage = convertTransformedRecord(topic, record);
             if (sourceMessage == null || retryWithToleranceOperator.failed()) {
                 // commit record
-//                recordFailed(preTransformRecord);
-
+                recordFailed(preTransformRecord);
                 counter.skipRecord();
                 continue;
             }
@@ -599,6 +598,7 @@ public class WorkerSourceTask extends WorkerTask {
         if (!positionStorageWriter.beginFlush()) {
             // There was nothing in the offsets to process, but we still mark a successful offset commit.
             long durationMillis = System.currentTimeMillis() - started;
+            recordCommitSuccess(durationMillis);
             log.debug("{} Finished offset commitOffsets successfully in {} ms",
                     this, durationMillis);
             commitSourceTask();
@@ -617,17 +617,21 @@ public class WorkerSourceTask extends WorkerTask {
         } catch (InterruptedException e) {
             log.warn("{} Flush of offsets interrupted, cancelling", this);
             positionStorageWriter.cancelFlush();
+            recordCommitFailure(System.currentTimeMillis()- started);
             return false;
         } catch (ExecutionException e) {
             log.error("{} Flush of offsets threw an unexpected exception: ", this, e);
             positionStorageWriter.cancelFlush();
+            recordCommitFailure(System.currentTimeMillis()- started);
             return false;
         } catch (TimeoutException e) {
             log.error("{} Timed out waiting to flush offsets to storage; will try again on next flush interval with latest offsets", this);
             positionStorageWriter.cancelFlush();
+            recordCommitFailure(System.currentTimeMillis()- started);
             return false;
         }
         long durationMillis = System.currentTimeMillis() - started;
+        recordCommitSuccess(durationMillis);
         log.debug("{} Finished commitOffsets successfully in {} ms",
                 this, durationMillis);
         commitSourceTask();
@@ -645,21 +649,7 @@ public class WorkerSourceTask extends WorkerTask {
 
     protected void recordPollReturned(int numRecordsInBatch, long millTime) {
         sourceTaskMetricsGroup.recordPoll(numRecordsInBatch, millTime);
-//        connectStatsManager.incSourceRecordPollTotalNums(numRecordsInBatch);
-//        connectStatsManager.incSourceRecordPollNums(id().toString() + "", numRecordsInBatch);
     }
-
-    private void inWriteRecordFail() {
-        connectStatsManager.incSourceRecordWriteTotalFailNums();
-        connectStatsManager.incSourceRecordWriteFailNums(id().toString());
-    }
-
-    private void incWriteRecordStat() {
-
-        connectStatsManager.incSourceRecordWriteTotalNums();
-        connectStatsManager.incSourceRecordWriteNums(id().toString());
-    }
-
 
     static class SourceTaskMetricsGroup implements AutoCloseable {
         private final Sensor sourceRecordPoll;
@@ -674,7 +664,6 @@ public class WorkerSourceTask extends WorkerTask {
             metricGroup = connectMetrics.group(
                     templates.connectorTagName(), id.connector(),
                     templates.taskTagName(), Integer.toString(id.task()));
-            // remove any previously created metrics in this group to prevent collisions.
 
             sourceRecordPoll = metricGroup.sensor();
             sourceRecordPoll.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollRate)));
@@ -713,12 +702,12 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
-    static class SourceRecordWriteCounter {
+    static class CalcSourceRecordWrite {
         private final SourceTaskMetricsGroup metricsGroup;
         private final int batchSize;
         private boolean completed = false;
         private int counter;
-        public SourceRecordWriteCounter(int batchSize, SourceTaskMetricsGroup metricsGroup) {
+        public CalcSourceRecordWrite(int batchSize, SourceTaskMetricsGroup metricsGroup) {
             assert batchSize > 0;
             assert metricsGroup != null;
             this.batchSize = batchSize;

@@ -43,11 +43,6 @@ public class Max implements MeasureStat {
     }
 
     @Override
-    public double measure() {
-        return histogram.getSnapshot().getMax();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

@@ -45,11 +45,6 @@ public class Avg implements MeasureStat {
     }
 
     @Override
-    public double measure() {
-        return histogram.getSnapshot().getMean();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

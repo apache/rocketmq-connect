@@ -46,11 +46,6 @@ public class CumulativeCount implements MeasureStat {
     }
 
     @Override
-    public double measure() {
-        return counter.getCount();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

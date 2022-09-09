@@ -44,11 +44,6 @@ public class Min implements MeasureStat {
     }
 
     @Override
-    public double measure() {
-        return histogram.getSnapshot().getMin();
-    }
-
-    @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }

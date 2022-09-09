@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.connect.runtime.metrics.stats;
 
-import java.io.Closeable;
 
 /**
  * measure stat
@@ -34,12 +33,5 @@ public interface MeasureStat extends AutoCloseable {
      * record
      */
     void record();
-
-
-    /**
-     * Return measurement results
-     * @return
-     */
-    double measure();
 
 }
