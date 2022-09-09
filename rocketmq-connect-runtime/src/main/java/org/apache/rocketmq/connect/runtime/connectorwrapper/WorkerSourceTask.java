@@ -191,11 +191,14 @@ public class WorkerSourceTask extends WorkerTask {
 
     @Override
     public void close() {
+        sourceTask.stop();
         producer.shutdown();
         stopRequestedLatch.countDown();
+        super.removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(positionStorageWriter, "position storage writer");
+        Utils.closeQuietly(sourceTaskMetricsGroup,"remove metrics");
     }
 
     protected void updateCommittableOffsets() {

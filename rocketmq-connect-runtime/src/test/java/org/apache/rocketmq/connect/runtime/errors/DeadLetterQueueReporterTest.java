@@ -27,6 +27,8 @@ import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
@@ -88,7 +90,7 @@ public class DeadLetterQueueReporterTest {
         properties.put(SinkConnectorConfig.DLQ_TOPIC_NAME_CONFIG, "DEAD_LETTER_TOPIC");
         sinkConfig.setProperties(properties);
         WorkerConfig workerConfig = new WorkerConfig();
-        final DeadLetterQueueReporter deadLetterQueueReporter = DeadLetterQueueReporter.build("fileSinkConnector", sinkConfig, workerConfig);
+        final DeadLetterQueueReporter deadLetterQueueReporter = DeadLetterQueueReporter.build(new ConnectorTaskId("fileSinkConnector", 1), sinkConfig, workerConfig, new ErrorMetricsGroup(new ConnectorTaskId("fileSinkConnector", 1), new ConnectMetrics(new WorkerConfig())));
         return deadLetterQueueReporter;
     }
 }

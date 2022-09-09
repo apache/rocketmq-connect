@@ -14,31 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.runtime.metrics;
 
+import java.util.Map;
 
 /**
- * measure stat
+ * auto configuration
  */
-public interface Stat extends AutoCloseable {
-
-
+public interface AutoConfiguration {
     /**
-     * record
-     * @param value
+     * configs
+     * @param configs
      */
-    void record(long value);
-
-    /**
-     * type
-     * @return
-     */
-    default String type(){
-        return "none";
-    }
-    enum HistogramType {
-        avg,
-        Max,
-        Min,
-    }
+    void config(Map<String, String> configs);
 }

@@ -20,12 +20,16 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
-public class Min implements Stat {
+/**
+ * min
+ */
+public class Min extends AbstractHistogram {
 
     private final Histogram histogram;
     private MetricRegistry registry;
     private MetricName name;
     public Min(MetricRegistry registry, MetricName name){
+        super(registry, name);
         this.name = name;
         this.registry = registry;
         this.histogram = registry.histogram(name.toString());
@@ -39,6 +43,11 @@ public class Min implements Stat {
     @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
+    }
+
+    @Override
+    public String type(){
+        return HistogramType.Min.name();
     }
 }
 

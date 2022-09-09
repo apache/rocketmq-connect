@@ -123,6 +123,10 @@ public abstract class WorkerTask implements Runnable {
         execute();
     }
 
+    public void removeMetrics(){
+        taskMetricsGroup.close();
+    }
+
     /**
      * get state
      *

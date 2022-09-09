@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUNTIME;
 
@@ -30,6 +32,8 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
  */
 public class WorkerConfig {
     private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
+
+    public static final String METRIC_CLASS = "metrics.reporter";
     public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
     public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
     private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
@@ -207,6 +211,9 @@ public class WorkerConfig {
      * offsetCommitIntervalMsConfig = 60000L
      */
     private long offsetCommitIntervalMsConfig = 60000L;
+
+    private String metricsConfigPath;
+    private Map<String,Map<String, String>> metricsConfig = new HashMap<>();
 
 
     public String getWorkerId() {
@@ -510,6 +517,22 @@ public class WorkerConfig {
         this.statePersistInterval = statePersistInterval;
     }
 
+    public String getMetricsConfigPath() {
+        return metricsConfigPath;
+    }
+
+    public void setMetricsConfigPath(String metricsConfigPath) {
+        this.metricsConfigPath = metricsConfigPath;
+    }
+
+    public Map<String, Map<String, String>> getMetricsConfig() {
+        return metricsConfig;
+    }
+
+    public void setMetricsConfig(Map<String, Map<String, String>> metricsConfig) {
+        this.metricsConfig = metricsConfig;
+    }
+
     @Override
     public String toString() {
         return "WorkerConfig{" +
@@ -550,6 +573,8 @@ public class WorkerConfig {
                 ", maxStopTimeoutMills=" + maxStopTimeoutMills +
                 ", offsetCommitTimeoutMsConfig=" + offsetCommitTimeoutMsConfig +
                 ", offsetCommitIntervalMsConfig=" + offsetCommitIntervalMsConfig +
+                ", metricsConfigPath='" + metricsConfigPath + '\'' +
+                ", metricsConfig=" + metricsConfig +
                 '}';
     }
 }

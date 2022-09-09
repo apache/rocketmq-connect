@@ -14,31 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
-
+package org.apache.rocketmq.connect.runtime.metrics;
 
 /**
- * measure stat
+ * astrict reporter
  */
-public interface Stat extends AutoCloseable {
-
-
-    /**
-     * record
-     * @param value
-     */
-    void record(long value);
+public interface AstrictReporter extends AutoCloseable {
 
     /**
-     * type
-     * @return
+     * start exporter
      */
-    default String type(){
-        return "none";
-    }
-    enum HistogramType {
-        avg,
-        Max,
-        Min,
-    }
+    void start();
 }

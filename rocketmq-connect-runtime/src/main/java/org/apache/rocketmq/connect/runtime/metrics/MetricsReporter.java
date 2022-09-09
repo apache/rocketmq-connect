@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.connect.runtime.metrics;
 
 import com.codahale.metrics.Counter;
@@ -26,34 +25,15 @@ import com.codahale.metrics.MetricRegistryListener;
 import com.codahale.metrics.Reporter;
 import com.codahale.metrics.Timer;
 
-import java.io.Closeable;
-import java.util.Map;
-
 /**
  * rocketmq exporter
  */
-public abstract class MetricsReporter implements Reporter, MetricRegistryListener, Closeable {
+public abstract class MetricsReporter implements Reporter, MetricRegistryListener, AutoConfiguration, AstrictReporter {
     private final MetricRegistry registry;
-    /**
-     * @param registry
-     */
-    public MetricsReporter(MetricRegistry registry) {
+    public MetricsReporter(MetricRegistry registry){
         this.registry = registry;
-    }
-
-    public void start(){
         registry.addListener(this);
     }
-
-    /**
-     * reporter config
-     * @param configs
-     */
-    public void configure(Map<String, ?> configs){
-
-    }
-
-
 
     /**
      * Called when a {@link Gauge} is added to the registry.

@@ -20,11 +20,12 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
-public class Max implements Stat {
+public class Max extends AbstractHistogram {
     private final Histogram histogram;
     private final MetricRegistry registry;
     private final MetricName name;
     public Max(MetricRegistry registry, MetricName name){
+        super(registry, name);
         this.registry = registry;
         this.name = name;
         this.histogram = registry.histogram(name.toString());
@@ -39,6 +40,11 @@ public class Max implements Stat {
     @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
+    }
+
+    @Override
+    public String type(){
+        return HistogramType.Max.name();
     }
 }
 

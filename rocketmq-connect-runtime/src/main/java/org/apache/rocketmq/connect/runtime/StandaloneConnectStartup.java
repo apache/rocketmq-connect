@@ -45,7 +45,9 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -106,6 +108,25 @@ public class StandaloneConnectStartup {
                     FileAndPropertyUtil.properties2Object(properties, config);
                     in.close();
                 }
+            }
+
+            if (StringUtils.isNotEmpty(config.getMetricsConfigPath())) {
+                String file = config.getMetricsConfigPath();
+                InputStream in = new BufferedInputStream(new FileInputStream(file));
+                properties = new Properties();
+                properties.load(in);
+                Map<String, String> metricsConfig = new ConcurrentHashMap<>();
+                if (properties.contains(WorkerConfig.METRIC_CLASS)){
+                    throw new IllegalArgumentException("[metrics.reporter] is empty");
+                }
+                for (Map.Entry<Object, Object> entry: properties.entrySet()) {
+                    if (entry.getKey().equals(WorkerConfig.METRIC_CLASS)){
+                        continue;
+                    }
+                    metricsConfig.put(entry.getKey().toString(), entry.getValue().toString());
+                }
+                config.getMetricsConfig().put(properties.getProperty(WorkerConfig.METRIC_CLASS), metricsConfig);
+                in.close();
             }
 
             if (null == config.getConnectHome()) {

@@ -39,11 +39,18 @@ public class MetricUtils {
      * @return
      */
     public static String metricNameToString(MetricName name) {
+        if (StringUtils.isEmpty(name.getType())) {
+            name.setType("none");
+        }
         StringBuilder sb = new StringBuilder(rocketmq_connect)
-                .append(name.group())
+                .append(name.getGroup())
                 .append(split_semicolon)
-                .append(name.name());
-        for (Map.Entry<String, String> entry : name.tags().entrySet()) {
+                .append(name.getName())
+                .append(split_semicolon)
+                .append(name.getType());
+
+
+        for (Map.Entry<String, String> entry : name.getTags().entrySet()) {
             sb.append(split_semicolon)
                     .append(entry.getKey())
                     .append(split_kv)
@@ -69,7 +76,8 @@ public class MetricUtils {
         return new MetricName(
                 splits[0],
                 splits[1],
-                getTags(Arrays.copyOfRange(splits, 2,splits.length))
+                splits[2],
+                getTags(Arrays.copyOfRange(splits, 3,splits.length))
         );
     }
 

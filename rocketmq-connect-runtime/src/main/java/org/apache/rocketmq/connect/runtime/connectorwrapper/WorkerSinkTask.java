@@ -468,6 +468,7 @@ public class WorkerSinkTask extends WorkerTask {
         sinkTask.stop();
         consumer.shutdown();
         stopPullMsgLatch.countDown();
+        super.removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
     }
