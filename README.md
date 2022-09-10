@@ -474,7 +474,7 @@ private static class MD5Hash implements HashFunction {
 Main Class配置:
 >org.apache.rocketmq.connect.runtime.StandaloneConnectStartup
 
-![img_2.png](img_2.png)
+![img_2.png](https://s1.ax1x.com/2022/09/10/vLoOMR.png)
 
 Program arguments配置
 
