@@ -137,7 +137,6 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.properties = properties;
     }
 
-
     /**
      * Gets all original settings with the given prefix.
      */
@@ -147,6 +146,7 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
 
     /**
      * Gets all original settings with the given prefix.
+     *
      * @param prefix the prefix to use as a filter
      * @param strip strip the prefix before adding to the output if set true
      * @return a Map containing the settings with the prefix
@@ -181,7 +181,7 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.epoch = epoch;
     }
 
-    public ConnectKeyValue nextGeneration(){
+    public ConnectKeyValue nextGeneration() {
         this.setEpoch(System.currentTimeMillis());
         return this;
     }
@@ -200,7 +200,6 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         return properties.hashCode();
     }
 
-
     @Override
     public Object clone() {
         try {
@@ -210,15 +209,11 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         }
     }
 
-
     @Override
     public String toString() {
         return "ConnectKeyValue{" +
             "properties=" + properties +
             '}';
     }
-
-
-
 
 }

@@ -59,7 +59,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
 
-
     @Override
     public void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs) {
         int maxTask = configs.getInt(ConnectorConfig.MAX_TASK, ConnectorConfig.TASKS_MAX_DEFAULT);
@@ -86,11 +85,11 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             newKeyValue.put(ConnectorConfig.TASK_CLASS, connector.taskClass().getName());
 
             // source topic
-            if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)){
+            if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)) {
                 newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
             }
             // sink consume topic
-            if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)){
+            if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)) {
                 newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
             }
 
@@ -108,7 +107,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     protected abstract void putTaskConfigs(String connectorName, List<ConnectKeyValue> configs);
 
-
     @NotNull
     protected Connector loadConnector(ConnectKeyValue configs) {
         String connectorClass = configs.getString(ConnectorConfig.CONNECTOR_CLASS);
@@ -117,7 +115,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         connector.start(configs);
         return connector;
     }
-
 
     @Override
     public ClusterConfigState snapshot() {

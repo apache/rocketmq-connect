@@ -77,11 +77,11 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     private Serde valueSerde;
 
     public BrokerBasedLog(WorkerConfig connectConfig,
-                          String topicName,
-                          String workId,
-                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-                          Serde keySerde,
-                          Serde valueSerde) {
+        String topicName,
+        String workId,
+        DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+        Serde keySerde,
+        Serde valueSerde) {
 
         this.topicName = topicName;
         this.keySerde = keySerde;
@@ -127,7 +127,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     @Override
     public void send(K key, V value) {
         try {
-            Map.Entry<byte[],byte[]> encode = encode(key, value);
+            Map.Entry<byte[], byte[]> encode = encode(key, value);
             byte[] body = encode.getValue();
             if (body.length > MAX_MESSAGE_SIZE) {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
@@ -161,7 +161,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     @Override
     public void send(K key, V value, Callback callback) {
         try {
-            Map.Entry<byte[],byte[]> encode = encode(key, value);
+            Map.Entry<byte[], byte[]> encode = encode(key, value);
             byte[] body = encode.getValue();
             if (body.length > MAX_MESSAGE_SIZE) {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
@@ -174,6 +174,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                     callback.onCompletion(null, value);
                 }
+
                 @Override public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
@@ -186,19 +187,20 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         }
     }
 
-
-    private Map.Entry<byte[],byte[]> encode(K key, V value) {
+    private Map.Entry<byte[], byte[]> encode(K key, V value) {
         byte[] keySer = keySerde.serializer().serialize(topicName, key);
-        byte[] valueSer = valueSerde.serializer().serialize(topicName,value);
-        return new Map.Entry<byte[],byte[]>(){
+        byte[] valueSer = valueSerde.serializer().serialize(topicName, value);
+        return new Map.Entry<byte[], byte[]>() {
             @Override
             public byte[] getKey() {
                 return keySer;
             }
+
             @Override
             public byte[] getValue() {
                 return valueSer;
             }
+
             @Override
             public byte[] setValue(byte[] value) {
                 throw new UnsupportedOperationException();
@@ -207,17 +209,19 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     }
 
     private Map.Entry<K, V> decode(byte[] key, byte[] value) {
-        K deKey = (K)keySerde.deserializer().deserialize(topicName, key);
-        V deValue = (V)valueSerde.deserializer().deserialize(topicName, value);
-        return new Map.Entry<K, V>(){
+        K deKey = (K) keySerde.deserializer().deserialize(topicName, key);
+        V deValue = (V) valueSerde.deserializer().deserialize(topicName, value);
+        return new Map.Entry<K, V>() {
             @Override
             public K getKey() {
                 return deKey;
             }
+
             @Override
             public V getValue() {
                 return deValue;
             }
+
             @Override
             public V setValue(V value) {
                 throw new UnsupportedOperationException();
@@ -225,15 +229,15 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         };
     }
 
-
     class MessageListenerImpl implements MessageListenerConcurrently {
         @Override
-        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList, ConsumeConcurrentlyContext context) {
+        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList,
+            ConsumeConcurrentlyContext context) {
             for (MessageExt messageExt : rmqMsgList) {
                 log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
                 try {
                     String key = messageExt.getKeys();
-                    Map.Entry<K,V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
+                    Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
                     dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
                 } catch (Exception e) {
                     log.error("Decode message data error. message: {}, error info: {}", messageExt, e);
