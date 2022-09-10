@@ -16,35 +16,31 @@
  */
 package org.apache.rocketmq.connect.runtime.serialization;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import io.openmessaging.connector.api.errors.ConnectException;
+import java.io.Closeable;
+import java.util.Map;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
 /**
- * json serializer
+ * serializer and deserializer wrapper
+ * @param <T>
  */
-public class JsonSerializer<T> implements Serializer<T> {
+public interface Serde<T> extends Closeable {
 
 
     /**
-     * Convert {@code data} into a byte array.
-     *
-     * @param topic topic associated with data
-     * @param data  typed data
-     * @return serialized bytes
+     * configs in key/value pairs
+     * @param configs
      */
-    @Override
-    public byte[] serialize(String topic, T data) {
-        if (Objects.isNull(data)) {
-            return null;
-        }
-        try {
-            return JSON.toJSONString(data, SerializerFeature.DisableCircularReferenceDetect,  SerializerFeature.WriteMapNullValue).getBytes(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new ConnectException("Error serializing JSON message", e);
-        }
+    default void configure(Map<String, ?> configs) {
+        // intentionally left blank
     }
+
+    @Override
+    default void close() {
+        // intentionally left blank
+    }
+
+    Serializer<T> serializer();
+
+    Deserializer<T> deserializer();
 }

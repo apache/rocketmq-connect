@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
@@ -69,7 +70,7 @@ public class PositionStorageWriterTest {
         connectConfig.setNamesrvAddr("localhost:9876");
 
         positionManagementService = new PositionManagementServiceImpl();
-        positionManagementService.initialize(connectConfig);
+        positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
         positionStorageWriter = new PositionStorageWriter("testNameSpace", positionManagementService);
     }

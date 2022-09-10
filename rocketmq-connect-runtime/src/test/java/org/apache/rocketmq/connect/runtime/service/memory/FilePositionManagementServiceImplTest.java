@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.assertj.core.api.Assertions;
@@ -39,7 +40,7 @@ public class FilePositionManagementServiceImplTest {
 
     @Before
     public void before() {
-        filePositionManagementService.initialize(workerConfig);
+        filePositionManagementService.initialize(workerConfig, new JsonConverter(),new JsonConverter());
         filePositionManagementService.start();
     }
 

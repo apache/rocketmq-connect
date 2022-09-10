@@ -80,6 +80,19 @@ public class Utils {
 
 
     /**
+     * new instance
+     * @param klass
+     * @param base
+     * @return
+     * @param <T>
+     * @throws ClassNotFoundException
+     */
+    public static <T> T newInstance(String klass, Class<T> base) throws ClassNotFoundException {
+        return Utils.newInstance(loadClass(klass, base));
+    }
+
+
+    /**
      * Create a string representation of an array joined by the given separator
      *
      * @param strs      The array of items

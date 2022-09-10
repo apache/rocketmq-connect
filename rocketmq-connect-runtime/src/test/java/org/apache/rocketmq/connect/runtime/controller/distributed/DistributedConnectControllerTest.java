@@ -26,6 +26,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
@@ -57,30 +58,28 @@ public class DistributedConnectControllerTest {
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
 
+    private StateManagementService stateManagementService = new StateManagementServiceImpl();
+
     private WorkerConfig connectConfig = new WorkerConfig();
 
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
 
-    private StateManagementService stateManagementService;
-
-    private PluginClassLoader pluginClassLoader;
-
     @Before
-    public void before() throws InterruptedException, MalformedURLException {
+    public void before() throws InterruptedException {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
-
-        URL url = new URL("file://src/test/java/org/apache/rocketmq/connect/runtime");
-        URL[] urls = new URL[]{};
-        pluginClassLoader = new PluginClassLoader(url, urls);
-        Thread.currentThread().setContextClassLoader(pluginClassLoader);
         connectConfig.setNamesrvAddr("127.0.0.1:9876");
         clusterManagementService.initialize(connectConfig);
-        stateManagementService = new StateManagementServiceImpl();
-        stateManagementService.initialize(connectConfig);
-        stateManagementService.start();
+        distributedConnectController = new DistributedConnectController(
+                plugin,
+                distributedConfig,
+                clusterManagementService,
+                configManagementService,
+                positionManagementService,
+                stateManagementService );
+
         distributedConnectController = new DistributedConnectController(plugin, distributedConfig, clusterManagementService,
             configManagementService, positionManagementService, stateManagementService);
     }
@@ -88,6 +87,10 @@ public class DistributedConnectControllerTest {
     @After
     public void after() {
         distributedConnectController.shutdown();
+
+        nameServerMocker.shutdown();
+        brokerMocker.shutdown();
+
         stateManagementService.stop();
         brokerMocker.shutdown();
         nameServerMocker.shutdown();

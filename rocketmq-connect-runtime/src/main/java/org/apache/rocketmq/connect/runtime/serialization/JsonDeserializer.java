@@ -26,6 +26,11 @@ import java.util.Objects;
  * json deserializer
  */
 public class JsonDeserializer implements Deserializer<Object> {
+    private Class aClass;
+    public JsonDeserializer(){}
+    public JsonDeserializer(Class aClass){
+        this.aClass = aClass;
+    }
 
     @Override
     public Object deserialize(String topic, byte[] bytes) {
@@ -35,10 +40,14 @@ public class JsonDeserializer implements Deserializer<Object> {
         Object data;
         try {
             String json = new String(bytes, StandardCharsets.UTF_8);
-            data = JSON.parse(json);
+            if (aClass == null) {
+                data = JSON.parse(json);
+            } else {
+                data = JSON.parseObject(json, aClass);
+            }
+            return data;
         } catch (Exception e) {
             throw new ConnectException(e);
         }
-        return data;
     }
 }
