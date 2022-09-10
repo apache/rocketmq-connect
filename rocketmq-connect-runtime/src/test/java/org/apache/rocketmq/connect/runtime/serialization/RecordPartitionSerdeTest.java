@@ -15,32 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class RecordPartitionConverterTest {
+public class RecordPartitionSerdeTest {
 
-    private RecordPartitionConverter recordPartitionConverter = new RecordPartitionConverter();
+    private RecordPartitionSerde recordPartitionSerde = new RecordPartitionSerde();
 
     @Test
     public void objectToByteTest() {
         Map<String, String> partition = new HashMap<>();
         partition.put("ip_port", "127.0.0.1:3306");
         ExtendRecordPartition extendRecordPartition = new ExtendRecordPartition("default_namespace", partition);
-        final byte[] actual = recordPartitionConverter.objectToByte(extendRecordPartition);
+        final byte[] actual = recordPartitionSerde.serializer().serialize("", extendRecordPartition);
         Assert.assertEquals("{\"namespace\":\"default_namespace\",\"partition\":{\"ip_port\":\"127.0.0.1:3306\"}}", new String(actual));
     }
 
     @Test
     public void byteToObjectTest() {
         String str = "{\"namespace\":\"default_namespace\",\"partition\":{\"ip_port\":\"127.0.0.1:3306\"}}";
-        final ExtendRecordPartition extendRecordPartition = recordPartitionConverter.byteToObject(str.getBytes(StandardCharsets.UTF_8));
+        final ExtendRecordPartition extendRecordPartition = recordPartitionSerde.deserializer().deserialize("", str.getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals("default_namespace", extendRecordPartition.getNamespace());
         Assert.assertEquals("127.0.0.1:3306", extendRecordPartition.getPartition().get("ip_port"));
     }

@@ -27,6 +27,7 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
@@ -63,7 +64,7 @@ public class MemoryConfigManagementServiceImplTest {
         URL url = new URL("file://src/test/java/org/apache/rocketmq/connect/runtime");
         URL[] urls = new URL[]{};
         pluginClassLoader = new PluginClassLoader(url, urls);
-        memoryConfigManagementService.initialize(workerConfig, plugin);
+        memoryConfigManagementService.initialize(workerConfig, new JsonConverter(), plugin);
         memoryConfigManagementService.start();
     }
 

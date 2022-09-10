@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.connect.runtime.service.memory;
 
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
@@ -49,7 +50,7 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
      * @param config
      */
     @Override
-    public void initialize(WorkerConfig config) {
+    public void initialize(WorkerConfig config, RecordConverter converter) {
         this.tasks = new Table<>();
         this.connectors = new ConcurrentHashMap<>();
     }

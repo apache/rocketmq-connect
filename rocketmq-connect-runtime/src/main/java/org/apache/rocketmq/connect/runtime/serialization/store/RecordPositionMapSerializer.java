@@ -15,43 +15,41 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization.store;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.data.Converter;
-import java.io.UnsupportedEncodingException;
+import io.openmessaging.connector.api.data.RecordOffset;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.serialization.Serializer;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * ByteBuffer converter.
+ * Byte Map to byte[].
  */
-public class RecordPartitionConverter implements Converter<ExtendRecordPartition> {
+public class RecordPositionMapSerializer implements Serializer<Map<ExtendRecordPartition, RecordOffset>> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     @Override
-    public byte[] objectToByte(ExtendRecordPartition recordPartition) {
+    public byte[] serialize(String topic, Map<ExtendRecordPartition, RecordOffset> data) {
         try {
-            String json = JSON.toJSONString(recordPartition);
-            return json.getBytes("UTF-8");
+            Map<String, String> resultMap = new HashMap<>();
+            for (Map.Entry<ExtendRecordPartition, RecordOffset> entry : data.entrySet()) {
+                String jsonKey = JSON.toJSONString(entry.getKey());
+                jsonKey.getBytes("UTF-8");
+                String jsonValue = JSON.toJSONString(entry.getValue());
+                jsonValue.getBytes("UTF-8");
+                resultMap.put(jsonKey, jsonValue);
+            }
+            return JSON.toJSONString(resultMap).getBytes("UTF-8");
         } catch (Exception e) {
-            log.error("JsonConverter#objectToByte failed", e);
+            log.error("RecordPositionMapSerializer serialize failed", e);
         }
         return new byte[0];
-    }
-
-    @Override
-    public ExtendRecordPartition byteToObject(byte[] bytes) {
-        try {
-            String text = new String(bytes, "UTF-8");
-            ExtendRecordPartition res = JSON.parseObject(text, ExtendRecordPartition.class);
-            return res;
-        } catch (UnsupportedEncodingException e) {
-            log.error("JsonConverter#byteToObject failed", e);
-        }
-        return null;
     }
 }

@@ -168,7 +168,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
          * @throws Exception if unable to compute a result
          */
         @Override
-        public Void call() throws Exception {
+        public Void call()  {
             try {
                 // has been canceled
                 if (flushId != currentFlushId) {
@@ -177,7 +177,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
                 positionManagementService.putPosition(toFlush);
                 log.debug("Submitting {} entries to backing store. The offsets are: {}", data.size(), toFlush);
                 positionManagementService.persist();
-                positionManagementService.synchronize();
+                positionManagementService.synchronize(true);
                 // persist finished
                 toFlush = null;
                 currentFlushId++;

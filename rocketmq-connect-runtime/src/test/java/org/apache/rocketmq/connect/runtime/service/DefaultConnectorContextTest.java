@@ -34,6 +34,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnect
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -75,14 +76,14 @@ public class DefaultConnectorContextTest {
         workerConfig.setNamesrvAddr("localhost:9876");
 
         configManagementService = new ConfigManagementServiceImpl();
-        configManagementService.initialize(workerConfig, plugin);
+        configManagementService.initialize(workerConfig, new JsonConverter(), plugin);
         configManagementService.start();
 
         clusterManagementService.initialize(workerConfig);
-        positionManagementService.initialize(workerConfig);
+        positionManagementService.initialize(workerConfig,new JsonConverter(),new JsonConverter());
         positionManagementService.start();
         stateManagementService = new StateManagementServiceImpl();
-        stateManagementService.initialize(workerConfig);
+        stateManagementService.initialize(workerConfig,new JsonConverter());
 
         standaloneConfig.setHttpPort(8083);
         standaloneConnectController = new StandaloneConnectController(plugin, standaloneConfig, clusterManagementService,

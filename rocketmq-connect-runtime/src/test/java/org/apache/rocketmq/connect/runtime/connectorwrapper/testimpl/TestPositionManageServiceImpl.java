@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public void synchronize() {
+    public void synchronize(boolean increment) {
 
     }
 
@@ -76,7 +77,7 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
-    @Override public void initialize(WorkerConfig connectConfig) {
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
 
     }
 

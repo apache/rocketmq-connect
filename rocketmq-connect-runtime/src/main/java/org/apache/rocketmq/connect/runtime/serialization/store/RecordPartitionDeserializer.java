@@ -15,48 +15,32 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization.store;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import io.openmessaging.connector.api.data.Converter;
-import java.io.UnsupportedEncodingException;
-import java.util.List;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.serialization.Deserializer;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UnsupportedEncodingException;
+
 /**
- * Convert between a list and byte[].
+ * ByteBuffer converter.
  */
-public class ListConverter implements Converter<List> {
+public class RecordPartitionDeserializer implements Deserializer<ExtendRecordPartition> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-    private Class clazz;
-
-    public ListConverter(Class clazz) {
-        this.clazz = clazz;
-    }
-
     @Override
-    public byte[] objectToByte(List list) {
+    public ExtendRecordPartition deserialize(String topic, byte[] data) {
         try {
-            return JSON.toJSONString(list).getBytes("UTF-8");
+            String text = new String(data, "UTF-8");
+            ExtendRecordPartition res = JSON.parseObject(text, ExtendRecordPartition.class);
+            return res;
         } catch (UnsupportedEncodingException e) {
-            log.error("ListConverter#objectToByte failed", e);
-        }
-        return null;
-    }
-
-    @Override
-    public List byteToObject(byte[] bytes) {
-        try {
-            String json = new String(bytes, "UTF-8");
-            List list = JSONArray.parseArray(json, clazz);
-            return list;
-        } catch (UnsupportedEncodingException e) {
-            log.error("ListConverter#byteToObject failed", e);
+            log.error("JsonConverter#byteToObject failed", e);
         }
         return null;
     }

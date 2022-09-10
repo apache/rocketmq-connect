@@ -15,26 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import java.nio.charset.StandardCharsets;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ListConverterTest {
+public class ListSerdeTest {
 
-    private ListConverter listConverter = new ListConverter(Object.class);
+    private ListSerde serde = new ListSerde(Object.class);
 
 
     @Test
     public void objectToByteTest() {
         List<String> list = new ArrayList<>();
         list.add("Hello World");
-        final byte[] bytes = listConverter.objectToByte(list);
+        final byte[] bytes = serde.serializer().serialize("", list);
         Assert.assertEquals("[\"Hello World\"]", new String(bytes));
     }
 
@@ -42,9 +43,8 @@ public class ListConverterTest {
     public void byteToObjectTest() {
         List<String> list = new ArrayList<>();
         list.add("Hello World");
-        final List actual = listConverter.byteToObject(JSON.toJSONBytes(list));
+        final List actual = serde.deserializer().deserialize("", JSON.toJSONBytes(list));
         Assert.assertEquals("[Hello World]", actual.toString());
-
     }
 
 }
