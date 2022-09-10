@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -61,6 +62,7 @@ import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -387,9 +389,11 @@ public class WorkerSinkTask extends WorkerTask {
     private void doCommitSync(Map<MessageQueue, Long> offsets, int seqno) {
         log.debug("{} Committing offsets synchronously using sequence number {}: {}", this, seqno, offsets);
         try {
-            offsets.forEach((queue, offset) -> {
-                consumer.getOffsetStore().updateOffset(queue, offset, true);
-            });
+
+            for (Map.Entry<MessageQueue, Long> offsetEntry : offsets.entrySet()) {
+                consumer.getOffsetStore().updateOffset(offsetEntry.getKey(), offsetEntry.getValue(), true);
+                consumer.getOffsetStore().updateConsumeOffsetToBroker(offsetEntry.getKey(), offsetEntry.getValue(), false);
+            }
             onCommitCompleted(null, seqno, offsets);
         } catch (Exception e) {
             onCommitCompleted(e, seqno, offsets);

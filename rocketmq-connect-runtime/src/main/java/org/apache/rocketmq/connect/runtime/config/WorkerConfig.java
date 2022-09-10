@@ -208,9 +208,9 @@ public class WorkerConfig {
     /**
      * offset commit interval ms
      * config example with default
-     * offsetCommitIntervalMsConfig = 60000L
+     * offsetCommitIntervalMsConfig = 10000L
      */
-    private long offsetCommitIntervalMsConfig = 60000L;
+    private long offsetCommitIntervalMsConfig = 30000L;
 
     private String metricsConfigPath;
     private Map<String,Map<String, String>> metricsConfig = new HashMap<>();
