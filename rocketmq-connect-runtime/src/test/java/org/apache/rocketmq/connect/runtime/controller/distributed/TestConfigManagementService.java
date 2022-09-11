@@ -17,9 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
-import io.openmessaging.connector.api.component.connector.Connector;
 import java.util.List;
 import java.util.Map;
+
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -45,20 +46,23 @@ public class TestConfigManagementService implements ConfigManagementService {
         return null;
     }
 
-    @Override public void deleteConnectorConfig(String connectorName) {
+    @Override
+    public void deleteConnectorConfig(String connectorName) {
 
     }
 
-    @Override public void pauseConnector(String connectorName) {
+    @Override
+    public void pauseConnector(String connectorName) {
+    }
+
+    @Override
+    public void resumeConnector(String connectorName) {
 
     }
 
-    @Override public void resumeConnector(String connectorName) {
 
-    }
-
-    @Override public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp,
-        ConnectKeyValue configs) {
+    @Override public void recomputeTaskConfigs(String connectorName,
+                                               ConnectKeyValue configs) {
 
     }
 
@@ -74,11 +78,12 @@ public class TestConfigManagementService implements ConfigManagementService {
 
     }
 
-    @Override public void initialize(WorkerConfig connectConfig, Plugin plugin) {
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter converter, Plugin plugin) {
 
     }
 
-    @Override public ClusterConfigState snapshot() {
+    @Override
+    public ClusterConfigState snapshot() {
         return null;
     }
 

@@ -17,14 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import java.util.Set;
 
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +49,9 @@ public class DefaultConnectorContext implements ConnectorContext {
             }
         }
         if (null != currentConnector) {
-            Connector connector = currentConnector.getConnector();
             ConnectKeyValue connectKeyValue = controller.getConfigManagementService().getConnectorConfigs().get(connectorName);
-            long currentTimeMillis = System.currentTimeMillis();
-            connectKeyValue.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimeMillis);
-            controller.getConfigManagementService().recomputeTaskConfigs(connectorName, connector, currentTimeMillis, connectKeyValue);
+            connectKeyValue.setEpoch(System.currentTimeMillis());
+            controller.getConfigManagementService().recomputeTaskConfigs(connectorName, connectKeyValue);
             log.info("Connector {} recompute taskConfigs success.", connectorName);
         } else {
             log.info("Not found connector {}.", connectorName);

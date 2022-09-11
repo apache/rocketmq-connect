@@ -86,6 +86,7 @@ public class DeadLetterQueueReporterTest {
         ConnectKeyValue sinkConfig = new ConnectKeyValue();
         Map<String, String> properties = new HashMap<>();
         properties.put(SinkConnectorConfig.DLQ_TOPIC_NAME_CONFIG, "DEAD_LETTER_TOPIC");
+
         sinkConfig.setProperties(properties);
         WorkerConfig workerConfig = new WorkerConfig();
         final DeadLetterQueueReporter deadLetterQueueReporter = DeadLetterQueueReporter.build("fileSinkConnector", sinkConfig, workerConfig);

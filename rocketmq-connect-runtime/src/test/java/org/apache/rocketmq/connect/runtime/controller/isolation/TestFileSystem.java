@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
+import com.sun.nio.zipfs.JarFileSystemProvider;
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
@@ -30,8 +31,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class TestFileSystem extends FileSystem {
     @Override public FileSystemProvider provider() {
-//        return new MacOSXFileSystemProvider();
-        return null;
+        return new JarFileSystemProvider();
     }
 
     @Override public void close() throws IOException {

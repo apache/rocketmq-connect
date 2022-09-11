@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import io.openmessaging.connector.api.component.connector.Connector;
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -90,7 +90,7 @@ public interface ConfigManagementService {
      */
     void resumeConnector(String connectorName);
 
-    void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs);
+    void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs);
 
     /**
      * Get all Task configs.
@@ -111,7 +111,7 @@ public interface ConfigManagementService {
      */
     void registerListener(ConnectorConfigUpdateListener listener);
 
-    void initialize(WorkerConfig connectConfig, Plugin plugin);
+    void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin);
 
     ClusterConfigState snapshot();
 

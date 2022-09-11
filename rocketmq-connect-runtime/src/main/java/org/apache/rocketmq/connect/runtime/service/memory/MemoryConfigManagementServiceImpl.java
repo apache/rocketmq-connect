@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.service.memory;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -38,6 +39,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_CLASS;
+
 /**
  * memory config management service impl for standalone
  */
@@ -48,16 +51,19 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
      * All listeners to trigger while config change.
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
+    // store topic
+    public String topic;
 
-    public MemoryConfigManagementServiceImpl() {
-    }
+    public MemoryConfigManagementServiceImpl() {}
 
     @Override
-    public void initialize(WorkerConfig workerConfig, Plugin plugin) {
+    public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
+
+        this.topic = workerConfig.getConfigStoreTopic();
+        this.plugin = plugin;
+
         this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
-        this.plugin = plugin;
-        this.workerConfig = workerConfig;
     }
 
     @Override
@@ -85,43 +91,40 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
 
     @Override
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
-
-        // check request config
+        /**
+         * check request config
+         */
         for (String requireConfig : ConnectorConfig.REQUEST_CONFIG) {
             if (!configs.containsKey(requireConfig)) {
                 throw new ConnectException("Request config key: " + requireConfig);
             }
         }
-        // current timestamp
-        Long currentTimestamp = System.currentTimeMillis();
+
+        // check exist
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
-        if (null != oldConfig) {
-            Long updateTimestamp = oldConfig.getLong(ConnectorConfig.UPDATE_TIMESTAMP);
-            if (null != updateTimestamp) {
-                configs.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
-            }
-        }
         if (configs.equals(oldConfig)) {
             throw new ConnectException("Connector with same config already exist.");
         }
+
         // validate config
-        Connector connector = super.loadConnector(configs);
+        Connector connector = plugin.newConnector(configs.getString(CONNECTOR_CLASS));
         if (connector instanceof SourceConnector) {
             new SourceConnectorConfig(configs).validate();
         } else if (connector instanceof SinkConnector) {
             new SinkConnectorConfig(configs).validate();
         }
-        configs.setTargetState(TargetState.STARTED);
-        // update cache
 
+        configs.setTargetState(TargetState.STARTED);
+        configs.setEpoch(System.currentTimeMillis());
+        // update cache
         connectorKeyValueStore.put(connectorName, configs);
-        recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
+        recomputeTaskConfigs(connectorName, configs);
         return connectorName;
     }
 
     @Override
-    public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
-        super.recomputeTaskConfigs(connectorName, connector, currentTimestamp, configs);
+    public void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs) {
+        super.recomputeTaskConfigs(connectorName, configs);
         triggerListener();
     }
 
@@ -143,9 +146,8 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
-        config.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
         config.setTargetState(TargetState.PAUSED);
-        connectorKeyValueStore.put(connectorName, config);
+        connectorKeyValueStore.put(connectorName, config.nextGeneration());
         triggerListener();
     }
 
@@ -160,10 +162,9 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
-        config.put(ConnectorConfig.UPDATE_TIMESTAMP, System.currentTimeMillis());
+        config.setEpoch(System.currentTimeMillis());
         config.setTargetState(TargetState.STARTED);
-
-        connectorKeyValueStore.put(connectorName, config);
+        connectorKeyValueStore.put(connectorName, config.nextGeneration());
         triggerListener();
     }
 

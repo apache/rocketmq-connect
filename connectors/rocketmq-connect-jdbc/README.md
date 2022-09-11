@@ -26,8 +26,8 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-con
     "mode": "incrementing",
     "incrementing.column.name":"id",
     "timestamp.initial": -1,
-    "key.converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter",
-    "value.converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 ```
 

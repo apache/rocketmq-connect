@@ -15,39 +15,29 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization.store;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.data.Converter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 
 /**
- * Converter data between ConnAndTaskConfigs and byte[].
+ * Deserializer data to ConnectKeyValue .
  */
-public class ConnectKeyValueConverter implements Converter<ConnectKeyValue> {
+public class ConnectKeyValueDeserializer implements Deserializer<ConnectKeyValue> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     @Override
-    public byte[] objectToByte(ConnectKeyValue config) {
+    public ConnectKeyValue deserialize(String topic, byte[] data) {
         try {
-            return JSON.toJSONString(config).getBytes("UTF-8");
-        } catch (Exception e) {
-            log.error("ConnectKeyValueConverter#objectToByte failed", e);
-        }
-        return new byte[0];
-    }
+            String jsonString = new String(data, "UTF-8");
 
-    @Override
-    public ConnectKeyValue byteToObject(byte[] bytes) {
-
-        try {
-            String jsonString = new String(bytes, "UTF-8");
             return JSON.parseObject(jsonString, ConnectKeyValue.class);
         } catch (UnsupportedEncodingException e) {
             log.error("ConnAndTaskConfigConverter#byteToObject failed", e);

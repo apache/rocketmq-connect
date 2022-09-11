@@ -65,12 +65,6 @@ public class ConnectorConfig {
     public static final String SOURCE_TASK_CLASS = "source.task.class";
     public static final String SINK_TASK_CLASS = "sink.task.class";
 
-
-    /**
-     * Last updated time of the configuration.
-     */
-    public static final String UPDATE_TIMESTAMP = "update.timestamp";
-
     /**
      * The full class name of record converter. Which is used to parse {@link ConnectRecord} to/from byte[].
      */

@@ -15,42 +15,34 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.converter;
+package org.apache.rocketmq.connect.runtime.serialization;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.data.Converter;
-import io.openmessaging.connector.api.data.RecordOffset;
-import java.io.UnsupportedEncodingException;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
- * ByteBuffer converter.
+ * Convert between a list and byte[].
  */
-public class RecordOffsetConverter implements Converter<RecordOffset> {
+public class ListSerializer implements Serializer<List> {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-    @Override
-    public byte[] objectToByte(RecordOffset recordOffset) {
-        try {
-            String json = JSON.toJSONString(recordOffset);
-            return json.getBytes("UTF-8");
-        } catch (Exception e) {
-            log.error("JsonConverter#objectToByte failed", e);
-        }
-        return new byte[0];
+    private Class clazz;
+
+    public ListSerializer(Class clazz) {
+        this.clazz = clazz;
     }
 
     @Override
-    public RecordOffset byteToObject(byte[] bytes) {
+    public byte[] serialize(String topic, List data) {
         try {
-            String text = new String(bytes, "UTF-8");
-            RecordOffset res = JSON.parseObject(text, RecordOffset.class);
-            return res;
-        } catch (UnsupportedEncodingException e) {
-            log.error("JsonConverter#byteToObject failed", e);
+            return JSON.toJSONString(data).getBytes("UTF-8");
+        } catch (Exception e) {
+            log.error("ListSerializer serialize failed", e);
         }
         return null;
     }

@@ -95,7 +95,7 @@ public class StandaloneConnectStartup {
             }
 
             // Load configs from command line.
-            StandaloneConfig connectConfig = new StandaloneConfig();
+            StandaloneConfig config = new StandaloneConfig();
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c').trim();
                 if (file != null) {
@@ -103,12 +103,12 @@ public class StandaloneConnectStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);
-                    FileAndPropertyUtil.properties2Object(properties, connectConfig);
+                    FileAndPropertyUtil.properties2Object(properties, config);
                     in.close();
                 }
             }
 
-            if (null == connectConfig.getConnectHome()) {
+            if (null == config.getConnectHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);
             }
@@ -117,11 +117,11 @@ public class StandaloneConnectStartup {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            configurator.doConfigure(connectConfig.getConnectHome() + "/conf/logback.xml");
+            configurator.doConfigure(config.getConnectHome() + "/conf/logback.xml");
 
             List<String> pluginPaths = new ArrayList<>(16);
-            if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
-                String[] strArr = connectConfig.getPluginPaths().split(",");
+            if (StringUtils.isNotEmpty(config.getPluginPaths())) {
+                String[] strArr = config.getPluginPaths().split(",");
                 for (String path : strArr) {
                     if (StringUtils.isNotEmpty(path)) {
                         pluginPaths.add(path);
@@ -129,18 +129,17 @@ public class StandaloneConnectStartup {
                 }
             }
             Plugin plugin = new Plugin(pluginPaths);
-
             ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.STANDALONE);
-            clusterManagementService.initialize(connectConfig);
+            clusterManagementService.initialize(config);
             ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.STANDALONE);
-            configManagementService.initialize(connectConfig, plugin);
+            configManagementService.initialize(config, null, plugin);
             PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.STANDALONE);
-            positionManagementServices.initialize(connectConfig);
+            positionManagementServices.initialize(config, null, null);
             StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.STANDALONE);
-            stateManagementService.initialize(connectConfig);
+            stateManagementService.initialize(config, null);
             StandaloneConnectController controller = new StandaloneConnectController(
                     plugin,
-                    connectConfig,
+                    config,
                     clusterManagementService,
                     configManagementService,
                     positionManagementServices,

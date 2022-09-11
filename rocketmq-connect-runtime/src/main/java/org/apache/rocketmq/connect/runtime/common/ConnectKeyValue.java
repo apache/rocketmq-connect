@@ -30,6 +30,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
 
+    /**
+     * epoch for update
+     */
+    private long epoch;
+
+    /**
+     * target state
+     */
     private TargetState targetState;
 
     /**
@@ -129,7 +137,6 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.properties = properties;
     }
 
-
     /**
      * Gets all original settings with the given prefix.
      */
@@ -139,6 +146,7 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
 
     /**
      * Gets all original settings with the given prefix.
+     *
      * @param prefix the prefix to use as a filter
      * @param strip strip the prefix before adding to the output if set true
      * @return a Map containing the settings with the prefix
@@ -165,6 +173,19 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.targetState = targetState;
     }
 
+    public long getEpoch() {
+        return epoch;
+    }
+
+    public void setEpoch(long epoch) {
+        this.epoch = epoch;
+    }
+
+    public ConnectKeyValue nextGeneration() {
+        this.setEpoch(System.currentTimeMillis());
+        return this;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj != null && obj.getClass() == this.getClass()) {
@@ -174,12 +195,10 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         return false;
     }
 
-
     @Override
     public int hashCode() {
         return properties.hashCode();
     }
-
 
     @Override
     public Object clone() {
@@ -190,15 +209,11 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         }
     }
 
-
     @Override
     public String toString() {
         return "ConnectKeyValue{" +
             "properties=" + properties +
             '}';
     }
-
-
-
 
 }

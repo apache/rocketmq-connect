@@ -53,13 +53,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 /**
  * json converter for fastjson
  */
 public class JsonConverter implements RecordConverter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
 
     private static final Map<FieldType, JsonToConnectTypeConverter> TO_CONNECT_CONVERTERS = new EnumMap<>(FieldType.class);
 
@@ -161,8 +159,8 @@ public class JsonConverter implements RecordConverter {
                             throw new ConnectException("Found invalid map entry, expected length 2 but found :" + entryArray.toArray().length);
                         }
                         result.put(
-                                convertToConnect(keySchema, entryArray.toArray()[0]),
-                                convertToConnect(valueSchema, entryArray.toArray()[1]));
+                            convertToConnect(keySchema, entryArray.toArray()[0]),
+                            convertToConnect(valueSchema, entryArray.toArray()[1]));
                     }
                 }
                 return result;
@@ -281,7 +279,6 @@ public class JsonConverter implements RecordConverter {
         });
     }
 
-
     private JsonDeserializer deserializer = new JsonDeserializer();
     private JsonSerializer serializer = new JsonSerializer();
     public JsonConverterConfig converterConfig;
@@ -303,9 +300,9 @@ public class JsonConverter implements RecordConverter {
     /**
      * Convert a rocketmq Connect data object to a native object for serialization.
      *
-     * @param topic  the topic associated with the data
+     * @param topic the topic associated with the data
      * @param schema the schema for the value
-     * @param value  the value to convert
+     * @param value the value to convert
      * @return the serialized value
      */
     @Override
@@ -354,11 +351,10 @@ public class JsonConverter implements RecordConverter {
         Object jsonSchema = newJsonValue.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME);
         Schema schema = asConnectSchema(jsonSchema == null ? null : (JSONObject) jsonSchema);
         return new SchemaAndValue(
-                schema,
-                convertToConnect(schema, newJsonValue.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME))
+            schema,
+            convertToConnect(schema, newJsonValue.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME))
         );
     }
-
 
     /**
      * convert to json with envelope
@@ -369,8 +365,8 @@ public class JsonConverter implements RecordConverter {
      */
     private JSONObject convertToJsonWithEnvelope(Schema schema, Object value) {
         return new JsonSchema.Envelope(
-                asJsonSchema(schema),
-                convertToJson(schema, value)
+            asJsonSchema(schema),
+            convertToJson(schema, value)
         ).toJsonNode();
     }
 
@@ -385,7 +381,6 @@ public class JsonConverter implements RecordConverter {
         return convertToJson(schema, value);
     }
 
-
     private interface JsonToConnectTypeConverter<Output> {
         Output convert(Schema schema, Object value);
     }
@@ -395,7 +390,6 @@ public class JsonConverter implements RecordConverter {
 
         Object toConnect(Schema schema, Object value);
     }
-
 
     /**
      * convert ConnectRecord schema to json schema
@@ -506,7 +500,6 @@ public class JsonConverter implements RecordConverter {
         return jsonSchema;
     }
 
-
     /**
      * Convert this object, in the org.apache.kafka.connect.data format, into a JSON object, returning both the schema
      * and the converted object.
@@ -577,18 +570,36 @@ public class JsonConverter implements RecordConverter {
                 }
                 case MAP: {
                     Map<?, ?> map = (Map<?, ?>) value;
+                    boolean objectMode;
+                    if (schema == null) {
+                        objectMode = true;
+                        for (Map.Entry<?, ?> entry : map.entrySet()) {
+                            if (!(entry.getKey() instanceof String)) {
+                                objectMode = false;
+                                break;
+                            }
+                        }
+                    } else {
+                        objectMode = schema.getKeySchema().getFieldType() == FieldType.STRING;
+                    }
+
                     JSONArray resultArray = new JSONArray();
+                    Map<String, Object> resultMap = new HashMap<>();
                     for (Map.Entry<?, ?> entry : map.entrySet()) {
                         Schema keySchema = schema == null ? null : schema.getKeySchema();
                         Schema valueSchema = schema == null ? null : schema.getValueSchema();
                         Object mapKey = convertToJson(keySchema, entry.getKey());
                         Object mapValue = convertToJson(valueSchema, entry.getValue());
-                        JSONArray entryArray = new JSONArray();
-                        entryArray.add(0, mapKey);
-                        entryArray.add(1, mapValue);
-                        resultArray.add(entryArray);
+                        if (objectMode) {
+                            resultMap.put((String) mapKey, mapValue);
+                        } else {
+                            JSONArray entryArray = new JSONArray();
+                            entryArray.add(0, mapKey);
+                            entryArray.add(1, mapValue);
+                            resultArray.add(entryArray);
+                        }
                     }
-                    return resultArray;
+                    return objectMode ? resultMap : resultArray;
                 }
                 case STRUCT: {
                     Struct struct = (Struct) value;
@@ -608,7 +619,6 @@ public class JsonConverter implements RecordConverter {
             throw new ConnectException("Invalid type for " + schemaTypeStr + ": " + value.getClass());
         }
     }
-
 
     /**
      * convert json to schema if not empty
@@ -694,7 +704,6 @@ public class JsonConverter implements RecordConverter {
             default:
                 throw new ConnectException("Unknown schema type: " + schemaType);
         }
-
 
         // optional
         Boolean isOptional = jsonSchema.getBoolean(JsonSchema.SCHEMA_OPTIONAL_FIELD_NAME);
