@@ -164,5 +164,9 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
         }
     }
 
-
+    @Override
+    public void close() {
+        super.close();
+        producer.shutdown();
+    }
 }
