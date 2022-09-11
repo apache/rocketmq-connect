@@ -54,7 +54,7 @@ public class FileBaseKeyValueStore<K, V> extends MemoryBasedKeyValueStore<K, V> 
     public String encode() {
         Map<String, String> map = new HashMap<>();
         for (K key : data.keySet()) {
-            byte[] keyByte = serdeKey.serializer().serialize("",key);
+            byte[] keyByte = serdeKey.serializer().serialize("", key);
             byte[] valueByte = serdeValue.serializer().serialize("", data.get(key));
             map.put(Base64Util.base64Encode(keyByte), Base64Util.base64Encode(valueByte));
         }

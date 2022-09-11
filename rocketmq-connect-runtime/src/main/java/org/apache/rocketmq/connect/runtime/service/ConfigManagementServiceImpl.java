@@ -67,26 +67,28 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     public static final String START_SIGNAL = "start-signal";
 
     public static final String TARGET_STATE_PREFIX = "target-state-";
+
     public static String TARGET_STATE_KEY(String connectorName) {
         return TARGET_STATE_PREFIX + connectorName;
     }
 
-
     public static final String CONNECTOR_PREFIX = "connector-";
+
     public static String CONNECTOR_KEY(String connectorName) {
         return CONNECTOR_PREFIX + connectorName;
     }
 
     public static final String TASK_PREFIX = "task-";
+
     public static String TASK_KEY(ConnectorTaskId taskId) {
         return TASK_PREFIX + taskId.connector() + "-" + taskId.task();
     }
 
     public static final String DELETE_CONNECTOR_PREFIX = "delete-";
+
     public static String DELETE_CONNECTOR_KEY(String connectorName) {
         return DELETE_CONNECTOR_PREFIX + connectorName;
     }
-
 
     private static final String FIELD_STATE = "state";
     private static final String FIELD_EPOCH = "epoch";
@@ -96,49 +98,48 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * start signal
      */
     public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-            .field(START_SIGNAL, SchemaBuilder.string().build())
-            .build();
+        .field(START_SIGNAL, SchemaBuilder.string().build())
+        .build();
 
     /**
      * connector configuration
      */
     public static final Schema CONNECTOR_CONFIGURATION_V0 = SchemaBuilder.struct()
-            .field(FIELD_STATE, SchemaBuilder.string().build())
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .field(FIELD_PROPS,
-                    SchemaBuilder.map(
-                            SchemaBuilder.string().optional().build(),
-                            SchemaBuilder.string().optional().build()
-                    ).build())
-            .build();
+        .field(FIELD_STATE, SchemaBuilder.string().build())
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .field(FIELD_PROPS,
+            SchemaBuilder.map(
+                SchemaBuilder.string().optional().build(),
+                SchemaBuilder.string().optional().build()
+            ).build())
+        .build();
 
     /**
      * delete connector
      */
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .build();
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
 
     /**
      * task configuration
      */
-    public static final Schema TASK_CONFIGURATION_V0 =SchemaBuilder.struct()
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .field(FIELD_PROPS,
-                    SchemaBuilder.map(
-                            SchemaBuilder.string().build(),
-                            SchemaBuilder.string().optional().build()
-                    ).build())
-            .build();
+    public static final Schema TASK_CONFIGURATION_V0 = SchemaBuilder.struct()
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .field(FIELD_PROPS,
+            SchemaBuilder.map(
+                SchemaBuilder.string().build(),
+                SchemaBuilder.string().optional().build()
+            ).build())
+        .build();
 
     /**
      * connector state
      */
     public static final Schema TARGET_STATE_V0 = SchemaBuilder.struct()
-            .field(FIELD_STATE, SchemaBuilder.string().build())
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .build();
-
+        .field(FIELD_STATE, SchemaBuilder.string().build())
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
 
     /**
      * All listeners to trigger while config change.
@@ -157,7 +158,8 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     // converter
     public RecordConverter converter;
 
-    public ConfigManagementServiceImpl() {}
+    public ConfigManagementServiceImpl() {
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
@@ -169,28 +171,27 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
         this.connectorConfigUpdateListener = new HashSet<>();
         this.dataSynchronizer = new BrokerBasedLog<>(workerConfig,
-                this.topic,
-                ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
-                new ConfigChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class)
+            this.topic,
+            ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
+            new ConfigChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class)
         );
 
         // store connector config
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new JsonSerde(ConnectKeyValue.class));
+            FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
+            new Serdes.StringSerde(),
+            new JsonSerde(ConnectKeyValue.class));
 
         // store task config
         this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new ListSerde(ConnectKeyValue.class));
+            FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
+            new Serdes.StringSerde(),
+            new ListSerde(ConnectKeyValue.class));
 
         this.prepare(workerConfig);
     }
-
 
     /**
      * Preparation before startup
@@ -216,7 +217,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
     private void sendStartSignal() {
         Struct struct = new Struct(START_SIGNAL_V0);
-        struct.put(START_SIGNAL,"start");
+        struct.put(START_SIGNAL, "start");
         dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(topic, START_SIGNAL_V0, struct));
     }
 
@@ -232,7 +233,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     public Map<String, ConnectKeyValue> getConnectorConfigs() {
         return connectorKeyValueStore.getKVMap();
     }
-
 
     @Override
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
@@ -266,7 +266,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         Struct connectConfig = new Struct(CONNECTOR_CONFIGURATION_V0);
         connectConfig.put(FIELD_STATE, configs.getTargetState().name());
         connectConfig.put(FIELD_EPOCH, configs.getEpoch());
-        connectConfig.put(FIELD_PROPS , configs.getProperties());
+        connectConfig.put(FIELD_PROPS, configs.getProperties());
         byte[] config = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, connectConfig);
         dataSynchronizer.send(CONNECTOR_KEY(connectorName), config);
         return connectorName;
@@ -377,38 +377,37 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         configs.setConnectorConfigs(connectorKeyValueStore.getKVMap());
         connectorKeyValueStore.getKVMap().forEach((connectName, connectKeyValue) -> {
             Struct struct = new Struct(CONNECTOR_CONFIGURATION_V0)
-                    .put(FIELD_EPOCH, connectKeyValue.getEpoch())
-                    .put(FIELD_STATE, connectKeyValue.getTargetState().name())
-                    .put(FIELD_PROPS, connectKeyValue.getProperties());
+                .put(FIELD_EPOCH, connectKeyValue.getEpoch())
+                .put(FIELD_STATE, connectKeyValue.getTargetState().name())
+                .put(FIELD_PROPS, connectKeyValue.getProperties());
             byte[] body = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, struct);
             dataSynchronizer.send(CONNECTOR_KEY(connectName), body);
         });
 
         taskKeyValueStore.getKVMap().forEach((connectName, taskConfigs) -> {
-            if (taskConfigs == null || taskConfigs.isEmpty()){
+            if (taskConfigs == null || taskConfigs.isEmpty()) {
                 return;
             }
             taskConfigs.forEach(taskConfig -> {
                 ConnectorTaskId taskId = new ConnectorTaskId(connectName, taskConfig.getInt(ConnectorConfig.TASK_ID));
                 Struct struct = new Struct(TASK_CONFIGURATION_V0)
-                        .put(FIELD_EPOCH, System.currentTimeMillis())
-                        .put(FIELD_PROPS, taskConfig.getProperties());
+                    .put(FIELD_EPOCH, System.currentTimeMillis())
+                    .put(FIELD_PROPS, taskConfig.getProperties());
                 byte[] body = converter.fromConnectData(topic, TASK_CONFIGURATION_V0, struct);
                 dataSynchronizer.send(TASK_KEY(taskId), body);
             });
         });
     }
 
-
     private class ConfigChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
-            if (StringUtils.isEmpty(key)){
+            if (StringUtils.isEmpty(key)) {
                 log.error("Config change message is illegal, key is empty, the message will be skipped");
                 return;
             }
             SchemaAndValue schemaAndValue = converter.toConnectData(topic, value);
-            if (key.equals(START_SIGNAL)){
+            if (key.equals(START_SIGNAL)) {
                 // send message in full
                 triggerSendMessage();
                 // reblance
@@ -455,7 +454,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         // validate
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
         // config update
-        if ((Long)epoch > oldConfig.getEpoch()) {
+        if ((Long) epoch > oldConfig.getEpoch()) {
             // remove
             connectorKeyValueStore.remove(connectorName);
             taskKeyValueStore.remove(connectorName);
@@ -463,7 +462,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
             triggerListener();
         }
     }
-
 
     /**
      * process task config record
@@ -502,17 +500,17 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
         Struct struct = (Struct) schemaAndValue.value();
         Object targetState = struct.get(FIELD_STATE);
-        if (!(targetState instanceof String)){
+        if (!(targetState instanceof String)) {
             // target state
             log.error("Invalid data for target state for connector '{}': 'state' field should be a String but is {}",
-                    connectorName, className(targetState));
+                connectorName, className(targetState));
             return;
         }
         Object epoch = struct.get(FIELD_EPOCH);
         if (!(epoch instanceof Long)) {
             // epoch
             log.error("Invalid data for epoch for connector '{}': 'epoch' field should be a Long but is {}",
-                    connectorName, className(epoch));
+                connectorName, className(epoch));
             return;
         }
 
@@ -535,31 +533,31 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * @return
      */
     private boolean mergeConnectConfig(String connectName, SchemaAndValue schemaAndValue) {
-        Struct value = (Struct)schemaAndValue.value();
+        Struct value = (Struct) schemaAndValue.value();
         Object targetState = value.get(FIELD_STATE);
-        if (!(targetState instanceof String)){
+        if (!(targetState instanceof String)) {
             // target state
             log.error("Invalid data for target state for connector '{}': 'state' field should be a String but is {}",
-                    connectName, className(targetState));
+                connectName, className(targetState));
             return false;
         }
         Object epoch = value.get(FIELD_EPOCH);
         if (!(epoch instanceof Long)) {
             // epoch
             log.error("Invalid data for epoch for connector '{}': 'state' field should be a long but is {}",
-                    connectName, className(epoch));
+                connectName, className(epoch));
             return false;
         }
         Object props = value.get(FIELD_PROPS);
-        if (!(props instanceof Map)){
+        if (!(props instanceof Map)) {
             // properties
             log.error("Invalid data for properties for connector '{}': 'state' field should be a Map but is {}",
-                    connectName, className(props));
+                connectName, className(props));
             return false;
         }
         // new configs
         ConnectKeyValue newConfig = new ConnectKeyValue();
-        newConfig.setEpoch((Long)epoch);
+        newConfig.setEpoch((Long) epoch);
         newConfig.setTargetState(TargetState.valueOf((String) targetState));
         newConfig.setProperties((Map<String, String>) props);
 
@@ -593,7 +591,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         return StagingMode.DISTRIBUTED;
     }
 
-
     private ConnectorTaskId parseTaskId(String key) {
         String[] parts = key.split("-");
         if (parts.length < 3) {
@@ -608,7 +605,6 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
             return null;
         }
     }
-
 
     private String className(Object o) {
         return o != null ? o.getClass().getName() : "null";

@@ -96,22 +96,22 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         this.keyConverter.configure(new HashMap<>());
         this.valueConverter.configure(new HashMap<>());
         this.dataSynchronizer = new BrokerBasedLog(
-                workerConfig,
-                this.topic,
-                ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
-                new PositionChangeCallback(),
-                Serdes.serdeFrom(ByteBuffer.class),
-                Serdes.serdeFrom(ByteBuffer.class)
+            workerConfig,
+            this.topic,
+            ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
+            new PositionChangeCallback(),
+            Serdes.serdeFrom(ByteBuffer.class),
+            Serdes.serdeFrom(ByteBuffer.class)
         );
 
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(workerConfig.getStorePathRootDir()),
-                new RecordPartitionSerde(),
-                new RecordOffsetSerde());
+            new RecordPartitionSerde(),
+            new RecordOffsetSerde());
 
         this.positionUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
         this.commitStarted = -1;
-        this.config =  workerConfig;
+        this.config = workerConfig;
         this.prepare(workerConfig);
     }
 
@@ -152,7 +152,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     public void load() {
         positionStore.load();
     }
-
 
     @Override
     public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
@@ -196,9 +195,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         if (!increment) {
             Set<ExtendRecordPartition> allPartitions = new HashSet<>();
             allPartitions.addAll(positionStore.getKVMap().keySet());
-            allPartitions.forEach((partition) -> {
-                set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
-            });
+            allPartitions.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
         }
         //Incremental send
         if (increment) {
@@ -207,9 +204,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                 return;
             }
             Set<ExtendRecordPartition> partitionsTmp = new HashSet<>(needSyncPartition);
-            partitionsTmp.forEach((partition) -> {
-                set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
-            });
+            partitionsTmp.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
         }
         // end send offset
         if (increment) {
@@ -279,7 +274,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         dataSynchronizer.send(keyBuffer, valueBuffer);
     }
 
-
     private class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
 
         @Override
@@ -330,7 +324,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
             positionUpdateListener.onPositionUpdate();
         }
     }
-
 
     /**
      * Merge new received position info with local store.

@@ -61,8 +61,6 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
-
-
     private final String statusManagePrefix = "StatusManage";
 
     public static final String START_SIGNAL = "start-signal";
@@ -74,18 +72,18 @@ public class StateManagementServiceImpl implements StateManagementService {
     public static final String WORKER_ID_KEY_NAME = "worker_id";
     public static final String GENERATION_KEY_NAME = "generation";
     private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
-            .field(STATE_KEY_NAME, SchemaBuilder.string().build())
-            .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
-            .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
-            .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
-            .build();
+        .field(STATE_KEY_NAME, SchemaBuilder.string().build())
+        .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
+        .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
+        .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
+        .build();
 
     /**
      * start signal
      */
     public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-            .field(START_SIGNAL, SchemaBuilder.string().build())
-            .build();
+        .field(START_SIGNAL, SchemaBuilder.string().build())
+        .build();
     /**
      * Synchronize config with other workers.
      */
@@ -100,6 +98,7 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     private RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
     private String statusTopic;
+
     /**
      * Preparation before startup
      *
@@ -127,23 +126,23 @@ public class StateManagementServiceImpl implements StateManagementService {
         this.statusTopic = config.getConnectStatusTopic();
 
         this.dataSynchronizer = new BrokerBasedLog(config,
-                this.statusTopic,
-                ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
-                new StatusChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class));
+            this.statusTopic,
+            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+            new StatusChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class));
 
         /**connector status store*/
         this.connectorStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new JsonSerde(ConnectorStatus.class));
+            FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
+            new Serdes.StringSerde(),
+            new JsonSerde(ConnectorStatus.class));
 
         /**task status store*/
         this.taskStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new ListSerde(TaskStatus.class));
+            FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
+            new Serdes.StringSerde(),
+            new ListSerde(TaskStatus.class));
         // create topic
         this.prepare(config);
     }
@@ -161,7 +160,7 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     private void startSignal() {
         Struct struct = new Struct(START_SIGNAL_V0);
-        struct.put(START_SIGNAL,START_SIGNAL);
+        struct.put(START_SIGNAL, START_SIGNAL);
         dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(statusTopic, START_SIGNAL_V0, struct));
     }
 
@@ -206,6 +205,7 @@ public class StateManagementServiceImpl implements StateManagementService {
             });
         });
     }
+
     /**
      * pre persist
      */
@@ -254,7 +254,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         sendConnectorStatus(status, true);
     }
 
-
     /**
      * Set the state of the connector to the given value.
      *
@@ -266,10 +265,9 @@ public class StateManagementServiceImpl implements StateManagementService {
     }
 
     /**
-     * Safely set the state of the task to the given value. What is
-     * considered "safe" depends on the implementation, but basically it
-     * means that the store can provide higher assurance that another worker
-     * hasn't concurrently written any conflicting data.
+     * Safely set the state of the task to the given value. What is considered "safe" depends on the implementation, but
+     * basically it means that the store can provide higher assurance that another worker hasn't concurrently written
+     * any conflicting data.
      *
      * @param status the status of the task
      */
@@ -294,11 +292,10 @@ public class StateManagementServiceImpl implements StateManagementService {
         send(key, status, entry, safeWrite);
     }
 
-
     private <V extends AbstractStatus<?>> void send(final String key,
-                                                    final V status,
-                                                    final ConnAndTaskStatus.CacheEntry<V> entry,
-                                                    final boolean safeWrite) {
+        final V status,
+        final ConnAndTaskStatus.CacheEntry<V> entry,
+        final boolean safeWrite) {
         synchronized (this) {
             if (safeWrite && !entry.canWrite(status)) {
                 return;
@@ -325,7 +322,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         struct.put(GENERATION_KEY_NAME, status.getGeneration());
         return converter.fromConnectData(this.statusTopic, STATUS_SCHEMA_V0, struct);
     }
-
 
     /**
      * Get the current state of the task.
@@ -395,15 +391,14 @@ public class StateManagementServiceImpl implements StateManagementService {
         return StagingMode.DISTRIBUTED;
     }
 
-
     private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
-            if (StringUtils.isEmpty(key)){
+            if (StringUtils.isEmpty(key)) {
                 log.error("State change message is illegal, key is empty, the message will be skipped ");
                 return;
             }
-            if (key.equals(START_SIGNAL)){
+            if (key.equals(START_SIGNAL)) {
                 replicaTargetState();
             } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
                 readConnectorStatus(key, value);
@@ -437,7 +432,7 @@ public class StateManagementServiceImpl implements StateManagementService {
             log.trace("Received connector {} status update {}", connector, status);
             ConnAndTaskStatus.CacheEntry<ConnectorStatus> entry = connAndTaskStatus.getOrAdd(connector);
             if (entry.get() != null) {
-                if (status.getGeneration() > entry.get().getGeneration() ){
+                if (status.getGeneration() > entry.get().getGeneration()) {
                     entry.put(status);
                 }
             } else {
@@ -445,7 +440,6 @@ public class StateManagementServiceImpl implements StateManagementService {
             }
         }
     }
-
 
     private String parseConnectorStatusKey(String key) {
         return key.substring(CONNECTOR_STATUS_PREFIX.length());
@@ -463,7 +457,7 @@ public class StateManagementServiceImpl implements StateManagementService {
             String trace = (String) struct.get(TRACE_KEY_NAME);
             String workerUrl = (String) struct.get(WORKER_ID_KEY_NAME);
             Long generation = (Long) struct.get(GENERATION_KEY_NAME);
-            return new ConnectorStatus(connector, state,  workerUrl, generation, trace);
+            return new ConnectorStatus(connector, state, workerUrl, generation, trace);
         } catch (Exception e) {
             log.error("Failed to deserialize connector status", e);
             return null;
@@ -493,7 +487,7 @@ public class StateManagementServiceImpl implements StateManagementService {
             log.trace("Received task {} status update {}", id, status);
             ConnAndTaskStatus.CacheEntry<TaskStatus> entry = connAndTaskStatus.getOrAdd(id);
             if (entry.get() != null) {
-                if (status.getGeneration() > entry.get().getGeneration() ){
+                if (status.getGeneration() > entry.get().getGeneration()) {
                     entry.put(status);
                 }
             } else {
@@ -535,7 +529,6 @@ public class StateManagementServiceImpl implements StateManagementService {
             return null;
         }
     }
-
 
     /**
      * remove connector
