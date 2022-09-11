@@ -376,7 +376,7 @@ public class WorkerSinkTask extends WorkerTask {
         try {
             for (Map.Entry<MessageQueue, Long> offsetEntry : offsets.entrySet()) {
                 consumer.getOffsetStore().updateOffset(offsetEntry.getKey(), offsetEntry.getValue(), true);
-                consumer.getOffsetStore().updateConsumeOffsetToBroker(offsetEntry.getKey(), offsetEntry.getValue(), false);
+                // consumer.getOffsetStore().updateConsumeOffsetToBroker(offsetEntry.getKey(), offsetEntry.getValue(), false);
             }
             onCommitCompleted(null, seqno, offsets);
         } catch (Exception e) {
