@@ -18,13 +18,10 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import io.openmessaging.connector.api.data.Converter;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 /**

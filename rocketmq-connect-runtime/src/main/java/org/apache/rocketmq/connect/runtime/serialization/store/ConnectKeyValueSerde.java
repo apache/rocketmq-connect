@@ -14,7 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
 package org.apache.rocketmq.connect.runtime.serialization.store;
 
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -33,9 +32,10 @@ public class ConnectKeyValueSerde extends WrapperSerde<ConnectKeyValue> {
 
     /**
      * serializer and deserializer
+     *
      * @return
      */
-    public static ConnectKeyValueSerde serde(){
+    public static ConnectKeyValueSerde serde() {
         return new ConnectKeyValueSerde(new ConnectKeyValueSerializer(), new ConnectKeyValueDeserializer());
     }
 

@@ -29,15 +29,17 @@ import java.util.Map;
  * Byte Map to byte[].
  */
 public class RecordPositionMapSerde extends WrapperSerde<Map<ExtendRecordPartition, RecordOffset>> {
-    public RecordPositionMapSerde(Serializer<Map<ExtendRecordPartition, RecordOffset>> serializer, Deserializer<Map<ExtendRecordPartition, RecordOffset>> deserializer) {
+    public RecordPositionMapSerde(Serializer<Map<ExtendRecordPartition, RecordOffset>> serializer,
+        Deserializer<Map<ExtendRecordPartition, RecordOffset>> deserializer) {
         super(serializer, deserializer);
     }
 
     /**
      * serializer and deserializer
+     *
      * @return
      */
-    public static RecordPositionMapSerde serde(){
+    public static RecordPositionMapSerde serde() {
         return new RecordPositionMapSerde(new RecordPositionMapSerializer(), new RecordPositionMapDeserializer());
     }
 }
