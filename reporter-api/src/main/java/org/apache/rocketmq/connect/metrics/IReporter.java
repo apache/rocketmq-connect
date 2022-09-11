@@ -19,7 +19,7 @@ package org.apache.rocketmq.connect.metrics;
 /**
  * astrict reporter
  */
-public interface AstrictReporter extends AutoCloseable {
+public interface IReporter extends AutoCloseable {
 
     /**
      * start exporter

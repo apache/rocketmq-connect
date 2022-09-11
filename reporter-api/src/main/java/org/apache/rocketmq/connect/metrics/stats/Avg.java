@@ -30,7 +30,7 @@ public class Avg extends AbstractHistogram {
     private final MetricName name;
 
     public Avg(MetricRegistry registry, MetricName name) {
-        super(registry, name);
+        super(name);
         this.registry = registry;
         this.name = name;
         this.histogram = registry.histogram(name.toString());
@@ -48,7 +48,7 @@ public class Avg extends AbstractHistogram {
 
     @Override
     public String type() {
-        return HistogramType.avg.name();
+        return HistogramType.Avg.name();
     }
 }
 

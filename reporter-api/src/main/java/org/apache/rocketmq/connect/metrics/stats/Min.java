@@ -30,7 +30,7 @@ public class Min extends AbstractHistogram {
     private MetricName name;
 
     public Min(MetricRegistry registry, MetricName name) {
-        super(registry, name);
+        super(name);
         this.name = name;
         this.registry = registry;
         this.histogram = registry.histogram(name.toString());

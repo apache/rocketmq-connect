@@ -24,7 +24,11 @@ import org.apache.rocketmq.connect.metrics.MetricName;
  * Abstract Histogram
  */
 public abstract class AbstractHistogram implements Stat {
-    public AbstractHistogram(MetricRegistry registry, MetricName name) {
+    public AbstractHistogram(MetricName name) {
         name.setType(type());
+    }
+
+    public AbstractHistogram(MetricName name, HistogramType type) {
+        name.setType(type.name());
     }
 }

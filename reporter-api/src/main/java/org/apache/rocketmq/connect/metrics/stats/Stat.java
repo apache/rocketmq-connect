@@ -16,12 +16,10 @@
  */
 package org.apache.rocketmq.connect.metrics.stats;
 
-
 /**
  * measure stat
  */
 public interface Stat extends AutoCloseable {
-
 
     /**
      * record
@@ -36,12 +34,34 @@ public interface Stat extends AutoCloseable {
      * @return
      */
     default String type() {
-        return "none";
+        return NoneType.none.name();
     }
 
-    enum HistogramType {
-        avg,
+
+
+    enum HistogramType{
+        Avg,
         Max,
         Min,
+        Percentile_75th,
+        Percentile_95th,
+        Percentile_98th,
+        Percentile_99th,
+        Percentile_999th
     }
+
+    /**
+     * rate type
+     */
+    enum RateType{
+        MeanRate,
+        OneMinuteRate,
+        FiveMinuteRate,
+        FifteenMinuteRate,
+    }
+
+    enum NoneType {
+        none
+    }
+
 }

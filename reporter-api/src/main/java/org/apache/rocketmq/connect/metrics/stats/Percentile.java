@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.connect.metrics.stats;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.metrics.MetricName;
 
-public class Max extends AbstractHistogram {
+/**
+ * percentile
+ */
+public class Percentile  extends AbstractHistogram {
     private final Histogram histogram;
     private final MetricRegistry registry;
     private final MetricName name;
-
-    public Max(MetricRegistry registry, MetricName name) {
-        super(name);
+    public Percentile(MetricRegistry registry, MetricName name, HistogramType type) {
+        super(name, type);
         this.registry = registry;
         this.name = name;
         this.histogram = registry.histogram(name.toString());
@@ -34,18 +37,11 @@ public class Max extends AbstractHistogram {
 
     @Override
     public void record(long value) {
-        histogram.update(value);
+        this.histogram.update(value);
     }
-
 
     @Override
     public void close() throws Exception {
-        this.registry.remove(name.toString());
-    }
-
-    @Override
-    public String type() {
-        return HistogramType.Max.name();
+        registry.remove(name.getName());
     }
 }
-

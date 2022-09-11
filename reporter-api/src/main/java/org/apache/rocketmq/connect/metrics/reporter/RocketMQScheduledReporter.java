@@ -17,10 +17,6 @@
 package org.apache.rocketmq.connect.metrics.reporter;
 
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -61,7 +57,7 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
     }
 
     @Override
-    public void reportMetric(SortedMap<MetricName, Gauge> gauges, SortedMap<MetricName, Counter> counters, SortedMap<MetricName, Histogram> histograms, SortedMap<MetricName, Meter> meters, SortedMap<MetricName, Timer> timers) {
+    public void reportMetric(SortedMap<MetricName, Object> gauges, SortedMap<MetricName, Long> counters, SortedMap<MetricName, Double> histograms, SortedMap<MetricName, Double> meters, SortedMap<MetricName, Timer> timers) {
         reportGauges(gauges);
         reportCounters(counters);
         reportHistograms(histograms);
@@ -74,9 +70,9 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
      *
      * @param gauges
      */
-    private void reportGauges(SortedMap<MetricName, Gauge> gauges) {
-        gauges.forEach((name, gauge) -> {
-            send(name, Double.valueOf(gauge.getValue().toString()));
+    private void reportGauges(SortedMap<MetricName, Object> gauges) {
+        gauges.forEach((name, value) -> {
+            send(name, Double.parseDouble(value.toString()));
         });
     }
 
@@ -85,9 +81,9 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
      *
      * @param counters
      */
-    private void reportCounters(SortedMap<MetricName, Counter> counters) {
-        counters.forEach((name, counter) -> {
-            send(name, Double.valueOf(counter.getCount()));
+    private void reportCounters(SortedMap<MetricName, Long> counters) {
+        counters.forEach((name, value) -> {
+            send(name, Double.parseDouble(value.toString()));
         });
     }
 
@@ -96,9 +92,9 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
      *
      * @param histograms
      */
-    private void reportHistograms(SortedMap<MetricName, Histogram> histograms) {
-        histograms.forEach((name, histogram) -> {
-            send(name, histogramValue(name, histogram));
+    private void reportHistograms(SortedMap<MetricName, Double> histograms) {
+        histograms.forEach((name, value) -> {
+            send(name, value);
         });
     }
 
@@ -107,9 +103,9 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
      *
      * @param meters
      */
-    private void reportMeters(SortedMap<MetricName, Meter> meters) {
-        meters.forEach((name, meter) -> {
-            send(name, meter.getMeanRate());
+    private void reportMeters(SortedMap<MetricName, Double> meters) {
+        meters.forEach((name, value) -> {
+            send(name, value);
         });
     }
 

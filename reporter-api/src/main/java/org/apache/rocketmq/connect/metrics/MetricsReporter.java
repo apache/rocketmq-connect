@@ -28,7 +28,7 @@ import com.codahale.metrics.Timer;
 /**
  * rocketmq exporter
  */
-public abstract class MetricsReporter implements Reporter, MetricRegistryListener, AutoConfiguration, AstrictReporter {
+public abstract class MetricsReporter implements Reporter, MetricRegistryListener, AutoConfiguration, IReporter {
     private final MetricRegistry registry;
 
     public MetricsReporter(MetricRegistry registry) {
@@ -43,10 +43,10 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param gauge the gauge
      */
     public void onGaugeAdded(String name, Gauge<?> gauge) {
-        this.onGaugeAdded(MetricUtils.stringToMetricName(name), gauge);
+        this.onGaugeAdded(MetricUtils.stringToMetricName(name), gauge.getValue());
     }
 
-    public abstract void onGaugeAdded(MetricName name, Gauge<?> gauge);
+    public abstract void onGaugeAdded(MetricName name, Object value);
 
     /**
      * Called when a {@link Gauge} is removed from the registry.
@@ -66,10 +66,10 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param counter the counter
      */
     public void onCounterAdded(String name, Counter counter) {
-        this.onCounterAdded(MetricUtils.stringToMetricName(name), counter);
+        this.onCounterAdded(MetricUtils.stringToMetricName(name), counter.getCount());
     }
 
-    public abstract void onCounterAdded(MetricName name, Counter counter);
+    public abstract void onCounterAdded(MetricName name, Long value);
 
     /**
      * Called when a {@link Counter} is removed from the registry.
@@ -89,10 +89,11 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param histogram the histogram
      */
     public void onHistogramAdded(String name, Histogram histogram) {
-        this.onHistogramAdded(MetricUtils.stringToMetricName(name), histogram);
+        MetricName metricName = MetricUtils.stringToMetricName(name);
+        this.onHistogramAdded(metricName, MetricUtils.getHistogramValue(metricName, histogram));
     }
 
-    public abstract void onHistogramAdded(MetricName name, Histogram histogram);
+    public abstract void onHistogramAdded(MetricName name, Double value);
 
     /**
      * Called when a {@link Histogram} is removed from the registry.
@@ -113,10 +114,11 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param meter the meter
      */
     public void onMeterAdded(String name, Meter meter) {
-
+        MetricName metricName = MetricUtils.stringToMetricName(name);
+        onMeterAdded(metricName, MetricUtils.getMeterValue(metricName, meter));
     }
 
-    public abstract void onMeterAdded(MetricName name, Meter meter);
+    public abstract void onMeterAdded(MetricName name, Double value);
 
     /**
      * Called when a {@link Meter} is removed from the registry.

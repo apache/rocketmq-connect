@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * rocketmq exporter
  */
-public abstract class ScheduledMetricsReporter extends ScheduledReporter implements AutoConfiguration, AstrictReporter {
+public abstract class ScheduledMetricsReporter extends ScheduledReporter implements AutoConfiguration, IReporter {
 
     public ScheduledMetricsReporter(MetricRegistry registry) {
         super(registry, "scheduled-reporter", MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
@@ -47,26 +47,28 @@ public abstract class ScheduledMetricsReporter extends ScheduledReporter impleme
     @Override
     public void report(SortedMap<String, Gauge> gauges, SortedMap<String, Counter> counters, SortedMap<String, Histogram> histograms, SortedMap<String, Meter> meters, SortedMap<String, Timer> timers) {
         // convert gauges
-        SortedMap<MetricName, Gauge> convertGauges = new TreeMap<>();
+        SortedMap<MetricName, Object> convertGauges = new TreeMap<>();
         for (Map.Entry<String, Gauge> gaugeEntry : gauges.entrySet()) {
-            convertGauges.put(MetricUtils.stringToMetricName(gaugeEntry.getKey()), gaugeEntry.getValue());
+            convertGauges.put(MetricUtils.stringToMetricName(gaugeEntry.getKey()), gaugeEntry.getValue().getValue());
         }
         // convert counters
-        SortedMap<MetricName, Counter> convertCounters = new TreeMap<>();
+        SortedMap<MetricName, Long> convertCounters = new TreeMap<>();
         for (Map.Entry<String, Counter> counterEntry : counters.entrySet()) {
-            convertCounters.put(MetricUtils.stringToMetricName(counterEntry.getKey()), counterEntry.getValue());
+            convertCounters.put(MetricUtils.stringToMetricName(counterEntry.getKey()), counterEntry.getValue().getCount());
         }
 
         // convert histograms
-        SortedMap<MetricName, Histogram> convertHistograms = new TreeMap<>();
+        SortedMap<MetricName, Double> convertHistograms = new TreeMap<>();
         for (Map.Entry<String, Histogram> histogramEntry : histograms.entrySet()) {
-            convertHistograms.put(MetricUtils.stringToMetricName(histogramEntry.getKey()), histogramEntry.getValue());
+            MetricName metricName = MetricUtils.stringToMetricName(histogramEntry.getKey());
+            convertHistograms.put(metricName, MetricUtils.getHistogramValue(metricName, histogramEntry.getValue()));
         }
 
         // convert meters
-        SortedMap<MetricName, Meter> convertMeters = new TreeMap<>();
+        SortedMap<MetricName, Double> convertMeters = new TreeMap<>();
         for (Map.Entry<String, Meter> meterEntry : meters.entrySet()) {
-            convertMeters.put(MetricUtils.stringToMetricName(meterEntry.getKey()), meterEntry.getValue());
+            MetricName metricName = MetricUtils.stringToMetricName(meterEntry.getKey());
+            convertMeters.put(MetricUtils.stringToMetricName(meterEntry.getKey()), MetricUtils.getMeterValue(metricName, meterEntry.getValue()));
         }
 
         // convert timers
@@ -77,23 +79,6 @@ public abstract class ScheduledMetricsReporter extends ScheduledReporter impleme
         reportMetric(convertGauges, convertCounters, convertHistograms, convertMeters, convertTimers);
     }
 
-    public abstract void reportMetric(SortedMap<MetricName, Gauge> gauges, SortedMap<MetricName, Counter> counters, SortedMap<MetricName, Histogram> histograms, SortedMap<MetricName, Meter> meters, SortedMap<MetricName, Timer> timers);
+    public abstract void reportMetric(SortedMap<MetricName, Object> gauges, SortedMap<MetricName, Long> counters, SortedMap<MetricName, Double> histograms, SortedMap<MetricName, Double> meters, SortedMap<MetricName, Timer> timers);
 
-
-    protected double histogramValue(MetricName name, Histogram histogram) {
-        Stat.HistogramType histogramType = Stat.HistogramType.valueOf(name.getType());
-        if (histogramType == null) {
-            throw new IllegalArgumentException("No matching type found");
-        }
-        switch (histogramType) {
-            case avg:
-                return histogram.getSnapshot().getMean();
-            case Max:
-                return histogram.getSnapshot().getMax();
-            case Min:
-                return histogram.getSnapshot().getMin();
-            default:
-                throw new RuntimeException("Unsupported type " + name.getType());
-        }
-    }
 }

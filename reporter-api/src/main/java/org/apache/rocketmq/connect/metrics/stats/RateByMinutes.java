@@ -16,36 +16,32 @@
  */
 package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.metrics.MetricName;
 
-public class Max extends AbstractHistogram {
-    private final Histogram histogram;
-    private final MetricRegistry registry;
-    private final MetricName name;
+/**
+ * rate
+ */
+public class RateByMinutes implements Stat {
+    private final Meter meter;
+    private MetricRegistry registry;
+    private MetricName name;
 
-    public Max(MetricRegistry registry, MetricName name) {
-        super(name);
+    public RateByMinutes(MetricRegistry registry, MetricName name, Stat.RateType rateType) {
+        name.setType(rateType.name());
         this.registry = registry;
         this.name = name;
-        this.histogram = registry.histogram(name.toString());
+        this.meter = registry.meter(name.toString());
     }
 
     @Override
     public void record(long value) {
-        histogram.update(value);
+        this.meter.mark(value);
     }
-
 
     @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }
-
-    @Override
-    public String type() {
-        return HistogramType.Max.name();
-    }
 }
-

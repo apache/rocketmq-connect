@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.connect.metrics;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.metrics.stats.Stat;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -91,5 +94,65 @@ public class MetricUtils {
             tags.put(keyValue[i], keyValue[i + 1]);
         return tags;
     }
+
+
+    /**
+     * get meter value
+     * @param name
+     * @param meter
+     * @return
+     */
+   public static Double getMeterValue(MetricName name, Meter meter) {
+       if (name.getType().equals(Stat.NoneType.none.name())) {
+           throw new IllegalArgumentException("Meter type configuration error");
+       }
+       Stat.RateType rateType = Stat.RateType.valueOf(name.getType());
+       switch (rateType) {
+           case MeanRate:
+               return meter.getMeanRate();
+           case OneMinuteRate:
+               return meter.getOneMinuteRate();
+           case FiveMinuteRate:
+               return meter.getFiveMinuteRate();
+           case FifteenMinuteRate:
+               return meter.getFifteenMinuteRate();
+           default:
+               return 0.0;
+       }
+    }
+
+    /**
+     * get histogram value
+     * @param name
+     * @param histogram
+     * @return
+     */
+    public static Double getHistogramValue(MetricName name, Histogram histogram) {
+        if (name.getType().equals(Stat.NoneType.none.name())) {
+            throw new IllegalArgumentException("Histogram type configuration error");
+        }
+        Stat.HistogramType histogramType = Stat.HistogramType.valueOf(name.getType());
+        switch (histogramType){
+            case Min:
+                return Double.valueOf(histogram.getSnapshot().getMin());
+            case Avg:
+                return Double.valueOf(histogram.getSnapshot().getMean());
+            case Max:
+                return Double.valueOf(histogram.getSnapshot().getMax());
+            case Percentile_75th:
+                return histogram.getSnapshot().get75thPercentile();
+            case Percentile_95th:
+                return histogram.getSnapshot().get95thPercentile();
+            case Percentile_98th:
+                return histogram.getSnapshot().get98thPercentile();
+            case Percentile_99th:
+                return histogram.getSnapshot().get99thPercentile();
+            case Percentile_999th:
+                return histogram.getSnapshot().get999thPercentile();
+            default:
+                return 0.0;
+        }
+    }
+
 
 }
