@@ -304,7 +304,6 @@ public class WorkerSinkTask extends WorkerTask {
         } finally {
             if (closing) {
                 log.trace("{} Closing the task before committing the offsets: {}", this, offsetsToCommit);
-                sinkTask.flush(taskProvidedRecordOffsets);
             }
         }
         if (taskProvidedOffsets.isEmpty()) {
@@ -590,7 +589,7 @@ public class WorkerSinkTask extends WorkerTask {
                             return;
                         }
                         // remove and close message queue
-                        removeAndCloseMessageQueue(topic, mqDivided);
+                        removeAndCloseMessageQueue(subTopic, mqDivided);
 
                         // add new message queue
                         assignMessageQueue(mqDivided);
@@ -626,7 +625,7 @@ public class WorkerSinkTask extends WorkerTask {
             }
         }
         // filter not contains in messageQueues
-        removeMessageQueues = messageQueues.stream().filter(messageQueue -> !queues.contains(messageQueue)).collect(Collectors.toSet());
+        removeMessageQueues = messageQueues.stream().filter(messageQueue -> topic.equals(messageQueue.getTopic()) && !queues.contains(messageQueue)).collect(Collectors.toSet());
         if (removeMessageQueues == null || removeMessageQueues.isEmpty()) {
             return;
         }
@@ -696,8 +695,9 @@ public class WorkerSinkTask extends WorkerTask {
                 resumeAll();
             }
             // reset
-            sinkTaskContext.getPausedQueues().retainAll(queues);
+            sinkTaskContext.getPausedQueues().retainAll(messageQueues);
             if (shouldPause()) {
+                pauseAll();
                 return;
             }
             if (!sinkTaskContext.getPausedQueues().isEmpty()) {
@@ -725,7 +725,7 @@ public class WorkerSinkTask extends WorkerTask {
         }
 
         if (offset < 0) {
-            String consumeFromWhere = taskConfig.getString("consume-from-where");
+            String consumeFromWhere = taskConfig.getString(ConnectorConfig.CONSUME_FROM_WHERE);
             if (StringUtils.isBlank(consumeFromWhere)) {
                 consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name();
             }

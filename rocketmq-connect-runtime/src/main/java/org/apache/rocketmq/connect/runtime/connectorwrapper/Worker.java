@@ -244,13 +244,21 @@ public class Worker {
      * @param assigns
      */
     private void checkAndStopConnectors(Collection<String> assigns) {
-        if (assigns.isEmpty()) {
+        if (CollectionUtils.isEmpty(assigns)) {
             // delete all
-            assigns = connectors.keySet();
+            Set<String> connectors = this.connectors.keySet();
+            for (String connector : connectors) {
+                log.info("It may be that the load balancing assigns this connector to other nodes,connector {}", connector);
+                stopAndAwaitConnector(connector);
+                this.connectors.remove(connector);
+            }
+            return;
         }
         for (String connectorName : assigns) {
             if (!assigns.contains(connectorName)) {
+                log.info("It may be that the load balancing assigns this connector to other nodes,connector {}", connectorName);
                 stopAndAwaitConnector(connectorName);
+                connectors.remove(connectorName);
             }
         }
     }

@@ -95,6 +95,9 @@ public class ConnectorConfig {
     public static final String ERRORS_TOLERANCE_CONFIG = "errors.tolerance";
     public static final ToleranceType ERRORS_TOLERANCE_DEFAULT = ToleranceType.NONE;
 
+    public static final String CONSUME_FROM_WHERE = "consume.from.where";
+
+
     /**
      * The required key for all configurations.
      */
