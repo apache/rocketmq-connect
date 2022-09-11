@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics;
+package org.apache.rocketmq.connect.metrics;
+
+import java.util.Map;
 
 /**
- * astrict reporter
+ * auto configuration
  */
-public interface AstrictReporter extends AutoCloseable {
-
+public interface AutoConfiguration {
     /**
-     * start exporter
+     * configs
+     *
+     * @param configs
      */
-    void start();
+    void config(Map<String, String> configs);
 }

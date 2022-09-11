@@ -26,7 +26,9 @@ public class ConnectorTaskId implements Comparable<ConnectorTaskId> {
     private String connector;
     private int task;
 
-    public ConnectorTaskId(){}
+    public ConnectorTaskId() {
+    }
+
     public ConnectorTaskId(String connector, int task) {
         this.connector = connector;
         this.task = task;

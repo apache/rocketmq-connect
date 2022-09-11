@@ -22,17 +22,12 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
@@ -53,44 +48,34 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 
 @RunWith(MockitoJUnitRunner.class)
 public class WorkerSourceTaskTest {
 
+    ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
     private WorkerSourceTask workerSourceTask;
-
     private WorkerConfig connectConfig;
-
-    private ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector" ,1);
-
+    private ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector", 1);
     private SourceTask sourceTask = new TestSourceTask();
-
     private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
-
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
-
     private RecordConverter recordConverter = new TestConverter();
-
     @Mock
     private DefaultMQProducer defaultMQProducer;
-
     private AtomicReference<WorkerState> workerState = new AtomicReference<>(WorkerState.STARTED);
-
     private ConnectStatsManager connectStatsManager;
-
     private ConnectStatsService connectStatsService = new ConnectStatsService();
-
     private TransformChain<ConnectRecord> transformChain;
-
     private KeyValue keyValue = new DefaultKeyValue();
-
     @Mock
     private Plugin plugin;
-
     private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(new WorkerConfig())));
-
-    ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
@@ -105,8 +90,8 @@ public class WorkerSourceTaskTest {
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),
-            connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
-            connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator,null, new ConnectMetrics(new WorkerConfig()));
+                connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
+                connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, null, new ConnectMetrics(new WorkerConfig()));
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
     }

@@ -78,7 +78,7 @@ public class Utils {
         }
     }
 
-    public static <T> T newInstance(Class<T> c,  Class[] parameterTypes, Object[] initargs) {
+    public static <T> T newInstance(Class<T> c, Class[] parameterTypes, Object[] initargs) {
         if (c == null) {
             throw new ConnectException("class cannot be null");
         }
@@ -94,10 +94,11 @@ public class Utils {
 
     /**
      * new instance
+     *
      * @param klass
      * @param base
-     * @return
      * @param <T>
+     * @return
      * @throws ClassNotFoundException
      */
     public static <T> T newInstance(String klass, Class<T> base) throws ClassNotFoundException {

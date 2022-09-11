@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -38,6 +35,9 @@ import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.MAX_MESSAGE_SIZE;
 
@@ -127,7 +127,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     @Override
     public void send(K key, V value) {
         try {
-            Map.Entry<byte[],byte[]> encode = encode(key, value);
+            Map.Entry<byte[], byte[]> encode = encode(key, value);
             byte[] body = encode.getValue();
             if (body.length > MAX_MESSAGE_SIZE) {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
@@ -136,11 +136,13 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
             producer.send(message, new SendCallback() {
-                @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                @Override
+                public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                 }
 
-                @Override public void onException(Throwable throwable) {
+                @Override
+                public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
                     }
@@ -161,7 +163,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     @Override
     public void send(K key, V value, Callback callback) {
         try {
-            Map.Entry<byte[],byte[]> encode = encode(key, value);
+            Map.Entry<byte[], byte[]> encode = encode(key, value);
             byte[] body = encode.getValue();
             if (body.length > MAX_MESSAGE_SIZE) {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
@@ -170,11 +172,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
             producer.send(message, new SendCallback() {
-                @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                @Override
+                public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                     callback.onCompletion(null, value);
                 }
-                @Override public void onException(Throwable throwable) {
+
+                @Override
+                public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
                         callback.onCompletion(throwable, value);
@@ -187,18 +192,20 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     }
 
 
-    private Map.Entry<byte[],byte[]> encode(K key, V value) {
+    private Map.Entry<byte[], byte[]> encode(K key, V value) {
         byte[] keySer = keySerde.serializer().serialize(topicName, key);
-        byte[] valueSer = valueSerde.serializer().serialize(topicName,value);
-        return new Map.Entry<byte[],byte[]>(){
+        byte[] valueSer = valueSerde.serializer().serialize(topicName, value);
+        return new Map.Entry<byte[], byte[]>() {
             @Override
             public byte[] getKey() {
                 return keySer;
             }
+
             @Override
             public byte[] getValue() {
                 return valueSer;
             }
+
             @Override
             public byte[] setValue(byte[] value) {
                 throw new UnsupportedOperationException();
@@ -207,17 +214,19 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     }
 
     private Map.Entry<K, V> decode(byte[] key, byte[] value) {
-        K deKey = (K)keySerde.deserializer().deserialize(topicName, key);
-        V deValue = (V)valueSerde.deserializer().deserialize(topicName, value);
-        return new Map.Entry<K, V>(){
+        K deKey = (K) keySerde.deserializer().deserialize(topicName, key);
+        V deValue = (V) valueSerde.deserializer().deserialize(topicName, value);
+        return new Map.Entry<K, V>() {
             @Override
             public K getKey() {
                 return deKey;
             }
+
             @Override
             public V getValue() {
                 return deValue;
             }
+
             @Override
             public V setValue(V value) {
                 throw new UnsupportedOperationException();
@@ -233,7 +242,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
                 try {
                     String key = messageExt.getKeys();
-                    Map.Entry<K,V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
+                    Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
                     dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
                 } catch (Exception e) {
                     log.error("Decode message data error. message: {}, error info: {}", messageExt, e);

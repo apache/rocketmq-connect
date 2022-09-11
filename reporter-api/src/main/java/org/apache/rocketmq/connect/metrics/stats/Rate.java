@@ -14,42 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
+import org.apache.rocketmq.connect.metrics.MetricName;
 
 /**
- * gauge
+ * rate
  */
-public class Value implements Stat, Measure {
-    private final MetricRegistry registry;
-    private final MetricName name;
-    private long value;
-    public Value(MetricRegistry registry, MetricName name){
+public class Rate implements Stat {
+    private final Meter meter;
+    private MetricRegistry registry;
+    private MetricName name;
+
+    public Rate(MetricRegistry registry, MetricName name) {
         this.registry = registry;
         this.name = name;
-        registry.register(name.toString(), new Gauge() {
-            @Override
-            public Object getValue() {
-                return value;
-            }
-        });
+        this.meter = registry.meter(name.toString());
     }
 
     @Override
     public void record(long value) {
-        this.value = value;
+        this.meter.mark(value);
     }
 
     @Override
     public void close() throws Exception {
-        registry.remove(name.toString());
-    }
-
-    @Override
-    public double value() {
-        return value;
+        this.registry.remove(name.toString());
     }
 }

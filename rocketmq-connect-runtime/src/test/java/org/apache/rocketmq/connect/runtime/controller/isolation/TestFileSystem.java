@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
@@ -26,55 +28,67 @@ import java.nio.file.WatchService;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
-import org.jetbrains.annotations.NotNull;
 
 public class TestFileSystem extends FileSystem {
-    @Override public FileSystemProvider provider() {
+    @Override
+    public FileSystemProvider provider() {
 //        return new MacOSXFileSystemProvider();
         return null;
     }
 
-    @Override public void close() throws IOException {
+    @Override
+    public void close() throws IOException {
 
     }
 
-    @Override public boolean isOpen() {
+    @Override
+    public boolean isOpen() {
         return false;
     }
 
-    @Override public boolean isReadOnly() {
+    @Override
+    public boolean isReadOnly() {
         return false;
     }
 
-    @Override public String getSeparator() {
+    @Override
+    public String getSeparator() {
         return null;
     }
 
-    @Override public Iterable<Path> getRootDirectories() {
+    @Override
+    public Iterable<Path> getRootDirectories() {
         return null;
     }
 
-    @Override public Iterable<FileStore> getFileStores() {
+    @Override
+    public Iterable<FileStore> getFileStores() {
         return null;
     }
 
-    @Override public Set<String> supportedFileAttributeViews() {
+    @Override
+    public Set<String> supportedFileAttributeViews() {
         return null;
     }
 
-    @NotNull @Override public Path getPath(@NotNull String first, @NotNull String... more) {
+    @NotNull
+    @Override
+    public Path getPath(@NotNull String first, @NotNull String... more) {
         return null;
     }
 
-    @Override public PathMatcher getPathMatcher(String syntaxAndPattern) {
+    @Override
+    public PathMatcher getPathMatcher(String syntaxAndPattern) {
         return null;
     }
 
-    @Override public UserPrincipalLookupService getUserPrincipalLookupService() {
+    @Override
+    public UserPrincipalLookupService getUserPrincipalLookupService() {
         return null;
     }
 
-    @Override public WatchService newWatchService() throws IOException {
+    @Override
+    public WatchService newWatchService() throws IOException {
         return null;
     }
 }

@@ -14,34 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
+import org.apache.rocketmq.connect.metrics.MetricName;
 
-
-/**
- * cumulative count
- */
-public class CumulativeCount implements Stat {
-
-    private final Counter counter;
+public class Max extends AbstractHistogram {
+    private final Histogram histogram;
     private final MetricRegistry registry;
     private final MetricName name;
-    public CumulativeCount(MetricRegistry registry, MetricName name) {
-        this.registry =  registry;
+
+    public Max(MetricRegistry registry, MetricName name) {
+        super(registry, name);
+        this.registry = registry;
         this.name = name;
-        this.counter = registry.counter(name.toString());
+        this.histogram = registry.histogram(name.toString());
     }
 
     @Override
     public void record(long value) {
-        counter.inc(value);
+        histogram.update(value);
     }
+
 
     @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }
+
+    @Override
+    public String type() {
+        return HistogramType.Max.name();
+    }
 }
+

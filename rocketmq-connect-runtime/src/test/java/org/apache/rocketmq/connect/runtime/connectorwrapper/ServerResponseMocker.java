@@ -30,20 +30,12 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -54,12 +46,43 @@ import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.junit.After;
 import org.junit.Before;
 
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+
 /**
  * mock server response for command
  */
 public abstract class ServerResponseMocker {
 
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+
+    public static ServerResponseMocker startServer(int port, byte[] body) {
+        return startServer(port, body, null);
+    }
+
+    public static ServerResponseMocker startServer(int port, byte[] body, HashMap<String, String> extMap) {
+        ServerResponseMocker mocker = new ServerResponseMocker() {
+            @Override
+            protected int getPort() {
+                return port;
+            }
+
+            @Override
+            protected byte[] getBody() {
+                return body;
+            }
+        };
+        mocker.start(extMap);
+        // add jvm hook, close connection when jvm down
+        Runtime.getRuntime().addShutdownHook(new Thread(mocker::shutdown));
+        return mocker;
+    }
 
     @Before
     public void before() {
@@ -117,74 +140,6 @@ public abstract class ServerResponseMocker {
         } catch (InterruptedException e1) {
             throw new RuntimeException("this.serverBootstrap.bind().sync() InterruptedException", e1);
         }
-    }
-
-    @ChannelHandler.Sharable
-    private class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
-        private HashMap<String, String> extMap;
-
-        public NettyServerHandler(HashMap<String, String> extMap) {
-            this.extMap = extMap;
-        }
-
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-            String remark = "mock data";
-            final RemotingCommand response =
-                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, remark);
-            response.setOpaque(msg.getOpaque());
-            response.setBody(getBody());
-
-            switch (msg.getCode()) {
-                case RequestCode.GET_BROKER_CLUSTER_INFO: {
-                    final ClusterInfo clusterInfo = buildClusterInfo();
-                    response.setBody(JSON.toJSONBytes(clusterInfo));
-                    break;
-                }
-
-                case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG: {
-                    final SubscriptionGroupWrapper wrapper = buildSubscriptionGroupWrapper();
-                    response.setBody(JSON.toJSONBytes(wrapper));
-                    break;
-                }
-                case RequestCode.GET_ROUTEINFO_BY_TOPIC: {
-                    final TopicRouteData topicRouteData = buildTopicRouteData();
-                    response.setBody(JSON.toJSONBytes(topicRouteData));
-                    break;
-                }
-
-                default:
-                    break;
-            }
-
-            if (extMap != null && extMap.size() > 0) {
-                response.setExtFields(extMap);
-            }
-            ctx.writeAndFlush(response);
-        }
-    }
-
-    public static ServerResponseMocker startServer(int port, byte[] body) {
-        return startServer(port, body, null);
-    }
-
-
-    public static ServerResponseMocker startServer(int port, byte[] body, HashMap<String, String> extMap) {
-        ServerResponseMocker mocker = new ServerResponseMocker() {
-            @Override
-            protected int getPort() {
-                return port;
-            }
-
-            @Override
-            protected byte[] getBody() {
-                return body;
-            }
-        };
-        mocker.start(extMap);
-        // add jvm hook, close connection when jvm down
-        Runtime.getRuntime().addShutdownHook(new Thread(mocker::shutdown));
-        return mocker;
     }
 
     private ClusterInfo buildClusterInfo() {
@@ -251,6 +206,51 @@ public abstract class ServerResponseMocker {
 
         topicRouteData.setFilterServerTable(new HashMap<>());
         return topicRouteData;
+    }
+
+    @ChannelHandler.Sharable
+    private class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+        private HashMap<String, String> extMap;
+
+        public NettyServerHandler(HashMap<String, String> extMap) {
+            this.extMap = extMap;
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            String remark = "mock data";
+            final RemotingCommand response =
+                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, remark);
+            response.setOpaque(msg.getOpaque());
+            response.setBody(getBody());
+
+            switch (msg.getCode()) {
+                case RequestCode.GET_BROKER_CLUSTER_INFO: {
+                    final ClusterInfo clusterInfo = buildClusterInfo();
+                    response.setBody(JSON.toJSONBytes(clusterInfo));
+                    break;
+                }
+
+                case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG: {
+                    final SubscriptionGroupWrapper wrapper = buildSubscriptionGroupWrapper();
+                    response.setBody(JSON.toJSONBytes(wrapper));
+                    break;
+                }
+                case RequestCode.GET_ROUTEINFO_BY_TOPIC: {
+                    final TopicRouteData topicRouteData = buildTopicRouteData();
+                    response.setBody(JSON.toJSONBytes(topicRouteData));
+                    break;
+                }
+
+                default:
+                    break;
+            }
+
+            if (extMap != null && extMap.size() > 0) {
+                response.setExtFields(extMap);
+            }
+            ctx.writeAndFlush(response);
+        }
     }
 }
 

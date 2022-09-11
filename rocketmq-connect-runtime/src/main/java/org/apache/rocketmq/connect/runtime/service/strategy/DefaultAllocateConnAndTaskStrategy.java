@@ -17,16 +17,17 @@
 
 package org.apache.rocketmq.connect.runtime.service.strategy;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Default allocate strategy, distribute connectors and tasks averagely.
@@ -36,8 +37,8 @@ public class DefaultAllocateConnAndTaskStrategy implements AllocateConnAndTaskSt
 
     @Override
     public ConnAndTaskConfigs allocate(List<String> allWorker, String curWorker,
-        Map<String, ConnectKeyValue> connectorConfigs,
-        Map<String, List<ConnectKeyValue>> taskConfigs) {
+                                       Map<String, ConnectKeyValue> connectorConfigs,
+                                       Map<String, List<ConnectKeyValue>> taskConfigs) {
         ConnAndTaskConfigs allocateResult = new ConnAndTaskConfigs();
         if (null == allWorker || 0 == allWorker.size()) {
             return allocateResult;

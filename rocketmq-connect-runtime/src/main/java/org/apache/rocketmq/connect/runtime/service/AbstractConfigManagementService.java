@@ -86,11 +86,11 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             newKeyValue.put(ConnectorConfig.TASK_CLASS, connector.taskClass().getName());
 
             // source topic
-            if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)){
+            if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)) {
                 newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
             }
             // sink consume topic
-            if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)){
+            if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)) {
                 newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
             }
 

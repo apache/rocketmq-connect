@@ -62,6 +62,111 @@ public class JsonConverter implements RecordConverter {
 
 
     private static final Map<FieldType, JsonToConnectTypeConverter> TO_CONNECT_CONVERTERS = new EnumMap<>(FieldType.class);
+    // Convert values in Kafka Connect form into/from their logical types. These logical converters are discovered by logical type
+    // names specified in the field
+    private static final HashMap<String, LogicalTypeConverter> LOGICAL_CONVERTERS = new HashMap<>();
+
+    static {
+        LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, new LogicalTypeConverter() {
+            @Override
+            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
+                if (!(value instanceof BigDecimal)) {
+                    throw new ConnectException("Invalid type for Decimal, expected BigDecimal but was " + value.getClass());
+                }
+                final BigDecimal decimal = (BigDecimal) value;
+                switch (config.decimalFormat()) {
+                    case NUMERIC:
+                        return decimal;
+                    case BASE64:
+                        return Decimal.fromLogical(schema, decimal);
+                    default:
+                        throw new ConnectException("Unexpected " + JsonConverterConfig.DECIMAL_FORMAT_CONFIG + ": " + config.decimalFormat());
+                }
+            }
+
+            @Override
+            public Object toConnect(final Schema schema, final Object value) {
+                if (value instanceof BigDecimal) {
+                    return (BigDecimal) value;
+                }
+                if (value instanceof byte[]) {
+                    try {
+                        return Decimal.toLogical(schema, (byte[]) value);
+                    } catch (Exception e) {
+                        throw new ConnectException("Invalid bytes for Decimal field", e);
+                    }
+                }
+                if (value instanceof String) {
+                    try {
+                        return Decimal.toLogical(schema, TypeUtils.castToBytes((String) value));
+                    } catch (Exception e) {
+                        throw new ConnectException("Invalid bytes for Decimal field", e);
+                    }
+                }
+                throw new ConnectException("Invalid type for Decimal, underlying representation should be numeric or bytes but was " + value);
+            }
+        });
+
+        LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, new LogicalTypeConverter() {
+            @Override
+            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
+                if (!(value instanceof java.util.Date)) {
+                    throw new ConnectException("Invalid type for Date, expected Date but was " + value.getClass());
+                }
+                return Date.fromLogical(schema, (java.util.Date) value);
+            }
+
+            @Override
+            public Object toConnect(final Schema schema, final Object value) {
+                if (!(value instanceof Integer)) {
+                    throw new ConnectException("Invalid type for Date, underlying representation should be integer but was " + value);
+                }
+                return Date.toLogical(schema, (Integer) value);
+            }
+        });
+
+        LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, new LogicalTypeConverter() {
+            @Override
+            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
+                if (!(value instanceof java.util.Date)) {
+                    throw new ConnectException("Invalid type for Time, expected Date but was " + value.getClass());
+                }
+                return Time.fromLogical(schema, (java.util.Date) value);
+            }
+
+            @Override
+            public Object toConnect(final Schema schema, final Object value) {
+                if (!(value instanceof Integer)) {
+                    throw new ConnectException("Invalid type for Time, underlying representation should be integer but was " + value);
+                }
+                return Time.toLogical(schema, ((Integer) value).intValue());
+            }
+        });
+
+        LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, new LogicalTypeConverter() {
+            @Override
+            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
+                if (!(value instanceof java.util.Date)) {
+                    throw new ConnectException("Invalid type for Timestamp, expected Date but was " + value.getClass());
+                }
+                return Timestamp.fromLogical(schema, (java.util.Date) value);
+            }
+
+            @Override
+            public Object toConnect(final Schema schema, final Object value) {
+                if (value instanceof Number) {
+                    return Timestamp.toLogical(schema, Long.valueOf(value.toString()));
+                }
+                throw new ConnectException("Invalid type for Timestamp, underlying representation should be integral but was " + value);
+            }
+        });
+    }
+
+    public JsonConverterConfig converterConfig;
+    private JsonDeserializer deserializer = new JsonDeserializer();
+    private JsonSerializer serializer = new JsonSerializer();
+    private Cache<Schema, JSONObject> fromConnectSchemaCache;
+    private Cache<JSONObject, Schema> toConnectSchemaCache;
 
     {
         TO_CONNECT_CONVERTERS.put(FieldType.BOOLEAN, new JsonToConnectTypeConverter<Boolean>() {
@@ -181,113 +286,6 @@ public class JsonConverter implements RecordConverter {
         });
     }
 
-    // Convert values in Kafka Connect form into/from their logical types. These logical converters are discovered by logical type
-    // names specified in the field
-    private static final HashMap<String, LogicalTypeConverter> LOGICAL_CONVERTERS = new HashMap<>();
-
-    static {
-        LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
-                if (!(value instanceof BigDecimal)) {
-                    throw new ConnectException("Invalid type for Decimal, expected BigDecimal but was " + value.getClass());
-                }
-                final BigDecimal decimal = (BigDecimal) value;
-                switch (config.decimalFormat()) {
-                    case NUMERIC:
-                        return decimal;
-                    case BASE64:
-                        return Decimal.fromLogical(schema, decimal);
-                    default:
-                        throw new ConnectException("Unexpected " + JsonConverterConfig.DECIMAL_FORMAT_CONFIG + ": " + config.decimalFormat());
-                }
-            }
-
-            @Override
-            public Object toConnect(final Schema schema, final Object value) {
-                if (value instanceof BigDecimal) {
-                    return (BigDecimal) value;
-                }
-                if (value instanceof byte[]) {
-                    try {
-                        return Decimal.toLogical(schema, (byte[]) value);
-                    } catch (Exception e) {
-                        throw new ConnectException("Invalid bytes for Decimal field", e);
-                    }
-                }
-                if (value instanceof String) {
-                    try {
-                        return Decimal.toLogical(schema, TypeUtils.castToBytes((String) value));
-                    } catch (Exception e) {
-                        throw new ConnectException("Invalid bytes for Decimal field", e);
-                    }
-                }
-                throw new ConnectException("Invalid type for Decimal, underlying representation should be numeric or bytes but was " + value);
-            }
-        });
-
-        LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
-                if (!(value instanceof java.util.Date)) {
-                    throw new ConnectException("Invalid type for Date, expected Date but was " + value.getClass());
-                }
-                return Date.fromLogical(schema, (java.util.Date) value);
-            }
-
-            @Override
-            public Object toConnect(final Schema schema, final Object value) {
-                if (!(value instanceof Integer)) {
-                    throw new ConnectException("Invalid type for Date, underlying representation should be integer but was " + value);
-                }
-                return Date.toLogical(schema, (Integer) value);
-            }
-        });
-
-        LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
-                if (!(value instanceof java.util.Date)) {
-                    throw new ConnectException("Invalid type for Time, expected Date but was " + value.getClass());
-                }
-                return Time.fromLogical(schema, (java.util.Date) value);
-            }
-
-            @Override
-            public Object toConnect(final Schema schema, final Object value) {
-                if (!(value instanceof Integer)) {
-                    throw new ConnectException("Invalid type for Time, underlying representation should be integer but was " + value);
-                }
-                return Time.toLogical(schema, ((Integer) value).intValue());
-            }
-        });
-
-        LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, new LogicalTypeConverter() {
-            @Override
-            public Object toJson(final Schema schema, final Object value, final JsonConverterConfig config) {
-                if (!(value instanceof java.util.Date)) {
-                    throw new ConnectException("Invalid type for Timestamp, expected Date but was " + value.getClass());
-                }
-                return Timestamp.fromLogical(schema, (java.util.Date) value);
-            }
-
-            @Override
-            public Object toConnect(final Schema schema, final Object value) {
-                if (value instanceof Number) {
-                    return Timestamp.toLogical(schema, Long.valueOf(value.toString()));
-                }
-                throw new ConnectException("Invalid type for Timestamp, underlying representation should be integral but was " + value);
-            }
-        });
-    }
-
-
-    private JsonDeserializer deserializer = new JsonDeserializer();
-    private JsonSerializer serializer = new JsonSerializer();
-    public JsonConverterConfig converterConfig;
-    private Cache<Schema, JSONObject> fromConnectSchemaCache;
-    private Cache<JSONObject, Schema> toConnectSchemaCache;
-
     /**
      * Configure this class.
      *
@@ -384,18 +382,6 @@ public class JsonConverter implements RecordConverter {
     private Object convertToJsonWithoutEnvelope(Schema schema, Object value) {
         return convertToJson(schema, value);
     }
-
-
-    private interface JsonToConnectTypeConverter<Output> {
-        Output convert(Schema schema, Object value);
-    }
-
-    private interface LogicalTypeConverter {
-        Object toJson(Schema schema, Object value, JsonConverterConfig config);
-
-        Object toConnect(Schema schema, Object value);
-    }
-
 
     /**
      * convert ConnectRecord schema to json schema
@@ -506,7 +492,6 @@ public class JsonConverter implements RecordConverter {
         return jsonSchema;
     }
 
-
     /**
      * Convert this object, in the org.apache.kafka.connect.data format, into a JSON object, returning both the schema
      * and the converted object.
@@ -591,22 +576,22 @@ public class JsonConverter implements RecordConverter {
                     }
 
                     JSONArray resultArray = new JSONArray();
-                    Map<String , Object> resultMap = new HashMap<>();
+                    Map<String, Object> resultMap = new HashMap<>();
                     for (Map.Entry<?, ?> entry : map.entrySet()) {
                         Schema keySchema = schema == null ? null : schema.getKeySchema();
                         Schema valueSchema = schema == null ? null : schema.getValueSchema();
                         Object mapKey = convertToJson(keySchema, entry.getKey());
                         Object mapValue = convertToJson(valueSchema, entry.getValue());
-                        if (objectMode){
+                        if (objectMode) {
                             resultMap.put((String) mapKey, mapValue);
-                        }else {
+                        } else {
                             JSONArray entryArray = new JSONArray();
                             entryArray.add(0, mapKey);
                             entryArray.add(1, mapValue);
                             resultArray.add(entryArray);
                         }
                     }
-                    return objectMode? resultMap: resultArray;
+                    return objectMode ? resultMap : resultArray;
                 }
                 case STRUCT: {
                     Struct struct = (Struct) value;
@@ -626,7 +611,6 @@ public class JsonConverter implements RecordConverter {
             throw new ConnectException("Invalid type for " + schemaTypeStr + ": " + value.getClass());
         }
     }
-
 
     /**
      * convert json to schema if not empty
@@ -813,6 +797,17 @@ public class JsonConverter implements RecordConverter {
         }
 
         return typeConverter.convert(schema, value);
+    }
+
+
+    private interface JsonToConnectTypeConverter<Output> {
+        Output convert(Schema schema, Object value);
+    }
+
+    private interface LogicalTypeConverter {
+        Object toJson(Schema schema, Object value, JsonConverterConfig config);
+
+        Object toConnect(Schema schema, Object value);
     }
 
 }

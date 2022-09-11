@@ -39,11 +39,15 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.connect.metrics.stats.Avg;
+import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
+import org.apache.rocketmq.connect.metrics.stats.Max;
+import org.apache.rocketmq.connect.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -52,10 +56,6 @@ import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
 import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Avg;
-import org.apache.rocketmq.connect.runtime.metrics.stats.CumulativeCount;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Max;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -91,48 +91,6 @@ public class WorkerSourceTask extends WorkerTask {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final long SEND_FAILED_BACKOFF_MS = 100;
     /**
-     * The implements of the source task.
-     */
-    private final SourceTask sourceTask;
-
-    protected final WorkerSourceTaskContext sourceTaskContext;
-
-    private final SourceTaskMetricsGroup sourceTaskMetricsGroup;
-
-    /**
-     * Used to read the position of source data source.
-     */
-    private final OffsetStorageReader offsetStorageReader;
-
-    /**
-     * Used to write the position of source data source.
-     */
-    private final PositionStorageWriter positionStorageWriter;
-
-    /**
-     * A RocketMQ producer to send message to dest MQ.
-     */
-    private DefaultMQProducer producer;
-
-    /**
-     * A converter to parse source data entry to byte[].
-     */
-    private final RecordConverter keyConverter;
-    private final RecordConverter valueConverter;
-
-    /**
-     * stat connect
-     */
-    private final ConnectStatsManager connectStatsManager;
-    private final ConnectStatsService connectStatsService;
-
-    private final CountDownLatch stopRequestedLatch;
-    private final AtomicReference<Throwable> producerSendException;
-    private List<ConnectRecord> toSendRecord;
-
-    private volatile RecordOffsetManagement.CommittableOffsets committableOffsets;
-    private final RecordOffsetManagement offsetManagement;
-    /**
      * The property of message in WHITE_KEY_SET don't need add a connect prefix
      */
     private static final Set<String> WHITE_KEY_SET = new HashSet<>();
@@ -141,6 +99,40 @@ public class WorkerSourceTask extends WorkerTask {
         WHITE_KEY_SET.add(MessageConst.PROPERTY_KEYS);
         WHITE_KEY_SET.add(MessageConst.PROPERTY_TAGS);
     }
+
+    protected final WorkerSourceTaskContext sourceTaskContext;
+    /**
+     * The implements of the source task.
+     */
+    private final SourceTask sourceTask;
+    private final SourceTaskMetricsGroup sourceTaskMetricsGroup;
+    /**
+     * Used to read the position of source data source.
+     */
+    private final OffsetStorageReader offsetStorageReader;
+    /**
+     * Used to write the position of source data source.
+     */
+    private final PositionStorageWriter positionStorageWriter;
+    /**
+     * A converter to parse source data entry to byte[].
+     */
+    private final RecordConverter keyConverter;
+    private final RecordConverter valueConverter;
+    /**
+     * stat connect
+     */
+    private final ConnectStatsManager connectStatsManager;
+    private final ConnectStatsService connectStatsService;
+    private final CountDownLatch stopRequestedLatch;
+    private final AtomicReference<Throwable> producerSendException;
+    private final RecordOffsetManagement offsetManagement;
+    /**
+     * A RocketMQ producer to send message to dest MQ.
+     */
+    private DefaultMQProducer producer;
+    private List<ConnectRecord> toSendRecord;
+    private volatile RecordOffsetManagement.CommittableOffsets committableOffsets;
 
     public WorkerSourceTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,
@@ -198,7 +190,7 @@ public class WorkerSourceTask extends WorkerTask {
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(positionStorageWriter, "position storage writer");
-        Utils.closeQuietly(sourceTaskMetricsGroup,"remove metrics");
+        Utils.closeQuietly(sourceTaskMetricsGroup, "remove metrics");
     }
 
     protected void updateCommittableOffsets() {
@@ -285,7 +277,7 @@ public class WorkerSourceTask extends WorkerTask {
                 log.error("Send message InterruptedException. message: {}, error info: {}.", sourceMessage, e);
                 // throw e and stop task
                 throw e;
-            }  catch (Exception e) {
+            } catch (Exception e) {
                 log.error("Send message MQClientException. message: {}, error info: {}.", sourceMessage, e);
                 recordSendFailed(true, sourceMessage, preTransformRecord, e);
             }
@@ -513,7 +505,7 @@ public class WorkerSourceTask extends WorkerTask {
                     long start = System.currentTimeMillis();
                     toSendRecord = poll();
                     if (null != toSendRecord && toSendRecord.size() > 0) {
-                        recordPollReturned(toSendRecord.size(), System.currentTimeMillis()-start);
+                        recordPollReturned(toSendRecord.size(), System.currentTimeMillis() - start);
                     }
                     if (toSendRecord == null) {
                         continue;
@@ -620,17 +612,17 @@ public class WorkerSourceTask extends WorkerTask {
         } catch (InterruptedException e) {
             log.warn("{} Flush of offsets interrupted, cancelling", this);
             positionStorageWriter.cancelFlush();
-            recordCommitFailure(System.currentTimeMillis()- started);
+            recordCommitFailure(System.currentTimeMillis() - started);
             return false;
         } catch (ExecutionException e) {
             log.error("{} Flush of offsets threw an unexpected exception: ", this, e);
             positionStorageWriter.cancelFlush();
-            recordCommitFailure(System.currentTimeMillis()- started);
+            recordCommitFailure(System.currentTimeMillis() - started);
             return false;
         } catch (TimeoutException e) {
             log.error("{} Timed out waiting to flush offsets to storage; will try again on next flush interval with latest offsets", this);
             positionStorageWriter.cancelFlush();
-            recordCommitFailure(System.currentTimeMillis()- started);
+            recordCommitFailure(System.currentTimeMillis() - started);
             return false;
         }
         long durationMillis = System.currentTimeMillis() - started;
@@ -662,6 +654,7 @@ public class WorkerSourceTask extends WorkerTask {
         private int activeRecordCount;
 
         private MetricGroup metricGroup;
+
         public SourceTaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
             ConnectMetricsTemplates templates = connectMetrics.templates();
             metricGroup = connectMetrics.group(
@@ -674,7 +667,7 @@ public class WorkerSourceTask extends WorkerTask {
 
             sourceRecordWrite = new Sensor();
             sourceRecordWrite.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteRate)));
-            sourceRecordWrite.addStat(new CumulativeCount(connectMetrics.registry(),metricGroup.name(templates.sourceRecordWriteTotal)));
+            sourceRecordWrite.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteTotal)));
 
             pollTime = new Sensor();
             pollTime.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeMax)));
@@ -710,6 +703,7 @@ public class WorkerSourceTask extends WorkerTask {
         private final int batchSize;
         private boolean completed = false;
         private int counter;
+
         public CalcSourceRecordWrite(int batchSize, SourceTaskMetricsGroup metricsGroup) {
             assert batchSize > 0;
             assert metricsGroup != null;
@@ -717,19 +711,23 @@ public class WorkerSourceTask extends WorkerTask {
             counter = batchSize;
             this.metricsGroup = metricsGroup;
         }
+
         public void skipRecord() {
             if (counter > 0 && --counter == 0) {
                 finishedAllWrites();
             }
         }
+
         public void completeRecord() {
             if (counter > 0 && --counter == 0) {
                 finishedAllWrites();
             }
         }
+
         public void retryRemaining() {
             finishedAllWrites();
         }
+
         private void finishedAllWrites() {
             if (!completed) {
                 metricsGroup.recordWrite(batchSize - counter);

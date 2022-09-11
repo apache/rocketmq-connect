@@ -17,6 +17,12 @@
  */
 package org.apache.rocketmq.connect.runtime.stats;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -25,11 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 public class ConnectStatsService extends ServiceThread {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS);
@@ -41,9 +42,9 @@ public class ConnectStatsService extends ServiceThread {
     private static int printTPSInterval = 60 * 1;
 
     private final ConcurrentMap<String, AtomicLong> sourceTaskTimesTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
+            new ConcurrentHashMap<String, AtomicLong>(128);
     private final ConcurrentMap<String, AtomicLong> sinkTaskTimesTotal =
-        new ConcurrentHashMap<String, AtomicLong>(128);
+            new ConcurrentHashMap<String, AtomicLong>(128);
 
     private final LinkedList<CallSnapshot> sourceTaskTimesList = new LinkedList<CallSnapshot>();
     private final LinkedList<CallSnapshot> sinkTaskTimesList = new LinkedList<CallSnapshot>();
@@ -109,7 +110,7 @@ public class ConnectStatsService extends ServiceThread {
         long hours = (time % day) / hour;
         long minutes = (time % hour) / minute;
         long seconds = (time % minute) / second;
-        return messageFormat.format(new Long[] {days, hours, minutes, seconds});
+        return messageFormat.format(new Long[]{days, hours, minutes, seconds});
     }
 
 
@@ -171,6 +172,7 @@ public class ConnectStatsService extends ServiceThread {
         }
         return result;
     }
+
     private String getSinkTaskTps(int time) {
         String result = "";
         this.lockSampling.lock();
@@ -282,8 +284,8 @@ public class ConnectStatsService extends ServiceThread {
             this.lastPrintTimestamp = System.currentTimeMillis();
 
             log.info("[CONNECTPS] source_task_tps {} sink_task_tps {}",
-                this.getSourceTaskTps(printTPSInterval),
-                this.getSinkTaskTps(printTPSInterval)
+                    this.getSourceTaskTps(printTPSInterval),
+                    this.getSinkTaskTps(printTPSInterval)
             );
         }
     }

@@ -24,16 +24,6 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -41,15 +31,16 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TransformChain;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -60,7 +51,6 @@ import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,68 +58,55 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RestHandlerTest {
 
+    private static final String CREATE_CONNECTOR_URL = "http://localhost:8081/connectors/%s";
+    private static final String STOP_CONNECTOR_URL = "http://localhost:8081/connectors/%s/stop";
+    private static final String GET_CLUSTER_INFO_URL = "http://localhost:8081/getClusterInfo";
+    private static final String GET_CONFIG_INFO_URL = "http://localhost:8081/getConfigInfo";
+    private static final String GET_POSITION_INFO_URL = "http://localhost:8081/getPositionInfo";
+    private static final String GET_ALLOCATED_CONNECTORS_URL = "http://localhost:8081/allocated/connectors";
+    private static final String GET_ALLOCATED_TASKS_URL = "http://localhost:8081/allocated/tasks";
+    private static final String QUERY_CONNECTOR_CONFIG_URL = "http://localhost:8081/connectors/testConnector/config";
+    private static final String QUERY_CONNECTOR_STATUS_URL = "http://localhost:8081/connectors/testConnector/status";
+    private static final String STOP_ALL_CONNECTOR_URL = "http://localhost:8081/connectors/stop/all";
+    private static final String PLUGIN_LIST_URL = "http://localhost:8081/plugin/list";
+    private static final String PLUGIN_RELOAD_URL = "http://localhost:8081/plugin/reload";
     @Mock
     private DistributedConnectController connectController;
-
     @Mock
     private Worker worker;
-
     @Mock
     private DefaultMQProducer producer;
-
     private RestHandler restHandler;
-
     @Mock
     private WorkerConfig connectConfig;
-
     @Mock
     private SourceTask sourceTask;
-
     @Mock
     private RecordConverter converter;
-
     @Mock
     private PositionManagementServiceImpl positionManagementServiceImpl;
-
     @Mock
     private Connector connector;
-
     private byte[] sourcePartition;
-
     private byte[] sourcePosition;
-
     private Map<ByteBuffer, ByteBuffer> positions;
-
-    private static final String CREATE_CONNECTOR_URL = "http://localhost:8081/connectors/%s";
-
-    private static final String STOP_CONNECTOR_URL = "http://localhost:8081/connectors/%s/stop";
-
-    private static final String GET_CLUSTER_INFO_URL = "http://localhost:8081/getClusterInfo";
-
-    private static final String GET_CONFIG_INFO_URL = "http://localhost:8081/getConfigInfo";
-
-    private static final String GET_POSITION_INFO_URL = "http://localhost:8081/getPositionInfo";
-
-    private static final String GET_ALLOCATED_CONNECTORS_URL = "http://localhost:8081/allocated/connectors";
-
-    private static final String GET_ALLOCATED_TASKS_URL = "http://localhost:8081/allocated/tasks";
-
-    private static final String QUERY_CONNECTOR_CONFIG_URL = "http://localhost:8081/connectors/testConnector/config";
-
-    private static final String QUERY_CONNECTOR_STATUS_URL = "http://localhost:8081/connectors/testConnector/status";
-
-    private static final String STOP_ALL_CONNECTOR_URL = "http://localhost:8081/connectors/stop/all";
-
-    private static final String PLUGIN_LIST_URL = "http://localhost:8081/plugin/list";
-
-    private static final String PLUGIN_RELOAD_URL = "http://localhost:8081/plugin/reload";
-
     private HttpClient httpClient;
 
     private List<String> aliveWorker;
@@ -199,7 +176,7 @@ public class RestHandlerTest {
             }
         };
 
-        WorkerConnector workerConnector1 = new WorkerConnector("testConnectorName1", connector, connectKeyValue, new DefaultConnectorContext("testConnectorName1", connectController) , null, null);
+        WorkerConnector workerConnector1 = new WorkerConnector("testConnectorName1", connector, connectKeyValue, new DefaultConnectorContext("testConnectorName1", connectController), null, null);
         WorkerConnector workerConnector2 = new WorkerConnector("testConnectorName2", connector, connectKeyValue1, new DefaultConnectorContext("testConnectorName2", connectController), null, null);
         workerConnectors = new HashSet<WorkerConnector>() {
             {
@@ -212,13 +189,13 @@ public class RestHandlerTest {
         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1), new ConnectMetrics(new WorkerConfig())));
         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 1), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1), new ConnectMetrics(new WorkerConfig()))));
 
-        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(),new ConnectorTaskId("testConnectorName1", 1), sourceTask,null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator, null, new ConnectMetrics(new WorkerConfig()));
+        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName1", 1), sourceTask, null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, null, new ConnectMetrics(new WorkerConfig()));
 
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName",2),new ConnectMetrics(new WorkerConfig())));
-        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName",2), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName",2), new ConnectMetrics(new WorkerConfig()))));
+        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 2), new ConnectMetrics(new WorkerConfig())));
+        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 2), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 2), new ConnectMetrics(new WorkerConfig()))));
 
-        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName", 2), sourceTask,null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator02, null, new ConnectMetrics(new WorkerConfig()));
+        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName", 2), sourceTask, null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator02, null, new ConnectMetrics(new WorkerConfig()));
         workerTasks = new HashSet<Runnable>() {
             {
                 add(workerSourceTask1);

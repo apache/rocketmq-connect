@@ -33,9 +33,10 @@ public class ConnectKeyValueSerde extends WrapperSerde<ConnectKeyValue> {
 
     /**
      * serializer and deserializer
+     *
      * @return
      */
-    public static ConnectKeyValueSerde serde(){
+    public static ConnectKeyValueSerde serde() {
         return new ConnectKeyValueSerde(new ConnectKeyValueSerializer(), new ConnectKeyValueDeserializer());
     }
 

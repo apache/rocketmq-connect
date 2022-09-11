@@ -48,7 +48,9 @@ public class RestHandler {
     private static final String TASK_NAME = "task";
     private final AbstractConnectController connectController;
 
-    /** connector plugin resource */
+    /**
+     * connector plugin resource
+     */
     private ConnectorPluginsResource pluginsResource;
 
     public RestHandler(AbstractConnectController connectController) {

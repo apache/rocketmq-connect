@@ -18,13 +18,11 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 import com.alibaba.fastjson.JSON;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
-import org.junit.Assert;
-import org.junit.Test;
 
 public class ListSerdeTest {
 

@@ -19,11 +19,14 @@ package org.apache.rocketmq.connect.runtime.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reporter;
 import com.codahale.metrics.Slf4jReporter;
+import org.apache.rocketmq.connect.metrics.MetricsReporter;
+import org.apache.rocketmq.connect.metrics.ScheduledMetricsReporter;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +40,8 @@ public class ConnectMetrics {
     private final String workerId;
 
     private final ConnectMetricsTemplates templates = new ConnectMetricsTemplates();
-    public ConnectMetrics(WorkerConfig config){
+
+    public ConnectMetrics(WorkerConfig config) {
         this.workerId = config.getWorkerId();
         final Slf4jReporter slf4jReporter = Slf4jReporter.forRegistry(metricRegistry)
                 .outputTo(LoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS))
@@ -48,8 +52,8 @@ public class ConnectMetrics {
 
         Map<String, Map<String, String>> metrics = config.getMetricsConfig();
         if (metrics != null && !metrics.isEmpty()) {
-            Class[] classes = { MetricRegistry.class};
-            Object[] params = { metricRegistry };
+            Class[] classes = {MetricRegistry.class};
+            Object[] params = {metricRegistry};
             for (Map.Entry<String, Map<String, String>> configs : metrics.entrySet()) {
 
                 try {
@@ -59,8 +63,8 @@ public class ConnectMetrics {
                         ((ScheduledMetricsReporter) reporter).start();
                     }
                     if (reporter instanceof MetricsReporter) {
-                       ((MetricsReporter) reporter).config(configs.getValue());
-                       ((MetricsReporter) reporter).start();
+                        ((MetricsReporter) reporter).config(configs.getValue());
+                        ((MetricsReporter) reporter).start();
                     }
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
@@ -69,29 +73,47 @@ public class ConnectMetrics {
         }
     }
 
-    public String workerId(){
+    public String workerId() {
         return workerId;
     }
 
     /**
      * get connect metrics template
+     *
      * @return
      */
-    public ConnectMetricsTemplates templates(){
+    public ConnectMetricsTemplates templates() {
         return templates;
     }
 
     /**
      * get metric registry
+     *
      * @return
      */
-    public MetricRegistry registry(){
+    public MetricRegistry registry() {
         return metricRegistry;
     }
 
 
+    /**
+     * get metrics group
+     *
+     * @param tagKeyValues
+     * @return
+     */
     public MetricGroup group(String... tagKeyValues) {
-        return new MetricGroup(MetricUtils.getTags(tagKeyValues));
+        return new MetricGroup(getTags(tagKeyValues));
+    }
+
+    private Map<String, String> getTags(String... keyValue) {
+        if ((keyValue.length % 2) != 0)
+            throw new IllegalArgumentException("keyValue needs to be specified in pairs");
+        Map<String, String> tags = new LinkedHashMap<>(keyValue.length / 2);
+
+        for (int i = 0; i < keyValue.length; i += 2)
+            tags.put(keyValue[i], keyValue[i + 1]);
+        return tags;
     }
 
 }

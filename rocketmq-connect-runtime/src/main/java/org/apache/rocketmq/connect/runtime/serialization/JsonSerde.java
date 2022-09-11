@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 /**
- *
  * @param <T>
  */
 public class JsonSerde extends WrapperSerde<Object> {

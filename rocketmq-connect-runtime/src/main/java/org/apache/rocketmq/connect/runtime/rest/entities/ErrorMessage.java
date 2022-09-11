@@ -26,7 +26,8 @@ public class ErrorMessage {
     private int errorCode;
     private String message;
 
-    public ErrorMessage(){ }
+    public ErrorMessage() {
+    }
 
     public ErrorMessage(int errorCode, String message) {
         this.errorCode = errorCode;

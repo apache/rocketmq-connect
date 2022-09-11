@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.controller.standalone;
 
-import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
@@ -36,6 +35,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StandaloneConnectControllerTest {
@@ -71,7 +72,7 @@ public class StandaloneConnectControllerTest {
                 stateManagementService
         );
         standaloneConnectController = new StandaloneConnectController(plugin, standaloneConfig, clusterManagementService,
-            configManagementService, positionManagementService, stateManagementService);
+                configManagementService, positionManagementService, stateManagementService);
     }
 
     @After

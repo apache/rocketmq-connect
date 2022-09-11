@@ -54,17 +54,15 @@ import java.util.concurrent.atomic.AtomicReference;
 public class WorkerDirectTask extends WorkerSourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
+    private final OffsetStorageReader positionStorageReader;
     /**
      * The implements of the source task.
      */
     private SourceTask sourceTask;
-
     /**
      * The implements of the sink task.
      */
     private SinkTask sinkTask;
-    private final OffsetStorageReader positionStorageReader;
 
     public WorkerDirectTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,

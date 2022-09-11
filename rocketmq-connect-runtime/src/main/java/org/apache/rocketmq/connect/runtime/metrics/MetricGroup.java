@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.metrics;
 
+import org.apache.rocketmq.connect.metrics.MetricName;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,9 +27,10 @@ import java.util.Set;
  * metric group
  */
 public class MetricGroup implements AutoCloseable {
-    private Set<Sensor> metrics = new HashSet<>();
     private final Map<String, String> tags;
-    public MetricGroup(Map<String, String> tags){
+    private Set<Sensor> metrics = new HashSet<>();
+
+    public MetricGroup(Map<String, String> tags) {
         this.tags = tags;
     }
 
@@ -35,15 +38,15 @@ public class MetricGroup implements AutoCloseable {
         return new MetricName(template.getName(), template.getGroup(), tags);
     }
 
-    public Sensor sensor(){
+    public Sensor sensor() {
         Sensor sensor = new Sensor();
         metrics.add(sensor);
         return sensor;
     }
 
     @Override
-    public void close(){
-        metrics.forEach(metric->{
+    public void close() {
+        metrics.forEach(metric -> {
             try {
                 metric.close();
             } catch (Exception e) {

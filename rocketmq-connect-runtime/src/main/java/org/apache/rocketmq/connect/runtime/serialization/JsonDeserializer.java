@@ -28,7 +28,7 @@ import java.util.Objects;
 public class JsonDeserializer implements Deserializer<Object> {
     private Class aClass;
     public JsonDeserializer(){}
-    public JsonDeserializer(Class aClass){
+    public JsonDeserializer(Class aClass) {
         this.aClass = aClass;
     }
 

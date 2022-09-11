@@ -24,56 +24,6 @@ import java.nio.ByteBuffer;
  */
 public class Serdes {
 
-    static public final class LongSerde extends WrapperSerde<Long> {
-        public LongSerde() {
-            super(new LongSerializer(), new LongDeserializer());
-        }
-    }
-
-    static public final class IntegerSerde extends WrapperSerde<Integer> {
-        public IntegerSerde() {
-            super(new IntegerSerializer(), new IntegerDeserializer());
-        }
-    }
-
-    static public final class ShortSerde extends WrapperSerde<Short> {
-        public ShortSerde() {
-            super(new ShortSerializer(), new ShortDeserializer());
-        }
-    }
-
-    static public final class FloatSerde extends WrapperSerde<Float> {
-        public FloatSerde() {
-            super(new FloatSerializer(), new FloatDeserializer());
-        }
-    }
-
-    static public final class DoubleSerde extends WrapperSerde<Double> {
-        public DoubleSerde() {
-            super(new DoubleSerializer(), new DoubleDeserializer());
-        }
-    }
-
-    static public final class StringSerde extends WrapperSerde<String> {
-        public StringSerde() {
-            super(new StringSerializer(), new StringDeserializer());
-        }
-    }
-
-    static public final class ByteBufferSerde extends WrapperSerde<ByteBuffer> {
-        public ByteBufferSerde() {
-            super(new ByteBufferSerializer(), new ByteBufferDeserializer());
-        }
-    }
-
-
-    static public final class ByteArraySerde extends WrapperSerde<byte[]> {
-        public ByteArraySerde() {
-            super(new ByteArraySerializer(), new ByteArrayDeserializer());
-        }
-    }
-
-
     /**
      * serde from by type
      *
@@ -185,12 +135,59 @@ public class Serdes {
         return new ByteBufferSerde();
     }
 
-
     /**
      * A serde for nullable {@code byte[]} type.
      */
     static public Serde<byte[]> ByteArray() {
         return new ByteArraySerde();
+    }
+
+    static public final class LongSerde extends WrapperSerde<Long> {
+        public LongSerde() {
+            super(new LongSerializer(), new LongDeserializer());
+        }
+    }
+
+    static public final class IntegerSerde extends WrapperSerde<Integer> {
+        public IntegerSerde() {
+            super(new IntegerSerializer(), new IntegerDeserializer());
+        }
+    }
+
+    static public final class ShortSerde extends WrapperSerde<Short> {
+        public ShortSerde() {
+            super(new ShortSerializer(), new ShortDeserializer());
+        }
+    }
+
+    static public final class FloatSerde extends WrapperSerde<Float> {
+        public FloatSerde() {
+            super(new FloatSerializer(), new FloatDeserializer());
+        }
+    }
+
+    static public final class DoubleSerde extends WrapperSerde<Double> {
+        public DoubleSerde() {
+            super(new DoubleSerializer(), new DoubleDeserializer());
+        }
+    }
+
+    static public final class StringSerde extends WrapperSerde<String> {
+        public StringSerde() {
+            super(new StringSerializer(), new StringDeserializer());
+        }
+    }
+
+    static public final class ByteBufferSerde extends WrapperSerde<ByteBuffer> {
+        public ByteBufferSerde() {
+            super(new ByteBufferSerializer(), new ByteBufferDeserializer());
+        }
+    }
+
+    static public final class ByteArraySerde extends WrapperSerde<byte[]> {
+        public ByteArraySerde() {
+            super(new ByteArraySerializer(), new ByteArrayDeserializer());
+        }
     }
 
 }

@@ -116,11 +116,11 @@ public class StandaloneConnectStartup {
                 properties = new Properties();
                 properties.load(in);
                 Map<String, String> metricsConfig = new ConcurrentHashMap<>();
-                if (properties.contains(WorkerConfig.METRIC_CLASS)){
+                if (properties.contains(WorkerConfig.METRIC_CLASS)) {
                     throw new IllegalArgumentException("[metrics.reporter] is empty");
                 }
-                for (Map.Entry<Object, Object> entry: properties.entrySet()) {
-                    if (entry.getKey().equals(WorkerConfig.METRIC_CLASS)){
+                for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+                    if (entry.getKey().equals(WorkerConfig.METRIC_CLASS)) {
                         continue;
                     }
                     metricsConfig.put(entry.getKey().toString(), entry.getValue().toString());

@@ -18,6 +18,9 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.codahale.metrics.MetricRegistry;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import org.apache.rocketmq.connect.metrics.stats.Avg;
+import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
+import org.apache.rocketmq.connect.metrics.stats.Max;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
@@ -27,9 +30,6 @@ import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
 import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Avg;
-import org.apache.rocketmq.connect.runtime.metrics.stats.CumulativeCount;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Max;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.slf4j.Logger;
@@ -53,23 +53,20 @@ public abstract class WorkerTask implements Runnable {
     protected final ClassLoader loader;
     protected final ConnectKeyValue taskConfig;
     /**
-     * Atomic state variable
-     */
-    protected AtomicReference<WorkerTaskState> state;
-    /**
      * worker state
      */
     protected final AtomicReference<WorkerState> workerState;
     protected final RetryWithToleranceOperator retryWithToleranceOperator;
     protected final TransformChain<ConnectRecord> transformChain;
-    private volatile TargetState targetState;
-
     // send status
     private final TaskStatus.Listener statusListener;
-
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-
     private final TaskMetricsGroup taskMetricsGroup;
+    /**
+     * Atomic state variable
+     */
+    protected AtomicReference<WorkerTaskState> state;
+    private volatile TargetState targetState;
 
     public WorkerTask(WorkerConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener, ConnectMetrics connectMetrics) {
         this.workerConfig = workerConfig;
@@ -123,7 +120,7 @@ public abstract class WorkerTask implements Runnable {
         execute();
     }
 
-    public void removeMetrics(){
+    public void removeMetrics() {
         taskMetricsGroup.close();
     }
 
@@ -263,6 +260,7 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * record commit success
+     *
      * @param duration
      */
     protected void recordCommitSuccess(long duration) {
@@ -271,6 +269,7 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * record commit failure
+     *
      * @param duration
      */
     protected void recordCommitFailure(long duration) {
@@ -279,6 +278,7 @@ public abstract class WorkerTask implements Runnable {
 
     /**
      * batch record
+     *
      * @param size
      */
     protected void recordMultiple(int size) {
@@ -382,13 +382,13 @@ public abstract class WorkerTask implements Runnable {
 
             commitTime = metricGroup.sensor();
             commitTime.addStat(new Max(registry, metricGroup.name(templates.taskCommitTimeMax)));
-            commitTime.addStat(new Avg(registry,metricGroup.name(templates.taskCommitTimeAvg)));
+            commitTime.addStat(new Avg(registry, metricGroup.name(templates.taskCommitTimeAvg)));
 
             batchSize = metricGroup.sensor();
             batchSize.addStat(new Max(registry, metricGroup.name(templates.taskBatchSizeMax)));
-            batchSize.addStat(new Avg(registry,metricGroup.name(templates.taskBatchSizeAvg)));
+            batchSize.addStat(new Avg(registry, metricGroup.name(templates.taskBatchSizeAvg)));
 
-            taskCommitFailures =  metricGroup.sensor();
+            taskCommitFailures = metricGroup.sensor();
             taskCommitFailures.addStat(new CumulativeCount(registry, metricGroup.name(templates.taskCommitFailureCount)));
 
             taskCommitSuccess = metricGroup.sensor();

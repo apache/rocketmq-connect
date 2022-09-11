@@ -34,7 +34,7 @@ public class WorkerErrorRecordReporter implements ErrorRecordReporter {
     private RecordConverter converter;
 
     public WorkerErrorRecordReporter(RetryWithToleranceOperator retryWithToleranceOperator,
-        RecordConverter converter) {
+                                     RecordConverter converter) {
         this.retryWithToleranceOperator = retryWithToleranceOperator;
         this.converter = converter;
     }

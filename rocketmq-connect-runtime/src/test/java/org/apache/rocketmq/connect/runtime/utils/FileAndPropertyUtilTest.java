@@ -17,18 +17,19 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
-import java.io.File;
-import java.util.Properties;
 import org.junit.After;
 import org.junit.Test;
+
+import java.io.File;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 
 public class FileAndPropertyUtilTest {
 
-    private String fileDir = System.getProperty("user.home") + File.separator + "fileAndPropertyUtil";
     String str = "testStr";
     String fileName = "testFile";
+    private String fileDir = System.getProperty("user.home") + File.separator + "fileAndPropertyUtil";
     String filePath = fileDir + File.separator + fileName;
 
     @After

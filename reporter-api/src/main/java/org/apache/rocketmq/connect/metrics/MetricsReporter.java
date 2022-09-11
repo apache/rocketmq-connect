@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics;
+package org.apache.rocketmq.connect.metrics;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
@@ -30,7 +30,8 @@ import com.codahale.metrics.Timer;
  */
 public abstract class MetricsReporter implements Reporter, MetricRegistryListener, AutoConfiguration, AstrictReporter {
     private final MetricRegistry registry;
-    public MetricsReporter(MetricRegistry registry){
+
+    public MetricsReporter(MetricRegistry registry) {
         this.registry = registry;
         registry.addListener(this);
     }
@@ -52,20 +53,22 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      *
      * @param name the gauge's name
      */
-    public void onGaugeRemoved(String name){
+    public void onGaugeRemoved(String name) {
         this.onGaugeRemoved(MetricUtils.stringToMetricName(name));
     }
 
     public abstract void onGaugeRemoved(MetricName name);
+
     /**
      * Called when a {@link Counter} is added to the registry.
      *
      * @param name    the counter's name
      * @param counter the counter
      */
-    public void onCounterAdded(String name, Counter counter){
+    public void onCounterAdded(String name, Counter counter) {
         this.onCounterAdded(MetricUtils.stringToMetricName(name), counter);
     }
+
     public abstract void onCounterAdded(MetricName name, Counter counter);
 
     /**
@@ -73,9 +76,10 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      *
      * @param name the counter's name
      */
-    public void onCounterRemoved(String name){
+    public void onCounterRemoved(String name) {
         this.onCounterRemoved(MetricUtils.stringToMetricName(name));
     }
+
     public abstract void onCounterRemoved(MetricName name);
 
     /**
@@ -87,6 +91,7 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
     public void onHistogramAdded(String name, Histogram histogram) {
         this.onHistogramAdded(MetricUtils.stringToMetricName(name), histogram);
     }
+
     public abstract void onHistogramAdded(MetricName name, Histogram histogram);
 
     /**
@@ -97,6 +102,7 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
     public void onHistogramRemoved(String name) {
         this.onCounterRemoved(MetricUtils.stringToMetricName(name));
     }
+
     public abstract void onHistogramRemoved(MetricName name);
 
 
@@ -106,7 +112,7 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param name  the meter's name
      * @param meter the meter
      */
-    public void onMeterAdded(String name, Meter meter){
+    public void onMeterAdded(String name, Meter meter) {
 
     }
 
@@ -120,6 +126,7 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
     public void onMeterRemoved(String name) {
         this.onMeterRemoved(MetricUtils.stringToMetricName(name));
     }
+
     public abstract void onMeterRemoved(MetricName name);
 
     /**
@@ -128,10 +135,12 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
      * @param name  the timer's name
      * @param timer the timer
      */
-    public void onTimerAdded(String name, Timer timer){
+    public void onTimerAdded(String name, Timer timer) {
         this.onTimerAdded(MetricUtils.stringToMetricName(name), timer);
     }
+
     public abstract void onTimerAdded(MetricName name, Timer timer);
+
     /**
      * Called when a {@link Timer} is removed from the registry.
      *
@@ -140,5 +149,6 @@ public abstract class MetricsReporter implements Reporter, MetricRegistryListene
     public void onTimerRemoved(String name) {
         this.onCounterRemoved(MetricUtils.stringToMetricName(name));
     }
+
     public abstract void onTimerRemoved(MetricName name);
 }

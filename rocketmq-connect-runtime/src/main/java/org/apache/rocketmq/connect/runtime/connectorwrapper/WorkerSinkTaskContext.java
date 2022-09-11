@@ -19,18 +19,11 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.component.task.sink.ErrorRecordReporter;
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.component.task.sink.ErrorRecordReporter;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -39,6 +32,12 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.BROKER_NAME;
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_ID;
@@ -50,13 +49,11 @@ import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTas
  */
 public class WorkerSinkTaskContext implements SinkTaskContext {
 
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     /**
      * The configs of current sink task.
      */
     private final ConnectKeyValue taskConfig;
-
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
     private final Map<MessageQueue, Long> messageQueuesOffset;
 
     private final Set<MessageQueue> pausedQueues;

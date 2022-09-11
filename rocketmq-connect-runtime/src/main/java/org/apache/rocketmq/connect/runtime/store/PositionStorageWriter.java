@@ -45,12 +45,9 @@ import java.util.concurrent.FutureTask;
 public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private PositionManagementService positionManagementService;
     private final String namespace;
-
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
+    private PositionManagementService positionManagementService;
     /**
      * Offset data in Connect format
      */
@@ -168,7 +165,7 @@ public class PositionStorageWriter implements OffsetStorageWriter, Closeable {
          * @throws Exception if unable to compute a result
          */
         @Override
-        public Void call()  {
+        public Void call() {
             try {
                 // has been canceled
                 if (flushId != currentFlushId) {

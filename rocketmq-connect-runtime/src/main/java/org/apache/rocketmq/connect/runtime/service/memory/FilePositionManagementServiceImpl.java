@@ -62,20 +62,22 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
 
     }
 
-    @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+    @Override
+    public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionSerde(),
                 new RecordOffsetSerde());
     }
 
-    @Override public StagingMode getStagingMode() {
+    @Override
+    public StagingMode getStagingMode() {
         return StagingMode.STANDALONE;
     }
 
     @Override
     public void start() {
         executor = Executors.newFixedThreadPool(1, ThreadUtils.newThreadFactory(
-            this.getClass().getSimpleName() + "-%d", false));
+                this.getClass().getSimpleName() + "-%d", false));
         positionStore.load();
     }
 
@@ -92,7 +94,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
             }
             if (!executor.shutdownNow().isEmpty()) {
                 throw new ConnectException("Failed to stop MemoryOffsetManagementServiceImpl. Exiting without cleanly " +
-                    "shutting down pending tasks and/or callbacks.");
+                        "shutting down pending tasks and/or callbacks.");
             }
             executor = null;
         }

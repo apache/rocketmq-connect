@@ -92,6 +92,7 @@ class ProcessingContext implements AutoCloseable {
 
     /**
      * Set the source record being processed in the connect pipeline.
+     *
      * @param record the source record
      */
     public void sourceRecord(ConnectRecord record) {

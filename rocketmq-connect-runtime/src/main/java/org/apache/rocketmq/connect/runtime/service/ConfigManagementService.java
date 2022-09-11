@@ -115,14 +115,14 @@ public interface ConfigManagementService {
 
     ClusterConfigState snapshot();
 
+    Plugin getPlugin();
+
+    StagingMode getStagingMode();
+
     interface ConnectorConfigUpdateListener {
         /**
          * Invoke while connector config changed.
          */
         void onConfigUpdate();
     }
-
-    Plugin getPlugin();
-
-    StagingMode getStagingMode();
 }

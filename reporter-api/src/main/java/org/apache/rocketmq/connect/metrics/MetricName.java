@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics;
+package org.apache.rocketmq.connect.metrics;
 
-
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,11 +23,11 @@ import java.util.Map;
 import java.util.Objects;
 
 public class MetricName implements Comparable<MetricName> {
+    private final String str;
     private String name;
     private String group;
     private Map<String, String> tags;
     private String type;
-    private final String str;
 
     public MetricName(String name, String group, Map<String, String> tags) {
         Objects.requireNonNull(name);
@@ -41,7 +39,7 @@ public class MetricName implements Comparable<MetricName> {
         this.str = MetricUtils.metricNameToString(this);
     }
 
-    public MetricName(String name, String group, String type,Map<String, String> tags) {
+    public MetricName(String name, String group, String type, Map<String, String> tags) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(group);
         Objects.requireNonNull(tags);
@@ -94,7 +92,7 @@ public class MetricName implements Comparable<MetricName> {
     }
 
     @Override
-    public int compareTo(@NotNull MetricName o) {
+    public int compareTo(MetricName o) {
         return o.toString().compareTo(this.toString());
     }
 

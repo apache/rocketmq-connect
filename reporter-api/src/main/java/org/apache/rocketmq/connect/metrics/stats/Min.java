@@ -14,32 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.Meter;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
+import org.apache.rocketmq.connect.metrics.MetricName;
 
 /**
- * rate
+ * min
  */
-public class Rate implements Stat {
-    private final Meter meter;
+public class Min extends AbstractHistogram {
+
+    private final Histogram histogram;
     private MetricRegistry registry;
     private MetricName name;
-    public Rate(MetricRegistry registry, MetricName name){
-        this.registry = registry;
+
+    public Min(MetricRegistry registry, MetricName name) {
+        super(registry, name);
         this.name = name;
-        this.meter = registry.meter(name.toString());
+        this.registry = registry;
+        this.histogram = registry.histogram(name.toString());
     }
 
     @Override
     public void record(long value) {
-        this.meter.mark(value);
+        histogram.update(value);
     }
 
     @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
     }
+
+    @Override
+    public String type() {
+        return HistogramType.Min.name();
+    }
 }
+

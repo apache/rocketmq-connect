@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.runtime.utils.datasync;
 
 /**
  * Callback for {@link DataSynchronizer}
+ *
  * @param <K>
  * @param <V>
  */
@@ -26,6 +27,7 @@ public interface DataSynchronizerCallback<K, V> {
 
     /**
      * Receive a message.
+     *
      * @param error
      * @param key
      * @param result

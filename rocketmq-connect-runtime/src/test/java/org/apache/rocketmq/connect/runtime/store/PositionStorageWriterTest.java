@@ -19,10 +19,6 @@ package org.apache.rocketmq.connect.runtime.store;
 
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
@@ -34,6 +30,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PositionStorageWriterTest {
 
@@ -90,7 +91,7 @@ public class PositionStorageWriterTest {
 
         Map<RecordPartition, RecordOffset> positions = new HashMap<>();
         positions.put(recordPartition, recordOffset);
-        Assertions.assertThatCode(() ->  positionStorageWriter.writeOffset(positions)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> positionStorageWriter.writeOffset(positions)).doesNotThrowAnyException();
     }
 
     @Test
@@ -98,7 +99,8 @@ public class PositionStorageWriterTest {
         Assertions.assertThatCode(() -> positionStorageWriter.beginFlush()).doesNotThrowAnyException();
         Assertions.assertThatCode(() -> {
             positionStorageWriter.doFlush(new DataSynchronizerCallback() {
-                @Override public void onCompletion(Throwable error, Object key, Object result) {
+                @Override
+                public void onCompletion(Throwable error, Object key, Object result) {
 
                 }
             });

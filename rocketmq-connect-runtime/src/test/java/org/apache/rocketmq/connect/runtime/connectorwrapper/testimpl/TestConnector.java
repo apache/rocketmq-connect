@@ -19,9 +19,9 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +29,8 @@ public class TestConnector extends SourceConnector {
 
     private KeyValue config;
 
-    @Override public void validate(KeyValue config) {
+    @Override
+    public void validate(KeyValue config) {
 
     }
 
@@ -48,7 +49,8 @@ public class TestConnector extends SourceConnector {
 
     }
 
-    @Override public List<KeyValue> taskConfigs(int maxTasks) {
+    @Override
+    public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> configs = new ArrayList<>();
         configs.add(this.config);
         return configs;

@@ -106,13 +106,13 @@
     <logger name="FileConnector" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="FileConnectorAppender"/>
-        <appender-ref ref="Console" />
+        <appender-ref ref="Console"/>
     </logger>
 
     <logger name="RocketMQRuntime" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="RocketMQRuntimeAppender"/>
-        <appender-ref ref="Console" />
+        <appender-ref ref="Console"/>
     </logger>
 
     <logger name="org.reflections" level="ERROR"/>
@@ -120,6 +120,6 @@
     <root>
         <level value="INFO"/>
         <appender-ref ref="DefaultAppender"/>
-        <appender-ref ref="Console" />
+        <appender-ref ref="Console"/>
     </root>
 </configuration>

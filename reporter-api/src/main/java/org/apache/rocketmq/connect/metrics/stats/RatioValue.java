@@ -14,30 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
+import com.codahale.metrics.RatioGauge;
+import org.apache.rocketmq.connect.metrics.MetricName;
 
 /**
- * avg
+ * ratio gauge
  */
-public class Avg extends AbstractHistogram {
+public class RatioValue implements Stat, Measure {
+    private MetricRegistry registry;
+    private MetricName name;
+    private RatioGauge ratioGauge;
 
-    private final Histogram histogram;
-    private final MetricRegistry registry;
-    private final MetricName name;
-    public Avg(MetricRegistry registry, MetricName name){
-        super(registry, name);
+    public RatioValue(MetricRegistry registry, MetricName name, Value numerator, Value denominator) {
         this.registry = registry;
         this.name = name;
-        this.histogram = registry.histogram(name.toString());
+        this.ratioGauge = registry.register(name.toString(), new RatioGauge() {
+            @Override
+            protected Ratio getRatio() {
+                return Ratio.of(
+                        numerator.value(),
+                        denominator.value()
+                );
+            }
+        });
     }
 
     @Override
     public void record(long value) {
-        histogram.update(value);
+        // NO-op
     }
 
     @Override
@@ -46,8 +53,7 @@ public class Avg extends AbstractHistogram {
     }
 
     @Override
-    public String type(){
-        return HistogramType.avg.name();
+    public double value() {
+        return this.ratioGauge.getValue();
     }
 }
-

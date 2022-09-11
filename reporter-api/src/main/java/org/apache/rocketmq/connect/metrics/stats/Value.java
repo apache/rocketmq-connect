@@ -14,37 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
+import org.apache.rocketmq.connect.metrics.MetricName;
 
-public class Max extends AbstractHistogram {
-    private final Histogram histogram;
+/**
+ * gauge
+ */
+public class Value implements Stat, Measure {
     private final MetricRegistry registry;
     private final MetricName name;
-    public Max(MetricRegistry registry, MetricName name){
-        super(registry, name);
+    private long value;
+
+    public Value(MetricRegistry registry, MetricName name) {
         this.registry = registry;
         this.name = name;
-        this.histogram = registry.histogram(name.toString());
+        registry.register(name.toString(), new Gauge() {
+            @Override
+            public Object getValue() {
+                return value;
+            }
+        });
     }
 
     @Override
     public void record(long value) {
-        histogram.update(value);
+        this.value = value;
     }
-
 
     @Override
     public void close() throws Exception {
-        this.registry.remove(name.toString());
+        registry.remove(name.toString());
     }
 
     @Override
-    public String type(){
-        return HistogramType.Max.name();
+    public double value() {
+        return value;
     }
 }
-

@@ -46,9 +46,6 @@ import java.util.Objects;
  */
 public class DeadLetterQueueReporter implements ErrorReporter {
 
-    private static final Logger log = LoggerFactory.getLogger(DeadLetterQueueReporter.class);
-
-
     public static final String HEADER_PREFIX = "__connect.errors.";
     public static final String ERROR_HEADER_ORIG_TOPIC = HEADER_PREFIX + "topic";
     public static final String ERROR_HEADER_ORIG_PARTITION = HEADER_PREFIX + "partition";
@@ -61,31 +58,47 @@ public class DeadLetterQueueReporter implements ErrorReporter {
     public static final String ERROR_HEADER_EXCEPTION = HEADER_PREFIX + "exception.class.name";
     public static final String ERROR_HEADER_EXCEPTION_MESSAGE = HEADER_PREFIX + "exception.message";
     public static final String ERROR_HEADER_EXCEPTION_STACK_TRACE = HEADER_PREFIX + "exception.stacktrace";
-
-
-    /**
-     * The configs of current source task.
-     */
-    private ConnectKeyValue config;
-
-    /**
-     * A RocketMQ producer to send message to dest MQ.
-     */
-    private DefaultMQProducer producer;
-
-    /**
-     * worker id
-     */
-    private String workerId;
-
+    private static final Logger log = LoggerFactory.getLogger(DeadLetterQueueReporter.class);
     /**
      * config
      */
     private final DeadLetterQueueConfig deadLetterQueueConfig;
-
+    private final ErrorMetricsGroup errorMetricsGroup;
+    /**
+     * The configs of current source task.
+     */
+    private ConnectKeyValue config;
+    /**
+     * A RocketMQ producer to send message to dest MQ.
+     */
+    private DefaultMQProducer producer;
+    /**
+     * worker id
+     */
+    private String workerId;
     private ConnectorTaskId connectorTaskId;
 
-    private final ErrorMetricsGroup errorMetricsGroup;
+    /**
+     * Initialize the dead letter queue reporter with a producer
+     *
+     * @param producer
+     * @param connConfig
+     * @param connectorTaskId
+     */
+    DeadLetterQueueReporter(DefaultMQProducer producer,
+                            ConnectKeyValue connConfig,
+                            ConnectorTaskId connectorTaskId,
+                            ErrorMetricsGroup errorMetricsGroup) {
+        Objects.requireNonNull(producer);
+        Objects.requireNonNull(connConfig);
+        Objects.requireNonNull(connectorTaskId);
+        this.producer = producer;
+        this.config = connConfig;
+        this.connectorTaskId = connectorTaskId;
+        this.deadLetterQueueConfig = new DeadLetterQueueConfig(connConfig);
+        this.errorMetricsGroup = errorMetricsGroup;
+    }
+
     /**
      * build reporter
      *
@@ -112,27 +125,6 @@ public class DeadLetterQueueReporter implements ErrorReporter {
         }
         DefaultMQProducer dlqProducer = ConnectUtil.initDefaultMQProducer(workerConfig);
         return new DeadLetterQueueReporter(dlqProducer, sinkConfig, connectorTaskId, errorMetricsGroup);
-    }
-
-    /**
-     * Initialize the dead letter queue reporter with a producer
-     *
-     * @param producer
-     * @param connConfig
-     * @param connectorTaskId
-     */
-    DeadLetterQueueReporter(DefaultMQProducer producer,
-                            ConnectKeyValue connConfig,
-                            ConnectorTaskId connectorTaskId,
-                            ErrorMetricsGroup errorMetricsGroup) {
-        Objects.requireNonNull(producer);
-        Objects.requireNonNull(connConfig);
-        Objects.requireNonNull(connectorTaskId);
-        this.producer = producer;
-        this.config = connConfig;
-        this.connectorTaskId = connectorTaskId;
-        this.deadLetterQueueConfig = new DeadLetterQueueConfig(connConfig);
-        this.errorMetricsGroup = errorMetricsGroup;
     }
 
     /**
@@ -202,7 +194,7 @@ public class DeadLetterQueueReporter implements ErrorReporter {
         producerRecord.putUserProperty(ERROR_HEADER_STAGE, context.stage().name());
         producerRecord.putUserProperty(ERROR_HEADER_EXECUTING_CLASS, context.executingClass().getName());
         producerRecord.putUserProperty(ERROR_HEADER_CONNECTOR_NAME, connectorTaskId.connector());
-        producerRecord.putUserProperty(ERROR_HEADER_TASK_ID, connectorTaskId.task()+"");
+        producerRecord.putUserProperty(ERROR_HEADER_TASK_ID, connectorTaskId.task() + "");
         if (context.error() != null) {
             Throwable error = context.error();
             headers.put(ERROR_HEADER_EXCEPTION, error.getClass().getName());

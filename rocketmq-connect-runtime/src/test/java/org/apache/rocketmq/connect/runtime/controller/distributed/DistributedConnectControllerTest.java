@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
-import java.nio.charset.StandardCharsets;
-
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
@@ -37,6 +35,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DistributedConnectControllerTest {
@@ -74,9 +74,9 @@ public class DistributedConnectControllerTest {
                 clusterManagementService,
                 configManagementService,
                 positionManagementService,
-                stateManagementService );
+                stateManagementService);
         distributedConnectController = new DistributedConnectController(plugin, distributedConfig, clusterManagementService,
-            configManagementService, positionManagementService, stateManagementService);
+                configManagementService, positionManagementService, stateManagementService);
     }
 
     @After

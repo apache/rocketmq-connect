@@ -19,17 +19,16 @@ package org.apache.rocketmq.connect.runtime.converter.record;
 
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
-import java.nio.charset.StandardCharsets;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
+
 public class ByteArrayConverterTest {
 
-    private ByteArrayConverter byteArrayConverter = new ByteArrayConverter();
-
     private static final String TOPIC = "topic";
-
     private static final String TEST_OBJECT = "Hello World";
+    private ByteArrayConverter byteArrayConverter = new ByteArrayConverter();
 
     @Test
     public void fromConnectDataTest() {

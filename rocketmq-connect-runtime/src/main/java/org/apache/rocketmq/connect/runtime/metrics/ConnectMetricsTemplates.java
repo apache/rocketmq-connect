@@ -35,9 +35,6 @@ public class ConnectMetricsTemplates {
     public static final String WORKER_GROUP_NAME = "connect-worker-metrics";
 
     public static final String TASK_ERROR_HANDLING_GROUP_NAME = "task-error-metrics";
-
-    private final List<MetricNameTemplate> allTemplates = new ArrayList<>();
-
     public final MetricNameTemplate taskCommitTimeMax;
     public final MetricNameTemplate taskCommitTimeAvg;
     public final MetricNameTemplate taskBatchSizeMax;
@@ -57,20 +54,19 @@ public class ConnectMetricsTemplates {
     public final MetricNameTemplate sinkRecordReadTotal;
     public final MetricNameTemplate sinkRecordSendRate;
     public final MetricNameTemplate sinkRecordSendTotal;
-
     public final MetricNameTemplate sinkRecordOffsetCommitCompletionRate;
     public final MetricNameTemplate sinkRecordOffsetCommitCompletionTotal;
     public final MetricNameTemplate sinkRecordOffsetCommitSkipRate;
     public final MetricNameTemplate sinkRecordOffsetCommitSkipTotal;
     public final MetricNameTemplate sinkRecordPutBatchTimeMax;
     public final MetricNameTemplate sinkRecordPutBatchTimeAvg;
-
     public final MetricNameTemplate recordProcessingFailures;
     public final MetricNameTemplate recordProcessingErrors;
     public final MetricNameTemplate recordsSkipped;
     public final MetricNameTemplate retries;
     public final MetricNameTemplate errorsLogged;
     public final MetricNameTemplate dlqProduceFailures;
+    private final List<MetricNameTemplate> allTemplates = new ArrayList<>();
 
     public ConnectMetricsTemplates() {
         this(new LinkedHashSet<>());

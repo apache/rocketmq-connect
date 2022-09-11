@@ -35,9 +35,10 @@ public class RecordPositionMapSerde extends WrapperSerde<Map<ExtendRecordPartiti
 
     /**
      * serializer and deserializer
+     *
      * @return
      */
-    public static RecordPositionMapSerde serde(){
+    public static RecordPositionMapSerde serde() {
         return new RecordPositionMapSerde(new RecordPositionMapSerializer(), new RecordPositionMapDeserializer());
     }
 }

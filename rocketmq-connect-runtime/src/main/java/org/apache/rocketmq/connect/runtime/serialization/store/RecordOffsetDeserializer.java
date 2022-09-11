@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.runtime.serialization.store;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.data.Converter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.serialization.Deserializer;

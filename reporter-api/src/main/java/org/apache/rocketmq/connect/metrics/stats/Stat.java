@@ -14,17 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.connect.metrics.stats;
 
-package org.apache.rocketmq.connect.runtime.metrics.stats;
-
-import com.codahale.metrics.MetricRegistry;
-import org.apache.rocketmq.connect.runtime.metrics.MetricName;
 
 /**
- * Abstract Histogram
+ * measure stat
  */
-public abstract class AbstractHistogram implements Stat{
-    public AbstractHistogram(MetricRegistry registry, MetricName name){
-        name.setType(type());
+public interface Stat extends AutoCloseable {
+
+
+    /**
+     * record
+     *
+     * @param value
+     */
+    void record(long value);
+
+    /**
+     * type
+     *
+     * @return
+     */
+    default String type() {
+        return "none";
+    }
+
+    enum HistogramType {
+        avg,
+        Max,
+        Min,
     }
 }

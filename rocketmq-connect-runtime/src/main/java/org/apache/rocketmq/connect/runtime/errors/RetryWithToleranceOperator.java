@@ -34,10 +34,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class RetryWithToleranceOperator implements AutoCloseable {
 
-    private static final Logger log = LoggerFactory.getLogger(RetryWithToleranceOperator.class);
-
     public static final long RETRIES_DELAY_MIN_MS = 300;
-
+    private static final Logger log = LoggerFactory.getLogger(RetryWithToleranceOperator.class);
     private static final Map<ErrorReporter.Stage, Class<? extends Exception>> TOLERABLE_EXCEPTIONS = new HashMap<>();
 
     static {
@@ -48,11 +46,10 @@ public class RetryWithToleranceOperator implements AutoCloseable {
     private final long retryTimeout;
     private final long maxDelayInMillis;
     private final ToleranceType toleranceType;
-
-    private long totalFailures = 0;
     protected ProcessingContext context = new ProcessingContext();
-
+    private long totalFailures = 0;
     private ErrorMetricsGroup errorMetricsGroup;
+
     public RetryWithToleranceOperator(long errorRetryTimeout,
                                       long maxDelayInMillis,
                                       ToleranceType toleranceType,

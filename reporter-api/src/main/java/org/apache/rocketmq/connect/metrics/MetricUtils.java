@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics;
+package org.apache.rocketmq.connect.metrics;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -27,9 +27,9 @@ import java.util.Map;
  */
 public class MetricUtils {
 
-    private final static String rocketmq_connect = "rocketmq.connect:";
-    private final static String split_semicolon = ";";
-    private final static String split_kv = "=";
+    private final static String ROCKETMQ_CONNECT = "rocketmq.connect:";
+    private final static String SPLIT_SEMICOLON = ";";
+    private final static String SPLIT_KV = "=";
 
 
     /**
@@ -42,18 +42,18 @@ public class MetricUtils {
         if (StringUtils.isEmpty(name.getType())) {
             name.setType("none");
         }
-        StringBuilder sb = new StringBuilder(rocketmq_connect)
+        StringBuilder sb = new StringBuilder(ROCKETMQ_CONNECT)
                 .append(name.getGroup())
-                .append(split_semicolon)
+                .append(SPLIT_SEMICOLON)
                 .append(name.getName())
-                .append(split_semicolon)
+                .append(SPLIT_SEMICOLON)
                 .append(name.getType());
 
 
         for (Map.Entry<String, String> entry : name.getTags().entrySet()) {
-            sb.append(split_semicolon)
+            sb.append(SPLIT_SEMICOLON)
                     .append(entry.getKey())
-                    .append(split_kv)
+                    .append(SPLIT_KV)
                     .append(entry.getValue());
         }
         return sb.toString();
@@ -70,14 +70,14 @@ public class MetricUtils {
             throw new IllegalArgumentException("Metric name str is empty");
         }
         String[] splits = name
-                .replace(rocketmq_connect, "")
-                .replace(split_kv,split_semicolon)
-                .split(split_semicolon);
+                .replace(ROCKETMQ_CONNECT, "")
+                .replace(SPLIT_KV, SPLIT_SEMICOLON)
+                .split(SPLIT_SEMICOLON);
         return new MetricName(
                 splits[0],
                 splits[1],
                 splits[2],
-                getTags(Arrays.copyOfRange(splits, 3,splits.length))
+                getTags(Arrays.copyOfRange(splits, 3, splits.length))
         );
     }
 

@@ -19,8 +19,7 @@ package org.apache.rocketmq.connect.runtime.controller.standalone;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 
 /**
- *  worker standalone config
- *
+ * worker standalone config
  */
 public class StandaloneConfig extends WorkerConfig {
 }

@@ -31,11 +31,10 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
  * Configurations for runtime.
  */
 public class WorkerConfig {
-    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
-
     public static final String METRIC_CLASS = "metrics.reporter";
     public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
     public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
     private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
 
     /**
@@ -213,7 +212,7 @@ public class WorkerConfig {
     private long offsetCommitIntervalMsConfig = 30000L;
 
     private String metricsConfigPath;
-    private Map<String,Map<String, String>> metricsConfig = new HashMap<>();
+    private Map<String, Map<String, String>> metricsConfig = new HashMap<>();
 
 
     public String getWorkerId() {
@@ -392,20 +391,16 @@ public class WorkerConfig {
         this.connectClusterId = connectClusterId;
     }
 
-    public void setAllocTaskStrategy(String allocTaskStrategy) {
-        this.allocTaskStrategy = allocTaskStrategy;
-    }
-
     public String getAllocTaskStrategy() {
         return this.allocTaskStrategy;
     }
 
-    public boolean getAclEnable() {
-        return aclEnable;
+    public void setAllocTaskStrategy(String allocTaskStrategy) {
+        this.allocTaskStrategy = allocTaskStrategy;
     }
 
-    public void setAclEnable(boolean aclEnable) {
-        this.aclEnable = aclEnable;
+    public boolean getAclEnable() {
+        return aclEnable;
     }
 
     public String getAccessKey() {
@@ -447,7 +442,6 @@ public class WorkerConfig {
     public void setConnectHome(String connectHome) {
         this.connectHome = connectHome;
     }
-
 
     public long getOffsetCommitIntervalMsConfig() {
         return offsetCommitIntervalMsConfig;
@@ -491,6 +485,10 @@ public class WorkerConfig {
 
     public boolean isAclEnable() {
         return aclEnable;
+    }
+
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
     }
 
     public String getKeyConverter() {

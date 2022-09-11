@@ -34,16 +34,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
-import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.connect.metrics.stats.Avg;
+import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
+import org.apache.rocketmq.connect.metrics.stats.Max;
+import org.apache.rocketmq.connect.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -52,17 +55,12 @@ import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
 import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Avg;
-import org.apache.rocketmq.connect.runtime.metrics.stats.CumulativeCount;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Max;
-import org.apache.rocketmq.connect.runtime.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,67 +86,13 @@ import static java.util.Collections.singleton;
  */
 public class WorkerSinkTask extends WorkerTask {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private static final Integer MAX_MESSAGE_NUM = 32;
-    private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 5;
-    /**
-     * The implements of the sink task.
-     */
-    private SinkTask sinkTask;
-
-    /**
-     * A RocketMQ consumer to pull message from MQ.
-     */
-    private final DefaultLitePullConsumer consumer;
-
-    /**
-     * A converter to parse sink data entry to object.
-     */
-    private RecordConverter keyConverter;
-    private RecordConverter valueConverter;
-
-    /**
-     * cache offset
-     */
-    private final Map<MessageQueue, Long> lastCommittedOffsets;
-    private final Map<MessageQueue, Long> currentOffsets;
-    private final Map<MessageQueue, Long> originalOffsets;
-    private final Set<MessageQueue> messageQueues;
-
-    private final List<ConnectRecord> messageBatch;
-
-
-    private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
-
-    private MessageQueueListener messageQueueListener = null;
-    /**
-     * stat
-     */
-    private final ConnectStatsManager connectStatsManager;
-    private final ConnectStatsService connectStatsService;
-
-    private final CountDownLatch stopPullMsgLatch;
-    private WorkerSinkTaskContext sinkTaskContext;
-    private WorkerErrorRecordReporter errorRecordReporter;
-
-    private final SinkTaskMetricsGroup sinkTaskMetricsGroup;
-
-    /**
-     * for commit
-     */
-    private long nextCommit;
-    private int commitSeqno;
-    private long commitStarted;
-    private boolean committing;
-    private boolean pausedForRetry;
-
-
     public static final String BROKER_NAME = "brokerName";
     public static final String QUEUE_ID = "queueId";
     public static final String TOPIC = "topic";
     public static final String QUEUE_OFFSET = "queueOffset";
-
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    private static final Integer MAX_MESSAGE_NUM = 32;
+    private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 5;
     private static final Set<String> MQ_SYS_KEYS = new HashSet<String>() {
         {
             add("MIN_OFFSET");
@@ -160,6 +104,47 @@ public class WorkerSinkTask extends WorkerTask {
             add("TAGS");
         }
     };
+    /**
+     * A RocketMQ consumer to pull message from MQ.
+     */
+    private final DefaultLitePullConsumer consumer;
+    /**
+     * cache offset
+     */
+    private final Map<MessageQueue, Long> lastCommittedOffsets;
+    private final Map<MessageQueue, Long> currentOffsets;
+    private final Map<MessageQueue, Long> originalOffsets;
+    private final Set<MessageQueue> messageQueues;
+    private final List<ConnectRecord> messageBatch;
+    /**
+     * stat
+     */
+    private final ConnectStatsManager connectStatsManager;
+    private final ConnectStatsService connectStatsService;
+
+    private final CountDownLatch stopPullMsgLatch;
+    private final SinkTaskMetricsGroup sinkTaskMetricsGroup;
+    /**
+     * The implements of the sink task.
+     */
+    private SinkTask sinkTask;
+    /**
+     * A converter to parse sink data entry to object.
+     */
+    private RecordConverter keyConverter;
+    private RecordConverter valueConverter;
+    private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
+    private MessageQueueListener messageQueueListener = null;
+    private WorkerSinkTaskContext sinkTaskContext;
+    private WorkerErrorRecordReporter errorRecordReporter;
+    /**
+     * for commit
+     */
+    private long nextCommit;
+    private int commitSeqno;
+    private long commitStarted;
+    private boolean committing;
+    private boolean pausedForRetry;
 
     public WorkerSinkTask(WorkerConfig workerConfig,
                           ConnectorTaskId id,
@@ -504,7 +489,7 @@ public class WorkerSinkTask extends WorkerTask {
             sinkTask.put(new ArrayList<>(messageBatch));
             //metrics
             recordMultiple(messageBatch.size());
-            sinkTaskMetricsGroup.recordPut(System.currentTimeMillis() - start );
+            sinkTaskMetricsGroup.recordPut(System.currentTimeMillis() - start);
 
             currentOffsets.putAll(originalOffsets);
             messageBatch.clear();
@@ -876,12 +861,12 @@ public class WorkerSinkTask extends WorkerTask {
             MetricRegistry registry = connectMetrics.registry();
 
             sinkRecordRead = metricGroup.sensor();
-            sinkRecordRead.addStat(new Rate(registry,metricGroup.name(templates.sinkRecordReadRate)));
-            sinkRecordRead.addStat(new CumulativeCount(registry,metricGroup.name(templates.sinkRecordReadTotal)));
+            sinkRecordRead.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordReadRate)));
+            sinkRecordRead.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordReadTotal)));
 
             sinkRecordSend = metricGroup.sensor();
-            sinkRecordSend.addStat(new Rate(registry,metricGroup.name(templates.sinkRecordSendRate)));
-            sinkRecordSend.addStat(new Rate(registry,metricGroup.name(templates.sinkRecordSendTotal)));
+            sinkRecordSend.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordSendRate)));
+            sinkRecordSend.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordSendTotal)));
 
             putBatchTime = metricGroup.sensor();
             putBatchTime.addStat(new Max(registry, metricGroup.name(templates.sinkRecordPutBatchTimeMax)));

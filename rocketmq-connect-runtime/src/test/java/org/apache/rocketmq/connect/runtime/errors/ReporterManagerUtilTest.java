@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.runtime.errors;
 
 import io.openmessaging.connector.api.data.RecordConverter;
-import java.util.List;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.StringConverter;
@@ -27,6 +26,8 @@ import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.List;
+
 public class ReporterManagerUtilTest {
 
     private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
@@ -34,7 +35,7 @@ public class ReporterManagerUtilTest {
     @Test
     public void createRetryWithToleranceOperatorTest() {
         WorkerConfig config = new WorkerConfig();
-        final RetryWithToleranceOperator operator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue,  new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(config)));
+        final RetryWithToleranceOperator operator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(config)));
         Assert.assertNotNull(operator);
 
     }

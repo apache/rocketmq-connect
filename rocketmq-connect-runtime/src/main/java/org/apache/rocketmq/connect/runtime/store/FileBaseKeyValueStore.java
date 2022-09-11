@@ -18,15 +18,16 @@
 package org.apache.rocketmq.connect.runtime.store;
 
 import com.alibaba.fastjson.JSON;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.serialization.Serde;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * File based Key value store.
@@ -43,8 +44,8 @@ public class FileBaseKeyValueStore<K, V> extends MemoryBasedKeyValueStore<K, V> 
     private Serde serdeValue;
 
     public FileBaseKeyValueStore(String configFilePath,
-        Serde serdeKey,
-        Serde serdeValue) {
+                                 Serde serdeKey,
+                                 Serde serdeValue) {
         super();
         this.configFilePath = configFilePath;
         this.serdeKey = serdeKey;
@@ -54,7 +55,7 @@ public class FileBaseKeyValueStore<K, V> extends MemoryBasedKeyValueStore<K, V> 
     public String encode() {
         Map<String, String> map = new HashMap<>();
         for (K key : data.keySet()) {
-            byte[] keyByte = serdeKey.serializer().serialize("",key);
+            byte[] keyByte = serdeKey.serializer().serialize("", key);
             byte[] valueByte = serdeValue.serializer().serialize("", data.get(key));
             map.put(Base64Util.base64Encode(keyByte), Base64Util.base64Encode(valueByte));
         }

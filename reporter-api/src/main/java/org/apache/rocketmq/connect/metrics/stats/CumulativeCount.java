@@ -14,31 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.metrics.stats;
+package org.apache.rocketmq.connect.metrics.stats;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.MetricRegistry;
+import org.apache.rocketmq.connect.metrics.MetricName;
 
 
 /**
- * measure stat
+ * cumulative count
  */
-public interface Stat extends AutoCloseable {
+public class CumulativeCount implements Stat {
 
+    private final Counter counter;
+    private final MetricRegistry registry;
+    private final MetricName name;
 
-    /**
-     * record
-     * @param value
-     */
-    void record(long value);
-
-    /**
-     * type
-     * @return
-     */
-    default String type(){
-        return "none";
+    public CumulativeCount(MetricRegistry registry, MetricName name) {
+        this.registry = registry;
+        this.name = name;
+        this.counter = registry.counter(name.toString());
     }
-    enum HistogramType {
-        avg,
-        Max,
-        Min,
+
+    @Override
+    public void record(long value) {
+        counter.inc(value);
+    }
+
+    @Override
+    public void close() throws Exception {
+        this.registry.remove(name.toString());
     }
 }

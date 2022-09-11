@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.connect.runtime.errors;
 
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
 import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
-import org.apache.rocketmq.connect.runtime.metrics.stats.CumulativeCount;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 
 import java.io.Closeable;
@@ -29,7 +28,6 @@ import java.io.IOException;
 
 
 /**
- *
  * error metrics group
  * ToleranceType.ALL. It will be recorded under all, but not under fault tolerance
  */
@@ -56,13 +54,13 @@ public class ErrorMetricsGroup implements Closeable {
         );
 
         recordProcessingFailures = metricGroup.sensor();
-        recordProcessingFailures.addStat(new CumulativeCount(connectMetrics.registry(),metricGroup.name(templates.recordProcessingFailures)));
+        recordProcessingFailures.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.recordProcessingFailures)));
 
         recordProcessingErrors = metricGroup.sensor();
-        recordProcessingErrors.addStat(new CumulativeCount(connectMetrics.registry(),metricGroup.name(templates.recordProcessingErrors)));
+        recordProcessingErrors.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.recordProcessingErrors)));
 
         recordsSkipped = metricGroup.sensor();
-        recordsSkipped.addStat(new CumulativeCount(connectMetrics.registry(),metricGroup.name(templates.recordsSkipped)));
+        recordsSkipped.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.recordsSkipped)));
 
         retries = metricGroup.sensor();
         retries.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.retries)));
