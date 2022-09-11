@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.metrics;
 import org.apache.rocketmq.connect.metrics.MetricName;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,10 +28,10 @@ import java.util.Set;
  * metric group
  */
 public class MetricGroup implements AutoCloseable {
-    private final Map<String, String> tags;
+    private final LinkedHashMap<String, String> tags;
     private Set<Sensor> metrics = new HashSet<>();
 
-    public MetricGroup(Map<String, String> tags) {
+    public MetricGroup(LinkedHashMap<String, String> tags) {
         this.tags = tags;
     }
 

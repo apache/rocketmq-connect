@@ -648,7 +648,6 @@ public class Worker {
     private void checkStoppedTasks() {
         for (Runnable runnable : stoppedTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
-            workerTask.cleanup();
             Future future = taskToFutureMap.get(runnable);
             try {
                 if (null != future) {
@@ -672,6 +671,7 @@ public class Worker {
             } finally {
                 // remove committer offset
                 sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
+                workerTask.cleanup();
                 future.cancel(true);
                 taskToFutureMap.remove(runnable);
                 stoppedTasks.remove(runnable);
@@ -697,8 +697,8 @@ public class Worker {
             } finally {
                 // remove committer offset
                 sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
-                future.cancel(true);
                 workerTask.cleanup();
+                future.cancel(true);
                 taskToFutureMap.remove(runnable);
                 errorTasks.remove(runnable);
                 cleanedErrorTasks.add(runnable);

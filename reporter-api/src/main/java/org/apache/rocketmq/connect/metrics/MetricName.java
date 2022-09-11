@@ -23,19 +23,19 @@ import java.util.Map;
 import java.util.Objects;
 
 public class MetricName implements Comparable<MetricName> {
-    private final String str;
+    private String str;
     private String name;
     private String group;
-    private Map<String, String> tags;
+    private LinkedHashMap<String, String> tags;
     private String type;
 
-    public MetricName(String name, String group, Map<String, String> tags) {
+    public MetricName(String name, String group, LinkedHashMap<String, String> tags) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(group);
         Objects.requireNonNull(tags);
         this.name = name;
         this.group = group;
-        this.tags = Collections.unmodifiableMap(new LinkedHashMap<>(tags));
+        this.tags = new LinkedHashMap<>(tags);
         this.str = MetricUtils.metricNameToString(this);
     }
 
@@ -46,7 +46,7 @@ public class MetricName implements Comparable<MetricName> {
         this.name = name;
         this.group = group;
         this.type = type;
-        this.tags = Collections.unmodifiableMap(new LinkedHashMap<>(tags));
+        this.tags = new LinkedHashMap<>(tags);
         this.str = MetricUtils.metricNameToString(this);
     }
 
@@ -66,11 +66,11 @@ public class MetricName implements Comparable<MetricName> {
         this.group = group;
     }
 
-    public Map<String, String> getTags() {
+    public LinkedHashMap<String, String> getTags() {
         return tags;
     }
 
-    public void setTags(Map<String, String> tags) {
+    public void setTags(LinkedHashMap<String, String> tags) {
         this.tags = tags;
     }
 
@@ -83,12 +83,12 @@ public class MetricName implements Comparable<MetricName> {
     }
 
     public String getStr() {
-        return str;
+        return MetricUtils.metricNameToString(this);
     }
 
     @Override
     public String toString() {
-        return str;
+        return MetricUtils.metricNameToString(this);
     }
 
     @Override

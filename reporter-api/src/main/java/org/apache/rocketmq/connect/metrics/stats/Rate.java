@@ -29,6 +29,7 @@ public class Rate implements Stat {
     private MetricName name;
 
     public Rate(MetricRegistry registry, MetricName name) {
+        name.setType(type());
         this.registry = registry;
         this.name = name;
         this.meter = registry.meter(name.toString());
@@ -42,5 +43,10 @@ public class Rate implements Stat {
     @Override
     public void close() throws Exception {
         this.registry.remove(name.toString());
+    }
+
+    @Override
+    public String type() {
+        return RateType.MeanRate.name();
     }
 }

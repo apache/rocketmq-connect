@@ -31,6 +31,7 @@ public class CumulativeCount implements Stat {
     private final MetricName name;
 
     public CumulativeCount(MetricRegistry registry, MetricName name) {
+        name.setType(type());
         this.registry = registry;
         this.name = name;
         this.counter = registry.counter(name.toString());

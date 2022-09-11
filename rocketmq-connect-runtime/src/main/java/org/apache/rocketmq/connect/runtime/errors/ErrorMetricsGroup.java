@@ -31,7 +31,7 @@ import java.io.IOException;
  * error metrics group
  * ToleranceType.ALL. It will be recorded under all, but not under fault tolerance
  */
-public class ErrorMetricsGroup implements Closeable {
+public class ErrorMetricsGroup implements AutoCloseable {
 
     private final MetricGroup metricGroup;
     // metrics
@@ -106,7 +106,7 @@ public class ErrorMetricsGroup implements Closeable {
 
 
     @Override
-    public void close() throws IOException {
+    public void close() throws Exception {
         metricGroup.close();
     }
 }

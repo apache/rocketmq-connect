@@ -181,16 +181,19 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
+    public void removeMetrics(){
+        super.removeMetrics();
+        Utils.closeQuietly(sourceTaskMetricsGroup, "Remove source "+id.toString()+" metrics");
+    }
     @Override
     public void close() {
         sourceTask.stop();
         producer.shutdown();
         stopRequestedLatch.countDown();
-        super.removeMetrics();
+        removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(positionStorageWriter, "position storage writer");
-        Utils.closeQuietly(sourceTaskMetricsGroup, "remove metrics");
     }
 
     protected void updateCommittableOffsets() {
@@ -665,15 +668,15 @@ public class WorkerSourceTask extends WorkerTask {
             sourceRecordPoll.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollRate)));
             sourceRecordPoll.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollTotal)));
 
-            sourceRecordWrite = new Sensor();
+            sourceRecordWrite = metricGroup.sensor();
             sourceRecordWrite.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteRate)));
             sourceRecordWrite.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteTotal)));
 
-            pollTime = new Sensor();
+            pollTime = metricGroup.sensor();
             pollTime.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeMax)));
             pollTime.addStat(new Avg(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeAvg)));
 
-            sourceRecordActiveCount = new Sensor();
+            sourceRecordActiveCount = metricGroup.sensor();
             sourceRecordActiveCount.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordActiveCountMax)));
             sourceRecordActiveCount.addStat(new Avg(connectMetrics.registry(), metricGroup.name(templates.sourceRecordActiveCountAvg)));
         }

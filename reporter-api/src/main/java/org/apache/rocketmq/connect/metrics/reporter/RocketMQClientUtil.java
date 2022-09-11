@@ -104,10 +104,6 @@ public class RocketMQClientUtil {
             }
         } catch (Exception e) {
             throw new RuntimeException("create topic: " + topicConfig.getTopicName() + " failed", e);
-        } finally {
-            if (defaultMQAdminExt != null) {
-                defaultMQAdminExt.shutdown();
-            }
         }
     }
 
@@ -120,10 +116,6 @@ public class RocketMQClientUtil {
             }
         } catch (Exception e) {
             foundTopicRouteInfo = false;
-        } finally {
-            if (defaultMQAdminExt != null) {
-                defaultMQAdminExt.shutdown();
-            }
         }
         return foundTopicRouteInfo;
     }
@@ -139,10 +131,6 @@ public class RocketMQClientUtil {
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("fetch all topic  failed", e);
-        } finally {
-            if (defaultMQAdminExt != null) {
-                defaultMQAdminExt.shutdown();
-            }
         }
         return consumerGroupSet;
     }
@@ -162,10 +150,6 @@ public class RocketMQClientUtil {
             }
         } catch (Exception e) {
             throw new RuntimeException("create subGroup: " + subGroup + " failed", e);
-        } finally {
-            if (defaultMQAdminExt != null) {
-                defaultMQAdminExt.shutdown();
-            }
         }
         return subGroup;
     }

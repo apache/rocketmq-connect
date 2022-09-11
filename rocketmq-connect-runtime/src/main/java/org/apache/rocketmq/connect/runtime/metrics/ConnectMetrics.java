@@ -25,6 +25,7 @@ import org.apache.rocketmq.connect.metrics.ScheduledMetricsReporter;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.concurrent.TimeUnit;
  * connect metrics
  */
 public class ConnectMetrics implements AutoCloseable{
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final String workerId;
@@ -75,8 +77,8 @@ public class ConnectMetrics implements AutoCloseable{
                         ((MetricsReporter) reporter).start();
                     }
                     reporters.add(reporter);
-                } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    log.error("Initialization metrics exporter error ", e);
                 }
             }
         }
@@ -115,10 +117,10 @@ public class ConnectMetrics implements AutoCloseable{
         return new MetricGroup(getTags(tagKeyValues));
     }
 
-    private Map<String, String> getTags(String... keyValue) {
+    private LinkedHashMap<String, String> getTags(String... keyValue) {
         if ((keyValue.length % 2) != 0)
             throw new IllegalArgumentException("keyValue needs to be specified in pairs");
-        Map<String, String> tags = new LinkedHashMap<>(keyValue.length / 2);
+        LinkedHashMap<String, String> tags = new LinkedHashMap<>(keyValue.length / 2);
 
         for (int i = 0; i < keyValue.length; i += 2)
             tags.put(keyValue[i], keyValue[i + 1]);

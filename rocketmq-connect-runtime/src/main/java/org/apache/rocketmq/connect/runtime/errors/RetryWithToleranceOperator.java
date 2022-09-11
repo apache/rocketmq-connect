@@ -263,6 +263,11 @@ public class RetryWithToleranceOperator implements AutoCloseable {
 
     @Override
     public void close() {
+        try {
+            this.errorMetricsGroup.close();
+        } catch (Exception e) {
+            log.error("Error metrics group close failure", e);
+        }
         this.context.close();
     }
 

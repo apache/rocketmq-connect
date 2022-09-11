@@ -452,12 +452,17 @@ public class WorkerSinkTask extends WorkerTask {
         return msgs;
     }
 
+    public void removeMetrics(){
+        super.removeMetrics();
+        Utils.closeQuietly(this.sinkTaskMetricsGroup, "Remove sink "+id.toString()+" metrics");
+    }
+
     @Override
     public void close() {
         sinkTask.stop();
         consumer.shutdown();
         stopPullMsgLatch.countDown();
-        super.removeMetrics();
+        removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
     }
@@ -841,7 +846,7 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
 
-    static class SinkTaskMetricsGroup {
+    static class SinkTaskMetricsGroup implements AutoCloseable {
         private final MetricGroup metricGroup;
 
         private final Sensor sinkRecordRead;
@@ -883,7 +888,7 @@ public class WorkerSinkTask extends WorkerTask {
 
         }
 
-        void close() {
+        public void close() {
             metricGroup.close();
         }
 

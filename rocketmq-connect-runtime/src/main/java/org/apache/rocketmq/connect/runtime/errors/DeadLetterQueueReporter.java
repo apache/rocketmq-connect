@@ -227,5 +227,10 @@ public class DeadLetterQueueReporter implements ErrorReporter {
         if (producer != null) {
             producer.shutdown();
         }
+        try {
+            this.errorMetricsGroup.close();
+        } catch (Exception e) {
+            log.error("Error metrics group close failure", e);
+        }
     }
 }

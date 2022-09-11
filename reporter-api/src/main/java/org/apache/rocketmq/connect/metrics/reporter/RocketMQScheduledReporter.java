@@ -131,17 +131,23 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
         DefaultMQAdminExt defaultMQAdminExt = null;
         try {
             defaultMQAdminExt = RocketMQClientUtil.startMQAdminTool(Boolean.valueOf(configs.get(ACL_ENABLED)), configs.get(ACCESS_KEY), configs.get(SECRET_KEY), groupId, configs.get(NAMESRV_ADDR));
-        } catch (MQClientException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (!RocketMQClientUtil.topicExist(defaultMQAdminExt, topic)) {
-            RocketMQClientUtil.createTopic(defaultMQAdminExt, new TopicConfig(topic));
-        }
-        if (!RocketMQClientUtil.fetchAllConsumerGroup(defaultMQAdminExt).contains(groupId)) {
-            RocketMQClientUtil.createSubGroup(defaultMQAdminExt, groupId);
+            if (!RocketMQClientUtil.topicExist(defaultMQAdminExt, topic)) {
+                RocketMQClientUtil.createTopic(defaultMQAdminExt, new TopicConfig(topic));
+            }
+            if (!RocketMQClientUtil.fetchAllConsumerGroup(defaultMQAdminExt).contains(groupId)) {
+                RocketMQClientUtil.createSubGroup(defaultMQAdminExt, groupId);
+            }
+            this.producer = RocketMQClientUtil.initDefaultMQProducer(Boolean.valueOf(configs.get(ACL_ENABLED)), configs.get(ACCESS_KEY), configs.get(SECRET_KEY), groupId, configs.get(NAMESRV_ADDR));
+            this.producer.start();
+        } catch (Exception e) {
+            log.error("Init config failed ", e);
+        } finally {
+            if (defaultMQAdminExt != null){
+                defaultMQAdminExt.shutdown();
+            }
         }
     }
+
 
     @Override
     public void start() {
