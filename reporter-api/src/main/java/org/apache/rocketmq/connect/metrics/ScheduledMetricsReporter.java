@@ -81,4 +81,9 @@ public abstract class ScheduledMetricsReporter extends ScheduledReporter impleme
 
     public abstract void reportMetric(SortedMap<MetricName, Object> gauges, SortedMap<MetricName, Long> counters, SortedMap<MetricName, Double> histograms, SortedMap<MetricName, Double> meters, SortedMap<MetricName, Timer> timers);
 
+
+    @Override
+    public void close() {
+        super.close();
+    }
 }

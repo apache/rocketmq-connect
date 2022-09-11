@@ -452,6 +452,11 @@ public class Worker {
         sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
 
         stateMachineService.shutdown();
+
+        try {
+            // close metrics
+            connectMetrics.close();
+        } catch (Exception e) {}
     }
 
     private void awaitStopTask(WorkerTask task, long timeout) {

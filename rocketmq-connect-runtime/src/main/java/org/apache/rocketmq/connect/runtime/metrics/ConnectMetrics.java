@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.runtime.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Reporter;
 import com.codahale.metrics.Slf4jReporter;
+import org.apache.rocketmq.connect.metrics.IReporter;
 import org.apache.rocketmq.connect.metrics.MetricsReporter;
 import org.apache.rocketmq.connect.metrics.ScheduledMetricsReporter;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -26,7 +27,9 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -34,28 +37,33 @@ import java.util.concurrent.TimeUnit;
 /**
  * connect metrics
  */
-public class ConnectMetrics {
+public class ConnectMetrics implements AutoCloseable{
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final String workerId;
 
     private final ConnectMetricsTemplates templates = new ConnectMetricsTemplates();
 
+    private final List<Reporter> reporters = new ArrayList<>();
+
     public ConnectMetrics(WorkerConfig config) {
         this.workerId = config.getWorkerId();
-        final Slf4jReporter slf4jReporter = Slf4jReporter.forRegistry(metricRegistry)
-                .outputTo(LoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS))
-                .convertRatesTo(TimeUnit.SECONDS)
-                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                .build();
-        slf4jReporter.start(10, TimeUnit.SECONDS);
+        if (config.isOpenLogMetricReporter()){
+            final Slf4jReporter slf4jReporter = Slf4jReporter.forRegistry(metricRegistry)
+                    .outputTo(LoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS))
+                    .convertRatesTo(TimeUnit.SECONDS)
+                    .convertDurationsTo(TimeUnit.MILLISECONDS)
+                    .build();
+            slf4jReporter.start(10, TimeUnit.SECONDS);
+            reporters.add(slf4jReporter);
+        }
+
 
         Map<String, Map<String, String>> metrics = config.getMetricsConfig();
         if (metrics != null && !metrics.isEmpty()) {
             Class[] classes = {MetricRegistry.class};
             Object[] params = {metricRegistry};
             for (Map.Entry<String, Map<String, String>> configs : metrics.entrySet()) {
-
                 try {
                     Reporter reporter = Utils.newInstance(configs.getKey(), Reporter.class, classes, params);
                     if (reporter instanceof ScheduledMetricsReporter) {
@@ -66,6 +74,7 @@ public class ConnectMetrics {
                         ((MetricsReporter) reporter).config(configs.getValue());
                         ((MetricsReporter) reporter).start();
                     }
+                    reporters.add(reporter);
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
@@ -116,4 +125,15 @@ public class ConnectMetrics {
         return tags;
     }
 
+    @Override
+    public void close() throws Exception {
+        for (Reporter reporter : reporters) {
+            if (reporter instanceof Slf4jReporter) {
+                reporter.close();
+            }
+            if (reporter instanceof IReporter) {
+                reporter.close();
+            }
+        }
+    }
 }

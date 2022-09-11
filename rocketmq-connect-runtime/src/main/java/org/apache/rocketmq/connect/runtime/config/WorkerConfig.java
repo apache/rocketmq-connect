@@ -211,6 +211,9 @@ public class WorkerConfig {
      */
     private long offsetCommitIntervalMsConfig = 30000L;
 
+
+    private boolean openLogMetricReporter = false ;
+
     private String metricsConfigPath;
     private Map<String, Map<String, String>> metricsConfig = new HashMap<>();
 
@@ -531,6 +534,14 @@ public class WorkerConfig {
         this.metricsConfig = metricsConfig;
     }
 
+    public boolean isOpenLogMetricReporter() {
+        return openLogMetricReporter;
+    }
+
+    public void setOpenLogMetricReporter(boolean openLogMetricReporter) {
+        this.openLogMetricReporter = openLogMetricReporter;
+    }
+
     @Override
     public String toString() {
         return "WorkerConfig{" +
@@ -571,6 +582,7 @@ public class WorkerConfig {
                 ", maxStopTimeoutMills=" + maxStopTimeoutMills +
                 ", offsetCommitTimeoutMsConfig=" + offsetCommitTimeoutMsConfig +
                 ", offsetCommitIntervalMsConfig=" + offsetCommitIntervalMsConfig +
+                ", openLogMetricReporter=" + openLogMetricReporter +
                 ", metricsConfigPath='" + metricsConfigPath + '\'' +
                 ", metricsConfig=" + metricsConfig +
                 '}';
