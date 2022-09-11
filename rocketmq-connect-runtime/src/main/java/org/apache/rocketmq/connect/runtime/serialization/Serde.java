@@ -22,7 +22,10 @@ import java.util.Map;
 
 /**
  * serializer and deserializer wrapper
+<<<<<<< HEAD
  *
+=======
+>>>>>>> master
  * @param <T>
  */
 public interface Serde<T> extends Closeable {
@@ -30,7 +33,10 @@ public interface Serde<T> extends Closeable {
 
     /**
      * configs in key/value pairs
+<<<<<<< HEAD
      *
+=======
+>>>>>>> master
      * @param configs
      */
     default void configure(Map<String, ?> configs) {

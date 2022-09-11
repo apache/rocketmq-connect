@@ -29,6 +29,7 @@ import java.util.Map;
  * Byte Map to byte[].
  */
 public class RecordPositionMapSerde extends WrapperSerde<Map<ExtendRecordPartition, RecordOffset>> {
+
     public RecordPositionMapSerde(Serializer<Map<ExtendRecordPartition, RecordOffset>> serializer, Deserializer<Map<ExtendRecordPartition, RecordOffset>> deserializer) {
         super(serializer, deserializer);
     }

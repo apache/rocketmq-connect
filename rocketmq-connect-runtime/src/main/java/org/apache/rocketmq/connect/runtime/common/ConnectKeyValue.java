@@ -137,7 +137,6 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         this.properties = properties;
     }
 
-
     /**
      * Gets all original settings with the given prefix.
      */
@@ -201,7 +200,6 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         return properties.hashCode();
     }
 
-
     @Override
     public Object clone() {
         try {
@@ -211,13 +209,11 @@ public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
         }
     }
 
-
     @Override
     public String toString() {
         return "ConnectKeyValue{" +
                 "properties=" + properties +
                 '}';
     }
-
 
 }

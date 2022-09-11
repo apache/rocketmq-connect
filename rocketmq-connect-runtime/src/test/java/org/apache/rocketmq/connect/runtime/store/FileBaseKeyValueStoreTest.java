@@ -17,10 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.store;
 
+import java.util.HashMap;
+
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,7 +29,7 @@ public class FileBaseKeyValueStoreTest {
     @Test
     public void testFileBaseKeyValueStore() {
         FileBaseKeyValueStore<byte[], byte[]> fbkvs = new FileBaseKeyValueStore<>(
-                "target/unit_test_store/testFileBaseKeyValueStore/000",
+            "target/unit_test_store/testFileBaseKeyValueStore/000",
                 Serdes.ByteArray(),
                 Serdes.ByteArray()
         );

@@ -30,7 +30,10 @@ public interface StateManagementService {
 
     /**
      * init state management service
+<<<<<<< HEAD
      *
+=======
+>>>>>>> master
      * @param workerConfig
      * @param converter
      */

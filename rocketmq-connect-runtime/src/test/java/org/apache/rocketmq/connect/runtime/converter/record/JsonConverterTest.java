@@ -879,14 +879,14 @@ public class JsonConverterTest {
     }
 
     @Test
-    public void converterData() {
+    public void converterData(){
         JsonConverter jsonConverter = new JsonConverter();
         jsonConverter.configure(new HashMap<>());
-        Map<Object, Object> data = Maps.newConcurrentMap();
-        data.put("data", "data");
-        data.put("data01", "data02");
-        byte[] serData = jsonConverter.fromConnectData("test", null, Arrays.asList("test", null, null));
+        Map<Object,Object> data = Maps.newConcurrentMap();
+        data.put("data","data" );
+        data.put("data01","data02");
+        byte[] serData = jsonConverter.fromConnectData("test", null,Arrays.asList("test", null, null));
         SchemaAndValue deData = jsonConverter.toConnectData("test", serData);
-        List<Object> value = (List<Object>) deData.value();
+        List<Object> value = (List<Object>)deData.value();
     }
 }

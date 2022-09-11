@@ -62,15 +62,13 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
 
     }
 
-    @Override
-    public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionSerde(),
                 new RecordOffsetSerde());
     }
 
-    @Override
-    public StagingMode getStagingMode() {
+    @Override public StagingMode getStagingMode() {
         return StagingMode.STANDALONE;
     }
 
@@ -148,7 +146,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
                 if (error != null) {
                     log.error("Failed to persist positions to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist positions to storage: {} , {} ", partition, position);
+                    log.trace("Successes to persist positions to storage: {} , {} ", partition, position);
                 }
             }
         });
@@ -207,4 +205,3 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
     }
 
 }
-

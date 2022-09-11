@@ -132,7 +132,6 @@ public class DistributedConnectStartup {
                 in.close();
             }
 
-
             if (null == config.getConnectHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);

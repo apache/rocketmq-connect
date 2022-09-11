@@ -34,8 +34,18 @@ import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.RequestCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import org.apache.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -46,14 +56,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.junit.After;
 import org.junit.Before;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 
 /**
  * mock server response for command
@@ -142,6 +144,59 @@ public abstract class ServerResponseMocker {
         }
     }
 
+    @ChannelHandler.Sharable
+    private class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
+        private HashMap<String, String> extMap;
+
+        public NettyServerHandler(HashMap<String, String> extMap) {
+            this.extMap = extMap;
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            String remark = "mock data";
+            final RemotingCommand response =
+                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, remark);
+            response.setOpaque(msg.getOpaque());
+            response.setBody(getBody());
+
+            switch (msg.getCode()) {
+                case RequestCode.GET_BROKER_CLUSTER_INFO: {
+                    final ClusterInfo clusterInfo = buildClusterInfo();
+                    response.setBody(JSON.toJSONBytes(clusterInfo));
+                    break;
+                }
+
+                case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG: {
+                    final SubscriptionGroupWrapper wrapper = buildSubscriptionGroupWrapper();
+                    response.setBody(JSON.toJSONBytes(wrapper));
+                    break;
+                }
+
+                case RequestCode.GET_ROUTEINFO_BY_TOPIC: {
+                    final TopicRouteData topicRouteData = buildTopicRouteData();
+                    response.setBody(JSON.toJSONBytes(topicRouteData));
+                    break;
+                }
+
+                case RequestCode.GET_CONSUMER_LIST_BY_GROUP: {
+                    GetConsumerListByGroupResponseBody getConsumerListByGroupResponseBody = new GetConsumerListByGroupResponseBody();
+                    getConsumerListByGroupResponseBody.setConsumerIdList(Collections.singletonList("mockConsumer1"));
+                    response.setBody(JSON.toJSONBytes(getConsumerListByGroupResponseBody));
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            if (extMap != null && extMap.size() > 0) {
+                response.setExtFields(extMap);
+            }
+            ctx.writeAndFlush(response);
+        }
+    }
+
+
     private ClusterInfo buildClusterInfo() {
         ClusterInfo clusterInfo = new ClusterInfo();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
@@ -206,51 +261,6 @@ public abstract class ServerResponseMocker {
 
         topicRouteData.setFilterServerTable(new HashMap<>());
         return topicRouteData;
-    }
-
-    @ChannelHandler.Sharable
-    private class NettyServerHandler extends SimpleChannelInboundHandler<RemotingCommand> {
-        private HashMap<String, String> extMap;
-
-        public NettyServerHandler(HashMap<String, String> extMap) {
-            this.extMap = extMap;
-        }
-
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
-            String remark = "mock data";
-            final RemotingCommand response =
-                    RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, remark);
-            response.setOpaque(msg.getOpaque());
-            response.setBody(getBody());
-
-            switch (msg.getCode()) {
-                case RequestCode.GET_BROKER_CLUSTER_INFO: {
-                    final ClusterInfo clusterInfo = buildClusterInfo();
-                    response.setBody(JSON.toJSONBytes(clusterInfo));
-                    break;
-                }
-
-                case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG: {
-                    final SubscriptionGroupWrapper wrapper = buildSubscriptionGroupWrapper();
-                    response.setBody(JSON.toJSONBytes(wrapper));
-                    break;
-                }
-                case RequestCode.GET_ROUTEINFO_BY_TOPIC: {
-                    final TopicRouteData topicRouteData = buildTopicRouteData();
-                    response.setBody(JSON.toJSONBytes(topicRouteData));
-                    break;
-                }
-
-                default:
-                    break;
-            }
-
-            if (extMap != null && extMap.size() > 0) {
-                response.setExtFields(extMap);
-            }
-            ctx.writeAndFlush(response);
-        }
     }
 }
 

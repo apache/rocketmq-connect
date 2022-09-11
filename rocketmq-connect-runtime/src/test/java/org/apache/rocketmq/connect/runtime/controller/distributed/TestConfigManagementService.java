@@ -17,6 +17,9 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
+import java.util.List;
+import java.util.Map;
+
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
@@ -86,8 +89,8 @@ public class TestConfigManagementService implements ConfigManagementService {
 
     }
 
-    @Override
-    public void initialize(WorkerConfig connectConfig, RecordConverter converter, Plugin plugin) {
+
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter converter, Plugin plugin) {
 
     }
 

@@ -110,6 +110,7 @@ public class StandaloneConnectStartup {
                 }
             }
 
+<<<<<<< HEAD
             if (StringUtils.isNotEmpty(config.getMetricsConfigPath())) {
                 String file = config.getMetricsConfigPath();
                 InputStream in = new BufferedInputStream(new FileInputStream(file));
@@ -129,6 +130,8 @@ public class StandaloneConnectStartup {
                 in.close();
             }
 
+=======
+>>>>>>> master
             if (null == config.getConnectHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);

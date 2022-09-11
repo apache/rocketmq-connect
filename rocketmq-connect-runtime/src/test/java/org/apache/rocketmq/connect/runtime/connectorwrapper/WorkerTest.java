@@ -132,7 +132,7 @@ public class WorkerTest {
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setNamesrvAddr("localhost:9876");
         stateManagementService = new StateManagementServiceImpl();
-        stateManagementService.initialize(connectConfig, new JsonConverter());
+        stateManagementService.initialize(connectConfig, new TestConverter());
         worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, stateManagementService);
 
         Set<WorkerConnector> workingConnectors = new HashSet<>();

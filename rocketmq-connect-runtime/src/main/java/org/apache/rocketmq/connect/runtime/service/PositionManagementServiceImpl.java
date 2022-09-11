@@ -20,6 +20,16 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -38,39 +48,38 @@ import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallba
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static java.lang.Thread.sleep;
 
 public class PositionManagementServiceImpl implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-    private final String positionManagePrefix = "PositionManage";
+
     /**
      * Current position info in store.
      */
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
+
     private WorkerConfig config;
+
     private AtomicBoolean committing = new AtomicBoolean(false);
     private long commitStarted;
+
     /**
      * need sync position
      */
     private Set<ExtendRecordPartition> needSyncPartition;
+
     /**
      * Synchronize data with other workers.
      */
     private DataSynchronizer<ByteBuffer, ByteBuffer> dataSynchronizer;
+
     /**
      * Listeners.
      */
     private Set<PositionUpdateListener> positionUpdateListener;
+
+    private final String positionManagePrefix = "PositionManage";
+
     private RecordConverter keyConverter;
     private RecordConverter valueConverter;
 
@@ -144,7 +153,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         positionStore.load();
     }
 
-
     @Override
     public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
         return positionStore.getKVMap();
@@ -187,9 +195,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         if (!increment) {
             Set<ExtendRecordPartition> allPartitions = new HashSet<>();
             allPartitions.addAll(positionStore.getKVMap().keySet());
-            for (ExtendRecordPartition partition : allPartitions) {
-                set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
-            }
+            allPartitions.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
         }
         //Incremental send
         if (increment) {
@@ -198,9 +204,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                 return;
             }
             Set<ExtendRecordPartition> partitionsTmp = new HashSet<>(needSyncPartition);
-            for (ExtendRecordPartition partition : partitionsTmp) {
-                set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition));
-            }
+            partitionsTmp.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
         }
         // end send offset
         if (increment) {
@@ -270,52 +274,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         dataSynchronizer.send(keyBuffer, valueBuffer);
     }
 
-    private void triggerListener() {
-        for (PositionUpdateListener positionUpdateListener : positionUpdateListener) {
-            positionUpdateListener.onPositionUpdate();
-        }
-    }
-
-    /**
-     * Merge new received position info with local store.
-     *
-     * @param partition
-     * @param offset
-     * @return
-     */
-    private boolean mergeOffset(ExtendRecordPartition partition, RecordOffset offset) {
-        if (null == partition || partition.getPartition().isEmpty()) {
-            return false;
-        }
-        if (positionStore.getKVMap().containsKey(partition)) {
-            RecordOffset existedOffset = positionStore.getKVMap().get(partition);
-            // update
-            if (!offset.equals(existedOffset)) {
-                positionStore.put(partition, offset);
-                return true;
-            }
-        } else {
-            // add new position
-            positionStore.put(partition, offset);
-            return true;
-        }
-        return false;
-    }
-
-
-    private enum PositionChange {
-
-        /**
-         * Insert or update position info.
-         */
-        POSITION_CHANG_KEY,
-
-        /**
-         * A worker online.
-         */
-        ONLINE_KEY
-    }
-
     private class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
 
         @Override
@@ -360,5 +318,49 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
         }
     }
-}
 
+    private void triggerListener() {
+        for (PositionUpdateListener positionUpdateListener : positionUpdateListener) {
+            positionUpdateListener.onPositionUpdate();
+        }
+    }
+
+    /**
+     * Merge new received position info with local store.
+     *
+     * @param partition
+     * @param offset
+     * @return
+     */
+    private boolean mergeOffset(ExtendRecordPartition partition, RecordOffset offset) {
+        if (null == partition || partition.getPartition().isEmpty()) {
+            return false;
+        }
+        if (positionStore.getKVMap().containsKey(partition)) {
+            RecordOffset existedOffset = positionStore.getKVMap().get(partition);
+            // update
+            if (!offset.equals(existedOffset)) {
+                positionStore.put(partition, offset);
+                return true;
+            }
+        } else {
+            // add new position
+            positionStore.put(partition, offset);
+            return true;
+        }
+        return false;
+    }
+
+    private enum PositionChange {
+
+        /**
+         * Insert or update position info.
+         */
+        POSITION_CHANG_KEY,
+
+        /**
+         * A worker online.
+         */
+        ONLINE_KEY
+    }
+}

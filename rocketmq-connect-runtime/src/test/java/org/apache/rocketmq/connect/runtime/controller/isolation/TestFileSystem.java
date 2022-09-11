@@ -18,7 +18,7 @@
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
 import org.jetbrains.annotations.NotNull;
-
+import com.sun.nio.zipfs.JarFileSystemProvider;
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;

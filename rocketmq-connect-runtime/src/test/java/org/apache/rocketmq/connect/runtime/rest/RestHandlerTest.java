@@ -41,6 +41,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
@@ -59,6 +60,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.net.URI;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -126,6 +128,8 @@ public class RestHandlerTest {
 
     @Mock
     private ConnectStatsService connectStatsService;
+
+    private PluginClassLoader pluginClassLoader;
 
     @Before
     public void init() throws Exception {
@@ -208,7 +212,13 @@ public class RestHandlerTest {
         List<String> pluginPaths = new ArrayList<>();
         pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
         Plugin plugin = new Plugin(pluginPaths);
+        plugin.initLoaders();
         when(connectController.plugin()).thenReturn(plugin);
+
+        URL url = new URL("file://src/test/java/org/apache/rocketmq/connect/runtime");
+        URL[] urls = new URL[]{};
+        pluginClassLoader = new PluginClassLoader(url, urls);
+        Thread.currentThread().setContextClassLoader(pluginClassLoader);
         restHandler = new RestHandler(connectController);
 
         httpClient = HttpClientBuilder.create().build();

@@ -374,7 +374,6 @@ public class WorkerSinkTask extends WorkerTask {
     private void doCommitSync(Map<MessageQueue, Long> offsets, int seqno) {
         log.debug("{} Committing offsets synchronously using sequence number {}: {}", this, seqno, offsets);
         try {
-
             for (Map.Entry<MessageQueue, Long> offsetEntry : offsets.entrySet()) {
                 consumer.getOffsetStore().updateOffset(offsetEntry.getKey(), offsetEntry.getValue(), true);
                 consumer.getOffsetStore().updateConsumeOffsetToBroker(offsetEntry.getKey(), offsetEntry.getValue(), false);

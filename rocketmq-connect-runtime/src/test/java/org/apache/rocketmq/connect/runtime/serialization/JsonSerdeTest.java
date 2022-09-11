@@ -27,8 +27,8 @@ import java.util.Map;
 
 public class JsonSerdeTest {
 
-    private static final Long epoch = Long.valueOf(123456789);
     private JsonSerde serde = new JsonSerde(ConnectKeyValue.class);
+    private  static final Long epoch = Long.valueOf(123456789);
 
     /**
      * serializer
@@ -38,11 +38,11 @@ public class JsonSerdeTest {
         ConnectKeyValue connectKeyValue = new ConnectKeyValue();
         connectKeyValue.setEpoch(epoch);
         connectKeyValue.setTargetState(TargetState.STARTED);
-        Map<String, String> configs = new HashMap<>();
-        configs.put("connect-name", "test");
+        Map<String,String> configs =  new HashMap<>();
+        configs.put("connect-name","test");
         connectKeyValue.setProperties(configs);
         byte[] serialize = serde.serializer().serialize("", connectKeyValue);
-        ConnectKeyValue connectKeyValue1 = (ConnectKeyValue) serde.deserializer().deserialize("", serialize);
+        ConnectKeyValue connectKeyValue1 = (ConnectKeyValue)serde.deserializer().deserialize("", serialize);
         Assert.assertEquals(connectKeyValue1, connectKeyValue);
     }
 
@@ -50,7 +50,6 @@ public class JsonSerdeTest {
      * deserializer
      */
     @Test
-    public void byteToObjectTest() {
-    }
+    public void byteToObjectTest() {}
 
 }

@@ -59,40 +59,43 @@ import java.util.Set;
  */
 public class StateManagementServiceImpl implements StateManagementService {
 
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+
+    private final String statusManagePrefix = "StatusManage";
+
     public static final String START_SIGNAL = "start-signal";
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
+
     public static final String STATE_KEY_NAME = "state";
     public static final String TRACE_KEY_NAME = "trace";
     public static final String WORKER_ID_KEY_NAME = "worker_id";
     public static final String GENERATION_KEY_NAME = "generation";
-    /**
-     * start signal
-     */
-    public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-            .field(START_SIGNAL, SchemaBuilder.string().build())
-            .build();
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
             .field(STATE_KEY_NAME, SchemaBuilder.string().build())
             .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
             .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
             .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
             .build();
-    private final String statusManagePrefix = "StatusManage";
+
     /**
-     * Current connector status in the store.
+     * start signal
      */
-    protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
-    /**
-     * Current task status in the store.
-     */
-    protected KeyValueStore<String, List<TaskStatus>> taskStatusStore;
-    protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
+    public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
+            .field(START_SIGNAL, SchemaBuilder.string().build())
+            .build();
     /**
      * Synchronize config with other workers.
      */
     private DataSynchronizer<String, byte[]> dataSynchronizer;
+
+    /** Current connector status in the store. */
+    protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
+    /** Current task status in the store. */
+    protected KeyValueStore<String, List<TaskStatus>> taskStatusStore;
+
+    protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
+
     private RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
     private String statusTopic;
 
@@ -251,7 +254,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         sendConnectorStatus(status, true);
     }
 
-
     /**
      * Set the state of the connector to the given value.
      *
@@ -263,10 +265,9 @@ public class StateManagementServiceImpl implements StateManagementService {
     }
 
     /**
-     * Safely set the state of the task to the given value. What is
-     * considered "safe" depends on the implementation, but basically it
-     * means that the store can provide higher assurance that another worker
-     * hasn't concurrently written any conflicting data.
+     * Safely set the state of the task to the given value. What is considered "safe" depends on the implementation, but
+     * basically it means that the store can provide higher assurance that another worker hasn't concurrently written
+     * any conflicting data.
      *
      * @param status the status of the task
      */
@@ -290,7 +291,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         // send status
         send(key, status, entry, safeWrite);
     }
-
 
     private <V extends AbstractStatus<?>> void send(final String key,
                                                     final V status,
@@ -322,7 +322,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         struct.put(GENERATION_KEY_NAME, status.getGeneration());
         return converter.fromConnectData(this.statusTopic, STATUS_SCHEMA_V0, struct);
     }
-
 
     /**
      * Get the current state of the task.
@@ -390,6 +389,25 @@ public class StateManagementServiceImpl implements StateManagementService {
     @Override
     public StagingMode getStagingMode() {
         return StagingMode.DISTRIBUTED;
+    }
+
+    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
+        @Override
+        public void onCompletion(Throwable error, String key, byte[] value) {
+            if (StringUtils.isEmpty(key)) {
+                log.error("State change message is illegal, key is empty, the message will be skipped ");
+                return;
+            }
+            if (key.equals(START_SIGNAL)) {
+                replicaTargetState();
+            } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
+                readConnectorStatus(key, value);
+            } else if (key.startsWith(TASK_STATUS_PREFIX)) {
+                readTaskStatus(key, value);
+            } else {
+                log.warn("Discarding record with invalid key {}", key);
+            }
+        }
     }
 
     /**
@@ -527,25 +545,6 @@ public class StateManagementServiceImpl implements StateManagementService {
         if (tasks != null) {
             for (ConnAndTaskStatus.CacheEntry<TaskStatus> taskEntry : tasks.values()) {
                 taskEntry.delete();
-            }
-        }
-    }
-
-    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
-        @Override
-        public void onCompletion(Throwable error, String key, byte[] value) {
-            if (StringUtils.isEmpty(key)) {
-                log.error("State change message is illegal, key is empty, the message will be skipped ");
-                return;
-            }
-            if (key.equals(START_SIGNAL)) {
-                replicaTargetState();
-            } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
-                readConnectorStatus(key, value);
-            } else if (key.startsWith(TASK_STATUS_PREFIX)) {
-                readTaskStatus(key, value);
-            } else {
-                log.warn("Discarding record with invalid key {}", key);
             }
         }
     }

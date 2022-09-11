@@ -53,8 +53,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
 
-    public MemoryConfigManagementServiceImpl() {
-    }
+    public MemoryConfigManagementServiceImpl() {}
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {

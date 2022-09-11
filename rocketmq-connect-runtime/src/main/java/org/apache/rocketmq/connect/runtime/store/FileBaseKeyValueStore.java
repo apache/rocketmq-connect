@@ -18,6 +18,9 @@
 package org.apache.rocketmq.connect.runtime.store;
 
 import com.alibaba.fastjson.JSON;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.serialization.Serde;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
@@ -44,8 +47,8 @@ public class FileBaseKeyValueStore<K, V> extends MemoryBasedKeyValueStore<K, V> 
     private Serde serdeValue;
 
     public FileBaseKeyValueStore(String configFilePath,
-                                 Serde serdeKey,
-                                 Serde serdeValue) {
+        Serde serdeKey,
+        Serde serdeValue) {
         super();
         this.configFilePath = configFilePath;
         this.serdeKey = serdeKey;

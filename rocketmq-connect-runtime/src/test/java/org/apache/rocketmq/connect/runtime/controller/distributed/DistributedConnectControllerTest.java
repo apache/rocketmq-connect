@@ -22,6 +22,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
@@ -53,6 +54,7 @@ public class DistributedConnectControllerTest {
     private ConfigManagementService configManagementService = new TestConfigManagementService();
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
+
     private StateManagementService stateManagementService = new StateManagementServiceImpl();
 
     private WorkerConfig connectConfig = new WorkerConfig();
@@ -74,16 +76,22 @@ public class DistributedConnectControllerTest {
                 clusterManagementService,
                 configManagementService,
                 positionManagementService,
-                stateManagementService);
+                stateManagementService );
+
         distributedConnectController = new DistributedConnectController(plugin, distributedConfig, clusterManagementService,
-                configManagementService, positionManagementService, stateManagementService);
+            configManagementService, positionManagementService, stateManagementService);
     }
 
     @After
     public void after() {
         distributedConnectController.shutdown();
+
         nameServerMocker.shutdown();
         brokerMocker.shutdown();
+
+        stateManagementService.stop();
+        brokerMocker.shutdown();
+        nameServerMocker.shutdown();
     }
 
     @Test

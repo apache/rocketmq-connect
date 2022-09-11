@@ -84,8 +84,8 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
-    @Override
-    public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
 
     }
 

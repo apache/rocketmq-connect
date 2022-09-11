@@ -17,17 +17,16 @@
 
 package org.apache.rocketmq.connect.runtime.serialization;
 
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
 public class RecordPartitionSerdeTest {
-
     private RecordPartitionSerde recordPartitionSerde = new RecordPartitionSerde();
 
     @Test

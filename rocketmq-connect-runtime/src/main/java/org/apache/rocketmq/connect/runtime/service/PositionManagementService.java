@@ -99,6 +99,7 @@ public interface PositionManagementService {
 
     StagingMode getStagingMode();
 
+
     interface PositionUpdateListener {
 
         /**

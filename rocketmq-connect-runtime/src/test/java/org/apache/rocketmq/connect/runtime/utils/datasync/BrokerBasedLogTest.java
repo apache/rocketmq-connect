@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
+
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;

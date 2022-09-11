@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -77,11 +79,11 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     private Serde valueSerde;
 
     public BrokerBasedLog(WorkerConfig connectConfig,
-                          String topicName,
-                          String workId,
-                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-                          Serde keySerde,
-                          Serde valueSerde) {
+        String topicName,
+        String workId,
+        DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+        Serde keySerde,
+        Serde valueSerde) {
 
         this.topicName = topicName;
         this.keySerde = keySerde;
@@ -136,6 +138,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
             producer.send(message, new SendCallback() {
+
                 @Override
                 public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
@@ -190,7 +193,6 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             log.error("BrokerBaseLog send async message Failed.", e);
         }
     }
-
 
     private Map.Entry<byte[], byte[]> encode(K key, V value) {
         byte[] keySer = keySerde.serializer().serialize(topicName, key);
