@@ -14,17 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.connect.cassandra.common;
 
-public class ConstDefine {
+import com.datastax.oss.driver.api.core.CqlSession;
+import org.apache.rocketmq.connect.cassandra.config.Config;
+import org.junit.Assert;
+import org.junit.Test;
 
-    public static String CASSANDRA_CONNECTOR_ADMIN_PREFIX = "CASSANDRA-CONNECTOR-ADMIN";
+public class DBUtilsTest {
 
-    public static final String PREFIX = "cassandra";
+    @Test
+    public void initCqlSessionTest() {
+        Config config = new Config();
+        config.setDbUrl("127.0.0.1");
+        config.setDbPort("9042");
+        config.setDbUsername("admin");
+        config.setDbPassword("123456");
+        config.setLocalDataCenter("datacenter1");
+        final CqlSession session = DBUtils.initCqlSession(config);
+        Assert.assertEquals("s0", session.getName());
 
-    public static final String DATABASE_NAME = "database";
-
-    public static final String TABLE = "table";
-
-    public static final String INCREASE = "increase";
+    }
 }

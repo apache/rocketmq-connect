@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.connect.cassandra.common;
 
-public class ConstDefine {
+import org.junit.Assert;
+import org.junit.Test;
 
-    public static String CASSANDRA_CONNECTOR_ADMIN_PREFIX = "CASSANDRA-CONNECTOR-ADMIN";
+public class CloneUtilsTest {
 
-    public static final String PREFIX = "cassandra";
+    @Test
+    public void cloneTest() {
+        TestClone testClone = new TestClone();
+        testClone.setId(1);
+        final TestClone clone = CloneUtils.clone(testClone);
+        Assert.assertEquals(1, clone.getId());
 
-    public static final String DATABASE_NAME = "database";
-
-    public static final String TABLE = "table";
-
-    public static final String INCREASE = "increase";
+    }
 }

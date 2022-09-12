@@ -14,17 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.connect.cassandra.common;
 
-public class ConstDefine {
+import java.io.Serializable;
 
-    public static String CASSANDRA_CONNECTOR_ADMIN_PREFIX = "CASSANDRA-CONNECTOR-ADMIN";
+public class TestClone implements Serializable {
 
-    public static final String PREFIX = "cassandra";
+    private static final long serialVersionUID = -5349483632695152550L;
 
-    public static final String DATABASE_NAME = "database";
+    private long id;
 
-    public static final String TABLE = "table";
+    public long getId() {
+        return id;
+    }
 
-    public static final String INCREASE = "increase";
+    public void setId(long id) {
+        this.id = id;
+    }
 }

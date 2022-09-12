@@ -25,19 +25,16 @@ import org.apache.rocketmq.connect.cassandra.strategy.DivideTaskByTopic;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SourceDbConnectorConfig extends DbConnectorConfig{
+public class SourceDbConnectorConfig extends DbConnectorConfig {
 
     private Map<String, String> whiteMap;
 
-    public SourceDbConnectorConfig(){
+    public SourceDbConnectorConfig() {
     }
 
     @Override
     public void validate(KeyValue config) {
         this.taskParallelism = config.getInt(Config.CONN_TASK_PARALLELISM, 1);
-
-        int strategy = config.getInt(Config.CONN_TASK_DIVIDE_STRATEGY, DivideStrategyEnum.BY_TOPIC.ordinal());
-
         this.taskDivideStrategy = new DivideTaskByTopic();
 
         buildWhiteMap(config);
@@ -56,13 +53,13 @@ public class SourceDbConnectorConfig extends DbConnectorConfig{
         this.whiteMap = new HashMap<>(16);
         String whiteListStr = config.getString(Config.CONN_WHITE_LIST, "");
         JSONObject whiteDataBaseObject = JSONObject.parseObject(whiteListStr);
-        if(whiteDataBaseObject.keySet().size() <= 0){
+        if (whiteDataBaseObject.keySet().size() <= 0) {
             throw new IllegalArgumentException("white data base must be not empty.");
-        }else {
+        } else {
             this.whiteMap.clear();
-            for (String dbName : whiteDataBaseObject.keySet()){
+            for (String dbName : whiteDataBaseObject.keySet()) {
                 JSONObject whiteTableObject = (JSONObject) whiteDataBaseObject.get(dbName);
-                for (String tableName : whiteTableObject.keySet()){
+                for (String tableName : whiteTableObject.keySet()) {
                     String dbTableKey = dbName + "-" + tableName;
                     this.whiteMap.put(dbTableKey, whiteTableObject.getString(tableName));
                 }

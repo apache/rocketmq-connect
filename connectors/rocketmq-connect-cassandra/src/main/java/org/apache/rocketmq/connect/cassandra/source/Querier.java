@@ -19,6 +19,9 @@
 package org.apache.rocketmq.connect.cassandra.source;
 
 import com.alibaba.fastjson.JSONObject;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,8 +29,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
@@ -35,7 +36,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.select.Select;
-import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
+import org.apache.rocketmq.connect.cassandra.common.ConstDefine;
 import org.apache.rocketmq.connect.cassandra.config.Config;
 import org.apache.rocketmq.connect.cassandra.schema.Database;
 import org.apache.rocketmq.connect.cassandra.schema.Schema;
@@ -46,23 +47,22 @@ import org.slf4j.LoggerFactory;
 
 public class Querier {
 
-    private final Logger log = LoggerFactory.getLogger(Querier.class); // use concrete subclass
-    protected String topicPrefix;
-    private final Queue<CqlSession> cqlSessions = new ConcurrentLinkedQueue<>();
+    private final Logger log = LoggerFactory.getLogger(Querier.class);
     private Config config;
     private CqlSession cqlSession;
     private List<Table> list = new LinkedList<>();
-    private String mode;
     private Schema schema;
 
-    public Querier(){
+    private OffsetStorageReader offsetStorageReader;
 
+    public Querier() {
     }
 
-    public Querier(Config config, CqlSession cqlSession) {
+    public Querier(Config config, CqlSession cqlSession, OffsetStorageReader storageReader) {
         this.config = config;
         this.cqlSession = cqlSession;
         this.schema = new Schema(cqlSession);
+        this.offsetStorageReader = storageReader;
     }
 
     public Config getConfig() {
@@ -93,10 +93,19 @@ public class Querier {
 
 
                     Select selectFrom = QueryBuilder.selectFrom(dbName, tableName).all();
-                    if (tableFilterMap != null && !tableFilterMap.keySet().contains("NO-FILTER")){
+                    if (tableFilterMap != null && !tableFilterMap.keySet().contains("NO-FILTER")) {
                         for (String key: tableFilterMap.keySet()) {
                             String value = tableFilterMap.get(key);
-                            selectFrom.whereColumn(key).isEqualTo(QueryBuilder.literal(value));
+                            long increment = 0;
+                            // get increment
+                            final RecordOffset recordOffset = offsetStorageReader.readOffset(this.buildRecordPartition(dbName, tableName));
+                            if (recordOffset != null &&  recordOffset.getOffset().size() > 0) {
+                                final Object offset = recordOffset.getOffset().get(ConstDefine.INCREASE + dbName + tableName);
+                                if (offset != null) {
+                                    increment = Long.valueOf(offset.toString());
+                                }
+                            }
+                            selectFrom = selectFrom.whereColumn(key).isGreaterThan(QueryBuilder.literal(increment)).allowFiltering();
                         }
                     }
 
@@ -105,7 +114,7 @@ public class Querier {
                     boolean finishUpdate = false;
                     log.info("trying to execute sql query,{}", selectFrom.asCql());
                     ResultSet result = null;
-                    while (!cqlSession.isClosed() && !finishUpdate){
+                    while (!cqlSession.isClosed() && !finishUpdate) {
                         stmt = selectFrom.build();
                         result = cqlSession.execute(stmt);
                         if (result.wasApplied()) {
@@ -138,19 +147,19 @@ public class Querier {
 
     }
 
-    public void start() throws Exception {
+    public void start() {
         String whiteDataBases = config.getWhiteDataBase();
         JSONObject whiteDataBaseObject = JSONObject.parseObject(whiteDataBases);
 
-        if (whiteDataBaseObject != null){
-            for (String whiteDataBaseName : whiteDataBaseObject.keySet()){
-                JSONObject whiteTableObject = (JSONObject)whiteDataBaseObject.get(whiteDataBaseName);
+        if (whiteDataBaseObject != null) {
+            for (String whiteDataBaseName : whiteDataBaseObject.keySet()) {
+                JSONObject whiteTableObject = (JSONObject) whiteDataBaseObject.get(whiteDataBaseName);
                 HashSet<String> whiteTableSet = new HashSet<>();
-                for (String whiteTableName : whiteTableObject.keySet()){
+                for (String whiteTableName : whiteTableObject.keySet()) {
                     Collections.addAll(whiteTableSet, whiteTableName);
                     HashMap<String, String> filterMap = new HashMap<>();
                     JSONObject tableFilterObject = JSONObject.parseObject(whiteTableObject.get(whiteTableName).toString());
-                    for(String filterKey : tableFilterObject.keySet()){
+                    for (String filterKey : tableFilterObject.keySet()) {
                         filterMap.put(filterKey, tableFilterObject.getString(filterKey));
                     }
                     schema.tableFilterMap.put(whiteTableName, filterMap);
@@ -160,5 +169,13 @@ public class Querier {
         }
         schema.load();
         log.info("load schema success");
+    }
+
+    private RecordPartition buildRecordPartition(String dbName, String tableName) {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put(ConstDefine.DATABASE_NAME, dbName);
+        partitionMap.put(ConstDefine.TABLE, tableName);
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
     }
 }

@@ -14,17 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.cassandra.common;
 
-public class ConstDefine {
+package org.apache.rocketmq.connect.cassandra.config;
 
-    public static String CASSANDRA_CONNECTOR_ADMIN_PREFIX = "CASSANDRA-CONNECTOR-ADMIN";
+import io.openmessaging.KeyValue;
+import io.openmessaging.internal.DefaultKeyValue;
+import org.junit.Assert;
+import org.junit.Test;
 
-    public static final String PREFIX = "cassandra";
+public class ConfigUtilTest {
 
-    public static final String DATABASE_NAME = "database";
+    @Test
+    public void loadTest() {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(Config.CONN_DB_IP, "127.0.0.1");
+        keyValue.put(Config.CONN_DB_PORT, "9042");
+        Config config = new Config();
+        ConfigUtil.load(keyValue, config);
+        Assert.assertEquals("127.0.0.1", config.getDbUrl());
+        Assert.assertEquals("9042", config.getDbPort());
+    }
 
-    public static final String TABLE = "table";
-
-    public static final String INCREASE = "increase";
 }
