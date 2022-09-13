@@ -31,7 +31,7 @@ import java.util.Map;
 public class MetricUtils {
 
     private final static String ROCKETMQ_CONNECT = "rocketmq.connect:";
-    private final static String SPLIT_SEMICOLON = ";";
+    private final static String SPLIT_COMMA = ",";
     private final static String SPLIT_KV = "=";
 
 
@@ -47,14 +47,14 @@ public class MetricUtils {
         }
         StringBuilder sb = new StringBuilder(ROCKETMQ_CONNECT)
                 .append(name.getGroup())
-                .append(SPLIT_SEMICOLON)
+                .append(SPLIT_COMMA)
                 .append(name.getName())
-                .append(SPLIT_SEMICOLON)
+                .append(SPLIT_COMMA)
                 .append(name.getType());
 
 
         for (Map.Entry<String, String> entry : name.getTags().entrySet()) {
-            sb.append(SPLIT_SEMICOLON)
+            sb.append(SPLIT_COMMA)
                     .append(entry.getKey())
                     .append(SPLIT_KV)
                     .append(entry.getValue());
@@ -72,7 +72,7 @@ public class MetricUtils {
         if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("Metric name str is empty");
         }
-        String[] splits = name.replace(ROCKETMQ_CONNECT, "").replace(SPLIT_KV, SPLIT_SEMICOLON).split(SPLIT_SEMICOLON);
+        String[] splits = name.replace(ROCKETMQ_CONNECT, "").replace(SPLIT_KV, SPLIT_COMMA).split(SPLIT_COMMA);
         return new MetricName(splits[0], splits[1], splits[2], getTags(Arrays.copyOfRange(splits, 3, splits.length))
         );
     }
