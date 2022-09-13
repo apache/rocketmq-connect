@@ -72,15 +72,8 @@ public class MetricUtils {
         if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("Metric name str is empty");
         }
-        String[] splits = name
-                .replace(ROCKETMQ_CONNECT, "")
-                .replace(SPLIT_KV, SPLIT_SEMICOLON)
-                .split(SPLIT_SEMICOLON);
-        return new MetricName(
-                splits[0],
-                splits[1],
-                splits[2],
-                getTags(Arrays.copyOfRange(splits, 3, splits.length))
+        String[] splits = name.replace(ROCKETMQ_CONNECT, "").replace(SPLIT_KV, SPLIT_SEMICOLON).split(SPLIT_SEMICOLON);
+        return new MetricName(splits[0], splits[1], splits[2], getTags(Arrays.copyOfRange(splits, 3, splits.length))
         );
     }
 
@@ -102,7 +95,7 @@ public class MetricUtils {
      * @param meter
      * @return
      */
-   public static Double getMeterValue(MetricName name, Meter meter) {
+    public static Double getMeterValue(MetricName name, Meter meter) {
        if (name.getType().equals(Stat.NoneType.none.name())) {
            throw new IllegalArgumentException("Meter type configuration error");
        }

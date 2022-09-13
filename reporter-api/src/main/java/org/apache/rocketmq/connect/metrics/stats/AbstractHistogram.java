@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.metrics.stats;
 
-import com.codahale.metrics.MetricRegistry;
 import org.apache.rocketmq.connect.metrics.MetricName;
 
 /**
