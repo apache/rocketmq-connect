@@ -250,7 +250,6 @@ public class Worker {
             for (String connector : connectors) {
                 log.info("It may be that the load balancing assigns this connector to other nodes,connector {}", connector);
                 stopAndAwaitConnector(connector);
-                this.connectors.remove(connector);
             }
             return;
         }
@@ -258,7 +257,6 @@ public class Worker {
             if (!assigns.contains(connectorName)) {
                 log.info("It may be that the load balancing assigns this connector to other nodes,connector {}", connectorName);
                 stopAndAwaitConnector(connectorName);
-                connectors.remove(connectorName);
             }
         }
     }
