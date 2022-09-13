@@ -304,7 +304,6 @@ public class WorkerSinkTask extends WorkerTask {
         } finally {
             if (closing) {
                 log.trace("{} Closing the task before committing the offsets: {}", this, offsetsToCommit);
-                sinkTask.flush(taskProvidedRecordOffsets);
             }
         }
         if (taskProvidedOffsets.isEmpty()) {
@@ -588,34 +587,37 @@ public class WorkerSinkTask extends WorkerTask {
             for (String topic : topics) {
                 consumer.setPullBatchSize(MAX_MESSAGE_NUM);
                 consumer.subscribe(topic, "*");
-                if (messageQueueListener == null) {
-                    messageQueueListener = consumer.getMessageQueueListener();
-                }
-                consumer.setMessageQueueListener(new MessageQueueListener() {
-                    @Override
-                    public void messageQueueChanged(String subTopic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-                        // update assign message queue
-                        messageQueueListener.messageQueueChanged(subTopic, mqAll, mqDivided);
-                        // listener message queue changed
-                        log.info("Message queue changed start, old message queues offset {}", JSON.toJSONString(messageQueues));
-
-                        if (isStopping()) {
-                            log.trace("Skipping partition revocation callback as task has already been stopped");
-                            return;
-                        }
-                        // remove and close message queue
-                        removeAndCloseMessageQueue(topic, mqDivided);
-
-                        // add new message queue
-                        assignMessageQueue(mqDivided);
-                        preCommit();
-                        log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
-
-                    }
-                });
             }
+            if (messageQueueListener == null) {
+                messageQueueListener = consumer.getMessageQueueListener();
+            }
+            consumer.setMessageQueueListener(new MessageQueueListener() {
+                @Override
+                public void messageQueueChanged(String subTopic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
+                    // update assign message queue
+                    messageQueueListener.messageQueueChanged(subTopic, mqAll, mqDivided);
+                    // listener message queue changed
+                    log.info("Message queue changed start, old message queues offset {}", JSON.toJSONString(messageQueues));
+
+                    if (isStopping()) {
+                        log.trace("Skipping partition revocation callback as task has already been stopped");
+                        return;
+                    }
+                    // remove and close message queue
+                    log.info("Task {},MessageQueueChanged, old messageQueuesOffsetMap {}", id.toString(), JSON.toJSONString(messageQueues));
+                    removeAndCloseMessageQueue(subTopic, mqDivided);
+
+                    // add new message queue
+                    assignMessageQueue(mqDivided);
+                    log.info("Task {}, Message queue changed end, new message queues offset {}", id, JSON.toJSONString(messageQueues));
+                    preCommit();
+                    log.info("Message queue changed start, new message queues offset {}", JSON.toJSONString(messageQueues));
+
+                }
+            });
             consumer.start();
         } catch (MQClientException e) {
+            log.error("Task {},InitializeAndStart MQClientException", id.toString(), e);
             throw new ConnectException(e);
         }
         log.info("Sink task consumer start. taskConfig {}", JSON.toJSONString(taskConfig));
@@ -640,7 +642,7 @@ public class WorkerSinkTask extends WorkerTask {
             }
         }
         // filter not contains in messageQueues
-        removeMessageQueues = messageQueues.stream().filter(messageQueue -> !queues.contains(messageQueue)).collect(Collectors.toSet());
+        removeMessageQueues = messageQueues.stream().filter(messageQueue -> topic.equals(messageQueue.getTopic()) && !queues.contains(messageQueue)).collect(Collectors.toSet());
         if (removeMessageQueues == null || removeMessageQueues.isEmpty()) {
             return;
         }
@@ -710,8 +712,9 @@ public class WorkerSinkTask extends WorkerTask {
                 resumeAll();
             }
             // reset
-            sinkTaskContext.getPausedQueues().retainAll(queues);
+            sinkTaskContext.getPausedQueues().retainAll(messageQueues);
             if (shouldPause()) {
+                pauseAll();
                 return;
             }
             if (!sinkTaskContext.getPausedQueues().isEmpty()) {
@@ -739,7 +742,7 @@ public class WorkerSinkTask extends WorkerTask {
         }
 
         if (offset < 0) {
-            String consumeFromWhere = taskConfig.getString("consume-from-where");
+            String consumeFromWhere = taskConfig.getString(ConnectorConfig.CONSUME_FROM_WHERE);
             if (StringUtils.isBlank(consumeFromWhere)) {
                 consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name();
             }

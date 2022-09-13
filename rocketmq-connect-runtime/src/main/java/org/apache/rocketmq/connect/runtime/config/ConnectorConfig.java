@@ -75,6 +75,9 @@ public class ConnectorConfig {
      * Maximum allowed message size in bytes, the default value is 4M.
      */
     public static final int MAX_MESSAGE_SIZE = Integer.parseInt(System.getProperty("rocketmq.runtime.max.message.size", "4194304"));
+
+    public static final String CONSUME_FROM_WHERE = "consume.from.where";
+
     protected ConnectKeyValue config;
 
     public ConnectorConfig(ConnectKeyValue config) {
