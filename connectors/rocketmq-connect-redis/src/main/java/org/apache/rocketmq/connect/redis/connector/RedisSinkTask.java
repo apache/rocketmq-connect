@@ -17,30 +17,39 @@
 
 package org.apache.rocketmq.connect.redis.connector;
 
-import io.openmessaging.connector.api.data.EntryType;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-
+import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
+import io.openmessaging.connector.api.common.QueueMetaData;
+import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.data.Field;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SinkDataEntry;
+import io.openmessaging.connector.api.sink.SinkTask;
 import org.apache.rocketmq.connect.redis.config.Config;
-import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
 import org.apache.rocketmq.connect.redis.converter.RedisEntryConverter;
 import org.apache.rocketmq.connect.redis.handler.DefaultRedisEventHandler;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
-import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 import org.apache.rocketmq.connect.redis.processor.DefaultRedisEventProcessor;
 import org.apache.rocketmq.connect.redis.processor.RedisEventProcessor;
-import org.apache.rocketmq.connect.redis.converter.RedisPositionConverter;
-import org.apache.rocketmq.connect.redis.processor.RedisEventProcessorCallback;
+import org.apache.rocketmq.connect.redis.sink.RedisUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class RedisSourceTask extends SourceTask {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RedisSourceTask.class);
+/**
+ * author doubleDimple
+ */
+public class RedisSinkTask extends SinkTask {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisSinkTask.class);
+
+    private RedisUpdater updater;
+
     /**
      * listening and handle Redis event.
      */
@@ -63,62 +72,67 @@ public class RedisSourceTask extends SourceTask {
         return config;
     }
 
+    @Override
+    public void put(Collection<SinkDataEntry> sinkDataEntries) {
+             //save data from MQ to redis
+            for (SinkDataEntry sinkDataEntry : sinkDataEntries) {
+                Map<Field, Object[]> fieldMap = new HashMap<>();
+                Object[] payloads = sinkDataEntry.getPayload();
 
-    @Override public Collection<SourceDataEntry> poll() {
-        try {
-            KVEntry event = this.eventProcessor.poll();
-            if (event == null) {
-                return null;
+                Schema schema = sinkDataEntry.getSchema();
+                EntryType entryType = sinkDataEntry.getEntryType();
+
+                List<Field> fields = schema.getFields();
+                Boolean parseError = false;
+                if (!fields.isEmpty()) {
+                    for (Field field : fields) {
+                        Object fieldValue = payloads[field.getIndex()];
+                        Object[] value = JSONObject.parseArray((String)fieldValue).toArray();
+                        if (value.length == 2) {
+                            fieldMap.put(field, value);
+                        } else {
+                            LOGGER.error("parseArray error, fieldValue:{}", fieldValue);
+                            parseError = true;
+                        }
+                    }
+                }
+                if (!parseError) {
+                    Boolean isSuccess = updater.push(fieldMap, entryType);
+                    if (!isSuccess) {
+                        LOGGER.error("push data error, entryType:{}, fieldMap:{}", fieldMap, entryType);
+                    }
+                }
             }
-            event.queueName(Options.REDIS_QEUEUE.name());
-            event.entryType(EntryType.UPDATE);
-
-            Collection<SourceDataEntry> res = this.kvEntryConverter.kVEntryToDataEntries(event);
-            LOGGER.info("send data entries: {}", res);
-            return res;
-        } catch (InterruptedException e) {
-            LOGGER.error("redis task interrupted. {}", e);
-            this.stop();
-        } catch (Exception e) {
-            LOGGER.error("redis task error. {}", e);
-            this.stop();
-        }
-        return null;
     }
 
+    @Override
+    public void commit(Map<QueueMetaData, Long> offsets) {
 
-    @Override public void start(KeyValue keyValue) {
+    }
+
+    @Override
+    public void start(KeyValue keyValue) {
         this.kvEntryConverter = new RedisEntryConverter();
 
         this.config = new Config();
         this.config.load(keyValue);
         LOGGER.info("task config msg: {}", this.config.toString());
 
-        // get position info
-        ByteBuffer byteBuffer = this.context.positionStorageReader().getPosition(
-            this.config.getPositionPartitionKey()
-        );
-        Long position = RedisPositionConverter.jsonToLong(byteBuffer);
-        if (position != null && position >= -1) {
-            this.config.setPosition(position);
-        }
-        LOGGER.info("task load connector runtime position: {}", this.config.getPosition());
-
         this.eventProcessor = new DefaultRedisEventProcessor(config);
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(this.config);
         this.eventProcessor.registEventHandler(eventHandler);
-        this.eventProcessor.registProcessorCallback(new DefaultRedisEventProcessorCallback());
         try {
             this.eventProcessor.start();
             LOGGER.info("Redis task start.");
         } catch (IOException e) {
-            LOGGER.error("processor start error: {}", e);
+            e.printStackTrace();
+            LOGGER.error("processor start error: [{}]", e.getMessage());
             this.stop();
         }
     }
 
-
-    @Override public void stop() {
+    @Override
+    public void stop() {
         if (this.eventProcessor != null) {
             try {
                 this.eventProcessor.stop();
@@ -129,20 +143,13 @@ public class RedisSourceTask extends SourceTask {
         }
     }
 
-
-    @Override public void pause() {
-
-    }
-
-
-    @Override public void resume() {
+    @Override
+    public void pause() {
 
     }
 
-    private class DefaultRedisEventProcessorCallback implements RedisEventProcessorCallback {
-        @Override public void onStop(RedisEventProcessor eventProcessor) {
-            stop();
-        }
-    }
+    @Override
+    public void resume() {
 
+    }
 }
