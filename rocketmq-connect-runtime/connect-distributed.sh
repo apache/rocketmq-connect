@@ -13,5 +13,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-echo "run rumtime worker"
+echo "run runtime worker"
 cd target/distribution/ && java -cp .:./conf/:./lib/* org.apache.rocketmq.connect.runtime.DistributedConnectStartup -c conf/connect-distributed.conf
