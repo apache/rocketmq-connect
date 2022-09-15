@@ -58,7 +58,7 @@ public class RedisEntryConverter implements KVEntryConverter {
                 System.currentTimeMillis(),
                 keySchema,
                 kvEntry.getKey(),
-                null,
+                buildValueSchema(),
                 JSON.toJSONString(kvEntry.getValue())));
         }
         return res;
@@ -86,6 +86,11 @@ public class RedisEntryConverter implements KVEntryConverter {
         fields.add(new Field(2, Options.REDIS_VALUE.name(), stringSchema));
         fields.add(new Field(3, Options.REDIS_PARAMS.name(), stringSchema));
         return fields;
+    }
+
+    private Schema buildValueSchema() {
+        final Schema valueSchema = SchemaBuilder.string().build();
+        return valueSchema;
     }
 
     private List<Object> splitValue(FieldType valueType, Object value, Integer maxValueSize) {
