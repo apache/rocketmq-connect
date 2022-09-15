@@ -27,6 +27,7 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -130,11 +131,13 @@ public class ActivemqSourceTask extends SourceTask {
         Schema schema = SchemaBuilder.struct().name("activemq").build();
         final List<Field> fields = buildFields();
         schema.setFields(fields);
-        return new ConnectRecord(buildRecordPartition(),
+        final ConnectRecord connectRecord = new ConnectRecord(buildRecordPartition(),
             buildRecordOffset(),
             System.currentTimeMillis(),
             schema,
             buildPayLoad(fields, message, schema));
+        connectRecord.setExtensions(buildExtendFiled());
+        return connectRecord;
     }
 
     private RecordOffset buildRecordOffset()  {
@@ -153,17 +156,20 @@ public class ActivemqSourceTask extends SourceTask {
     private List<Field> buildFields() {
         final Schema stringSchema = SchemaBuilder.string().build();
         List<Field> fields = new ArrayList<>();
-        fields.add(new Field(0, Config.DESTINATION_NAME, stringSchema));
-        fields.add(new Field(1, Config.DESTINATION_TYPE, stringSchema));
-        fields.add(new Field(2, Config.MESSAGE, stringSchema));
+        fields.add(new Field(0, Config.MESSAGE, stringSchema));
         return fields;
     }
 
     private Struct buildPayLoad(List<Field> fields, Message message, Schema schema) throws JMSException {
         Struct payLoad = new Struct(schema);
-        payLoad.put(fields.get(0), config.getDestinationName());
-        payLoad.put(fields.get(1), config.getDestinationType());
-        payLoad.put(fields.get(2), getMessageContent(message));
+        payLoad.put(fields.get(0), getMessageContent(message));
         return payLoad;
+    }
+
+    private KeyValue buildExtendFiled() {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(Config.DESTINATION_NAME,  config.getDestinationName());
+        keyValue.put(Config.DESTINATION_TYPE, config.getDestinationType());
+        return keyValue;
     }
 }
