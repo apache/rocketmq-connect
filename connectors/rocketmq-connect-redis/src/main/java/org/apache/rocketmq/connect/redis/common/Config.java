@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * Config info.
  */
 public class Config {
-    private final Logger LOGGER = LoggerFactory.getLogger(Config.class);
+    private final Logger logger = LoggerFactory.getLogger(Config.class);
     /**
      * Redis base info.
      */
@@ -126,7 +126,7 @@ public class Config {
         try {
             return new RedisURI(sb.toString());
         } catch (URISyntaxException e) {
-            LOGGER.error("redis uri error. {}", e);
+            logger.error("redis uri error. {}", e);
         }
         return null;
     }
@@ -135,7 +135,7 @@ public class Config {
         try {
             PropertyToObjectUtils.properties2Object(pros, this);
         } catch (Exception e) {
-            LOGGER.error("load config failed. {}", e);
+            logger.error("load config failed. {}", e);
             return "load config failed.";
         }
         return null;

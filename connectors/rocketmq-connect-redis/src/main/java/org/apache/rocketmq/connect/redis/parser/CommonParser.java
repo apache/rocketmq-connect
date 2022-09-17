@@ -34,17 +34,17 @@ public class CommonParser {
         if (numberKeys > 0) {
             List<List<String>> values = new ArrayList<>();
 
-            String[] keys_arr = new String[numberKeys];
-            System.arraycopy(args, 1, keys_arr, 0, numberKeys);
+            String[] keysArr = new String[numberKeys];
+            System.arraycopy(args, 1, keysArr, 0, numberKeys);
             List<String> keysList = new ArrayList<>(numberKeys);
-            keysList.addAll(Arrays.asList(keys_arr));
+            keysList.addAll(Arrays.asList(keysArr));
             values.add(keysList);
 
             if (numberKeys + 1 < args.length) {
-                String[] args_arr = new String[args.length - numberKeys - 1];
-                System.arraycopy(args, numberKeys + 1, args_arr, 0, args.length - numberKeys - 1);
+                String[] argsArr = new String[args.length - numberKeys - 1];
+                System.arraycopy(args, numberKeys + 1, argsArr, 0, args.length - numberKeys - 1);
                 List<String> argsList = new ArrayList<>(numberKeys);
-                argsList.addAll(Arrays.asList(args_arr));
+                argsList.addAll(Arrays.asList(argsArr));
                 values.add(argsList);
             }
 
