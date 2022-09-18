@@ -75,7 +75,15 @@ public class ActivemqSourceTask extends SourceTask {
             this.config = new Config();
             this.config.load(props);
             this.replicator = new Replicator(config);
-            this.replicator.start();
+            final RecordOffset recordOffset = this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition());
+            long offset = 0L;
+            if (recordOffset != null) {
+                final Object position = recordOffset.getOffset().get(Config.POSITION);
+                if (position != null) {
+                    offset = Long.valueOf(position.toString());
+                }
+            }
+            this.replicator.start(offset);
         } catch (Exception e) {
             log.error("activemq task start failed.", e);
         }
@@ -132,7 +140,7 @@ public class ActivemqSourceTask extends SourceTask {
         final List<Field> fields = buildFields();
         schema.setFields(fields);
         final ConnectRecord connectRecord = new ConnectRecord(buildRecordPartition(),
-            buildRecordOffset(),
+            buildRecordOffset(message),
             System.currentTimeMillis(),
             schema,
             buildPayLoad(fields, message, schema));
@@ -140,8 +148,9 @@ public class ActivemqSourceTask extends SourceTask {
         return connectRecord;
     }
 
-    private RecordOffset buildRecordOffset()  {
+    private RecordOffset buildRecordOffset(Message message) throws JMSException {
         Map<String, Long> offsetMap = new HashMap<>();
+        offsetMap.put(Config.POSITION, Long.parseLong(message.getJMSMessageID().split(":")[5]));
         RecordOffset recordOffset = new RecordOffset(offsetMap);
         return recordOffset;
     }
