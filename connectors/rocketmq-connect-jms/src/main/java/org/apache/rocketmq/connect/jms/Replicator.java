@@ -43,9 +43,9 @@ public class Replicator {
         this.baseJmsSourceTask = baseJmsSourceTask;
     }
 
-    public void start() throws Exception {
+    public void start(long offset) throws Exception {
         processor = baseJmsSourceTask.getPatternProcessor(this);
-        processor.start();
+        processor.start(offset);
         LOGGER.info("Replicator start succeed");
     }
 

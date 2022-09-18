@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.rocketmq.connect.jms.Config;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.openmessaging.KeyValue;
@@ -56,15 +57,5 @@ public class BaseJmsSourceConnectorTest {
     @Test
     public void taskClassTest() {
         assertEquals(connector.taskClass(), BaseJmsSourceTask.class);
-    }
-
-    @Test
-    public void taskConfigsTest() {
-        assertEquals(connector.taskConfigs(2).get(0), null);
-        KeyValue keyValue = new DefaultKeyValue();
-        for (String requestKey : Config.REQUEST_CONFIG) {
-            keyValue.put(requestKey, requestKey);
-        }
-        assertEquals(connector.taskConfigs(2).get(0), keyValue);
     }
 }

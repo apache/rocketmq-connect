@@ -25,6 +25,7 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -66,7 +67,9 @@ public abstract class BaseJmsSourceTask extends SourceTask {
         try {
             Message message = replicator.getQueue().poll(1000, TimeUnit.MILLISECONDS);
             if (message != null) {
-                res.add(message2ConnectRecord(message));
+                final ConnectRecord connectRecord = this.message2ConnectRecord(message);
+                connectRecord.setExtensions(this.buildExtendFiled());
+                res.add(connectRecord);
             }
         } catch (Exception e) {
             log.error("jms task poll error, current config:" + JSON.toJSONString(config), e);
@@ -80,7 +83,15 @@ public abstract class BaseJmsSourceTask extends SourceTask {
             this.config = new Config();
             this.config.load(props);
             replicator = new Replicator(this.config, this);
-            this.replicator.start();
+            final RecordOffset recordOffset = this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition());
+            long offset = 0L;
+            if (recordOffset != null) {
+                final Object position = recordOffset.getOffset().get(Config.POSITION);
+                if (position != null) {
+                    offset = Long.valueOf(position.toString());
+                }
+            }
+            this.replicator.start(offset);
         } catch (Exception e) {
             log.error("jms task start failed.", e);
             throw new RuntimeException(e.getMessage());
@@ -135,14 +146,15 @@ public abstract class BaseJmsSourceTask extends SourceTask {
         final List<Field> fields = buildFields();
         schema.setFields(fields);
         return new ConnectRecord(buildRecordPartition(),
-            buildRecordOffset(),
+            buildRecordOffset(message),
             System.currentTimeMillis(),
             schema,
             buildPayLoad(fields, message, schema));
     }
 
-    private RecordOffset buildRecordOffset()  {
+    private RecordOffset buildRecordOffset(Message message) throws JMSException {
         Map<String, Long> offsetMap = new HashMap<>();
+        offsetMap.put(Config.POSITION, Long.parseLong(message.getJMSMessageID().split(":")[5]));
         RecordOffset recordOffset = new RecordOffset(offsetMap);
         return recordOffset;
     }
@@ -157,20 +169,22 @@ public abstract class BaseJmsSourceTask extends SourceTask {
     private List<Field> buildFields() {
         final Schema stringSchema = SchemaBuilder.string().build();
         List<Field> fields = new ArrayList<>();
-        fields.add(new Field(0, Config.DESTINATION_NAME, stringSchema));
-        fields.add(new Field(1, Config.DESTINATION_TYPE, stringSchema));
-        fields.add(new Field(2, Config.MESSAGE, stringSchema));
+        fields.add(new Field(0, Config.MESSAGE, stringSchema));
         return fields;
     }
 
     private Struct buildPayLoad(List<Field> fields, Message message, Schema schema) throws JMSException {
         Struct payLoad = new Struct(schema);
-        payLoad.put(fields.get(0), config.getDestinationName());
-        payLoad.put(fields.get(1), config.getDestinationType());
-        payLoad.put(fields.get(2), getMessageContent(message));
+        payLoad.put(fields.get(0), getMessageContent(message));
         return payLoad;
     }
 
+    private KeyValue buildExtendFiled() {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(Config.DESTINATION_NAME,  config.getDestinationName());
+        keyValue.put(Config.DESTINATION_TYPE, config.getDestinationType());
+        return keyValue;
+    }
 
     public abstract Config getConfig();
     

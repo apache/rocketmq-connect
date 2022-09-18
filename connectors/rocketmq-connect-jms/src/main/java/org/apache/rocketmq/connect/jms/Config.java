@@ -40,6 +40,8 @@ public class Config {
 
     public static final String MESSAGE = "message";
 
+    public static final String POSITION = "position";
+
     public String brokerUrl;
 
     public String username;

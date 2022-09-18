@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.jms.pattern;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
@@ -48,7 +49,7 @@ public abstract class PatternProcessor {
 
     public abstract ConnectionFactory connectionFactory();
 
-    public void start() throws Exception {
+    public void start(long offset) throws Exception {
         if (!StringUtils.equals("topic", config.getDestinationType())
             && !StringUtils.equals("queue", config.getDestinationType())) {
             // RuntimeException is caught by DataConnectException
@@ -72,11 +73,15 @@ public abstract class PatternProcessor {
             destination = session.createQueue(config.getDestinationName());
         }
         consumer = session.createConsumer(destination, config.getMessageSelector());
-        consumer.setMessageListener(new MessageListener() {
-            @Override
-            public void onMessage(Message message) {
-                replicator.commit(message, true);
+        consumer.setMessageListener(message -> {
+            try {
+                if (Long.valueOf(message.getJMSMessageID().split(":")[5]) < offset) {
+                    return;
+                }
+            } catch (JMSException e) {
+                throw new RuntimeException("parse JMSMessageId failed", e);
             }
+            replicator.commit(message, true);
         });
 
     }
