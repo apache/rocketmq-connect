@@ -17,20 +17,23 @@ RUN groupadd -g ${gid} ${group} \
 ARG version
 
 # RocketMQ Connect Version
-ENV ROCKETMQCONNECT_VERSION ${version}
+ENV CONNECT_VERSION ${version}
 
 # Rocketmq home
 ENV CONNECT_HOME  /home/connect/mq-connect
 
-WORKDIR  ${CONNECT_HOME}
+WORKDIR /home/connect
 
-RUN chown -R ${uid}:${gid} ${CONNECT_HOME}
+RUN chown -R ${uid}:${gid}  /home/connect
 
+
+# 设置环境变量 USERNAME 默认值为 admin，后面可以通过docker run -e USERNAME="XXXXXX"修改，这个环境变量在容器里也可以$USERNAME获取
+ENV NAMESRV_ADDR=localhost:9876
 # expose namesrv port
 EXPOSE 8082
 
 USER ${user}
-WORKDIR ${CONNECT_HOME}/bin
+#WORKDIR /home/connect
 
 RUN mkdir -p /home/connect/mq-connect/bin /home/connect/mq-connect/plugins /home/connect/mq-connect/target /home/connect/mq-connect/cli && \
     chown -R connect:connect /home/connect/ && \
@@ -51,8 +54,7 @@ COPY bin/connect-distributed.sh \
      /home/connect/mq-connect/bin/
 
 USER root
-RUN chown -R connect:connect /home/connect/ && \
-        chmod +x /home/connect/mq-connect/bin/* && \
+RUN     chmod +x /home/connect/mq-connect/bin/* && \
         echo "export JAVA_HOME=/lib/jvm/java-1.8.0-openjdk" >> ~/.bash_profile && \
         echo "export PATH=$PATH:/lib/jvm/java-1.8.0-openjdk/bin" >> ~/.bash_profile && \
         echo "export CLASSPATH=.:/lib/jvm/java-1.8.0-openjdk/lib" >> ~/.bash_profile && \
@@ -60,4 +62,4 @@ RUN chown -R connect:connect /home/connect/ && \
 
 USER connect
 ENV ali_jvm_cgroup=true
-ENTRYPOINT ["/usr/bin/sh", "/home/connect/bin/connect-distributed.sh"]
+ENTRYPOINT ["/usr/bin/sh", "/home/connect/mq-connect/bin/connect-distributed.sh"]

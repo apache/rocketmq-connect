@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 #
-
+cd ../..
 cd `dirname $0`
 
 WORK_DIR=`pwd`
@@ -54,5 +54,5 @@ cp rocketmq-connect-sample-0.0.1-SNAPSHOT.jar ${WORK_DIR}/docker/connect/plugins
 
 CONNECT_VERSION=0.0.1-SNAPSHOT
 
-docker build --no-cache -f Dockerfile -t apacherocketmq/rocketmqconnect:${CONNECT_VERSION} --build-arg version=${CONNECT_VERSION}
+docker build --no-cache -f Dockerfile -t apache/rocketmqconnect:${CONNECT_VERSION} ./
 
