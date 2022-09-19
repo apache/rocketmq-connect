@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public class HttpSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(HttpSinkTask.class);
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     protected String urlPattern;
     protected String method;

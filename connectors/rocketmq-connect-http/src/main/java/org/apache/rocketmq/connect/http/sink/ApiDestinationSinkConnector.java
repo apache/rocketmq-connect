@@ -22,7 +22,7 @@ public class ApiDestinationSinkConnector extends HttpSinkConnector {
 
     private String apiDestinationName;
 
-    private static String endpoint;
+    private String endpoint;
 
     private String pushCertPrivateKey;
 

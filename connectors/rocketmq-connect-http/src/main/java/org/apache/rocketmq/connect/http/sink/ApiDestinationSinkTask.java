@@ -41,11 +41,11 @@ import java.util.concurrent.TimeUnit;
 public class ApiDestinationSinkTask extends HttpSinkTask implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ApiDestinationSinkConnector.class);
 
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     private String apiDestinationName;
 
-    private static String endpoint;
+    private String endpoint;
 
     private String pushCertSignMethod;
 
@@ -55,9 +55,9 @@ public class ApiDestinationSinkTask extends HttpSinkTask implements Runnable {
 
     private PrivateKey privateKey;
 
-    private static AbstractHttpClient httpClient;
+    private AbstractHttpClient httpClient;
 
-    private static ApiDestionationEntity apiDestionationEntity = new ApiDestionationEntity();
+    private ApiDestionationEntity apiDestionationEntity = new ApiDestionationEntity();
 
     @Override
     public void init(KeyValue config) {
