@@ -97,6 +97,10 @@ public class ConnectStatsManager {
         init();
     }
 
+    public ConnectStatsManager(String worker) {
+        this.worker = worker;
+    }
+
     public void init() {
         this.statsTable.put(SOURCE_RECORD_WRITE_NUMS, new StatsItemSet(SOURCE_RECORD_WRITE_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(SOURCE_RECORD_WRITE_TOTAL_NUMS, new StatsItemSet(SOURCE_RECORD_WRITE_TOTAL_NUMS, this.scheduledExecutorService, log));

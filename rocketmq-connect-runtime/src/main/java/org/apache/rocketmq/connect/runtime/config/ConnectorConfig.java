@@ -54,6 +54,8 @@ public class ConnectorConfig {
 
     public static final String TASK_CLASS = "task.class";
 
+    public static final String CONNECTOR_ID = "connector.id";
+
     public static final String TASK_ID = "task.id";
 
     public static final String MAX_TASK = "max.tasks";
@@ -74,6 +76,8 @@ public class ConnectorConfig {
     public static final String TRANSFORMS = "transforms";
 
     public static final String CONNECT_TIMESTAMP = "connect.timestamp";
+
+    public static final String CONNECT_SCHEMA = "connect.schema";
 
     public static final String HASH_FUNC = "consistentHashFunc";
 
