@@ -10,8 +10,8 @@
 	OF ANY KIND, either express or implied. See the License for the specific 
 	language governing permissions and limitations under the License. -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.rocketmq</groupId>
@@ -180,11 +180,11 @@
         <debezium.version>1.7.2.Final</debezium.version>
         <debezium.postgresql.version>42.3.3</debezium.postgresql.version>
         <!--rocketmq version-->
-        <rocketmq.version>4.5.2</rocketmq.version>
+        <rocketmq.version>4.7.1</rocketmq.version>
         <rocketmq-openmessaging.version>4.3.2</rocketmq-openmessaging.version>
 
         <!--rocketmq connect version-->
-        <openmessaging-connector.version>0.1.3-SNAPSHOT</openmessaging-connector.version>
+        <openmessaging-connector.version>0.1.4</openmessaging-connector.version>
         <openmessaging-api.version>0.3.1-alpha</openmessaging-api.version>
     </properties>
 
@@ -230,11 +230,6 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-remoting</artifactId>
                 <version>${rocketmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-openmessaging</artifactId>
-                <version>${rocketmq-openmessaging.version}</version>
             </dependency>
 
             <!--kafka && kafka connect-->

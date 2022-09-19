@@ -18,6 +18,8 @@
 package org.apache.rocketmq.connect.runtime.common;
 
 import io.openmessaging.KeyValue;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +28,17 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Default Implements of {@link KeyValue} for runtime, which can be parsed by fastJson.
  */
-public class ConnectKeyValue implements KeyValue, Serializable {
+public class ConnectKeyValue implements KeyValue, Serializable, Cloneable {
+
+    /**
+     * epoch for update
+     */
+    private long epoch;
+
+    /**
+     * target state
+     */
+    private TargetState targetState;
 
     /**
      * All data are reserved in this map.
@@ -125,9 +137,57 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         this.properties = properties;
     }
 
+    /**
+     * Gets all original settings with the given prefix.
+     */
+    public Map<String, String> originalsWithPrefix(String prefix) {
+        return originalsWithPrefix(prefix, true);
+    }
+
+    /**
+     * Gets all original settings with the given prefix.
+     *
+     * @param prefix the prefix to use as a filter
+     * @param strip strip the prefix before adding to the output if set true
+     * @return a Map containing the settings with the prefix
+     */
+    public Map<String, String> originalsWithPrefix(String prefix, boolean strip) {
+        Map<String, String> result = new ConcurrentHashMap<>();
+        for (Map.Entry<String, String> entry : this.properties.entrySet()) {
+            if (entry.getKey().startsWith(prefix) && entry.getKey().length() > prefix.length()) {
+                if (strip) {
+                    result.put(entry.getKey().substring(prefix.length()), entry.getValue());
+                } else {
+                    result.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return result;
+    }
+
+    public TargetState getTargetState() {
+        return targetState;
+    }
+
+    public void setTargetState(TargetState targetState) {
+        this.targetState = targetState;
+    }
+
+    public long getEpoch() {
+        return epoch;
+    }
+
+    public void setEpoch(long epoch) {
+        this.epoch = epoch;
+    }
+
+    public ConnectKeyValue nextGeneration() {
+        this.setEpoch(System.currentTimeMillis());
+        return this;
+    }
+
     @Override
     public boolean equals(Object obj) {
-
         if (obj != null && obj.getClass() == this.getClass()) {
             ConnectKeyValue keyValue = (ConnectKeyValue) obj;
             return this.properties.equals(keyValue.getProperties());
@@ -140,9 +200,20 @@ public class ConnectKeyValue implements KeyValue, Serializable {
         return properties.hashCode();
     }
 
-    @Override public String toString() {
+    @Override
+    public Object clone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
         return "ConnectKeyValue{" +
             "properties=" + properties +
             '}';
     }
+
 }

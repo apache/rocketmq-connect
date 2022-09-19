@@ -35,17 +35,24 @@ public class KafkaSinkValueConverter {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaSinkValueConverter.class);
 
-    public Object value(Schema schema,Object data) {
+    public Object value(Schema schema, Object data) {
         return convertKafkaValue(schema, data);
     }
 
     /**
      * convert value
+     *
      * @param targetSchema
      * @param originalValue
      * @return
      */
     private Object convertKafkaValue(Schema targetSchema, Object originalValue) {
+        if (targetSchema == null) {
+            if (originalValue == null) {
+                return null;
+            }
+            return  originalValue;
+        }
         switch (targetSchema.type()) {
             case INT8:
             case INT16:

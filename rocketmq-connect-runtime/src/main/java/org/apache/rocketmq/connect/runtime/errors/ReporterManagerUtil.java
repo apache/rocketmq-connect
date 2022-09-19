@@ -17,9 +17,9 @@
 
 package org.apache.rocketmq.connect.runtime.errors;
 
-import io.openmessaging.connector.api.data.Converter;
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +55,7 @@ public class ReporterManagerUtil {
     public static WorkerErrorRecordReporter createWorkerErrorRecordReporter(
             ConnectKeyValue connConfig,
             RetryWithToleranceOperator retryWithToleranceOperator,
-            Converter converter) {
+            RecordConverter converter) {
         DeadLetterQueueConfig deadLetterQueueConfig = new DeadLetterQueueConfig(connConfig);
         if (deadLetterQueueConfig.enableErrantRecordReporter()) {
             return new WorkerErrorRecordReporter(retryWithToleranceOperator, converter);
@@ -73,7 +73,7 @@ public class ReporterManagerUtil {
      */
     public static List<ErrorReporter> sinkTaskReporters(String connectName,
                                                         ConnectKeyValue connConfig,
-                                                        ConnectConfig workerConfig) {
+                                                        WorkerConfig workerConfig) {
         // ensure reporter order
         ArrayList<ErrorReporter> reporters = new ArrayList<>();
         LogReporter logReporter = new LogReporter(connectName, connConfig);

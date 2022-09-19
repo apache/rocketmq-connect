@@ -20,12 +20,15 @@ package org.apache.rocketmq.connect.runtime.utils.datasync;
 import io.openmessaging.connector.api.data.Converter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serde;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,16 +63,16 @@ public class BrokerBasedLogTest {
     private DataSynchronizerCallback dataSynchronizerCallback;
 
     @Mock
-    private Converter converter;
+    private Serde serde;
 
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     @Before
     public void init() throws IllegalAccessException, NoSuchFieldException {
         topicName = "testTopicName";
         consumerGroup = "testConsumerGroup1";
         producerGroup = "testProducerGroup1";
-        connectConfig = new ConnectConfig();
+        connectConfig = new WorkerConfig();
         connectConfig.setRmqConsumerGroup(consumerGroup);
         connectConfig.setRmqProducerGroup(producerGroup);
         connectConfig.setNamesrvAddr("127.0.0.1:9876");
@@ -77,8 +80,8 @@ public class BrokerBasedLogTest {
         connectConfig.setRmqMaxConsumeThreadNums(32);
         connectConfig.setRmqMessageConsumeTimeout(3 * 1000);
 
-        doReturn(new byte[0]).when(converter).objectToByte(any(Object.class));
-        brokerBasedLog = new BrokerBasedLog(connectConfig, topicName, consumerGroup, dataSynchronizerCallback, converter, converter);
+        doReturn(new byte[0]).when(serde).serializer().serialize("test", any(Object.class));
+        brokerBasedLog = new BrokerBasedLog(connectConfig, topicName, consumerGroup, dataSynchronizerCallback, serde, serde);
 
         final Field producerField = BrokerBasedLog.class.getDeclaredField("producer");
         producerField.setAccessible(true);

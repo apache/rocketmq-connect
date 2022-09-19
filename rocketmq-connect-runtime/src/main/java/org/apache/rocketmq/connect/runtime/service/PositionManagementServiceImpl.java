@@ -18,21 +18,25 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.netty.util.internal.ConcurrentSet;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.openmessaging.connector.api.data.SchemaAndValue;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.converter.JsonConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordPositionMapConverter;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
@@ -44,6 +48,8 @@ import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallba
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Thread.sleep;
+
 public class PositionManagementServiceImpl implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
@@ -52,15 +58,20 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      */
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
 
+    private WorkerConfig config;
+
+    private AtomicBoolean committing = new AtomicBoolean(false);
+    private long commitStarted;
+
     /**
-     * The updated partition of the task in the current instance.
+     * need sync position
      */
     private Set<ExtendRecordPartition> needSyncPartition;
 
     /**
      * Synchronize data with other workers.
      */
-    private DataSynchronizer<String, Map<ExtendRecordPartition, RecordOffset>> dataSynchronizer;
+    private DataSynchronizer<ByteBuffer, ByteBuffer> dataSynchronizer;
 
     /**
      * Listeners.
@@ -69,20 +80,39 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     private final String positionManagePrefix = "PositionManage";
 
-    public PositionManagementServiceImpl(ConnectConfig connectConfig) {
+    private RecordConverter keyConverter;
+    private RecordConverter valueConverter;
 
-        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
-                new RecordPartitionConverter(),
-                new RecordOffsetConverter());
-        this.dataSynchronizer = new BrokerBasedLog(connectConfig,
-                connectConfig.getPositionStoreTopic(),
-                ConnectUtil.createGroupName(positionManagePrefix, connectConfig.getWorkerId()),
-                new PositionChangeCallback(),
-                new JsonConverter(),
-                new RecordPositionMapConverter());
+    private String topic;
+
+    public PositionManagementServiceImpl() {
+    }
+
+    @Override
+    public void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+        this.keyConverter = keyConverter;
+        this.valueConverter = valueConverter;
+        this.topic = workerConfig.getPositionStoreTopic();
+        this.keyConverter.configure(new HashMap<>());
+        this.valueConverter.configure(new HashMap<>());
+        this.dataSynchronizer = new BrokerBasedLog(
+            workerConfig,
+            this.topic,
+            ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
+            new PositionChangeCallback(),
+            Serdes.serdeFrom(ByteBuffer.class),
+            Serdes.serdeFrom(ByteBuffer.class)
+        );
+
+        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(workerConfig.getStorePathRootDir()),
+            new RecordPartitionSerde(),
+            new RecordOffsetSerde());
+
         this.positionUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
-        this.prepare(connectConfig);
+        this.commitStarted = -1;
+        this.config = workerConfig;
+        this.prepare(workerConfig);
     }
 
     /**
@@ -90,7 +120,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         String positionStoreTopic = connectConfig.getPositionStoreTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, positionStoreTopic)) {
             log.info("try to create position store topic: {}!", positionStoreTopic);
@@ -101,23 +131,20 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     @Override
     public void start() {
-
         positionStore.load();
         dataSynchronizer.start();
-        sendOnlinePositionInfo();
+        restorePosition();
     }
 
     @Override
     public void stop() {
-
-        sendNeedSynchronizePosition();
+        replicaOffsets();
         positionStore.persist();
         dataSynchronizer.stop();
     }
 
     @Override
     public void persist() {
-
         positionStore.persist();
     }
 
@@ -127,91 +154,160 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public void synchronize() {
-
-        sendNeedSynchronizePosition();
-    }
-
-    @Override
     public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
-
         return positionStore.getKVMap();
     }
 
     @Override
     public RecordOffset getPosition(ExtendRecordPartition partition) {
-
         return positionStore.get(partition);
     }
 
     @Override
     public void putPosition(Map<ExtendRecordPartition, RecordOffset> positions) {
-
         positionStore.putAll(positions);
-        needSyncPartition.addAll(positions.keySet());
+        this.needSyncPartition.addAll(positions.keySet());
     }
 
     @Override
     public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
-
         positionStore.put(partition, position);
-        needSyncPartition.add(partition);
+        // add need sync partition
+        this.needSyncPartition.add(partition);
+    }
+
+    @Override
+    public void synchronize(boolean increment) {
+        // Check for timed out commits
+        long now = System.currentTimeMillis();
+        final long commitTimeoutMs = commitStarted + config.getOffsetCommitTimeoutMsConfig();
+        if (committing.get() && now >= commitTimeoutMs) {
+            log.warn("{} Commit of offsets timed out", this);
+            committing.set(false);
+        }
+
+        if (!committing.compareAndSet(false, true)) {
+            log.warn("Offset is being committed, ignoring this commit !!");
+            return;
+        }
+        this.commitStarted = System.currentTimeMillis();
+        // Full send
+        if (!increment) {
+            Set<ExtendRecordPartition> allPartitions = new HashSet<>();
+            allPartitions.addAll(positionStore.getKVMap().keySet());
+            allPartitions.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
+        }
+        //Incremental send
+        if (increment) {
+            if (needSyncPartition.isEmpty()) {
+                log.warn("There is no offset to commit");
+                return;
+            }
+            Set<ExtendRecordPartition> partitionsTmp = new HashSet<>(needSyncPartition);
+            partitionsTmp.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
+        }
+        // end send offset
+        if (increment) {
+            needSyncPartition.clear();
+        }
+        committing.compareAndSet(true, false);
     }
 
     @Override
     public void removePosition(List<ExtendRecordPartition> partitions) {
-
         if (null == partitions) {
             return;
         }
-
         for (ExtendRecordPartition partition : partitions) {
-            needSyncPartition.remove(partition);
             positionStore.remove(partition);
         }
     }
 
     @Override
     public void registerListener(PositionUpdateListener listener) {
-
         this.positionUpdateListener.add(listener);
     }
 
-    private void sendOnlinePositionInfo() {
-
-        dataSynchronizer.send(PositionChangeEnum.ONLINE_KEY.name(), positionStore.getKVMap());
+    @Override
+    public StagingMode getStagingMode() {
+        return StagingMode.DISTRIBUTED;
     }
 
-
-    private void sendNeedSynchronizePosition() {
-
-        Set<ExtendRecordPartition> needSyncPartitionTmp = needSyncPartition;
-        needSyncPartition = new ConcurrentSet<>();
-        Map<ExtendRecordPartition, RecordOffset> needSyncPosition = positionStore.getKVMap().entrySet().stream()
-                .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
-                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
-
-        dataSynchronizer.send(PositionChangeEnum.POSITION_CHANG_KEY.name(), needSyncPosition);
+    /**
+     * restore position
+     */
+    private void restorePosition() {
+        set(PositionChange.ONLINE_KEY, new ExtendRecordPartition(null, new HashMap<>()), new RecordOffset(new HashMap<>()));
     }
 
-    private void sendSynchronizePosition() {
-
-        dataSynchronizer.send(PositionChangeEnum.POSITION_CHANG_KEY.name(), positionStore.getKVMap());
+    /**
+     * send change position
+     */
+    private void replicaOffsets() {
+        while (true) {
+            // wait for the last send to complete
+            if (committing.get()) {
+                try {
+                    sleep(1000);
+                    continue;
+                } catch (InterruptedException e) {
+                }
+            }
+            synchronize(false);
+            break;
+        }
     }
 
-    private class PositionChangeCallback implements DataSynchronizerCallback<String, Map<ExtendRecordPartition, RecordOffset>> {
+    /**
+     * send position
+     *
+     * @param partition
+     * @param position
+     */
+    private synchronized void set(PositionChange change, ExtendRecordPartition partition, RecordOffset position) {
+        String namespace = partition.getNamespace();
+        // When serializing the key, we add in the namespace information so the key is [namespace, real key]
+        byte[] key = keyConverter.fromConnectData(namespace, null, Arrays.asList(change.name(), namespace, partition != null ? partition.getPartition() : new HashMap<>()));
+        ByteBuffer keyBuffer = (key != null) ? ByteBuffer.wrap(key) : null;
+        byte[] value = valueConverter.fromConnectData(namespace, null, position != null ? position.getOffset() : new HashMap<>());
+        ByteBuffer valueBuffer = (value != null) ? ByteBuffer.wrap(value) : null;
+        dataSynchronizer.send(keyBuffer, valueBuffer);
+    }
+
+    private class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
 
         @Override
-        public void onCompletion(Throwable error, String key, Map<ExtendRecordPartition, RecordOffset> result) {
-
+        public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {
+            if (key == null) {
+                log.warn("The received position information key is empty and cannot be parsed. the message will be skipped");
+                return;
+            }
+            SchemaAndValue schemaAndValueKey = keyConverter.toConnectData(topic, key.array());
+            if (schemaAndValueKey.value() == null || schemaAndValueKey.value() == null) {
+                log.error("The format of the monitored offset change data is wrong and will be discarded , schema and value {}", schemaAndValueKey.toString());
+                return;
+            }
+            List<Object> deKey = (List<Object>) schemaAndValueKey.value();
+            if (deKey.isEmpty() || deKey.size() != 3) {
+                log.error("The format of the monitored offset change data is wrong and will be discarded , message {}", deKey);
+                return;
+            }
+            String changeKey = (String) deKey.get(0);
             boolean changed = false;
-            switch (PositionChangeEnum.valueOf(key)) {
+            switch (PositionChange.valueOf(changeKey)) {
                 case ONLINE_KEY:
                     changed = true;
-                    sendSynchronizePosition();
+                    replicaOffsets();
                     break;
                 case POSITION_CHANG_KEY:
-                    changed = mergePositionInfo(result);
+                    // partition
+                    String namespace = (String) deKey.get(1);
+                    Map<String, Object> partitions = (Map<String, Object>) deKey.get(2);
+                    ExtendRecordPartition partition = new ExtendRecordPartition(namespace, partitions);
+                    // offset
+                    SchemaAndValue schemaAndValueValue = valueConverter.toConnectData(topic, result.array());
+                    Map<String, Object> offset = (Map<String, Object>) schemaAndValueValue.value();
+                    changed = mergeOffset(partition, new RecordOffset(offset));
                     break;
                 default:
                     break;
@@ -232,36 +328,30 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     /**
      * Merge new received position info with local store.
      *
-     * @param result
+     * @param partition
+     * @param offset
      * @return
      */
-    private boolean mergePositionInfo(Map<ExtendRecordPartition, RecordOffset> result) {
-
-        boolean changed = false;
-        if (null == result || 0 == result.size()) {
-            return changed;
+    private boolean mergeOffset(ExtendRecordPartition partition, RecordOffset offset) {
+        if (null == partition || partition.getPartition().isEmpty()) {
+            return false;
         }
-
-        for (Map.Entry<ExtendRecordPartition, RecordOffset> newEntry : result.entrySet()) {
-            boolean find = false;
-            for (Map.Entry<ExtendRecordPartition, RecordOffset> existedEntry : positionStore.getKVMap().entrySet()) {
-                if (newEntry.getKey().equals(existedEntry.getKey())) {
-                    find = true;
-                    if (!newEntry.getValue().equals(existedEntry.getValue())) {
-                        changed = true;
-                        existedEntry.setValue(newEntry.getValue());
-                    }
-                    break;
-                }
+        if (positionStore.getKVMap().containsKey(partition)) {
+            RecordOffset existedOffset = positionStore.getKVMap().get(partition);
+            // update
+            if (!offset.equals(existedOffset)) {
+                positionStore.put(partition, offset);
+                return true;
             }
-            if (!find) {
-                positionStore.put(newEntry.getKey(), newEntry.getValue());
-            }
+        } else {
+            // add new position
+            positionStore.put(partition, offset);
+            return true;
         }
-        return changed;
+        return false;
     }
 
-    private enum PositionChangeEnum {
+    private enum PositionChange {
 
         /**
          * Insert or update position info.

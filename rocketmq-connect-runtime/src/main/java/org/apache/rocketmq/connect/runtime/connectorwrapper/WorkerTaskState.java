@@ -14,8 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-
-
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 public enum WorkerTaskState {
@@ -23,8 +21,7 @@ public enum WorkerTaskState {
     PENDING,
     RUNNING,
     ERROR,
-    OUT_LOOP,
     STOPPING,
     STOPPED,
     TERMINATED,
-};
+}

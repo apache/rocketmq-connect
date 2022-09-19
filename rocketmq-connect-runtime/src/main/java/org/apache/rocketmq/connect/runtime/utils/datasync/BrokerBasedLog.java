@@ -17,12 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
-import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.data.Converter;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -33,12 +31,15 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serde;
+import org.apache.rocketmq.connect.runtime.utils.Base64Util;
+import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine.MAX_MESSAGE_SIZE;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.MAX_MESSAGE_SIZE;
 
 /**
  * A Broker base data synchronizer, synchronize data between workers.
@@ -69,32 +70,28 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
      * A queue to send or consume message.
      */
     private String topicName;
-
     /**
-     * Used to convert key to byte[].
+     * serializer and deserializer
      */
-    private Converter keyConverter;
+    private Serde keySerde;
+    private Serde valueSerde;
 
-    /**
-     * Used to convert value to byte[].
-     */
-    private Converter valueConverter;
-
-    public BrokerBasedLog(ConnectConfig connectConfig,
+    public BrokerBasedLog(WorkerConfig connectConfig,
         String topicName,
         String workId,
         DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-        Converter keyConverter,
-        Converter valueConverter) {
+        Serde keySerde,
+        Serde valueSerde) {
 
         this.topicName = topicName;
+        this.keySerde = keySerde;
+        this.valueSerde = valueSerde;
+
         this.dataSynchronizerCallback = dataSynchronizerCallback;
         this.producer = ConnectUtil.initDefaultMQProducer(connectConfig);
         this.producer.setProducerGroup(workId);
         this.consumer = ConnectUtil.initDefaultMQPushConsumer(connectConfig);
         this.consumer.setConsumerGroup(workId);
-        this.keyConverter = keyConverter;
-        this.valueConverter = valueConverter;
         this.prepare(connectConfig);
     }
 
@@ -103,7 +100,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
      *
      * @param connectConfig
      */
-    private void prepare(ConnectConfig connectConfig) {
+    private void prepare(WorkerConfig connectConfig) {
         if (connectConfig.isAutoCreateGroupEnable()) {
             ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
         }
@@ -129,14 +126,16 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
 
     @Override
     public void send(K key, V value) {
-
         try {
-            byte[] messageBody = encodeKeyValue(key, value);
-            if (messageBody.length > MAX_MESSAGE_SIZE) {
+            Map.Entry<byte[], byte[]> encode = encode(key, value);
+            byte[] body = encode.getValue();
+            if (body.length > MAX_MESSAGE_SIZE) {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
                 return;
             }
-            producer.send(new Message(topicName, messageBody), new SendCallback() {
+            Message message = new Message(topicName, body);
+            message.setKeys(Base64Util.base64Encode(encode.getKey()));
+            producer.send(message, new SendCallback() {
                 @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                 }
@@ -152,27 +151,82 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         }
     }
 
-    private byte[] encodeKeyValue(K key, V value) throws Exception {
+    /**
+     * send data to all workers
+     *
+     * @param key
+     * @param value
+     * @param callback
+     */
+    @Override
+    public void send(K key, V value, Callback callback) {
+        try {
+            Map.Entry<byte[], byte[]> encode = encode(key, value);
+            byte[] body = encode.getValue();
+            if (body.length > MAX_MESSAGE_SIZE) {
+                log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
+                return;
+            }
+            Message message = new Message(topicName, body);
+            message.setKeys(Base64Util.base64Encode(encode.getKey()));
+            producer.send(message, new SendCallback() {
+                @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                    log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
+                    callback.onCompletion(null, value);
+                }
 
-        byte[] keyByte = keyConverter.objectToByte(key);
-        byte[] valueByte = valueConverter.objectToByte(value);
-        Map<String, String> map = new HashMap<>();
-        map.put(Base64.getEncoder().encodeToString(keyByte), Base64.getEncoder().encodeToString(valueByte));
-
-        return JSON.toJSONString(map).getBytes("UTF-8");
+                @Override public void onException(Throwable throwable) {
+                    if (null != throwable) {
+                        log.error("Send async message Failed, error: {}", throwable);
+                        callback.onCompletion(throwable, value);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.error("BrokerBaseLog send async message Failed.", e);
+        }
     }
 
-    private Map<K, V> decodeKeyValue(byte[] bytes) throws Exception {
+    private Map.Entry<byte[], byte[]> encode(K key, V value) {
+        byte[] keySer = keySerde.serializer().serialize(topicName, key);
+        byte[] valueSer = valueSerde.serializer().serialize(topicName, value);
+        return new Map.Entry<byte[], byte[]>() {
+            @Override
+            public byte[] getKey() {
+                return keySer;
+            }
 
-        Map<K, V> resultMap = new HashMap<>();
-        String rawString = new String(bytes, "UTF-8");
-        Map<String, String> map = JSON.parseObject(rawString, Map.class);
-        for (String key : map.keySet()) {
-            K decodeKey = (K) keyConverter.byteToObject(Base64.getDecoder().decode(key));
-            V decodeValue = (V) valueConverter.byteToObject(Base64.getDecoder().decode(map.get(key)));
-            resultMap.put(decodeKey, decodeValue);
-        }
-        return resultMap;
+            @Override
+            public byte[] getValue() {
+                return valueSer;
+            }
+
+            @Override
+            public byte[] setValue(byte[] value) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    private Map.Entry<K, V> decode(byte[] key, byte[] value) {
+        K deKey = (K) keySerde.deserializer().deserialize(topicName, key);
+        V deValue = (V) valueSerde.deserializer().deserialize(topicName, value);
+        return new Map.Entry<K, V>() {
+            @Override
+            public K getKey() {
+                return deKey;
+            }
+
+            @Override
+            public V getValue() {
+                return deValue;
+            }
+
+            @Override
+            public V setValue(V value) {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     class MessageListenerImpl implements MessageListenerConcurrently {
@@ -181,16 +235,13 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             ConsumeConcurrentlyContext context) {
             for (MessageExt messageExt : rmqMsgList) {
                 log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
-                byte[] bytes = messageExt.getBody();
-                Map<K, V> map;
                 try {
-                    map = decodeKeyValue(bytes);
+                    String key = messageExt.getKeys();
+                    Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
+                    dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
                 } catch (Exception e) {
                     log.error("Decode message data error. message: {}, error info: {}", messageExt, e);
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                }
-                for (K key : map.keySet()) {
-                    dataSynchronizerCallback.onCompletion(null, key, map.get(key));
                 }
             }
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;

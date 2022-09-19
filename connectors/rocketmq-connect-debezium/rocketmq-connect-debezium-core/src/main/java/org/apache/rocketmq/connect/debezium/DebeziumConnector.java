@@ -17,20 +17,12 @@
 
 package org.apache.rocketmq.connect.debezium;
 
-import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.task.source.SourceConnector;
-import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.kafka.connect.adaptor.connector.KafkaSourceAdaptorConnector;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
  * debezium connector
  */
 public abstract class DebeziumConnector extends KafkaSourceAdaptorConnector {
-    
+
 }

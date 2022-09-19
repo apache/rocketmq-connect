@@ -29,8 +29,6 @@ public class RocketMqConnectConfig {
 
     private String namesrvAddr;
 
-    private String rmqProducerGroup;
-
     private int operationTimeout = 3000;
 
     private String rmqConsumerGroup;
@@ -43,24 +41,18 @@ public class RocketMqConnectConfig {
 
     private int rmqMinConsumeThreadNums = 1;
 
-    private String adminExtGroup;
 
-    // set acl config
+    /** set acl config **/
     private boolean aclEnable;
     private String accessKey;
     private String secretKey;
 
 
-    public RocketMqConnectConfig() {
-    }
+    public RocketMqConnectConfig() {}
 
     public RocketMqConnectConfig(Configuration config, String dbHistoryName) {
         this.dbHistoryName = dbHistoryName;
-        // init config
-        this.rmqProducerGroup = this.dbHistoryName.concat("-producer-group");
-        this.rmqConsumerGroup = this.dbHistoryName.concat("-consumer-group");
-        this.adminExtGroup = this.dbHistoryName.concat("-admin-group");
-
+        this.rmqConsumerGroup = this.dbHistoryName.concat("-group");
         // init rocketmq connection
         this.namesrvAddr = config.getString(RocketMqDatabaseHistory.NAME_SRV_ADDR);
         this.aclEnable = config.getBoolean(RocketMqDatabaseHistory.ROCKETMQ_ACL_ENABLE);
@@ -83,14 +75,6 @@ public class RocketMqConnectConfig {
 
     public void setNamesrvAddr(String namesrvAddr) {
         this.namesrvAddr = namesrvAddr;
-    }
-
-    public String getRmqProducerGroup() {
-        return rmqProducerGroup;
-    }
-
-    public void setRmqProducerGroup(String rmqProducerGroup) {
-        this.rmqProducerGroup = rmqProducerGroup;
     }
 
     public int getOperationTimeout() {
@@ -165,27 +149,17 @@ public class RocketMqConnectConfig {
         this.secretKey = secretKey;
     }
 
-    public String getAdminExtGroup() {
-        return adminExtGroup;
-    }
-
-    public void setAdminExtGroup(String adminExtGroup) {
-        this.adminExtGroup = adminExtGroup;
-    }
-
     @Override
     public String toString() {
         return "RocketMqConnectConfig{" +
                 "dbHistoryName='" + dbHistoryName + '\'' +
                 ", namesrvAddr='" + namesrvAddr + '\'' +
-                ", rmqProducerGroup='" + rmqProducerGroup + '\'' +
                 ", operationTimeout=" + operationTimeout +
                 ", rmqConsumerGroup='" + rmqConsumerGroup + '\'' +
                 ", rmqMaxRedeliveryTimes=" + rmqMaxRedeliveryTimes +
                 ", rmqMessageConsumeTimeout=" + rmqMessageConsumeTimeout +
                 ", rmqMaxConsumeThreadNums=" + rmqMaxConsumeThreadNums +
                 ", rmqMinConsumeThreadNums=" + rmqMinConsumeThreadNums +
-                ", adminExtGroup='" + adminExtGroup + '\'' +
                 ", aclEnable=" + aclEnable +
                 ", accessKey='" + accessKey + '\'' +
                 ", secretKey='" + secretKey + '\'' +

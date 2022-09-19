@@ -43,7 +43,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <!-- RocketMQ Version-->
-        <rocketmq.version>4.7.0</rocketmq.version>
+        <rocketmq.version>4.7.1</rocketmq.version>
 
     </properties>
 
@@ -247,6 +247,16 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-artifact</artifactId>
+            <version>3.8.1</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

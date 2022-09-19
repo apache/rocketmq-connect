@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
@@ -26,34 +27,32 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.commons.collections.MapUtils;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.store.PositionStorageReaderImpl;
-import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper of {@link SinkTask} and {@link SourceTask} for runtime.
  */
-public class WorkerDirectTask implements WorkerTask {
+public class WorkerDirectTask extends WorkerSourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    /**
-     * Connector name of current task.
-     */
-    private String connectorName;
 
     /**
      * The implements of the source task.
@@ -64,133 +63,76 @@ public class WorkerDirectTask implements WorkerTask {
      * The implements of the sink task.
      */
     private SinkTask sinkTask;
-
-    /**
-     * The configs of current sink task.
-     */
-    private ConnectKeyValue taskConfig;
-
-    /**
-     * Atomic state variable
-     */
-    private AtomicReference<WorkerTaskState> state;
-
-    private final PositionManagementService positionManagementService;
-
     private final OffsetStorageReader positionStorageReader;
 
-    private final PositionStorageWriter positionStorageWriter;
-
-    private final AtomicReference<WorkerState> workerState;
-
-    public WorkerDirectTask(String connectorName,
-        SourceTask sourceTask,
-        SinkTask sinkTask,
-        ConnectKeyValue taskConfig,
-        PositionManagementService positionManagementService,
-        AtomicReference<WorkerState> workerState) {
-        this.connectorName = connectorName;
+    public WorkerDirectTask(WorkerConfig workerConfig,
+                            ConnectorTaskId id,
+                            SourceTask sourceTask,
+                            ClassLoader classLoader,
+                            SinkTask sinkTask,
+                            ConnectKeyValue taskConfig,
+                            PositionManagementService positionManagementService,
+                            AtomicReference<WorkerState> workerState,
+                            ConnectStatsManager connectStatsManager,
+                            ConnectStatsService connectStatsService,
+                            TransformChain<ConnectRecord> transformChain,
+                            RetryWithToleranceOperator retryWithToleranceOperator,
+                            WrapperStatusListener statusListener) {
+        super(workerConfig,
+                id,
+                sourceTask,
+                classLoader,
+                taskConfig,
+                positionManagementService,
+                null,
+                null,
+                null,
+                workerState,
+                connectStatsManager,
+                connectStatsService,
+                transformChain,
+                retryWithToleranceOperator,
+                statusListener
+        );
         this.sourceTask = sourceTask;
         this.sinkTask = sinkTask;
-        this.taskConfig = taskConfig;
-        this.positionManagementService = positionManagementService;
-        this.positionStorageReader = new PositionStorageReaderImpl(connectorName, positionManagementService);
-        this.positionStorageWriter = new PositionStorageWriter(connectorName, positionManagementService);
-        this.state = new AtomicReference<>(WorkerTaskState.NEW);
-        this.workerState = workerState;
+        this.positionStorageReader = new PositionStorageReaderImpl(id.connector(), positionManagementService);
     }
 
-    /**
-     * Start a source task, and send data entry to MQ cyclically.
-     */
-    @Override
-    public void run() {
-        try {
-            starkSinkTask();
-            startSourceTask();
-            log.info("Direct task start, config:{}", JSON.toJSONString(taskConfig));
-            while (WorkerState.STARTED == workerState.get() && WorkerTaskState.RUNNING == state.get()) {
-                try {
-                    Collection<ConnectRecord> toSendEntries = sourceTask.poll();
-                    if (null != toSendEntries && toSendEntries.size() > 0) {
-                        sendRecord(toSendEntries);
-                    }
-                } catch (Exception e) {
-                    log.error("Direct task runtime exception", e);
-                    state.set(WorkerTaskState.ERROR);
-                }
-            }
-            stopSourceTask();
-            stopSinkTask();
-            state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
-            log.info("Direct task stop, config:{}", JSON.toJSONString(taskConfig));
-        } catch (Exception e) {
-            log.error("Run task failed.", e);
-            state.set(WorkerTaskState.ERROR);
-        }
-    }
 
     private void sendRecord(Collection<ConnectRecord> sourceDataEntries) {
-        List<ConnectRecord> sinkDataEntries = new ArrayList<>(sourceDataEntries.size());
-        Map<RecordPartition, RecordOffset> map = new HashMap<>();
-        for (ConnectRecord sourceDataEntry : sourceDataEntries) {
-            sinkDataEntries.add(sourceDataEntry);
-            RecordPartition recordPartition = sourceDataEntry.getPosition().getPartition();
-            RecordOffset recordOffset = sourceDataEntry.getPosition().getOffset();
-            if (null != recordPartition && null != recordOffset) {
-                map.put(recordPartition, recordOffset);
+        List<ConnectRecord> records = new ArrayList<>(sourceDataEntries.size());
+        List<RecordOffsetManagement.SubmittedPosition> positions = new ArrayList<>();
+        for (ConnectRecord preTransformRecord : sourceDataEntries) {
+
+            retryWithToleranceOperator.sourceRecord(preTransformRecord);
+            ConnectRecord record = transformChain.doTransforms(preTransformRecord);
+            if (record == null) {
+                continue;
             }
+
+            records.add(record);
+            /**prepare to send record*/
+            positions.add(prepareToSendRecord(preTransformRecord).get());
+
         }
         try {
-            sinkTask.put(sinkDataEntries);
-            try {
-                if (!MapUtils.isEmpty(map)) {
-                    map.forEach(positionStorageWriter::putPosition);
-                }
-            } catch (Exception e) {
-                log.error("Source task save position info failed.", e);
-            }
+            sinkTask.put(records);
+            // ack
+            positions.forEach(submittedPosition -> {
+                submittedPosition.ack();
+            });
         } catch (Exception e) {
+            // drop commit
+            positions.forEach(submittedPosition -> {
+                submittedPosition.remove();
+            });
             log.error("Send message error, error info: {}.", e);
         }
     }
 
     private void starkSinkTask() {
-        sinkTask.init(new SinkTaskContext() {
-
-            @Override
-            public String getConnectorName() {
-                return taskConfig.getString(RuntimeConfigDefine.CONNECTOR_ID);
-            }
-
-            @Override
-            public String getTaskName() {
-                return taskConfig.getString(RuntimeConfigDefine.TASK_ID);
-            }
-
-            @Override
-            public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
-
-            }
-            @Override
-            public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
-
-            }
-
-            @Override
-            public void pause(List<RecordPartition> partitions) {
-
-            }
-
-            @Override
-            public void resume(List<RecordPartition> partitions) {
-
-            }
-            @Override
-            public Set<RecordPartition> assignment() {
-                return null;
-            }
-        });
+        sinkTask.init(new DirectSinkTaskContext());
         sinkTask.start(taskConfig);
         log.info("Sink task start, config:{}", JSON.toJSONString(taskConfig));
     }
@@ -201,22 +143,8 @@ public class WorkerDirectTask implements WorkerTask {
     }
 
     private void startSourceTask() {
-        state.compareAndSet(WorkerTaskState.NEW, WorkerTaskState.PENDING);
-        sourceTask.init(new SourceTaskContext() {
-            @Override public OffsetStorageReader offsetStorageReader() {
-                return positionStorageReader;
-            }
-
-            @Override public String getConnectorName() {
-                return null;
-            }
-
-            @Override public String getTaskName() {
-                return null;
-            }
-        });
+        sourceTask.init(new DirectSourceTaskContext());
         sourceTask.start(taskConfig);
-        state.compareAndSet(WorkerTaskState.PENDING, WorkerTaskState.RUNNING);
         log.info("Source task start, config:{}", JSON.toJSONString(taskConfig));
     }
 
@@ -225,46 +153,175 @@ public class WorkerDirectTask implements WorkerTask {
         log.info("Source task stop, config:{}", JSON.toJSONString(taskConfig));
     }
 
+    /**
+     * initinalize and start
+     */
     @Override
-    public WorkerTaskState getState() {
-        return this.state.get();
+    protected void initializeAndStart() {
+        starkSinkTask();
+        startSourceTask();
+        log.info("Direct task start, config:{}", JSON.toJSONString(taskConfig));
     }
 
+    /**
+     * execute poll and send record
+     */
     @Override
-    public void stop() {
-        state.compareAndSet(WorkerTaskState.RUNNING, WorkerTaskState.STOPPING);
-    }
-
-    @Override
-    public void cleanup() {
-        if (state.compareAndSet(WorkerTaskState.STOPPED, WorkerTaskState.TERMINATED) ||
-            state.compareAndSet(WorkerTaskState.ERROR, WorkerTaskState.TERMINATED)) {
-        } else {
-            log.error("[BUG] cleaning a task but it's not in STOPPED or ERROR state");
+    protected void execute() {
+        while (isRunning()) {
+            updateCommittableOffsets();
+            try {
+                Collection<ConnectRecord> toSendEntries = sourceTask.poll();
+                if (toSendEntries.isEmpty()) {
+                    sendRecord(toSendEntries);
+                }
+            } catch (Exception e) {
+                log.error("Direct task runtime exception", e);
+                finalOffsetCommit(true);
+                onFailure(e);
+            }
         }
     }
 
+    /**
+     * close resources
+     */
     @Override
-    public String getConnectorName() {
-        return connectorName;
+    public void close() {
+        stopSourceTask();
+        stopSinkTask();
     }
 
-    @Override
-    public ConnectKeyValue getTaskConfig() {
-        return taskConfig;
+
+    /**
+     * direct sink task context
+     */
+    private class DirectSinkTaskContext implements SinkTaskContext {
+
+        /**
+         * Get the Connector Name
+         *
+         * @return connector name
+         */
+        @Override
+        public String getConnectorName() {
+            return id().connector();
+        }
+
+        /**
+         * Get the Task Name of connector.
+         *
+         * @return task name
+         */
+        @Override
+        public String getTaskName() {
+            return id().task() + "";
+        }
+
+        /**
+         * Get the configurations of current task.
+         *
+         * @return the configuration of current task.
+         */
+        @Override
+        public KeyValue configs() {
+            return taskConfig;
+        }
+
+        /**
+         * Reset the consumer offset for the given queue.
+         *
+         * @param recordPartition the partition to reset offset.
+         * @param recordOffset    the offset to reset to.
+         */
+        @Override
+        public void resetOffset(RecordPartition recordPartition, RecordOffset recordOffset) {
+            // no-op
+        }
+
+        /**
+         * Reset the offsets for the given partition.
+         *
+         * @param offsets the map of offsets for targetPartition.
+         */
+        @Override
+        public void resetOffset(Map<RecordPartition, RecordOffset> offsets) {
+            // no-op
+        }
+
+        /**
+         * Pause consumption of messages from the specified partition.
+         *
+         * @param partitions the partition list to be reset offset.
+         */
+        @Override
+        public void pause(List<RecordPartition> partitions) {
+            // no-op
+        }
+
+        /**
+         * Resume consumption of messages from previously paused Partition.
+         *
+         * @param partitions the partition list to be resume.
+         */
+        @Override
+        public void resume(List<RecordPartition> partitions) {
+            // no-op
+        }
+
+        /**
+         * Current task assignment processing partition
+         *
+         * @return the partition list
+         */
+        @Override
+        public Set<RecordPartition> assignment() {
+            return null;
+        }
     }
 
-    @Override
-    public Object getJsonObject() {
-        HashMap obj = new HashMap<String, Object>();
-        obj.put("connectorName", connectorName);
-        obj.put("configs", JSON.toJSONString(taskConfig));
-        obj.put("state", state.get().toString());
-        return obj;
+
+    private class DirectSourceTaskContext implements SourceTaskContext {
+
+        /**
+         * Get the OffsetStorageReader for this SourceTask.
+         *
+         * @return offset storage reader
+         */
+        @Override
+        public OffsetStorageReader offsetStorageReader() {
+            return positionStorageReader;
+        }
+
+        /**
+         * Get the Connector Name
+         *
+         * @return connector name
+         */
+        @Override
+        public String getConnectorName() {
+            return id().connector();
+        }
+
+        /**
+         * Get the Task Id of connector.
+         *
+         * @return task name
+         */
+        @Override
+        public String getTaskName() {
+            return id().task() + "";
+        }
+
+        /**
+         * Get the configurations of current task.
+         *
+         * @return the configuration of current task.
+         */
+        @Override
+        public KeyValue configs() {
+            return taskConfig;
+        }
     }
 
-    @Override
-    public void timeout() {
-        this.state.set(WorkerTaskState.ERROR);
-    }
 }

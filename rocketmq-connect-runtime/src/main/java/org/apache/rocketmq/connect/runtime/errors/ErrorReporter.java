@@ -49,6 +49,12 @@ public interface ErrorReporter extends AutoCloseable {
         TASK_POLL,
 
         /**
+         * rocketmq produce
+         */
+        ROCKETMQ_PRODUCE,
+
+
+        /**
          * sink put
          */
         TASK_PUT,

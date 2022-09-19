@@ -37,28 +37,27 @@ import java.util.Map;
 /**
  * abstract kafka connect sink
  */
-public abstract class AbstractKafkaConnectSink extends SinkTask implements TaskClassSetter{
+public abstract class AbstractKafkaConnectSink extends SinkTask implements TaskClassSetter {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractKafkaConnectSink.class);
-
-    private SinkTaskContext kafkaSinkTaskContext;
-    private org.apache.kafka.connect.sink.SinkTask sinkTask;
-
     protected TransformationWrapper transformationWrapper;
-
     /**
      * kafka connect init
      */
     protected ConnectKeyValue configValue;
+    private SinkTaskContext kafkaSinkTaskContext;
+    private org.apache.kafka.connect.sink.SinkTask sinkTask;
 
     /**
      * convert by kafka sink transform
+     *
      * @param record
      */
     protected abstract SinkRecord transforms(SinkRecord record);
 
     /**
      * convert ConnectRecord to SinkRecord
+     *
      * @param record
      * @return
      */
@@ -67,6 +66,7 @@ public abstract class AbstractKafkaConnectSink extends SinkTask implements TaskC
 
     /**
      * Put the records to the sink
+     *
      * @param records sink records
      */
     @Override

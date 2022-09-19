@@ -1557,6 +1557,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         } else {
             boolean bound = maybeBindLogical(statement, index, schema, value);
             if (!bound) {
+                bound = maybeBindDebeziumLogical(statement, index, schema, value);
+            }
+            if (!bound) {
                 bound = maybeBindPrimitive(statement, index, schema, value);
             }
             if (!bound) {
@@ -1609,19 +1612,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                     }
                     statement.setTimestamp(
                             index, timestamp,
-                            DateTimeUtils.getTimeZoneCalendar(timeZone)
-                    );
-                    return true;
-
-                case DebeziumTimeTypes.DATE:
-                    statement.setDate(index,
-                            new java.sql.Date((long)DebeziumTimeTypes.toMillsTimestamp(DebeziumTimeTypes.DATE, value)),
-                            DateTimeUtils.getTimeZoneCalendar(timeZone)
-                    );
-                    return true;
-                case DebeziumTimeTypes.TIMESTAMP:
-                    statement.setTimestamp(index,
-                            new java.sql.Timestamp((long)DebeziumTimeTypes.toMillsTimestamp(DebeziumTimeTypes.TIMESTAMP, value)),
                             DateTimeUtils.getTimeZoneCalendar(timeZone)
                     );
                     return true;
@@ -1684,6 +1674,14 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return null;
     }
 
+    protected boolean maybeBindDebeziumLogical(
+            PreparedStatement statement,
+            int index,
+            Schema schema,
+            Object value
+    ) throws SQLException {
+       return DebeziumTimeTypes.maybeBindDebeziumLogical(statement, index, schema, value, timeZone);
+    }
     protected boolean maybeBindPrimitive(
             PreparedStatement statement,
             int index,

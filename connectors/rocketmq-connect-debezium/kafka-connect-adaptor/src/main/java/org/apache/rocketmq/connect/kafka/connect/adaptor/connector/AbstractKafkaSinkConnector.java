@@ -1,8 +1,24 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package org.apache.rocketmq.connect.kafka.connect.adaptor.connector;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
-import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
@@ -36,15 +52,17 @@ public abstract class AbstractKafkaSinkConnector extends SinkConnector implement
 
     /**
      * try override start and stop
+     *
      * @return
      */
-    protected org.apache.kafka.connect.sink.SinkConnector originalSinkConnector(){
+    protected org.apache.kafka.connect.sink.SinkConnector originalSinkConnector() {
         return sinkConnector;
     }
 
     /**
      * Returns a set of configurations for Tasks based on the current configuration,
      * producing at most count configurations.
+     *
      * @param maxTasks maximum number of configurations to generate
      * @return configurations for Tasks
      */
@@ -54,7 +72,7 @@ public abstract class AbstractKafkaSinkConnector extends SinkConnector implement
         List<KeyValue> configs = new ArrayList<>();
         for (Map<String, String> configMaps : groupConnectors) {
             KeyValue keyValue = new DefaultKeyValue();
-            configMaps.forEach((k, v)->{
+            configMaps.forEach((k, v) -> {
                 keyValue.put(k, v);
             });
             configs.add(keyValue);
@@ -64,6 +82,7 @@ public abstract class AbstractKafkaSinkConnector extends SinkConnector implement
 
     /**
      * Start the component
+     *
      * @param config component context
      */
     @Override
@@ -90,7 +109,7 @@ public abstract class AbstractKafkaSinkConnector extends SinkConnector implement
      */
     @Override
     public void stop() {
-        if (sinkConnector != null){
+        if (sinkConnector != null) {
             sinkConnector = null;
             configValue = null;
             taskConfig = null;

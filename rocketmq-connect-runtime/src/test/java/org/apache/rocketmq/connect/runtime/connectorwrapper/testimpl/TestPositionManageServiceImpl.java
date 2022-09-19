@@ -17,13 +17,14 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
-
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StagingMode;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 
 public class TestPositionManageServiceImpl implements PositionManagementService {
 
@@ -47,7 +48,7 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public void synchronize() {
+    public void synchronize(boolean increment) {
 
     }
 
@@ -74,5 +75,13 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
     @Override
     public void registerListener(PositionUpdateListener listener) {
 
+    }
+
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+
+    }
+
+    @Override public StagingMode getStagingMode() {
+        return null;
     }
 }

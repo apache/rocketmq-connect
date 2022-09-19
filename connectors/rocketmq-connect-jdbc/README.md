@@ -17,8 +17,8 @@ mvn clean package -Dmaven.test.skip=true
 ```
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
 {
-    "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
-    "max-task":"2",
+    "connector.class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
+    "max.tasks":"2",
     "connection.url":"jdbc:mysql://XXXXXXXXX:3306",
     "connection.user":"*****",
     "connection.password":"*****",
@@ -26,7 +26,8 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-con
     "mode": "incrementing",
     "incrementing.column.name":"id",
     "timestamp.initial": -1,
-    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 ```
 
@@ -37,14 +38,15 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-conne
 {
     "connector-class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
     "max-task":"2",
-    "connect-topicname":"connect-topicname-jdbc-02",
-    "connection.url":"jdbc:mysql://*****:3306/{dbname}",
+    "connect-topicname":"targetTopic",
+    "connection.url":"jdbc:mysql://*****:3306/{sinkDbName}",
     "connection.user":"******",
     "connection.password":"******",
     "pk.fields":"id",
     "pk.mode":"record_value",
     "insert.mode":"UPSERT",
-    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"
 }
 ```
 
@@ -60,21 +62,22 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 
 * **jdbc-source-connector 参数说明**
 
-|         KEY                 |  TYPE   | Must be filled | Description| Example
-|------------------------|----|---------|---------------|------------------|
-|connection.url               | String  | YES           | source端 jdbc连接 | jdbc:mysql://XXXXXXXXX:3306|
-|connection.user              | String  | YES           | source端 DB 用户名 | root |
-|connection.password          | String  | YES           | source端 DB 密码   | root |
-|connection.attempts          | String  | YES           | source端 DB连接重试次数 | 3 |
-|connection.backoff.ms        | Long    | YES           |  |
-|poll.interval.ms             | Long    | YES           |拉取间隔时间  | 3000ms |
-|batch.max.rows               | Integer | NO            |每次拉取数量 | 300 |
-|mode                         | Integer | NO            |拉取模式 | bulk、timestamp、incrementing、timestamp+incrementing |
-|incrementing.column.name     | Integer | NO            |增量字段，常用ID  | id |
-|timestamp.column.name        | String  | YES           |时间增量字段 | modified_time |
-|table.whitelist              | String  | YES           |需要扫描的表 | db.table,db.table01 |
-|max-task                     | Integer | YES           |任务数量，最大不能大于表的数量 | 2 |
-|source-record-converter      | Integer | YES           |data转换器  | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
+| KEY                      |  TYPE   | Must be filled | Description      | Example                                                     
+|--------------------------|----|---------|------------------|-------------------------------------------------------------|
+| connection.url           | String  | YES           | source端 jdbc连接   | jdbc:mysql://XXXXXXXXX:3306                                 |
+| connection.user          | String  | YES           | source端 DB 用户名   | root                                                        |
+| connection.password      | String  | YES           | source端 DB 密码    | root                                                        |
+| connection.attempts      | String  | YES           | source端 DB连接重试次数 | 3                                                           |
+| connection.backoff.ms    | Long    | YES           |                  |
+| poll.interval.ms         | Long    | YES           | 拉取间隔时间           | 3000ms                                                      |
+| batch.max.rows           | Integer | NO            | 每次拉取数量           | 300                                                         |
+| mode                     | Integer | NO            | 拉取模式             | bulk、timestamp、incrementing、timestamp+incrementing          |
+| incrementing.column.name | Integer | NO            | 增量字段，常用ID        | id                                                          |
+| timestamp.column.name    | String  | YES           | 时间增量字段           | modified_time                                               |
+| table.whitelist          | String  | YES           | 需要扫描的表           | db.table,db.table01                                         |
+| max.tasks                | Integer | YES           | 任务数量，最大不能大于表的数量  | 默认是1                                                        |
+| value.converter          | Integer | YES           | value转换器         | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter |
+| key.converter            | Integer | YES           | key转换器           | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter |
 
 ```  
 注：1.source拉取的数据写入到以表名自动创建的topic中，如果需要写入特定的topic中则需要指定"connect-topicname" 参数
@@ -83,19 +86,20 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 
 * **jdbc-sink-connector 参数说明**
 
-|         KEY                 |  TYPE   | Must be filled | Description| Example
-|------------------------|----|---------|---------------|------------------|
-|connection.url               | String  | YES           | sink端 jdbc连接          | jdbc:mysql://XXXXXXXXX:3306|
-|connection.user              | String  | YES           | sink端 DB 用户名 | root |
-|connection.password          | String  | YES           | sink端 DB 密码   | root |
-|connection.attempts          | String  | NO           | sink端 DB连接重试次数 | 3 |
-|connection.backoff.ms        | Long    | NO           |  |
-|connect-topicname            | Long    | YES          |监听的topic  | topic-name |
-|pk.fields                     | String  | NO           |写入侧主键配置，用于更新使用 | id |
-|pk.mode                      | String  | NO           |获取主键的模式 | none、record_value |
-|insert.mode                  | Integer | YES           |写入模式 | UPDATE、UPSERT、INSERT |
-|max-task                     | Integer | NO           |任务数量 | 2 |
-|source-record-converter      | Integer | YES          |data转换器  | org.apache.rocketmq.connect.runtime.converter.JsonConverter |
+| KEY                     |  TYPE   | Must be filled | Description| Example
+|-------------------------|----|---------|---------------|------------------|
+| connection.url          | String  | YES           | sink端 jdbc连接          | jdbc:mysql://XXXXXXXXX:3306|
+| connection.user         | String  | YES           | sink端 DB 用户名 | root |
+| connection.password     | String  | YES           | sink端 DB 密码   | root |
+| connection.attempts     | String  | NO           | sink端 DB连接重试次数 | 3 |
+| connection.backoff.ms   | Long    | NO           |  |
+| connect-topicname       | Long    | YES          |监听的topic  | topic-name |
+| pk.fields               | String  | NO           |写入侧主键配置，用于更新使用 | id |
+| pk.mode                 | String  | NO           |获取主键的模式 | none、record_value |
+| insert.mode             | Integer | YES           |写入模式 | UPDATE、UPSERT、INSERT |
+| max.tasks               | Integer | NO           |任务数量 | 2 |
+| value.converter          | Integer | YES           | value转换器         | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter |
+| key.converter            | Integer | YES           | key转换器           | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter |
 
 ```  
 注: openMLDB maven包的引入：

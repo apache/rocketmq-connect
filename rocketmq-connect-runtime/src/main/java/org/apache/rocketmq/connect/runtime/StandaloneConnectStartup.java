@@ -19,6 +19,27 @@ package org.apache.rocketmq.connect.runtime;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
+import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
+import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StagingMode;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
+import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
+import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
+import org.apache.rocketmq.connect.runtime.utils.ServiceProviderUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -26,24 +47,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
-import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
-import org.apache.rocketmq.connect.runtime.service.memory.FileOffsetManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Startup class of the runtime worker.
@@ -92,7 +95,7 @@ public class StandaloneConnectStartup {
             }
 
             // Load configs from command line.
-            StandaloneConfig connectConfig = new StandaloneConfig();
+            StandaloneConfig config = new StandaloneConfig();
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c').trim();
                 if (file != null) {
@@ -100,13 +103,13 @@ public class StandaloneConnectStartup {
                     InputStream in = new BufferedInputStream(new FileInputStream(file));
                     properties = new Properties();
                     properties.load(in);
-                    FileAndPropertyUtil.properties2Object(properties, connectConfig);
+                    FileAndPropertyUtil.properties2Object(properties, config);
                     in.close();
                 }
             }
 
-            if (null == connectConfig.getConnectHome()) {
-                System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", ConnectConfig.CONNECT_HOME_ENV);
+            if (null == config.getConnectHome()) {
+                System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);
             }
 
@@ -114,12 +117,11 @@ public class StandaloneConnectStartup {
             JoranConfigurator configurator = new JoranConfigurator();
             configurator.setContext(lc);
             lc.reset();
-            configurator.doConfigure(connectConfig.getConnectHome() + "/conf/logback.xml");
-
+            configurator.doConfigure(config.getConnectHome() + "/conf/logback.xml");
 
             List<String> pluginPaths = new ArrayList<>(16);
-            if (StringUtils.isNotEmpty(connectConfig.getPluginPaths())) {
-                String[] strArr = connectConfig.getPluginPaths().split(",");
+            if (StringUtils.isNotEmpty(config.getPluginPaths())) {
+                String[] strArr = config.getPluginPaths().split(",");
                 for (String path : strArr) {
                     if (StringUtils.isNotEmpty(path)) {
                         pluginPaths.add(path);
@@ -127,17 +129,21 @@ public class StandaloneConnectStartup {
                 }
             }
             Plugin plugin = new Plugin(pluginPaths);
-            plugin.initPlugin();
-
-            // Create controller and initialize.
-
+            ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.STANDALONE);
+            clusterManagementService.initialize(config);
+            ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.STANDALONE);
+            configManagementService.initialize(config, null, plugin);
+            PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.STANDALONE);
+            positionManagementServices.initialize(config, null, null);
+            StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.STANDALONE);
+            stateManagementService.initialize(config, null);
             StandaloneConnectController controller = new StandaloneConnectController(
                     plugin,
-                    connectConfig,
-                    new MemoryClusterManagementServiceImpl(connectConfig),
-                    new MemoryConfigManagementServiceImpl(connectConfig, plugin),
-                    new FilePositionManagementServiceImpl(connectConfig),
-                    new FileOffsetManagementServiceImpl(connectConfig));
+                    config,
+                    clusterManagementService,
+                    configManagementService,
+                    positionManagementServices,
+                    stateManagementService);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;

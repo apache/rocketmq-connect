@@ -17,16 +17,12 @@
 
 package org.apache.rocketmq.connect.file;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.ComponentContext;
 import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-
 public class FilterTransform implements Transform<ConnectRecord> {
-
     private static final Logger log = LoggerFactory.getLogger(LoggerName.FILE_CONNECTOR);
 
     private KeyValue keyValue;

@@ -16,14 +16,16 @@
  */
 package org.apache.rocketmq.connect.runtime.service.memory;
 
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.converter.RecordOffsetConverter;
-import org.apache.rocketmq.connect.runtime.converter.RecordPartitionConverter;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
+import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
@@ -56,18 +58,24 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
      */
     private PositionUpdateListener positionUpdateListener;
 
+    public FilePositionManagementServiceImpl() {
 
-    public FilePositionManagementServiceImpl(ConnectConfig connectConfig) {
-        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
-                new RecordPartitionConverter(),
-                new RecordOffsetConverter());
     }
 
+    @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
+                new RecordPartitionSerde(),
+                new RecordOffsetSerde());
+    }
+
+    @Override public StagingMode getStagingMode() {
+        return StagingMode.STANDALONE;
+    }
 
     @Override
     public void start() {
         executor = Executors.newFixedThreadPool(1, ThreadUtils.newThreadFactory(
-                this.getClass().getSimpleName() + "-%d", false));
+            this.getClass().getSimpleName() + "-%d", false));
         positionStore.load();
     }
 
@@ -84,7 +92,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
             }
             if (!executor.shutdownNow().isEmpty()) {
                 throw new ConnectException("Failed to stop MemoryOffsetManagementServiceImpl. Exiting without cleanly " +
-                        "shutting down pending tasks and/or callbacks.");
+                    "shutting down pending tasks and/or callbacks.");
             }
             executor = null;
         }
@@ -101,7 +109,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
     }
 
     @Override
-    public void synchronize() {
+    public void synchronize(boolean increment) {
     }
 
     @Override
@@ -138,7 +146,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
                 if (error != null) {
                     log.error("Failed to persist positions to storage: {}", error);
                 } else {
-                    log.trace("Successed to persist positions to storage: {} , {} ", partition, position);
+                    log.trace("Successes to persist positions to storage: {} , {} ", partition, position);
                 }
             }
         });
@@ -195,7 +203,6 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
             }
         });
     }
-
 
 }
 

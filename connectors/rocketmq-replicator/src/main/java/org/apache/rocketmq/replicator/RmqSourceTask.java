@@ -87,8 +87,8 @@ public class RmqSourceTask extends SourceTask {
     }
 
     @Override
-    public void start(SourceTaskContext sourceTaskContext) {
-        super.start(sourceTaskContext);
+    public void start(KeyValue config) {
+        ConfigUtil.load(config, this.config);
         RPCHook rpcHook = null;
         if (this.config.isSrcAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials(this.config.getSrcAccessKey(), this.config.getSrcSecretKey()));
@@ -127,16 +127,6 @@ public class RmqSourceTask extends SourceTask {
     }
 
     @Override
-    public void validate(KeyValue config) {
-
-    }
-
-    @Override
-    public void init(KeyValue config) {
-        ConfigUtil.load(config, this.config);
-    }
-
-    @Override
     public void stop() {
 
         if (started) {
@@ -145,16 +135,6 @@ public class RmqSourceTask extends SourceTask {
             }
             started = false;
         }
-    }
-
-    @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
     }
 
     private List<ConnectRecord> pollCommonMessage() {
@@ -169,12 +149,14 @@ public class RmqSourceTask extends SourceTask {
                         case FOUND: {
                             this.mqOffsetMap.put(taskTopicConfig, pullResult.getNextBeginOffset());
                             List<MessageExt> msgs = pullResult.getMsgFoundList();
-                            List<Field> fields = new ArrayList<>();
-                            Schema schema = new Schema(SchemaEnum.MESSAGE.name(), FieldType.STRING, fields);
-                            schema.getFields().add(new Field(0, FieldName.COMMON_MESSAGE.getKey(), SchemaBuilder.string().build()));
                             for (MessageExt msg : msgs) {
-                                ConnectRecord connectRecord = new ConnectRecord(Utils.offsetKey(taskTopicConfig),
-                                    Utils.offsetValue(pullResult.getNextBeginOffset()), System.currentTimeMillis(), schema, new String(msg.getBody(), StandardCharsets.UTF_8));
+                                ConnectRecord connectRecord = new ConnectRecord(
+                                        Utils.offsetKey(taskTopicConfig),
+                                        Utils.offsetValue(pullResult.getNextBeginOffset()),
+                                        System.currentTimeMillis(),
+                                        SchemaBuilder.string().name( FieldName.COMMON_MESSAGE.getKey()).build(),
+                                        new String(msg.getBody(), StandardCharsets.UTF_8)
+                                );
                                 final Map<String, String> properties = msg.getProperties();
                                 final Set<String> keys = properties.keySet();
                                 keys.forEach(key -> connectRecord.addExtension(key, properties.get(key)));

@@ -14,7 +14,8 @@ import java.util.concurrent.Future;
  */
 public class RocketMQKafkaErrantRecordReporter implements ErrantRecordReporter {
     final ErrorRecordReporter errorRecordReporter;
-    RocketMQKafkaErrantRecordReporter(SinkTaskContext context){
+
+    RocketMQKafkaErrantRecordReporter(SinkTaskContext context) {
         errorRecordReporter = context.errorRecordReporter();
     }
 

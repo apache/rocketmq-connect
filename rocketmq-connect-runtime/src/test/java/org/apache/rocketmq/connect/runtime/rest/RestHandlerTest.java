@@ -22,9 +22,10 @@ import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Converter;
+import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.net.URI;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -42,31 +44,34 @@ import org.apache.http.util.EntityUtils;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.ConnectConfig;
-import org.apache.rocketmq.connect.runtime.config.RuntimeConfigDefine;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TransformChain;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
+import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.rest.entities.PluginInfo;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.eclipse.jetty.webapp.WebAppClassLoader;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import sun.applet.AppletClassLoader;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -74,12 +79,6 @@ public class RestHandlerTest {
 
     @Mock
     private DistributedConnectController connectController;
-
-    @Mock
-    private ConfigManagementService configManagementService;
-
-    @Mock
-    private ClusterManagementService clusterManagementService;
 
     @Mock
     private Worker worker;
@@ -90,13 +89,13 @@ public class RestHandlerTest {
     private RestHandler restHandler;
 
     @Mock
-    private ConnectConfig connectConfig;
+    private WorkerConfig connectConfig;
 
     @Mock
     private SourceTask sourceTask;
 
     @Mock
-    private Converter converter;
+    private RecordConverter converter;
 
     @Mock
     private PositionManagementServiceImpl positionManagementServiceImpl;
@@ -120,7 +119,19 @@ public class RestHandlerTest {
 
     private static final String GET_POSITION_INFO_URL = "http://localhost:8081/getPositionInfo";
 
-    private static final String GET_ALLOCATED_CONNECTORS_URL = "http://localhost:8081/getAllocatedConnectors";
+    private static final String GET_ALLOCATED_CONNECTORS_URL = "http://localhost:8081/allocated/connectors";
+
+    private static final String GET_ALLOCATED_TASKS_URL = "http://localhost:8081/allocated/tasks";
+
+    private static final String QUERY_CONNECTOR_CONFIG_URL = "http://localhost:8081/connectors/testConnector/config";
+
+    private static final String QUERY_CONNECTOR_STATUS_URL = "http://localhost:8081/connectors/testConnector/status";
+
+    private static final String STOP_ALL_CONNECTOR_URL = "http://localhost:8081/connectors/stop/all";
+
+    private static final String PLUGIN_LIST_URL = "http://localhost:8081/plugin/list";
+
+    private static final String PLUGIN_RELOAD_URL = "http://localhost:8081/plugin/reload";
 
     private HttpClient httpClient;
 
@@ -142,23 +153,23 @@ public class RestHandlerTest {
     @Mock
     private ConnectStatsService connectStatsService;
 
+    private PluginClassLoader pluginClassLoader;
+
     @Before
     public void init() throws Exception {
         workerState = new AtomicReference<>(WorkerState.STARTED);
 
         when(connectController.getConnectConfig()).thenReturn(connectConfig);
         when(connectConfig.getHttpPort()).thenReturn(8081);
-        when(connectController.getConfigManagementService()).thenReturn(configManagementService);
-        when(configManagementService.putConnectorConfig(anyString(), any(ConnectKeyValue.class))).thenReturn("");
 
         String connectName = "testConnector";
         ConnectKeyValue connectKeyValue = new ConnectKeyValue();
-        connectKeyValue.put(RuntimeConfigDefine.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.service.TestConnector");
-        connectKeyValue.put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, "source-record-converter");
+        connectKeyValue.put(ConnectorConfig.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.service.TestConnector");
+        connectKeyValue.put(ConnectorConfig.VALUE_CONVERTER, "source-record-converter");
 
         ConnectKeyValue connectKeyValue1 = new ConnectKeyValue();
-        connectKeyValue1.put(RuntimeConfigDefine.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.service.TestConnector");
-        connectKeyValue1.put(RuntimeConfigDefine.SOURCE_RECORD_CONVERTER, "source-record-converter1");
+        connectKeyValue1.put(ConnectorConfig.CONNECTOR_CLASS, "org.apache.rocketmq.connect.runtime.service.TestConnector");
+        connectKeyValue1.put(ConnectorConfig.VALUE_CONVERTER, "source-record-converter1");
 
         List<ConnectKeyValue> connectKeyValues = new ArrayList<ConnectKeyValue>(8) {
             {
@@ -175,8 +186,6 @@ public class RestHandlerTest {
                 put(connectName, connectKeyValues);
             }
         };
-        when(configManagementService.getConnectorConfigs()).thenReturn(connectorConfigs);
-        when(configManagementService.getTaskConfigs()).thenReturn(taskConfigs);
 
         aliveWorker = new ArrayList<String>() {
             {
@@ -185,13 +194,9 @@ public class RestHandlerTest {
             }
         };
 
-        when(connectController.getClusterManagementService()).thenReturn(clusterManagementService);
-        when(clusterManagementService.getAllAliveWorkers()).thenReturn(aliveWorker);
 
         sourcePartition = "127.0.0.13306".getBytes("UTF-8");
         JSONObject jsonObject = new JSONObject();
-//        jsonObject.put(MysqlConstants.BINLOG_FILENAME, "binlogFilename");
-//        jsonObject.put(MysqlConstants.NEXT_POSITION, "100");
         sourcePosition = jsonObject.toJSONString().getBytes();
         positions = new HashMap<ByteBuffer, ByteBuffer>() {
             {
@@ -199,8 +204,8 @@ public class RestHandlerTest {
             }
         };
 
-        WorkerConnector workerConnector1 = new WorkerConnector("testConnectorName1", connector, connectKeyValue, new DefaultConnectorContext("testConnectorName1", connectController));
-        WorkerConnector workerConnector2 = new WorkerConnector("testConnectorName2", connector, connectKeyValue1, new DefaultConnectorContext("testConnectorName2", connectController));
+        WorkerConnector workerConnector1 = new WorkerConnector("testConnectorName1", connector, connectKeyValue, new DefaultConnectorContext("testConnectorName1", connectController) , null, null);
+        WorkerConnector workerConnector2 = new WorkerConnector("testConnectorName2", connector, connectKeyValue1, new DefaultConnectorContext("testConnectorName2", connectController), null, null);
         workerConnectors = new HashSet<WorkerConnector>() {
             {
                 add(workerConnector1);
@@ -212,13 +217,13 @@ public class RestHandlerTest {
         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
         retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("testConnectorName1", connectKeyValue));
 
-        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask("testConnectorName1", sourceTask, connectKeyValue, positionManagementServiceImpl, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator);
+        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(),new ConnectorTaskId("testConnectorName1", 1), sourceTask,null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator, null);
 
         // create retry operator
         RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
         retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters("testConnectorName2", connectKeyValue));
 
-        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask("testConnectorName2", sourceTask, connectKeyValue1, positionManagementServiceImpl, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator02);
+        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName2", 1), sourceTask,null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain,retryWithToleranceOperator02, null);
         workerTasks = new HashSet<Runnable>() {
             {
                 add(workerSourceTask1);
@@ -227,8 +232,17 @@ public class RestHandlerTest {
         };
         when(connectController.getWorker()).thenReturn(worker);
         when(worker.getWorkingConnectors()).thenReturn(workerConnectors);
-        when(worker.getWorkingTasks()).thenReturn(workerTasks);
 
+        List<String> pluginPaths = new ArrayList<>();
+        pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
+        Plugin plugin = new Plugin(pluginPaths);
+        plugin.initLoaders();
+        when(connectController.plugin()).thenReturn(plugin);
+
+        URL url = new URL("file://src/test/java/org/apache/rocketmq/connect/runtime");
+        URL[] urls = new URL[]{};
+        pluginClassLoader = new PluginClassLoader(url, urls);
+        Thread.currentThread().setContextClassLoader(pluginClassLoader);
         restHandler = new RestHandler(connectController);
 
         httpClient = HttpClientBuilder.create().build();
@@ -242,32 +256,30 @@ public class RestHandlerTest {
         HttpGet httpGet = new HttpGet(uri);
         HttpResponse httpResponse = httpClient.execute(httpGet);
         assertEquals(200, httpResponse.getStatusLine().getStatusCode());
-        assertEquals("success", EntityUtils.toString(httpResponse.getEntity(), "UTF-8"));
+        final String result = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+        final Map map = JSON.parseObject(result, Map.class);
+        final Object body = map.get("body");
+        final JSONObject bodyObject = JSON.parseObject(body.toString());
+        assertEquals("org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector", bodyObject.getString("connector-class"));
+        assertEquals("112.74.179.68", bodyObject.getString("mysqlAddr"));
+        assertEquals("3306", bodyObject.getString("mysqlPort"));
+        assertEquals("canal", bodyObject.get("mysqlUsername"));
+        assertEquals("canal", bodyObject.get("mysqlPassword"));
+        assertEquals("org.apache.rocketmq.connect.runtime.converter.JsonConverter", bodyObject.get("source-record-converter"));
 
         URIBuilder uriBuilder1 = new URIBuilder(String.format(STOP_CONNECTOR_URL, "testConnectorName"));
         URI uri1 = uriBuilder1.build();
         HttpGet httpGet1 = new HttpGet(uri1);
         HttpResponse httpResponse1 = httpClient.execute(httpGet1);
         assertEquals(200, httpResponse1.getStatusLine().getStatusCode());
-        assertEquals("success", EntityUtils.toString(httpResponse1.getEntity(), "UTF-8"));
 
         URIBuilder uriBuilder2 = new URIBuilder(GET_CLUSTER_INFO_URL);
         URI uri2 = uriBuilder2.build();
         HttpGet httpGet2 = new HttpGet(uri2);
         HttpResponse httpResponse2 = httpClient.execute(httpGet2);
         assertEquals(200, httpResponse2.getStatusLine().getStatusCode());
-        assertEquals(JSON.toJSONString(aliveWorker), EntityUtils.toString(httpResponse2.getEntity(), "UTF-8"));
 
-        URIBuilder uriBuilder3 = new URIBuilder(GET_CONFIG_INFO_URL);
-        URI uri3 = uriBuilder3.build();
-        HttpGet httpGet3 = new HttpGet(uri3);
-        HttpResponse httpResponse3 = httpClient.execute(httpGet3);
-        assertEquals(200, httpResponse3.getStatusLine().getStatusCode());
-        Map<String, Map> formatter = new HashMap<>();
-        formatter.put("connectorConfigs", connectorConfigs);
-        formatter.put("taskConfigs", taskConfigs);
-        assertEquals(JSON.toJSONString(formatter), EntityUtils.toString(httpResponse3.getEntity(), "UTF-8"));
-
+        httpClient = HttpClientBuilder.create().build();
         URIBuilder uriBuilder4 = new URIBuilder(GET_ALLOCATED_CONNECTORS_URL);
         URI uri4 = uriBuilder4.build();
         HttpGet httpGet4 = new HttpGet(uri4);
@@ -277,7 +289,65 @@ public class RestHandlerTest {
         for (WorkerConnector workerConnector : workerConnectors) {
             connectors.put(workerConnector.getConnectorName(), workerConnector.getKeyValue());
         }
-        assertEquals(JSON.toJSONString(connectors), EntityUtils.toString(httpResponse4.getEntity(), "UTF-8"));
+        final String result4 = EntityUtils.toString(httpResponse4.getEntity(), "UTF-8");
+        final Map map4 = JSON.parseObject(result4, Map.class);
+        final Object body4 = map4.get("body");
+        final Map dataMap4 = JSON.parseObject(body4.toString(), Map.class);
+        final Object connectorName1Value = dataMap4.get("testConnectorName1");
+        final Map connector1Map = JSON.parseObject(connectorName1Value.toString(), Map.class);
+        Assert.assertEquals("org.apache.rocketmq.connect.runtime.service.TestConnector", connector1Map.get(ConnectorConfig.CONNECTOR_CLASS));
+        Assert.assertEquals("source-record-converter", connector1Map.get(ConnectorConfig.VALUE_CONVERTER));
+
+        httpClient = HttpClientBuilder.create().build();
+        URIBuilder uriBuilder5 = new URIBuilder(GET_ALLOCATED_TASKS_URL);
+        URI uri5 = uriBuilder5.build();
+        HttpGet httpGet5 = new HttpGet(uri5);
+        HttpResponse httpResponse5 = httpClient.execute(httpGet5);
+        assertEquals(200, httpResponse5.getStatusLine().getStatusCode());
+
+        httpClient = HttpClientBuilder.create().build();
+        URIBuilder uriBuilder6 = new URIBuilder(QUERY_CONNECTOR_CONFIG_URL);
+        URI uri6 = uriBuilder6.build();
+        HttpGet httpGet6 = new HttpGet(uri6);
+        HttpResponse httpResponse6 = httpClient.execute(httpGet6);
+        assertEquals(200, httpResponse6.getStatusLine().getStatusCode());
+
+        httpClient = HttpClientBuilder.create().build();
+        URIBuilder uriBuilder7 = new URIBuilder(QUERY_CONNECTOR_STATUS_URL);
+        URI uri7 = uriBuilder7.build();
+        HttpGet httpGet7 = new HttpGet(uri7);
+        HttpResponse httpResponse7 = httpClient.execute(httpGet7);
+        assertEquals(200, httpResponse7.getStatusLine().getStatusCode());
+
+        httpClient = HttpClientBuilder.create().build();
+        URIBuilder uriBuilder8 = new URIBuilder(STOP_ALL_CONNECTOR_URL);
+        URI uri8 = uriBuilder8.build();
+        HttpGet httpGet8 = new HttpGet(uri8);
+        HttpResponse httpResponse8 = httpClient.execute(httpGet8);
+        assertEquals(200, httpResponse8.getStatusLine().getStatusCode());
+
+        httpClient = HttpClientBuilder.create().build();
+        URIBuilder uriBuilder9 = new URIBuilder(PLUGIN_LIST_URL);
+        URI uri9 = uriBuilder9.build();
+        HttpGet httpGet9 = new HttpGet(uri9);
+        HttpResponse httpResponse9 = httpClient.execute(httpGet9);
+        assertEquals(200, httpResponse9.getStatusLine().getStatusCode());
+        final String result9 = EntityUtils.toString(httpResponse9.getEntity(), "UTF-8");
+        final Map bodyMap9 = JSON.parseObject(result9, Map.class);
+        final Object body9 = bodyMap9.get("body");
+
+        List<PluginInfo> connectorPlugins = JSON.parseArray(body9.toString(), PluginInfo.class);
+        final Map<String, PluginInfo> connectorPluginMap = connectorPlugins.stream().collect(Collectors.toMap(PluginInfo::getClassName, item -> item, (k1, k2) -> k1));
+        Assert.assertTrue(connectorPluginMap.containsKey("org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform"));
+        Assert.assertTrue(connectorPluginMap.containsKey("org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter"));
+
+        httpClient = HttpClientBuilder.create().build();
+        URIBuilder uriBuilder10 = new URIBuilder(PLUGIN_RELOAD_URL);
+        URI uri10 = uriBuilder10.build();
+        HttpGet httpGet10 = new HttpGet(uri10);
+        HttpResponse httpResponse10 = httpClient.execute(httpGet10);
+        assertEquals(200, httpResponse10.getStatusLine().getStatusCode());
+
     }
 
 }
