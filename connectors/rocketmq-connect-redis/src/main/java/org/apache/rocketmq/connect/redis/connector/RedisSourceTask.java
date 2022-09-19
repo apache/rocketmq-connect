@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.Options;
-import org.apache.rocketmq.connect.redis.common.RedisConstants;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
 import org.apache.rocketmq.connect.redis.converter.RedisEntryConverter;
 import org.apache.rocketmq.connect.redis.handler.DefaultRedisEventHandler;
@@ -74,12 +73,12 @@ public class RedisSourceTask extends SourceTask {
             if (event == null) {
                 return null;
             }
-            event.queueName(Options.REDIS_QEUEUE.name());
+            event.queueName(Options.REDIS_QUEUE.name());
             final OffsetStorageReader reader = this.sourceTaskContext.offsetStorageReader();
-            final RecordOffset recordOffset = reader.readOffset(buildRecordPartition(event.getPartition()));
+            final RecordOffset recordOffset = reader.readOffset(buildRecordPartition());
             if (recordOffset != null) {
                 final Map<String, ?> offset = recordOffset.getOffset();
-                final Object obj = offset.get(RedisConstants.OFFSET);
+                final Object obj = offset.get(Options.REDIS_OFFSET.name());
                 if (obj != null) {
                     if (event.getOffset() <= Long.valueOf(obj.toString())) {
                         return new ArrayList<>();
@@ -100,25 +99,29 @@ public class RedisSourceTask extends SourceTask {
     }
 
 
-    @Override public void start(KeyValue keyValue) {
+    @Override
+    public void start(KeyValue keyValue) {
         this.kvEntryConverter = new RedisEntryConverter();
 
         this.config = new Config();
         this.config.load(keyValue);
         LOGGER.info("task config msg: {}", this.config.toString());
 
-        final Long position = this.sourceTaskContext.configs().getLong("offset");
-        if (position != null && position >= -1) {
-            this.config.setPosition(position);
+        final OffsetStorageReader reader = this.sourceTaskContext.offsetStorageReader();
+        final RecordOffset recordOffset = reader.readOffset(buildRecordPartition());
+        Long offset = 0L;
+        if (recordOffset != null && recordOffset.getOffset().size() > 0) {
+            offset = (Long) recordOffset.getOffset().get(Options.REDIS_OFFSET.name());
         }
-        LOGGER.info("task load connector runtime position: {}", this.config.getPosition());
+
+        LOGGER.info("task load connector runtime position: {}", offset);
 
         this.eventProcessor = new DefaultRedisEventProcessor(config);
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(this.config);
-        this.eventProcessor.registEventHandler(eventHandler);
-        this.eventProcessor.registProcessorCallback(new DefaultRedisEventProcessorCallback());
+        this.eventProcessor.registerEventHandler(eventHandler);
+        this.eventProcessor.registerProcessorCallback(new DefaultRedisEventProcessorCallback());
         try {
-            this.eventProcessor.start();
+            this.eventProcessor.start(offset);
             LOGGER.info("Redis task start.");
         } catch (IOException e) {
             LOGGER.error("processor start error: {}", e);
@@ -144,9 +147,9 @@ public class RedisSourceTask extends SourceTask {
         }
     }
 
-    private RecordPartition buildRecordPartition(String partition) {
+    private RecordPartition buildRecordPartition() {
         Map<String, String> partitionMap = new HashMap<>();
-        partitionMap.put("partition", partition);
+        partitionMap.put(Options.REDIS_PARTITION.name(), Options.REDIS_PARTITION.name());
         RecordPartition  recordPartition = new RecordPartition(partitionMap);
         return recordPartition;
     }

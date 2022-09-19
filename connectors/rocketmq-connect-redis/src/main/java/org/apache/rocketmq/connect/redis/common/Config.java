@@ -61,11 +61,6 @@ public class Config {
      */
     private String commands = RedisConstants.ALL_COMMAND;
 
-    /**
-     * Position info from connector runtime.
-     */
-    private Long position;
-
     private Integer eventCommitRetryTimes = RedisConstants.EVENT_COMMIT_RETRY_TIMES;
     private Long eventCommitRetryInterval = RedisConstants.EVENT_COMMIT_RETRY_INTERVAL;
 
@@ -167,14 +162,6 @@ public class Config {
 
     public void setRedisPassword(String redisPassword) {
         this.redisPassword = redisPassword;
-    }
-
-    public Long getPosition() {
-        return position;
-    }
-
-    public void setPosition(Long position) {
-        this.position = position;
     }
 
     public SyncMod getSyncMod() {

@@ -53,7 +53,7 @@ public class RedisEntryConverter implements KVEntryConverter {
                 continue;
             }
             res.add(new ConnectRecord(
-                buildRecordPartition(partition),
+                buildRecordPartition(),
                 buildRecordOffset(kvEntry.getOffset()),
                 System.currentTimeMillis(),
                 keySchema,
@@ -66,14 +66,14 @@ public class RedisEntryConverter implements KVEntryConverter {
 
     private RecordOffset buildRecordOffset(Long offset)  {
         Map<String, Long> offsetMap = new HashMap<>();
-        offsetMap.put("queueOffset", offset);
+        offsetMap.put(Options.REDIS_OFFSET.name(), offset);
         RecordOffset recordOffset = new RecordOffset(offsetMap);
         return recordOffset;
     }
 
-    private RecordPartition buildRecordPartition(String partition) {
+    private RecordPartition buildRecordPartition() {
         Map<String, String> partitionMap = new HashMap<>();
-        partitionMap.put("partition", partition);
+        partitionMap.put(Options.REDIS_PARTITION.name(), Options.REDIS_PARTITION.name());
         RecordPartition  recordPartition = new RecordPartition(partitionMap);
         return recordPartition;
     }

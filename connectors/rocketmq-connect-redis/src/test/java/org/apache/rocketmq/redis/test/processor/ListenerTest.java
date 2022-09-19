@@ -97,14 +97,14 @@ public class ListenerTest {
         Config config = getConfig();
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(config);
         RedisEventProcessor processor = new DefaultRedisEventProcessor(config);
-        processor.registEventHandler(eventHandler);
+        processor.registerEventHandler(eventHandler);
         return processor;
     }
 
     private RedisEventProcessor getFailedProcessor(Config config){
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(config);
         RedisEventProcessor processor = mock(DefaultRedisEventProcessor.class);
-        processor.registEventHandler(eventHandler);
+        processor.registerEventHandler(eventHandler);
         try {
             when(processor.commit(any())).thenReturn(false);
         } catch (Exception e) {
@@ -116,7 +116,7 @@ public class ListenerTest {
     private RedisEventProcessor getExceptionProcessor(Config config){
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(config);
         RedisEventProcessor processor = mock(DefaultRedisEventProcessor.class);
-        processor.registEventHandler(eventHandler);
+        processor.registerEventHandler(eventHandler);
         try {
             when(processor.commit(any())).thenThrow(new IllegalStateException("wrong number."));
         } catch (Exception e) {

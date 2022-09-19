@@ -25,8 +25,10 @@ import com.moilioncircle.redis.replicator.rdb.datatype.ExpiredType;
 public class Options<T> {
     private static ConcurrentMap<String, Options<Object>> pool = new ConcurrentHashMap<>(32);
 
-    public static final Options<Void> REDIS_PARTITION = newOption("DEFAULT_PARTITION");
-    public static final Options<Void> REDIS_QEUEUE = newOption("redis");
+    public static final Options<Void> REDIS_PARTITION = newOption("REDIS_PARTITION");
+
+    public static final Options<Void> REDIS_QUEUE = newOption("redis");
+
     public static final Options<Void> REDIS_DATASOURCE = newOption("redis");
     public static final Options<Void> REDIS_COMMAND = newOption("command");
     public static final Options<Void> REDIS_KEY = newOption("key");

@@ -52,7 +52,6 @@ public class ConfigTest {
         config.setOffset(65535L);
         config.setReplId("c18cece63c7b16851a6f387f52dbbb9eee07e46f");
         config.setCommands("SET,GET");
-        config.setPosition(3926872L);
         config.setEventCommitRetryInterval(1000L);
         config.setEventCommitRetryTimes(10);
 
@@ -65,7 +64,6 @@ public class ConfigTest {
         Assert.assertEquals(65535L, (long)config.getOffset());
         Assert.assertEquals("c18cece63c7b16851a6f387f52dbbb9eee07e46f", config.getReplId());
         Assert.assertEquals("SET,GET", config.getCommands());
-        Assert.assertEquals(3926872L, (long)config.getPosition());
         Assert.assertEquals(1000L, (long)config.getEventCommitRetryInterval());
 
         RedisURI redisURI = config.getRedisUri();

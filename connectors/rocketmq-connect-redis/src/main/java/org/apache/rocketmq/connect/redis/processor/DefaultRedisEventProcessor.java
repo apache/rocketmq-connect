@@ -34,7 +34,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import com.moilioncircle.redis.replicator.CloseListener;
 import com.moilioncircle.redis.replicator.ExceptionListener;
 import com.moilioncircle.redis.replicator.Replicator;
@@ -42,7 +41,6 @@ import com.moilioncircle.redis.replicator.event.EventListener;
 import org.apache.commons.lang.StringUtils;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.RedisConstants;
-import org.apache.rocketmq.connect.redis.common.SyncMod;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
 import org.apache.rocketmq.connect.redis.parser.AppendParser;
 import org.apache.rocketmq.connect.redis.parser.BitFieldParser;
@@ -187,18 +185,20 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
         this.eventListener = new RedisEventListener(this.config, this);
     }
 
-    @Override public void registEventHandler(RedisEventHandler eventHandler) {
+    @Override
+    public void registerEventHandler(RedisEventHandler eventHandler) {
         this.redisEventHandler = eventHandler;
     }
 
-    @Override public void registProcessorCallback(RedisEventProcessorCallback redisEventProcessorCallback) {
+    @Override public void registerProcessorCallback(RedisEventProcessorCallback redisEventProcessorCallback) {
         redisEventProcessorCallbacks.add(redisEventProcessorCallback);
     }
 
     /**
      * start redis replicator and asynchronous processing threads
      */
-    @Override public void start() throws IllegalStateException, IOException {
+    @Override
+    public void start(Long offset) throws IllegalStateException, IOException {
         if (this.stop.compareAndSet(true, false)) {
             Jedis jedis = this.pool.getResource();
             String jedisInfo = jedis.info(RedisConstants.REDIS_INFO_REPLICATION);
@@ -208,22 +208,8 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
                 && StringUtils.isEmpty(this.config.getReplId())) {
                 this.config.setReplId(replId);
             }
-            String offset = this.redisInfo.get(RedisConstants.REDIS_INFO_REPLICATION_MASTER_REPL_OFFSET);
-            // 如果是LAST_OFFSET,则将offset设置为当前Redis最新的offset值
-            // LAST_OFFSET、CUSTOM_OFFSET,优先使用connector runtime中的存储位点信息
-            if (SyncMod.LAST_OFFSET.equals(this.config.getSyncMod())) {
-                if (this.config.getPosition() != null) {
-                    this.config.setOffset(this.config.getPosition());
-                } else if (StringUtils.isNotBlank(offset)) {
-                    this.config.setOffset(Long.parseLong(offset));
-                }
-            } else if (SyncMod.CUSTOM_OFFSET.equals(this.config.getSyncMod())) {
-                if (this.config.getPosition() != null) {
-                    this.config.setOffset(this.config.getPosition());
-                }
-            }
 
-            startReplicatorAsync(this.config.getReplId(), this.config.getOffset());
+            startReplicatorAsync(this.config.getReplId(), offset);
             logger.info("processor start from replId: {}, offset: {}", this.config.getReplId(), this.config.getOffset());
         } else {
             logger.warn("processor is already started.");
