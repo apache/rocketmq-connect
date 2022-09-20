@@ -8,6 +8,7 @@ import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.rocketmq.connect.kafka.util.ConfigUtil;
 import org.apache.rocketmq.connect.kafka.util.RecordUtil;
+import org.apache.rocketmq.connect.kafka.util.RocketmqRecordPartitionKafkaTopicPartitionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,9 +24,11 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
     private static final ExecutorService EXECUTOR_SERVICE  = Executors.newFixedThreadPool(1);
 
     private SinkTaskContext sinkTaskContext;
+    private RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper;
 
-    public RocketmqKafkaSinkTaskContext(SinkTaskContext sinkTaskContext) {
+    public RocketmqKafkaSinkTaskContext(SinkTaskContext sinkTaskContext, RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper) {
         this.sinkTaskContext = sinkTaskContext;
+        this.kafkaTopicPartitionMapper = kafkaTopicPartitionMapper;
     }
 
     @Override
@@ -38,10 +41,8 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
 
         Map<RecordPartition, RecordOffset> offsets2 = new HashMap<>(offsets.size());
         offsets.forEach((tp,offset) -> {
-            Map<String, String> map = RecordUtil.getPartitionMap(tp.topic());
-            map.put(RecordUtil.QUEUE_ID, tp.partition() + "");
-            RecordPartition recordPartition = new RecordPartition(map);
 
+            RecordPartition recordPartition = kafkaTopicPartitionMapper.toRecordPartition(tp);
             Map<String, String> offsetMap = new HashMap<>();
             offsetMap.put(RecordUtil.QUEUE_OFFSET, offset + "");
             RecordOffset recordOffset = new RecordOffset(offsetMap);
@@ -65,7 +66,7 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
     public Set<TopicPartition> assignment() {
         return sinkTaskContext.assignment()
                 .stream()
-                .map(RecordUtil::recordPartitionToTopicPartition)
+                .map(kafkaTopicPartitionMapper::toTopicPartition)
                 .collect(Collectors.toSet());
     }
 
@@ -85,7 +86,7 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
 
     private List<RecordPartition> toRecordPartitions(TopicPartition... partitions){
         return Arrays.stream(partitions)
-                .map(RecordUtil::topicPartitionToRecordPartition)
+                .map(kafkaTopicPartitionMapper::toRecordPartition)
                 .collect(Collectors.toList());
     }
 
@@ -104,19 +105,7 @@ public class RocketmqKafkaSinkTaskContext implements org.apache.kafka.connect.si
                  return EXECUTOR_SERVICE.submit(new Callable<Void>() {
                      @Override
                      public Void call() throws Exception {
-
-                         Map<String, String> partitionMap = RecordUtil.getPartitionMap(record.topic());
-                         partitionMap.put(RecordUtil.QUEUE_ID, record.kafkaPartition() + "");
-                         RecordPartition recordPartition = new RecordPartition(partitionMap);
-
-                         Map<String, String> offsetMap = new HashMap<>();
-                         offsetMap.put(RecordUtil.QUEUE_OFFSET, record.kafkaOffset() + "");
-                         RecordOffset recordOffset = new RecordOffset(offsetMap);
-
-                         ConnectRecord connectRecord = new ConnectRecord(
-                                 recordPartition, recordOffset, record.timestamp(),
-                                 SchemaBuilder.string().build(), record.value()
-                                 );
+                         ConnectRecord connectRecord = RecordUtil.sinkRecordToConnectRecord(record, RocketmqKafkaSinkTaskContext.this.kafkaTopicPartitionMapper);
                          sinkTaskContext.errorRecordReporter().report(connectRecord, error);
                          return null;
                      }
