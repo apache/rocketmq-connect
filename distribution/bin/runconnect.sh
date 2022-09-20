@@ -45,32 +45,6 @@ check_java_version ()
   echo $flag
 }
 
-check_java_opts ()
-{
-  export IFS=" "
-  flag="true"
-  count=0
-  for opt in $1; do
-    if [[ $opt == *"-Xms"* ]]; then
-        xms=`echo $opt | tr -d -c 0-9`
-        if [[ $xms -lt 4 ]]; then
-            flag="false"
-        fi
-        (( count++ ))
-    fi
-    if [[ $opt == *"-Xmx"* ]]; then
-        xmx=`echo $opt | tr -d -c 0-9`
-        if [[ $xmx -lt 4 ]]; then
-            flag="false"
-        fi
-        (( count++ ))
-    fi
-  done
-  if [[ $count -lt 2 ]]; then
-      flag="false"
-  fi
-  echo $flag
-}
 
 [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=$HOME/jdk/java
 [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=/usr/java
@@ -125,10 +99,6 @@ JAVA_OPT="${JAVA_OPT} -Dons.api.loggingLevel=INFO"
 JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=disabled"
 JAVA_OPT="${JAVA_OPT} -Dtls.private.key.encrypted=false"
 JAVA_OPT="${JAVA_OPT} -Djdk.tls.rejectClientInitiatedRenegotiation=true"
-
-if [[ $(check_java_opts "$JAVA_OPT") == "false" ]]; then
-    error_exit "Too small heap mem size or Xms/Xms/Xmn are missing, we need Xms >= 4g, Xmx >= 4g and Xmn >= 2g."
-fi
 
 if [[ $(check_java_version "$JAVA" "1.7") == "false" ]]; then
     error_exit "Java version is too low, we need java(x64) 1.7+!"
