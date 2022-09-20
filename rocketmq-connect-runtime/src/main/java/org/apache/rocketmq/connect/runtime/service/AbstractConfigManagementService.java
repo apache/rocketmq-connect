@@ -59,17 +59,19 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
 
-
     @Override
-    public void recomputeTaskConfigs(String connectorName, Connector connector, Long currentTimestamp, ConnectKeyValue configs) {
+    public void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs) {
         int maxTask = configs.getInt(ConnectorConfig.MAX_TASK, ConnectorConfig.TASKS_MAX_DEFAULT);
         ConnectKeyValue connectConfig = connectorKeyValueStore.get(connectorName);
         boolean directEnable = Boolean.parseBoolean(connectConfig.getString(ConnectorConfig.CONNECTOR_DIRECT_ENABLE, "false"));
+        // load connector
+        Connector connector = loadConnector(configs);
         List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
         List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
         int taskId = 0;
         for (KeyValue keyValue : taskConfigs) {
             ConnectKeyValue newKeyValue = new ConnectKeyValue();
+            newKeyValue.setEpoch(configs.getEpoch());
             for (String key : keyValue.keySet()) {
                 newKeyValue.put(key, keyValue.getString(key));
             }
@@ -81,9 +83,16 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             // put task id
             newKeyValue.put(ConnectorConfig.TASK_ID, taskId);
             newKeyValue.put(ConnectorConfig.TASK_CLASS, connector.taskClass().getName());
-            newKeyValue.put(ConnectorConfig.UPDATE_TIMESTAMP, currentTimestamp);
-            newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
-            newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
+
+            // source topic
+            if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)) {
+                newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
+            }
+            // sink consume topic
+            if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)) {
+                newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
+            }
+
             Set<String> connectConfigKeySet = configs.keySet();
             for (String connectConfigKey : connectConfigKeySet) {
                 if (connectConfigKey.startsWith(ConnectorConfig.TRANSFORMS)) {
@@ -98,7 +107,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     protected abstract void putTaskConfigs(String connectorName, List<ConnectKeyValue> configs);
 
-
     @NotNull
     protected Connector loadConnector(ConnectKeyValue configs) {
         String connectorClass = configs.getString(ConnectorConfig.CONNECTOR_CLASS);
@@ -107,7 +115,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         connector.start(configs);
         return connector;
     }
-
 
     @Override
     public ClusterConfigState snapshot() {

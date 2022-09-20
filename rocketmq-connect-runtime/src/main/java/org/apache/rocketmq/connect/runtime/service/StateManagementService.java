@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.connect.runtime.service;
 
+import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
@@ -28,10 +29,11 @@ public interface StateManagementService {
 
 
     /**
-     * initialize cb config
-     * @param connectConfig
+     * init state management service
+     * @param workerConfig
+     * @param converter
      */
-    void initialize(WorkerConfig connectConfig);
+    void initialize(WorkerConfig workerConfig, RecordConverter converter);
 
     /**
      * Start dependent services (if needed)

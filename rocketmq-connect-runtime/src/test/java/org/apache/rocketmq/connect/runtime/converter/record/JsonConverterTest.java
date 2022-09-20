@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -837,19 +838,6 @@ public class JsonConverterTest {
         assertEquals(true, converted);
     }
 
-    @Test
-    public void objectToByteTest() {
-        org.apache.rocketmq.connect.runtime.converter.JsonConverter jsonConverter = new org.apache.rocketmq.connect.runtime.converter.JsonConverter();
-        ConnectKeyValue connectKeyValue = new ConnectKeyValue();
-        connectKeyValue.put("nameSrvAddr", "127.0.0.1:9876");
-        final byte[] bytes = jsonConverter.objectToByte(connectKeyValue);
-        String str = "{\"properties\":{\"nameSrvAddr\":\"127.0.0.1:9876\"}}";
-        assertEquals(str, new String(bytes));
-
-        final Object object = jsonConverter.byteToObject(str.getBytes(StandardCharsets.UTF_8));
-        assertEquals(object.toString(), str);
-    }
-
     private JSONObject parse(byte[] json) {
         try {
             String objStr=new String(json, StandardCharsets.UTF_8);
@@ -888,5 +876,17 @@ public class JsonConverterTest {
     private void assertStructSchemaEqual(Schema schema, Struct struct) {
         converter.fromConnectData(TOPIC, schema, struct);
         assertEquals(schema, struct.getSchema());
+    }
+
+    @Test
+    public void converterData(){
+        JsonConverter jsonConverter = new JsonConverter();
+        jsonConverter.configure(new HashMap<>());
+        Map<Object,Object> data = Maps.newConcurrentMap();
+        data.put("data","data" );
+        data.put("data01","data02");
+        byte[] serData = jsonConverter.fromConnectData("test", null,Arrays.asList("test", null, null));
+        SchemaAndValue deData = jsonConverter.toConnectData("test", serData);
+        List<Object> value = (List<Object>)deData.value();
     }
 }

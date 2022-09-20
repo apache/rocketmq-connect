@@ -17,23 +17,17 @@ mvn clean package -Dmaven.test.skip=true
 ```
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
 {
-    "connector.class":"org.apache.rocketmq.connect.doris.connector.DorisSinkConnector",
-    "max-task":"1",
-    "tableName":"doris_test_sink",
-    "connect.topicname":"doris_test_sink",
-    "connect.topicnames":"doris_test_sink",
-    "host":"xx.xx.xx.xx",
-    "port":"7030",
-    "user":"***",
-    "passwd":"***",
-    "database":"dbname",
-    "insert.mode":"INSERT",
-    "db.timezone":"UTC",
-    "table.types":"TABLE",
-    "auto.create":"true",
-    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter",
+    "connector.class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
+    "max.tasks":"2",
+    "connection.url":"jdbc:mysql://XXXXXXXXX:3306",
+    "connection.user":"*****",
+    "connection.password":"*****",
+    "table.whitelist":"db.table",
+    "mode": "incrementing",
+    "incrementing.column.name":"id",
+    "timestamp.initial": -1,
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
-    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"}
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 
 ```

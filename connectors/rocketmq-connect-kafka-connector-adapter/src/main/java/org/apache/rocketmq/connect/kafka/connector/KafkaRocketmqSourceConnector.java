@@ -13,31 +13,31 @@ public class KafkaRocketmqSourceConnector extends SourceConnector {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaRocketmqSourceConnector.class);
 
-    private KafkaRocketmqConnector kafkaRocketmqConnector = new KafkaRocketmqConnector(this);
+    private KafkaRocketmqConnector parentConnector = new KafkaRocketmqConnector(this);
 
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
-        return kafkaRocketmqConnector.taskConfigs(maxTasks);
+        return parentConnector.taskConfigs(maxTasks);
     }
     
     @Override
     public Class<? extends Task> taskClass() {
-        return kafkaRocketmqConnector.taskClass();
+        return parentConnector.taskClass();
     }
 
     @Override
     public void start(KeyValue config) {
-        kafkaRocketmqConnector.start(config);
+        parentConnector.start(config);
     }
 
     @Override
     public void stop() {
-        kafkaRocketmqConnector.stop();
+        parentConnector.stop();
     }
 
     @Override
     public void validate(KeyValue config) {
-        kafkaRocketmqConnector.validate(config);
+        parentConnector.validate(config);
     }
 
 }
