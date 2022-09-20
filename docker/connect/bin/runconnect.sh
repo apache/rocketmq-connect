@@ -71,7 +71,7 @@ if [[ $(check_java_version "$JAVA" "1.8") == "false" ]]; then
   JAVA_OPT="${JAVA_OPT} -XX:PermSize=128m -XX:MaxPermSize=320m"
 fi
 if [[ $(check_java_version "$JAVA" "9") == "false" ]]; then
-  JAVA_OPT="${JAVA_OPT} -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicatitoppedTime -XX:+PrintAdaptiveSizePolicy"
+  JAVA_OPT="${JAVA_OPT} -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy"
   JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
   JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
   JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
