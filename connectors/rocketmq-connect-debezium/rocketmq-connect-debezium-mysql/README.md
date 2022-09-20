@@ -1,9 +1,11 @@
-#DEMO
+# DEMO
+
 MySQL Source(CDC)  -  >RocketMQ Connect  ->  MySQL Sink(JDBC)
 
-##准备
+## 准备
 
-###启动RocketMQ
+### 启动RocketMQ
+
 1. Linux/Unix/Mac
 2. 64bit JDK 1.8+;
 3. Maven 3.2.x或以上版本;
@@ -18,10 +20,10 @@ MySQL Source(CDC)  -  >RocketMQ Connect  ->  MySQL Sink(JDBC)
 >source-release.zip 版本：/rocketmq-all-4.9.4-source-release/distribution
 
 
-###启动Connect
+### 启动Connect
 
 
-####Connector插件编译
+#### Connector插件编译
 
 Debezium RocketMQ Connector
 ```
@@ -45,7 +47,7 @@ cp rocketmq-connect-jdbc/target/rocketmq-connect-jdbc-0.0.1-SNAPSHOT-jar-with-de
 
 ```
 
-####启动Connect Runtime
+#### 启动Connect Runtime
 ```
 cd  rocketmq-connect
 
@@ -90,7 +92,7 @@ sh bin/connect-standalone.sh -c conf/connect-standalone.conf &
 
 ```
 
-###MySQL镜像
+### MySQL镜像
 使用debezium的MySQL docker搭建环境MySQL数据库
 ```
 docker run -it --rm --name MySQL -p 3306:3306 -e MySQL_ROOT_PASSWORD=debezium -e MySQL_USER=MySQLuser -e MySQL_PASSWORD=MySQLpw quay.io/debezium/example-MySQL:1.9
@@ -104,7 +106,7 @@ MySQL信息
 slave:debezium/dbz
 
 
-###测试数据
+### 测试数据
 
 通过root/debezium账号登录数据库
 
@@ -163,8 +165,9 @@ PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8;
 ```
 
-##启动Connector
-###启动Debezium source connector
+## 启动Connector
+
+### 启动Debezium source connector
 
 同步原表数据：inventory.employee
 作用：通过解析MySQL binlog 封装成通用的ConnectRecord对象，发送的RocketMQ Topic当中
@@ -199,7 +202,8 @@ curl-X POST-H"Content-Type: application/json"http: //127.0.0.1:8082/connectors/M
 }'
 ```
 
-###启动 jdbc sink connector
+### 启动 jdbc sink connector
+
 作用：通过消费Topic中的数据，通过JDBC协议写入到目标表当中
 
 ```
