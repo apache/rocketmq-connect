@@ -53,13 +53,4 @@ COPY bin/connect-distributed.sh \
      bin/connectAdmin \
      /home/connect/mq-connect/bin/
 
-USER root
-RUN     chmod +x /home/connect/mq-connect/bin/* && \
-        echo "export JAVA_HOME=/lib/jvm/java-1.8.0-openjdk" >> ~/.bash_profile && \
-        echo "export PATH=$PATH:/lib/jvm/java-1.8.0-openjdk/bin" >> ~/.bash_profile && \
-        echo "export CLASSPATH=.:/lib/jvm/java-1.8.0-openjdk/lib" >> ~/.bash_profile && \
-        source ~/.bash_profile
-
-USER connect
-ENV ali_jvm_cgroup=true
 ENTRYPOINT ["/usr/bin/sh", "/home/connect/mq-connect/bin/connect-distributed.sh"]
