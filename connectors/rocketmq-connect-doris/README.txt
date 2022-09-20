@@ -40,9 +40,8 @@ Transaction concept not different in Mysql and Doris, so TCL is not supported.
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-connector-name}
 {
     "connector.class":"org.apache.rocketmq.connect.doris.connector.DorisSinkConnector",
-    "max-task":"1",
+    "max.task":"1",
     "table.whitelist":"sink_test.doris_test_sink",
-    "connect.topicname":"doris_test_sink",
     "connect.topicnames":"doris_test_sink",
     "host":"xx.xx.xx.xx",
     "port":"xxxx",
@@ -52,7 +51,6 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-conne
     "insert.mode":"INSERT",
     "db.timezone":"UTC",
     "table.types":"TABLE",
-    "source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter",
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
     "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"}'
 }
@@ -77,8 +75,7 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-doris-connector-name}
 |port                         | String  | YES           |doris http port    | 8030          |
 |user                         | String  | YES           |doris user name    | root          |
 |passwd                       | String  | YES           |doris passwd       | passwd        |
-|max-task                     | Integer | NO            |task number        | 2             |
-|source-record-converter      | Integer | YES           |data converter     | org.apache.rocketmq.connect.doris.converter.JsonConverter    |
+|max.task                     | Integer | NO            |task number        | 2             |
 |key.converter                | String  | YES           |data converter     | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter          |
 |value.converter              | String  | YES           |value converter    | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter          |
 ```
