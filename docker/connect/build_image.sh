@@ -51,8 +51,8 @@ cd ${WORK_DIR}/rocketmq-connect-sample/target
 
 cp rocketmq-connect-sample-0.0.1-SNAPSHOT.jar ${WORK_DIR}/docker/connect/plugins/
 
-
 CONNECT_VERSION=0.0.1-SNAPSHOT
 
-docker build --no-cache -f Dockerfile -t apache/rocketmqconnect:${CONNECT_VERSION} ./
+cd ${WORK_DIR}/docker/connect
+docker build --no-cache -f Dockerfile -t apache/rocketmqconnect:${CONNECT_VERSION} .
 
