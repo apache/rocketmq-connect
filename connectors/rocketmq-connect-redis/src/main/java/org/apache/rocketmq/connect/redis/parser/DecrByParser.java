@@ -25,7 +25,7 @@ import org.apache.rocketmq.connect.redis.pojo.RedisEntry;
 /**
  * DECRBY key increment
  */
-public class DecrByParser extends AbstractCommandParser{
+public class DecrByParser extends AbstractCommandParser {
     @Override
     public KVEntry createBuilder() {
         return RedisEntry.newEntry(FieldType.STRING);

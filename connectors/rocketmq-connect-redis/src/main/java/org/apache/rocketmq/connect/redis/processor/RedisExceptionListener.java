@@ -25,17 +25,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RedisExceptionListener implements ExceptionListener {
-    protected final Logger LOGGER = LoggerFactory.getLogger(RedisExceptionListener.class);
+    protected final Logger logger = LoggerFactory.getLogger(RedisExceptionListener.class);
 
     private RedisEventProcessor processor;
 
-    public RedisExceptionListener(RedisEventProcessor processor){
+    public RedisExceptionListener(RedisEventProcessor processor) {
         this.processor = processor;
     }
 
 
     @Override public void handle(Replicator replicator, Throwable throwable, Event event) {
-        LOGGER.error("listen event error. {}", throwable);
+        logger.error("listen event error. {}", throwable);
         try {
             this.processor.stop();
         } catch (IOException e) {

@@ -2,6 +2,20 @@
 ##### RedisSourceConnector 完全限定名
 org.apache.rocketmq.connect.redis.connector.RedisSourceConnector
 
+* **redis-source-connector** 启动
+
+```
+POST  http://${runtime-ip}:${runtime-port}/connectors/redisSourceConnector
+{
+    "connector.class":"org.apache.rocketmq.connect.redis.connector.RedisSourceConnector",
+    "max.tasks":"3",
+    "redisAddr":"localhost",
+    "redisPort":"6379",
+    "connect.topicname":"targetTopic",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
+}
+```
 
 ##### 配置参数
 

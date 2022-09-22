@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
@@ -39,6 +38,7 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -67,7 +67,7 @@ public class WorkerSinkTaskTest {
 
     private RecordConverter recordConverter = new TestConverter();
 
-    private DefaultLitePullConsumer defaultMQPullConsumer = new DefaultLitePullConsumer();
+    private DefaultLitePullConsumer defaultLitePullConsumer = new DefaultLitePullConsumer();
 
     private AtomicReference<WorkerState> workerState = new AtomicReference<>(WorkerState.STARTED);
 
@@ -88,6 +88,10 @@ public class WorkerSinkTaskTest {
 
     ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
+    private WrapperStatusListener wrapperStatusListener;
+
+    private StateManagementService stateManagementService;
+
     @Before
     public void before() {
         connectKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, "TEST_TOPIC");
@@ -95,9 +99,12 @@ public class WorkerSinkTaskTest {
         keyValue.put("transforms-testTransform-class", "org.apache.rocketmq.connect.runtime.connectorwrapper.TestTransform");
         transformChain = new TransformChain<>(keyValue, plugin);
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
+        stateManagementService = new StateManagementServiceImpl();
+        wrapperStatusListener = new WrapperStatusListener(stateManagementService, "worker1");
         workerSinkTask = new WorkerSinkTask(connectConfig, connectorTaskId, sinkTask, WorkerSinkTaskTest.class.getClassLoader(), connectKeyValue,
-            recordConverter, recordConverter, defaultMQPullConsumer, workerState, connectStatsManager, connectStatsService,
+            recordConverter, recordConverter, defaultLitePullConsumer, workerState, connectStatsManager, connectStatsService,
             transformChain, retryWithToleranceOperator, workerErrorRecordReporter, new WrapperStatusListener(new StateManagementServiceImpl(),"workId"));
+
     }
 
     @After
