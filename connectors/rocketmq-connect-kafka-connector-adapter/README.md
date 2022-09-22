@@ -4,7 +4,7 @@
 
 **参数说明**
 
-参数分为3类：rocketmq connect runtime参数、 kafka-connector-adapter参数，以及 具体kafka connector参数
+参数分为2类：rocketmq connect runtime参数、 kafka-connector参数
 
 rocketmq connect runtime参数：
 - **connector-class**: kafka-connector-adapter的类名
@@ -13,17 +13,21 @@ rocketmq connect runtime参数：
   
   如果是SinkConnector，对应为org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector。
   
-- **connect-topicname**: 要导入导出数据的rocketmq topic
-- **tasks.num**: 启动的task数目 
-  
+- **connector.class**: 要导入导出数据的rocketmq topic
+- **max.task**: 启动的task数目 
+
+kafka-connector参数放在kafka.connector.configs里，又分为2类：kafka-connector-adapter参数，以及 具体kafka connector
+
 kafka-connector-adapter参数：
 - **connector.class**: kafka connector的类名
 - **plugin.path**: kafka connector插件路径
 
 具体kafka connector参数：
 
-参考具体kafka connector的文档
+- 参考具体kafka connector的文档
 
+当connector-class是org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector时，有特殊参数：
+- **rocketmq.recordPartition.kafkaTopicPartition.mapper**: recordPartition映射到kafkaTopicPartition实现，取值为：encodedTopic、assignEncodedPartition和regexEncodedPartition，默认是encodedTopic
 
 # 快速开始
 
@@ -67,13 +71,29 @@ touch /tmp/test-source-file.txt
 
 echo "Hello \r\nRocketMQ\r\n Connect" >> /tmp/test-source-file.txt
 
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{"connector-class":"org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSourceConnector","connect-topicname":"fileTopic","connector.class":"org.apache.kafka.connect.file.FileStreamSourceConnector","plugin.path":"/tmp/kafka-plugins","topic":"fileTopic","file":"/tmp/test-source-file.txt"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSourceConnector -d '{
+	"connector.class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSourceConnector",
+	"kafka.connector.configs":{
+		"connector.class": "org.apache.kafka.connect.file.FileStreamSourceConnector",
+		"plugin.path": "/tmp/kafka-plugins",
+		"topic": "fileTopic",
+		"file": "/tmp/test-source-file.txt"
+	}
+}'
 ```
 
 ## 5.启动sink connector
 
 ```
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{"connector-class":"org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector","connect-topicname":"fileTopic","connector.class":"org.apache.kafka.connect.file.FileStreamSinkConnector","plugin.path":"/tmp/kafka-plugins","file":"/tmp/test-sink-file.txt"}'
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/fileSinkConnector -d '{
+	"connector.class": "org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector",
+	"connect.topicnames": "fileTopic",
+	"kafka.connector.configs":{
+		"connector.class": "org.apache.kafka.connect.file.FileStreamSinkConnector",
+		"plugin.path": "/tmp/kafka-plugins",
+		"file": "/tmp/test-sink-file.txt"
+	}
+}'
 
 cat /tmp/test-sink-file.txt
 ```
@@ -82,10 +102,12 @@ cat /tmp/test-sink-file.txt
 
 todo
 
-# 如何运行kafka-mongo-connector
+# 如何运行其他kafka connector
 
-todo
+## 1.获取kafka connector的uber jar
+仓库[kafka-connector-plugins](https://github.com/oudb/kafka-connector-plugins)收集了一些常见connector的uber jar
 
-# 如何运行kafka-jdbc-connector
+## 2.运行指南
+1.[mongodb](how-to/kafka-mongo-connector.md)
 
-todo
+2.[neo4j](how-to/kafka-neo4j-connector.md)
