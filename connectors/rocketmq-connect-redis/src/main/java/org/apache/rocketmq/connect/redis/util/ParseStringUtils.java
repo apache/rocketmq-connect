@@ -30,9 +30,9 @@ public class ParseStringUtils {
         String[] kvs = info.split("\n");
         for (int i = 0; i < kvs.length; i++) {
             String kv = kvs[i];
-            if (kv != null && !kv.startsWith("#")){
+            if (kv != null && !kv.startsWith("#")) {
                 String[] kvArr = kv.split(":");
-                if(kvArr.length == 2){
+                if (kvArr.length == 2) {
                     res.put(StringUtils.trimToEmpty(kvArr[0]), StringUtils.trimToEmpty(kvArr[1]));
                 }
             }
@@ -40,7 +40,7 @@ public class ParseStringUtils {
         return res;
     }
 
-    public static List<String> parseCommands(String commands){
+    public static List<String> parseCommands(String commands)  {
         if (StringUtils.isEmpty(StringUtils.trimToEmpty(commands))) {
             return null;
         }

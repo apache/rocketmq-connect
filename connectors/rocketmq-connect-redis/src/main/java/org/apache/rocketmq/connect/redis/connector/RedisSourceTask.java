@@ -17,14 +17,17 @@
 
 package org.apache.rocketmq.connect.redis.connector;
 
-import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
@@ -34,7 +37,6 @@ import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
 import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 import org.apache.rocketmq.connect.redis.processor.DefaultRedisEventProcessor;
 import org.apache.rocketmq.connect.redis.processor.RedisEventProcessor;
-import org.apache.rocketmq.connect.redis.converter.RedisPositionConverter;
 import org.apache.rocketmq.connect.redis.processor.RedisEventProcessorCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,16 +66,26 @@ public class RedisSourceTask extends SourceTask {
     }
 
 
-    @Override public Collection<SourceDataEntry> poll() {
+    @Override
+    public List<ConnectRecord> poll() {
         try {
             KVEntry event = this.eventProcessor.poll();
             if (event == null) {
                 return null;
             }
-            event.queueName(Options.REDIS_QEUEUE.name());
-            event.entryType(EntryType.UPDATE);
-
-            Collection<SourceDataEntry> res = this.kvEntryConverter.kVEntryToDataEntries(event);
+            event.queueName(Options.REDIS_QUEUE.name());
+            final OffsetStorageReader reader = this.sourceTaskContext.offsetStorageReader();
+            final RecordOffset recordOffset = reader.readOffset(buildRecordPartition());
+            if (recordOffset != null) {
+                final Map<String, ?> offset = recordOffset.getOffset();
+                final Object obj = offset.get(Options.REDIS_OFFSET.name());
+                if (obj != null) {
+                    if (event.getOffset() <= Long.valueOf(obj.toString())) {
+                        return new ArrayList<>();
+                    }
+                }
+            }
+            List<ConnectRecord> res = this.kvEntryConverter.kVEntryToConnectRecord(event);
             LOGGER.info("send data entries: {}", res);
             return res;
         } catch (InterruptedException e) {
@@ -87,29 +99,29 @@ public class RedisSourceTask extends SourceTask {
     }
 
 
-    @Override public void start(KeyValue keyValue) {
+    @Override
+    public void start(KeyValue keyValue) {
         this.kvEntryConverter = new RedisEntryConverter();
 
         this.config = new Config();
         this.config.load(keyValue);
         LOGGER.info("task config msg: {}", this.config.toString());
 
-        // get position info
-        ByteBuffer byteBuffer = this.context.positionStorageReader().getPosition(
-            this.config.getPositionPartitionKey()
-        );
-        Long position = RedisPositionConverter.jsonToLong(byteBuffer);
-        if (position != null && position >= -1) {
-            this.config.setPosition(position);
+        final OffsetStorageReader reader = this.sourceTaskContext.offsetStorageReader();
+        final RecordOffset recordOffset = reader.readOffset(buildRecordPartition());
+        Long offset = 0L;
+        if (recordOffset != null && recordOffset.getOffset().size() > 0) {
+            offset = (Long) recordOffset.getOffset().get(Options.REDIS_OFFSET.name());
         }
-        LOGGER.info("task load connector runtime position: {}", this.config.getPosition());
+
+        LOGGER.info("task load connector runtime position: {}", offset);
 
         this.eventProcessor = new DefaultRedisEventProcessor(config);
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(this.config);
-        this.eventProcessor.registEventHandler(eventHandler);
-        this.eventProcessor.registProcessorCallback(new DefaultRedisEventProcessorCallback());
+        this.eventProcessor.registerEventHandler(eventHandler);
+        this.eventProcessor.registerProcessorCallback(new DefaultRedisEventProcessorCallback());
         try {
-            this.eventProcessor.start();
+            this.eventProcessor.start(offset);
             LOGGER.info("Redis task start.");
         } catch (IOException e) {
             LOGGER.error("processor start error: {}", e);
@@ -129,20 +141,17 @@ public class RedisSourceTask extends SourceTask {
         }
     }
 
-
-    @Override public void pause() {
-
-    }
-
-
-    @Override public void resume() {
-
-    }
-
     private class DefaultRedisEventProcessorCallback implements RedisEventProcessorCallback {
         @Override public void onStop(RedisEventProcessor eventProcessor) {
             stop();
         }
+    }
+
+    private RecordPartition buildRecordPartition() {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put(Options.REDIS_PARTITION.name(), Options.REDIS_PARTITION.name());
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
     }
 
 }

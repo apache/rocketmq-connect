@@ -9,6 +9,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.storage.Converter;
 import org.apache.kafka.connect.storage.HeaderConverter;
@@ -24,60 +25,22 @@ public class RecordUtil {
     public static final String TOPIC = "topic";
     public static final String QUEUE_OFFSET = "queueOffset";
 
-
-    private static final String TOPIC_SEP = "@#@";
-
-
     public static final String KAFKA_MSG_KEY = "kafka_key";
     public static final String KAFKA_CONNECT_RECORD_TOPIC_KEY = "kafka_connect_record_topic";
     public static final String KAFKA_CONNECT_RECORD_PARTITION_KEY = "kafka_connect_record_partition";
     public static final String KAFKA_CONNECT_RECORD_HEADER_KEY_PREFIX = "kafka_connect_record_header_";
-
-    public static String getTopicAndBrokerName(RecordPartition recordPartition) {
-        return new StringBuilder()
-                .append(recordPartition.getPartition().get(TOPIC))
-                .append(TOPIC_SEP)
-                .append(recordPartition.getPartition().get(BROKER_NAME))
-                .toString();
-    }
-
-    public static Map<String, String>  getPartitionMap(String topicAndBrokerName) {
-        String[] split = topicAndBrokerName.split(TOPIC_SEP);
-        Map<String, String> map = new HashMap<>();
-        map.put(TOPIC, split[0]);
-        map.put(BROKER_NAME, split[1]);
-
-        return map;
-    }
 
     public static  long getOffset(RecordOffset recordOffset){
         return Long.valueOf(
                 (String) recordOffset.getOffset().get(QUEUE_OFFSET)
         );
     }
-
-    public static  int getPartition(RecordPartition recordPartition){
-        return Integer.valueOf(
-                (String) recordPartition.getPartition().get(QUEUE_ID)
-        );
-    }
-
-    public static TopicPartition recordPartitionToTopicPartition(RecordPartition recordPartition){
-        String topicAndBrokerName = getTopicAndBrokerName(recordPartition);
-        int partition = getPartition(recordPartition);
-        return new TopicPartition(topicAndBrokerName, partition);
-    }
-
-    public static RecordPartition topicPartitionToRecordPartition(TopicPartition topicPartition){
-        Map<String, String> map = RecordUtil.getPartitionMap(topicPartition.topic());
-        map.put(RecordUtil.QUEUE_ID, topicPartition.partition() + "");
-        return new RecordPartition(map);
-    }
-
-
     public static ConnectRecord toConnectRecord(SourceRecord sourceRecord, Converter keyConverter, Converter valueConverter,
                                          HeaderConverter headerConverter){
-        RecordPartition recordPartition = new RecordPartition(new HashMap<>(sourceRecord.sourcePartition()));
+        Map<String, Object> partition = new HashMap<>();
+        partition.put("topic", sourceRecord.topic());
+        partition.putAll(sourceRecord.sourcePartition());
+        RecordPartition recordPartition = new RecordPartition(partition);
         RecordOffset recordOffset = new RecordOffset(new HashMap<>(sourceRecord.sourceOffset()));
         Long timestamp = sourceRecord.timestamp();
 
@@ -152,6 +115,21 @@ public class RecordUtil {
                 connectRecord.getTimestamp(),headers
                 );
         return sourceRecord;
+    }
+
+    public static ConnectRecord sinkRecordToConnectRecord(SinkRecord sinkRecord, RocketmqRecordPartitionKafkaTopicPartitionMapper kafkaTopicPartitionMapper){
+        TopicPartition topicPartition = new TopicPartition(sinkRecord.topic(), sinkRecord.kafkaPartition());
+        RecordPartition recordPartition = kafkaTopicPartitionMapper.toRecordPartition(topicPartition);
+
+        Map<String, String> offsetMap = new HashMap<>();
+        offsetMap.put(RecordUtil.QUEUE_OFFSET, sinkRecord.kafkaOffset() + "");
+        RecordOffset recordOffset = new RecordOffset(offsetMap);
+
+        ConnectRecord connectRecord = new ConnectRecord(
+                recordPartition, recordOffset, sinkRecord.timestamp(),
+                SchemaBuilder.string().build(), sinkRecord.value()
+        );
+        return connectRecord;
     }
 
 }
