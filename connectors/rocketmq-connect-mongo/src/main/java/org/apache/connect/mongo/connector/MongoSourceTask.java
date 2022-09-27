@@ -17,14 +17,16 @@
 
 package org.apache.connect.mongo.connector;
 
-import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTask;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.connect.mongo.SourceTaskConfig;
+import org.apache.connect.mongo.replicator.Constants;
 import org.apache.connect.mongo.replicator.Position;
 import org.apache.connect.mongo.replicator.ReplicaSet;
 import org.apache.connect.mongo.replicator.ReplicaSetManager;
@@ -43,7 +45,7 @@ public class MongoSourceTask extends SourceTask {
     private ReplicaSetsContext replicaSetsContext;
 
     @Override
-    public Collection<SourceDataEntry> poll() {
+    public List<ConnectRecord> poll() {
 
         return replicaSetsContext.poll();
     }
@@ -59,20 +61,18 @@ public class MongoSourceTask extends SourceTask {
             replicaSetManager = ReplicaSetManager.create(sourceTaskConfig.getMongoAddr());
 
             replicaSetManager.getReplicaConfigByName().forEach((replicaSetName, replicaSetConfig) -> {
-                ByteBuffer byteBuffer = this.context.positionStorageReader().getPosition(ByteBuffer.wrap(
-                    replicaSetName.getBytes()));
-                if (byteBuffer != null && byteBuffer.array().length > 0) {
-                    String positionJson = new String(byteBuffer.array(), StandardCharsets.UTF_8);
-                    Position position = JSONObject.parseObject(positionJson, Position.class);
+                final RecordOffset recordOffset = this.sourceTaskContext.offsetStorageReader().readOffset(this.buildRecordPartition(replicaSetName));
+                if (recordOffset != null && recordOffset.getOffset().size() > 0) {
+                    final Map<String, Object> offset = (Map<String, Object>) recordOffset.getOffset();
+                    Position position = new Position();
+                    position.setTimeStamp((int) offset.get(Constants.TIMESTAMP));
                     replicaSetConfig.setPosition(position);
                 } else {
                     Position position = new Position();
                     position.setTimeStamp(sourceTaskConfig.getPositionTimeStamp());
-                    position.setInc(sourceTaskConfig.getPositionInc());
-                    position.setInitSync(sourceTaskConfig.isDataSync());
                     replicaSetConfig.setPosition(position);
                 }
-
+                replicaSetConfig.setMaxTask(config.getInt(Constants.MAX_TASK));
                 ReplicaSet replicaSet = new ReplicaSet(replicaSetConfig, replicaSetsContext);
                 replicaSetsContext.addReplicaSet(replicaSet);
                 replicaSet.start();
@@ -84,22 +84,17 @@ public class MongoSourceTask extends SourceTask {
         }
     }
 
+    private RecordPartition buildRecordPartition(String replicaSetName) {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put(Constants.REPLICA_SET_NAME, replicaSetName);
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
+    }
+
     @Override
     public void stop() {
         logger.info("shut down.....");
         replicaSetsContext.shutdown();
-    }
-
-    @Override
-    public void pause() {
-        logger.info("pause replica task...");
-        replicaSetsContext.pause();
-    }
-
-    @Override
-    public void resume() {
-        logger.info("resume replica task...");
-        replicaSetsContext.resume();
     }
 
 }

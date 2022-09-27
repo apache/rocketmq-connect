@@ -39,7 +39,7 @@ public class ReplicaSetTest {
     @Before
     public void before() {
         this.sourceTaskConfig = new SourceTaskConfig();
-        this.replicaSetConfig = new ReplicaSetConfig("shardName1", "", "127.0.0.1:27027");
+        this.replicaSetConfig = new ReplicaSetConfig("shardName1", "", "127.0.0.1:27017");
         this.replicaSetsContext = new ReplicaSetsContext(sourceTaskConfig);
         this.replicaSet = new ReplicaSet(replicaSetConfig, replicaSetsContext);
     }

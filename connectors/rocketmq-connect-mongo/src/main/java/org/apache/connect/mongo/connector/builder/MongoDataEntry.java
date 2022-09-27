@@ -17,118 +17,115 @@
 
 package org.apache.connect.mongo.connector.builder;
 
-import com.alibaba.fastjson.JSONObject;
-import io.openmessaging.connector.api.data.DataEntryBuilder;
+import com.alibaba.fastjson.JSON;
+import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.connect.mongo.replicator.Constants;
 import org.apache.connect.mongo.replicator.Position;
 import org.apache.connect.mongo.replicator.ReplicaSetConfig;
-import org.apache.connect.mongo.replicator.event.OperationType;
 import org.apache.connect.mongo.replicator.event.ReplicationEvent;
 import org.bson.BsonTimestamp;
-
-import static org.apache.connect.mongo.replicator.Constants.CREATED;
-import static org.apache.connect.mongo.replicator.Constants.NAMESPACE;
-import static org.apache.connect.mongo.replicator.Constants.OBJECT_ID;
-import static org.apache.connect.mongo.replicator.Constants.OPERATION_TYPE;
-import static org.apache.connect.mongo.replicator.Constants.PATCH;
-import static org.apache.connect.mongo.replicator.Constants.TIMESTAMP;
-import static org.apache.connect.mongo.replicator.Constants.VERSION;
+import org.bson.Document;
 
 public class MongoDataEntry {
 
-    private static String SCHEMA_CREATED_NAME = "mongo_created";
-    private static String SCHEMA_OPLOG_NAME = "mongo_oplog";
-
-    public static SourceDataEntry createSouceDataEntry(ReplicationEvent event, ReplicaSetConfig replicaSetConfig) {
-
-        DataEntryBuilder dataEntryBuilder;
-
-        if (event.getOperationType().equals(OperationType.CREATED)) {
-            Schema schema = createdSchema(replicaSetConfig.getReplicaSetName());
-            dataEntryBuilder = new DataEntryBuilder(schema);
-            dataEntryBuilder.timestamp(System.currentTimeMillis())
-                .queue(event.getNamespace().replace(".", "-").replace("$", "-"))
-                .entryType(event.getEntryType());
-
-            dataEntryBuilder.putFiled(CREATED, event.getDocument().toJson());
-            dataEntryBuilder.putFiled(NAMESPACE, event.getNamespace());
-
-        } else {
-            Schema schema = oplogSchema(replicaSetConfig.getReplicaSetName());
-            dataEntryBuilder = new DataEntryBuilder(schema);
-            dataEntryBuilder.timestamp(System.currentTimeMillis())
-                .queue(event.getNamespace().replace(".", "-").replace("$", "-"))
-                .entryType(event.getEntryType());
-            dataEntryBuilder.putFiled(OPERATION_TYPE, event.getOperationType().name());
-            dataEntryBuilder.putFiled(TIMESTAMP, event.getTimestamp().getValue());
-            dataEntryBuilder.putFiled(VERSION, event.getV());
-            dataEntryBuilder.putFiled(NAMESPACE, event.getNamespace());
-            dataEntryBuilder.putFiled(PATCH, event.getEventData().isPresent() ? JSONObject.toJSONString(event.getEventData().get()) : "");
-            dataEntryBuilder.putFiled(OBJECT_ID, event.getObjectId().isPresent() ? JSONObject.toJSONString(event.getObjectId().get()) : "");
+    public static ConnectRecord createSourceDataEntry(ReplicationEvent event, ReplicaSetConfig replicaSetConfig) {
+        final Position position = replicaSetConfig.getPosition();
+        final int oldTimestamp = position.getTimeStamp();
+        final BsonTimestamp timestamp = event.getTimestamp();
+        if (oldTimestamp != 0 && timestamp != null &&  timestamp.getTime() <= oldTimestamp) {
+            return null;
         }
-
-        String position = createPosition(event, replicaSetConfig);
-        SourceDataEntry sourceDataEntry = dataEntryBuilder.buildSourceDataEntry(
-            ByteBuffer.wrap(replicaSetConfig.getReplicaSetName().getBytes(StandardCharsets.UTF_8)),
-            ByteBuffer.wrap(position.getBytes(StandardCharsets.UTF_8)));
-        return sourceDataEntry;
+        Schema schema = SchemaBuilder.struct().name(Constants.MONGO).build();
+        final List<Field> fields = buildFields(event.getDocument());
+        schema.setFields(fields);
+        final ConnectRecord connectRecord = new ConnectRecord(buildRecordPartition(replicaSetConfig),
+            buildRecordOffset(event, replicaSetConfig),
+            System.currentTimeMillis(),
+            schema,
+            buildPayLoad(fields, event, schema));
+        connectRecord.setExtensions(buildExtendFiled(event));
+        return connectRecord;
     }
 
-    private static String createPosition(ReplicationEvent event, ReplicaSetConfig replicaSetConfig) {
-        Position position = new Position();
-        BsonTimestamp timestamp = event.getTimestamp();
-        position.setInc(timestamp != null ? timestamp.getInc() : 0);
-        position.setTimeStamp(timestamp != null ? timestamp.getTime() : 0);
-        position.setInitSync(event.getOperationType().equals(OperationType.CREATED) ? true : false);
-        return JSONObject.toJSONString(position);
-
+    private static RecordPartition buildRecordPartition(ReplicaSetConfig replicaSetConfig) {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put(Constants.REPLICA_SET_NAME, replicaSetConfig.getReplicaSetName());
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
     }
 
-    private static Schema createdSchema(String dataSourceName) {
-        Schema schema = new Schema();
-        schema.setDataSource(dataSourceName);
-        schema.setName(SCHEMA_CREATED_NAME);
-        schema.setFields(new ArrayList<>());
-        createdField(schema);
+    private static RecordOffset buildRecordOffset(ReplicationEvent event, ReplicaSetConfig config)  {
+        Map<String, Integer> offsetMap = new HashMap<>();
+        final Position position = config.getPosition();
+        offsetMap.put(Constants.TIMESTAMP, event.getTimestamp() != null ? event.getTimestamp().getTime() : position.getTimeStamp());
+        RecordOffset recordOffset = new RecordOffset(offsetMap);
+        return recordOffset;
+    }
+
+    private static List<Field> buildFields(Document document) {
+        List<Field> fields = new ArrayList<>();
+        int i = 0;
+        for (Map.Entry<String, Object> entry : document.entrySet()) {
+            final String key = entry.getKey();
+            final Object value = entry.getValue();
+            fields.add(new Field(i++, key, getSchema(value)));
+        }
+        return fields;
+    }
+
+    private static Struct buildPayLoad(List<Field> fields, ReplicationEvent event, Schema schema) {
+        Struct payLoad = new Struct(schema);
+        final Document document = event.getDocument();
+        for (Field field : fields) {
+            final Schema valueSchema = field.getSchema();
+            if (valueSchema.getFieldType().equals(FieldType.STRING)) {
+                payLoad.put(field, JSON.toJSONString(document.get(field.getName())));
+            } else {
+                payLoad.put(field, document.get(field.getName()));
+            }
+        }
+        return payLoad;
+    }
+
+    private static KeyValue buildExtendFiled(ReplicationEvent event) {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(Constants.OPERATION_TYPE,  event.getOperationType().getOperation());
+        keyValue.put(Constants.COLLECTION_NAME, event.getCollectionName());
+        keyValue.put(Constants.NAMESPACE, event.getNamespace());
+        keyValue.put(Constants.REPLICA_SET_NAME, event.getReplicaSetName());
+        return keyValue;
+    }
+
+    private static Schema getSchema(Object value) {
+        Schema schema = null;
+        if (value instanceof Date) {
+            schema = SchemaBuilder.time().build();
+        } else if (value instanceof Document) {
+            schema = SchemaBuilder.string().build();
+        } else if (value instanceof Long) {
+            schema = SchemaBuilder.int64().build();
+        } else if (value instanceof Integer) {
+            schema = SchemaBuilder.int32().build();
+        } else if (value instanceof Boolean) {
+            schema = SchemaBuilder.bool().build();
+        } else {
+            schema = SchemaBuilder.string().build();
+        }
         return schema;
-    }
-
-    private static Schema oplogSchema(String dataSourceName) {
-        Schema schema = new Schema();
-        schema.setDataSource(dataSourceName);
-        schema.setName(SCHEMA_OPLOG_NAME);
-        oplogField(schema);
-        return schema;
-    }
-
-    private static void createdField(Schema schema) {
-        Field namespace = new Field(0, NAMESPACE, FieldType.STRING);
-        schema.getFields().add(namespace);
-        Field operation = new Field(1, Constants.CREATED, FieldType.STRING);
-        schema.getFields().add(operation);
-    }
-
-    private static void oplogField(Schema schema) {
-        schema.setFields(new ArrayList<>());
-        Field op = new Field(0, OPERATION_TYPE, FieldType.STRING);
-        schema.getFields().add(op);
-        Field time = new Field(1, TIMESTAMP, FieldType.INT64);
-        schema.getFields().add(time);
-        Field v = new Field(2, VERSION, FieldType.INT32);
-        schema.getFields().add(v);
-        Field namespace = new Field(3, NAMESPACE, FieldType.STRING);
-        schema.getFields().add(namespace);
-        Field patch = new Field(4, PATCH, FieldType.STRING);
-        schema.getFields().add(patch);
-        Field objectId = new Field(5, OBJECT_ID, FieldType.STRING);
-        schema.getFields().add(objectId);
     }
 
 }

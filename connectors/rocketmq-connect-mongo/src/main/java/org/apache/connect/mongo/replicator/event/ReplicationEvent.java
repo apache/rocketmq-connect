@@ -17,7 +17,6 @@
 
 package org.apache.connect.mongo.replicator.event;
 
-import io.openmessaging.connector.api.data.EntryType;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.BsonTimestamp;
@@ -90,19 +89,6 @@ public class ReplicationEvent {
 
     public Optional<Document> getObjectId() {
         return objectId;
-    }
-
-    public EntryType getEntryType() {
-        switch (operationType) {
-            case UPDATE:
-                return EntryType.UPDATE;
-            case DELETE:
-                return EntryType.DELETE;
-            case INSERT:
-                return EntryType.CREATE;
-            default:
-                return EntryType.CREATE;
-        }
     }
 
     public void setOperationType(OperationType operationType) {
