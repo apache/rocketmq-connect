@@ -15,26 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.redis.processor;
+package org.apache.rocketmq.redis.test.connector;
 
-import java.io.IOException;
-import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
-import org.apache.rocketmq.connect.redis.pojo.KVEntry;
-import org.apache.rocketmq.connect.redis.pojo.RedisEvent;
+import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
+import io.openmessaging.internal.DefaultKeyValue;
 
-public interface RedisEventProcessor {
+public class TestSourceTaskContext implements SourceTaskContext {
+    @Override public OffsetStorageReader offsetStorageReader() {
+        return new TestPositionStorageReader();
+    }
 
-    void registerEventHandler(RedisEventHandler eventHandler);
+    @Override public String getConnectorName() {
+        return null;
+    }
 
-    void registerProcessorCallback(RedisEventProcessorCallback redisEventProcessorCallback);
+    @Override public String getTaskName() {
+        return null;
+    }
 
-    void start(Long offset) throws IllegalStateException, IOException;
-
-    void stop() throws IOException;
-
-    boolean commit(RedisEvent event) throws Exception;
-
-    KVEntry poll() throws Exception;
-
-    boolean isStopped();
+    @Override public KeyValue configs() {
+        return new DefaultKeyValue();
+    }
 }

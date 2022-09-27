@@ -18,10 +18,8 @@
 package org.apache.rocketmq.connect.redis.pojo;
 
 import io.openmessaging.connector.api.data.FieldType;
-import java.util.List;
 
 import com.moilioncircle.redis.replicator.cmd.Command;
-import io.openmessaging.connector.api.data.EntryType;
 import java.util.Map;
 import org.apache.rocketmq.connect.redis.common.Options;
 
@@ -34,10 +32,6 @@ public interface KVEntry extends Command {
     KVEntry queueName(String queueName);
 
     String getQueueName();
-
-    KVEntry entryType(EntryType entryType);
-
-    EntryType getEntryType();
 
     KVEntry sourceId(String id);
 

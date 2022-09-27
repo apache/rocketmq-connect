@@ -22,6 +22,10 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -36,6 +40,7 @@ import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -64,7 +69,8 @@ public class WorkerSinkTaskTest {
     private SinkTask sinkTask = new TestSinkTask();
     private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
     private RecordConverter recordConverter = new TestConverter();
-    private DefaultLitePullConsumer defaultMQPullConsumer = new DefaultLitePullConsumer();
+
+    private DefaultLitePullConsumer defaultLitePullConsumer = new DefaultLitePullConsumer();
     private AtomicReference<WorkerState> workerState = new AtomicReference<>(WorkerState.STARTED);
     private ConnectStatsManager connectStatsManager = new ConnectStatsManager(connectConfig);
     private ConnectStatsService connectStatsService = new ConnectStatsService();
@@ -74,6 +80,9 @@ public class WorkerSinkTaskTest {
     private TransformChain<ConnectRecord> transformChain;
     private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("connect", 1), new ConnectMetrics(new WorkerConfig())));
     private WorkerErrorRecordReporter workerErrorRecordReporter;
+    private WrapperStatusListener wrapperStatusListener;
+
+    private StateManagementService stateManagementService;
 
     @Before
     public void before() {
@@ -90,7 +99,7 @@ public class WorkerSinkTaskTest {
                 connectKeyValue,
                 recordConverter,
                 recordConverter,
-                defaultMQPullConsumer,
+                defaultLitePullConsumer,
                 workerState,
                 connectStatsManager,
                 connectStatsService,

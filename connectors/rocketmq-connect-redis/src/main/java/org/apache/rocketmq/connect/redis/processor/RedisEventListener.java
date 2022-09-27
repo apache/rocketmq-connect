@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * Do simple event filtering to push event events to queues
  */
 public class RedisEventListener implements EventListener {
-    protected final Logger LOGGER = LoggerFactory.getLogger(RedisEventListener.class);
+    protected final Logger logger = LoggerFactory.getLogger(RedisEventListener.class);
 
     private Config config;
     private RedisEventProcessor processor;
@@ -49,7 +49,7 @@ public class RedisEventListener implements EventListener {
 
     @Override public void onEvent(Replicator replicator, Event event) {
         if (isUsefulEvent(event)) {
-            LOGGER.info("receive event: {}", event.getClass());
+            logger.info("receive event: {}", event.getClass());
             RedisEvent redisEvent = new RedisEvent();
             redisEvent.setEvent(event);
             if (replicator != null) {
@@ -61,12 +61,12 @@ public class RedisEventListener implements EventListener {
             boolean commitSuccess = commitWithRetry(redisEvent,
                 this.config.getEventCommitRetryTimes(),
                 this.config.getEventCommitRetryInterval());
-            if(!commitSuccess){
-                LOGGER.error("redis listener commit event error.");
+            if (!commitSuccess) {
+                logger.error("redis listener commit event error.");
                 try {
                     this.processor.stop();
                 } catch (IOException e) {
-                    LOGGER.error("processor stop error. {}", e);
+                    logger.error("processor stop error. {}", e);
                 }
             }
         }
@@ -81,17 +81,17 @@ public class RedisEventListener implements EventListener {
             if (processor.commit(redisEvent)) {
                 return true;
             }
-            if(retryInterval > 0){
+            if (retryInterval > 0) {
                 Thread.sleep(retryInterval);
             }
         } catch (Exception e) {
-            if(retryInterval > 0){
+            if (retryInterval > 0) {
                 try {
                     Thread.sleep(retryInterval);
                 } catch (InterruptedException ie) {
                 }
             }
-            LOGGER.error("processor commit redisEvent with retry({}) error: {}", retryTimes, e);
+            logger.error("processor commit redisEvent with retry({}) error: {}", retryTimes, e);
         }
         return commitWithRetry(redisEvent, retryTimes, retryInterval);
     }
@@ -101,19 +101,19 @@ public class RedisEventListener implements EventListener {
      */
     private boolean isUsefulEvent(Event event) {
         if (event instanceof AuxField) {
-            LOGGER.warn("skip AuxField event: {} - {}", ((AuxField) event).getAuxKey(), ((AuxField) event).getAuxValue());
+            logger.warn("skip AuxField event: {} - {}", ((AuxField) event).getAuxKey(), ((AuxField) event).getAuxValue());
             return false;
         }
         if (event instanceof PreRdbSyncEvent) {
-            LOGGER.warn("skip PreRdbSync event: {}", event.getClass());
+            logger.warn("skip PreRdbSync event: {}", event.getClass());
             return false;
         }
         if (event instanceof PreCommandSyncEvent) {
-            LOGGER.warn("skip PreCommandSync event: {}", event.getClass());
+            logger.warn("skip PreCommandSync event: {}", event.getClass());
             return false;
         }
         if (event instanceof PostRdbSyncEvent) {
-            LOGGER.warn("skip PostRdbSync event: {}", event.getClass());
+            logger.warn("skip PostRdbSync event: {}", event.getClass());
             return false;
         }
         return true;
