@@ -16,21 +16,23 @@
  */
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
-import java.net.URL;
-import java.net.URLClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+
 /**
- *  A custom classloader dedicated to loading Connect plugin classes in classloading isolation.
+ * A custom classloader dedicated to loading Connect plugin classes in classloading isolation.
  */
 public class PluginClassLoader extends URLClassLoader {
     private static final Logger log = LoggerFactory.getLogger(PluginClassLoader.class);
-    private final URL pluginLocation;
 
     static {
         ClassLoader.registerAsParallelCapable();
     }
+
+    private final URL pluginLocation;
 
     public PluginClassLoader(URL pluginLocation, URL[] urls, ClassLoader parent) {
         super(urls, parent);
@@ -53,7 +55,7 @@ public class PluginClassLoader extends URLClassLoader {
 
     @Override
     public synchronized Class<?> loadClass(String name, boolean resolve)
-        throws ClassNotFoundException {
+            throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
             Class<?> klass = findLoadedClass(name);
             if (klass == null) {

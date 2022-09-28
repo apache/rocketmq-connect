@@ -21,18 +21,22 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
+
 import java.util.List;
 
 public class TestSinkTask extends SinkTask {
-    @Override public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
+    @Override
+    public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
 
     }
 
-    @Override public void start(KeyValue config) {
+    @Override
+    public void start(KeyValue config) {
 
     }
 
-    @Override public void stop() {
+    @Override
+    public void stop() {
 
     }
 }

@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.controller.standalone;
 
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -26,7 +27,6 @@ import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.memory.StandaloneRebalanceService;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
 /**
  * Connect controller to access and control all resource in runtime.
@@ -35,6 +35,7 @@ public class StandaloneConnectController extends AbstractConnectController {
 
     private final RebalanceImpl rebalanceImpl;
     private final StandaloneRebalanceService rebalanceService;
+
     public StandaloneConnectController(Plugin plugin,
                                        StandaloneConfig connectConfig,
                                        ClusterManagementService clusterManagementService,

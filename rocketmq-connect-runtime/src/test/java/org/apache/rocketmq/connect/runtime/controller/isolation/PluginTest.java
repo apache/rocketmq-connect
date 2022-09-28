@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PluginTest {
 

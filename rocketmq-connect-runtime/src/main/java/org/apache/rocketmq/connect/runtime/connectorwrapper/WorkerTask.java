@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
+import com.codahale.metrics.MetricRegistry;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import org.apache.rocketmq.connect.metrics.stats.Avg;
+import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
+import org.apache.rocketmq.connect.metrics.stats.Max;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,6 +29,10 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
+import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
+import org.apache.rocketmq.connect.runtime.metrics.Sensor;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.slf4j.Logger;
@@ -44,23 +52,22 @@ public abstract class WorkerTask implements Runnable {
     protected final ClassLoader loader;
     protected final ConnectKeyValue taskConfig;
     /**
-     * Atomic state variable
-     */
-    protected AtomicReference<WorkerTaskState> state;
-    /**
      * worker state
      */
     protected final AtomicReference<WorkerState> workerState;
     protected final RetryWithToleranceOperator retryWithToleranceOperator;
     protected final TransformChain<ConnectRecord> transformChain;
-    private volatile TargetState targetState;
-
     // send status
     private final TaskStatus.Listener statusListener;
-
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+    private final TaskMetricsGroup taskMetricsGroup;
+    /**
+     * Atomic state variable
+     */
+    protected AtomicReference<WorkerTaskState> state;
+    private volatile TargetState targetState;
 
-    public WorkerTask(WorkerConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener) {
+    public WorkerTask(WorkerConfig workerConfig, ConnectorTaskId id, ClassLoader loader, ConnectKeyValue taskConfig, RetryWithToleranceOperator retryWithToleranceOperator, TransformChain<ConnectRecord> transformChain, AtomicReference<WorkerState> workerState, TaskStatus.Listener taskListener, ConnectMetrics connectMetrics) {
         this.workerConfig = workerConfig;
         this.id = id;
         this.loader = loader;
@@ -72,6 +79,7 @@ public abstract class WorkerTask implements Runnable {
         this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
         this.targetState = TargetState.STARTED;
         this.statusListener = taskListener;
+        this.taskMetricsGroup = new TaskMetricsGroup(id, connectMetrics);
     }
 
     public ConnectorTaskId id() {
@@ -109,6 +117,10 @@ public abstract class WorkerTask implements Runnable {
 
     private void doExecute() {
         execute();
+    }
+
+    public void removeMetrics() {
+        taskMetricsGroup.close();
     }
 
     /**
@@ -243,6 +255,34 @@ public abstract class WorkerTask implements Runnable {
         }
     }
 
+
+    /**
+     * record commit success
+     *
+     * @param duration
+     */
+    protected void recordCommitSuccess(long duration) {
+        taskMetricsGroup.recordCommit(duration, true);
+    }
+
+    /**
+     * record commit failure
+     *
+     * @param duration
+     */
+    protected void recordCommitFailure(long duration) {
+        taskMetricsGroup.recordCommit(duration, false);
+    }
+
+    /**
+     * batch record
+     *
+     * @param size
+     */
+    protected void recordMultiple(int size) {
+        taskMetricsGroup.recordMultiple(size);
+    }
+
     /**
      * should pause
      *
@@ -315,6 +355,62 @@ public abstract class WorkerTask implements Runnable {
     public void timeout() {
         log.error("Worker task stop is timeout !!!");
         onFailure(new Throwable("Worker task stop is timeout"));
+    }
+
+
+    static class TaskMetricsGroup {
+        private final MetricGroup metricGroup;
+        private final Sensor commitTime;
+        private final Sensor batchSize;
+
+        private final Sensor taskCommitFailures;
+
+        private final Sensor taskCommitSuccess;
+
+        public TaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
+            ConnectMetricsTemplates templates = connectMetrics.templates();
+            metricGroup = connectMetrics.group(
+                    templates.connectorTagName(),
+                    id.connector(),
+                    templates.taskTagName(),
+                    Integer.toString(id.task())
+            );
+
+            MetricRegistry registry = connectMetrics.registry();
+
+            commitTime = metricGroup.sensor();
+            commitTime.addStat(new Max(registry, metricGroup.name(templates.taskCommitTimeMax)));
+            commitTime.addStat(new Avg(registry, metricGroup.name(templates.taskCommitTimeAvg)));
+
+            batchSize = metricGroup.sensor();
+            batchSize.addStat(new Max(registry, metricGroup.name(templates.taskBatchSizeMax)));
+            batchSize.addStat(new Avg(registry, metricGroup.name(templates.taskBatchSizeAvg)));
+
+            taskCommitFailures = metricGroup.sensor();
+            taskCommitFailures.addStat(new CumulativeCount(registry, metricGroup.name(templates.taskCommitFailureCount)));
+
+            taskCommitSuccess = metricGroup.sensor();
+            taskCommitSuccess.addStat(new CumulativeCount(registry, metricGroup.name(templates.taskCommitSuccessCount)));
+
+        }
+
+
+        void close() {
+            metricGroup.close();
+        }
+
+        void recordCommit(long duration, boolean success) {
+            if (success) {
+                commitTime.record(duration);
+                taskCommitSuccess.record(1);
+            } else {
+                taskCommitFailures.record(1);
+            }
+        }
+
+        void recordMultiple(int size) {
+            batchSize.record(size);
+        }
     }
 
 }

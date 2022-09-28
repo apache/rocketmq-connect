@@ -38,17 +38,51 @@ import java.util.Set;
 
 public class Plugin {
 
-    public enum ClassLoaderUsage {
-        CURRENT_CLASSLOADER,
-        PLUGINS
-    }
-
     private static final Logger log = LoggerFactory.getLogger(Plugin.class);
     private final DelegatingClassLoader delegatingLoader;
-
     public Plugin(List<String> pluginLocations) {
         delegatingLoader = newDelegatingClassLoader(pluginLocations);
         delegatingLoader.initLoaders();
+    }
+
+    public static ClassLoader compareAndSwapLoaders(ClassLoader loader) {
+        ClassLoader current = Thread.currentThread().getContextClassLoader();
+        if (!current.equals(loader)) {
+            Thread.currentThread().setContextClassLoader(loader);
+        }
+        return current;
+    }
+
+    protected static <U> Class<? extends U> pluginClass(
+            DelegatingClassLoader loader,
+            String classOrAlias,
+            Class<U> pluginClass
+    ) throws ClassNotFoundException {
+        Class<?> klass = loader.loadClass(classOrAlias, false);
+        if (pluginClass.isAssignableFrom(klass)) {
+            return (Class<? extends U>) klass;
+        }
+
+        throw new ClassNotFoundException(
+                "Requested class: "
+                        + classOrAlias
+                        + " does not extend " + pluginClass.getSimpleName()
+        );
+    }
+
+    protected static <T> T newPlugin(Class<T> klass) {
+        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
+        try {
+            return Utils.newInstance(klass);
+        } catch (Throwable t) {
+            throw new ConnectException("Instantiation error", t);
+        } finally {
+            compareAndSwapLoaders(savedLoader);
+        }
+    }
+
+    private static <T> String pluginNames(Collection<PluginWrapper<T>> plugins) {
+        return Utils.join(plugins, ", ");
     }
 
     public void initLoaders() {
@@ -83,31 +117,6 @@ public class Plugin {
 
     public ClassLoader currentThreadLoader() {
         return Thread.currentThread().getContextClassLoader();
-    }
-
-    public static ClassLoader compareAndSwapLoaders(ClassLoader loader) {
-        ClassLoader current = Thread.currentThread().getContextClassLoader();
-        if (!current.equals(loader)) {
-            Thread.currentThread().setContextClassLoader(loader);
-        }
-        return current;
-    }
-
-    protected static <U> Class<? extends U> pluginClass(
-            DelegatingClassLoader loader,
-            String classOrAlias,
-            Class<U> pluginClass
-    ) throws ClassNotFoundException {
-        Class<?> klass = loader.loadClass(classOrAlias, false);
-        if (pluginClass.isAssignableFrom(klass)) {
-            return (Class<? extends U>) klass;
-        }
-
-        throw new ClassNotFoundException(
-                "Requested class: "
-                        + classOrAlias
-                        + " does not extend " + pluginClass.getSimpleName()
-        );
     }
 
     public Connector newConnector(String connectorClassOrAlias) {
@@ -201,7 +210,6 @@ public class Plugin {
         return plugin;
     }
 
-
     public <T> List<T> newPlugins(List<String> klassNames, ConnectKeyValue config, Class<T> pluginKlass) {
         List<T> plugins = new ArrayList<>();
         if (klassNames != null) {
@@ -211,18 +219,6 @@ public class Plugin {
         }
         return plugins;
     }
-
-    protected static <T> T newPlugin(Class<T> klass) {
-        ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
-        try {
-            return Utils.newInstance(klass);
-        } catch (Throwable t) {
-            throw new ConnectException("Instantiation error", t);
-        } finally {
-            compareAndSwapLoaders(savedLoader);
-        }
-    }
-
 
     public <T> T newPlugin(String klassName, ConnectKeyValue config, Class<T> pluginKlass) {
         T plugin;
@@ -243,11 +239,6 @@ public class Plugin {
         return plugin;
     }
 
-    private static <T> String pluginNames(Collection<PluginWrapper<T>> plugins) {
-        return Utils.join(plugins, ", ");
-    }
-
-
     protected <U> Class<? extends U> pluginClassFromConfig(
             ConnectKeyValue config,
             String propertyName,
@@ -264,6 +255,12 @@ public class Plugin {
                         + propertyName + ", available classes are: "
                         + pluginNames(plugins)
         );
+    }
+
+
+    public enum ClassLoaderUsage {
+        CURRENT_CLASSLOADER,
+        PLUGINS
     }
 
 }

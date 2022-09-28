@@ -27,7 +27,7 @@ public class CountDownLatch2 {
      * Constructs a {@code CountDownLatch2} initialized with the given count.
      *
      * @param count the number of times {@link #countDown} must be invoked before threads can pass through {@link
-     * #await}
+     *              #await}
      * @throws IllegalArgumentException if {@code count} is negative
      */
     public CountDownLatch2(int count) {
@@ -95,13 +95,13 @@ public class CountDownLatch2 {
      * is returned.  If the time is less than or equal to zero, the method will not wait at all.
      *
      * @param timeout the maximum time to wait
-     * @param unit the time unit of the {@code timeout} argument
+     * @param unit    the time unit of the {@code timeout} argument
      * @return {@code true} if the count reached zero and {@code false} if the waiting time elapsed before the count
      * reached zero
      * @throws InterruptedException if the current thread is interrupted while waiting
      */
     public boolean await(long timeout, TimeUnit unit)
-        throws InterruptedException {
+            throws InterruptedException {
         return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
     }
 
@@ -165,7 +165,7 @@ public class CountDownLatch2 {
 
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
-            for (;; ) {
+            for (; ; ) {
                 int c = getState();
                 if (c == 0)
                     return false;

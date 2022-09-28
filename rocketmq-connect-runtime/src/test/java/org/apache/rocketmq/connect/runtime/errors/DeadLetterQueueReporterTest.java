@@ -17,9 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.errors;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
@@ -27,11 +24,17 @@ import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DeadLetterQueueReporterTest {
 
@@ -89,7 +92,7 @@ public class DeadLetterQueueReporterTest {
 
         sinkConfig.setProperties(properties);
         WorkerConfig workerConfig = new WorkerConfig();
-        final DeadLetterQueueReporter deadLetterQueueReporter = DeadLetterQueueReporter.build("fileSinkConnector", sinkConfig, workerConfig);
+        final DeadLetterQueueReporter deadLetterQueueReporter = DeadLetterQueueReporter.build(new ConnectorTaskId("fileSinkConnector", 1), sinkConfig, workerConfig, new ErrorMetricsGroup(new ConnectorTaskId("fileSinkConnector", 1), new ConnectMetrics(new WorkerConfig())));
         return deadLetterQueueReporter;
     }
 }

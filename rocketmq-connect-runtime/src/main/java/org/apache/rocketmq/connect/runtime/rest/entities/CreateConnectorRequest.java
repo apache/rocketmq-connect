@@ -27,7 +27,9 @@ public class CreateConnectorRequest {
     private String name;
     private Map<String, String> config;
 
-    public CreateConnectorRequest(){}
+    public CreateConnectorRequest() {
+    }
+
     public CreateConnectorRequest(String name, Map<String, String> config) {
         this.name = name;
         this.config = config;

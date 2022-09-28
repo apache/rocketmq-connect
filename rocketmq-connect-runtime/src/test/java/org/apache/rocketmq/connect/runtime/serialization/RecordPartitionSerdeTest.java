@@ -27,7 +27,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class RecordPartitionSerdeTest {
-
     private RecordPartitionSerde recordPartitionSerde = new RecordPartitionSerde();
 
     @Test

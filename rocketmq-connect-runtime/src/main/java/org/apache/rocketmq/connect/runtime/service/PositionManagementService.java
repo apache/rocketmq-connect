@@ -20,10 +20,11 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for position manager.
@@ -96,6 +97,9 @@ public interface PositionManagementService {
 
     void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter);
 
+    StagingMode getStagingMode();
+
+
     interface PositionUpdateListener {
 
         /**
@@ -103,6 +107,4 @@ public interface PositionManagementService {
          */
         void onPositionUpdate();
     }
-
-    StagingMode getStagingMode();
 }

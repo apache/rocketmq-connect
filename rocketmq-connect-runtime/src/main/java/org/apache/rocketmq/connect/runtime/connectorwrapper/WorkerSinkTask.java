@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
+import com.codahale.metrics.MetricRegistry;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -37,15 +38,23 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.connect.metrics.stats.Avg;
+import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
+import org.apache.rocketmq.connect.metrics.stats.Max;
+import org.apache.rocketmq.connect.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
+import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
+import org.apache.rocketmq.connect.runtime.metrics.Sensor;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
@@ -77,65 +86,13 @@ import static java.util.Collections.singleton;
  */
 public class WorkerSinkTask extends WorkerTask {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private static final Integer MAX_MESSAGE_NUM = 32;
-    private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 5;
-    /**
-     * The implements of the sink task.
-     */
-    private SinkTask sinkTask;
-
-    /**
-     * A RocketMQ consumer to pull message from MQ.
-     */
-    private final DefaultLitePullConsumer consumer;
-
-    /**
-     * A converter to parse sink data entry to object.
-     */
-    private RecordConverter keyConverter;
-    private RecordConverter valueConverter;
-
-    /**
-     * cache offset
-     */
-    private final Map<MessageQueue, Long> lastCommittedOffsets;
-    private final Map<MessageQueue, Long> currentOffsets;
-    private final Map<MessageQueue, Long> originalOffsets;
-    private final Set<MessageQueue> messageQueues;
-
-    private final List<ConnectRecord> messageBatch;
-
-
-    private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
-
-    private MessageQueueListener messageQueueListener = null;
-    /**
-     * stat
-     */
-    private final ConnectStatsManager connectStatsManager;
-    private final ConnectStatsService connectStatsService;
-
-    private final CountDownLatch stopPullMsgLatch;
-    private WorkerSinkTaskContext sinkTaskContext;
-    private WorkerErrorRecordReporter errorRecordReporter;
-
-    /**
-     * for commit
-     */
-    private long nextCommit;
-    private int commitSeqno;
-    private long commitStarted;
-    private boolean committing;
-    private boolean pausedForRetry;
-
-
     public static final String BROKER_NAME = "brokerName";
     public static final String QUEUE_ID = "queueId";
     public static final String TOPIC = "topic";
     public static final String QUEUE_OFFSET = "queueOffset";
-
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    private static final Integer MAX_MESSAGE_NUM = 32;
+    private static final long PULL_MSG_ERROR_BACKOFF_MS = 1000 * 5;
     private static final Set<String> MQ_SYS_KEYS = new HashSet<String>() {
         {
             add("MIN_OFFSET");
@@ -147,6 +104,47 @@ public class WorkerSinkTask extends WorkerTask {
             add("TAGS");
         }
     };
+    /**
+     * A RocketMQ consumer to pull message from MQ.
+     */
+    private final DefaultLitePullConsumer consumer;
+    /**
+     * cache offset
+     */
+    private final Map<MessageQueue, Long> lastCommittedOffsets;
+    private final Map<MessageQueue, Long> currentOffsets;
+    private final Map<MessageQueue, Long> originalOffsets;
+    private final Set<MessageQueue> messageQueues;
+    private final List<ConnectRecord> messageBatch;
+    /**
+     * stat
+     */
+    private final ConnectStatsManager connectStatsManager;
+    private final ConnectStatsService connectStatsService;
+
+    private final CountDownLatch stopPullMsgLatch;
+    private final SinkTaskMetricsGroup sinkTaskMetricsGroup;
+    /**
+     * The implements of the sink task.
+     */
+    private SinkTask sinkTask;
+    /**
+     * A converter to parse sink data entry to object.
+     */
+    private RecordConverter keyConverter;
+    private RecordConverter valueConverter;
+    private Set<RecordPartition> recordPartitions = new CopyOnWriteArraySet<>();
+    private MessageQueueListener messageQueueListener = null;
+    private WorkerSinkTaskContext sinkTaskContext;
+    private WorkerErrorRecordReporter errorRecordReporter;
+    /**
+     * for commit
+     */
+    private long nextCommit;
+    private int commitSeqno;
+    private long commitStarted;
+    private boolean committing;
+    private boolean pausedForRetry;
 
     public WorkerSinkTask(WorkerConfig workerConfig,
                           ConnectorTaskId id,
@@ -162,8 +160,9 @@ public class WorkerSinkTask extends WorkerTask {
                           TransformChain<ConnectRecord> transformChain,
                           RetryWithToleranceOperator retryWithToleranceOperator,
                           WorkerErrorRecordReporter errorRecordReporter,
-                          WrapperStatusListener statusListener) {
-        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener);
+                          WrapperStatusListener statusListener,
+                          ConnectMetrics connectMetrics) {
+        super(workerConfig, id, classLoader, taskConfig, retryWithToleranceOperator, transformChain, workerState, statusListener, connectMetrics);
         this.sinkTask = sinkTask;
         this.consumer = consumer;
         this.keyConverter = keyConverter;
@@ -187,6 +186,7 @@ public class WorkerSinkTask extends WorkerTask {
         this.commitStarted = -1;
         // pause for retry
         this.pausedForRetry = false;
+        this.sinkTaskMetricsGroup = new SinkTaskMetricsGroup(id, connectMetrics);
     }
 
 
@@ -373,9 +373,10 @@ public class WorkerSinkTask extends WorkerTask {
     private void doCommitSync(Map<MessageQueue, Long> offsets, int seqno) {
         log.debug("{} Committing offsets synchronously using sequence number {}: {}", this, seqno, offsets);
         try {
-            offsets.forEach((queue, offset) -> {
-                consumer.getOffsetStore().updateOffset(queue, offset, true);
-            });
+            for (Map.Entry<MessageQueue, Long> offsetEntry : offsets.entrySet()) {
+                consumer.getOffsetStore().updateOffset(offsetEntry.getKey(), offsetEntry.getValue(), true);
+                // consumer.getOffsetStore().updateConsumeOffsetToBroker(offsetEntry.getKey(), offsetEntry.getValue(), false);
+            }
             onCommitCompleted(null, seqno, offsets);
         } catch (Exception e) {
             onCommitCompleted(e, seqno, offsets);
@@ -391,12 +392,14 @@ public class WorkerSinkTask extends WorkerTask {
      */
     private void onCommitCompleted(Throwable error, long seqno, Map<MessageQueue, Long> committedOffsets) {
         if (commitSeqno != seqno) {
+            // skip this commit
+            sinkTaskMetricsGroup.recordOffsetCommitSkip();
             return;
         }
         if (error != null) {
             log.error("{} An exception was thrown when committing commit offset, sequence number {}: {}",
                     this, seqno, committedOffsets, error);
-
+            recordCommitFailure(System.currentTimeMillis() - commitStarted);
         } else {
             log.debug("{} Finished offset commit successfully in {} ms for sequence number {}: {}",
                     this, System.currentTimeMillis() - commitStarted, seqno, committedOffsets);
@@ -404,6 +407,7 @@ public class WorkerSinkTask extends WorkerTask {
                 lastCommittedOffsets.putAll(committedOffsets);
                 log.debug("{} Last committed offsets are now {}", this, committedOffsets);
             }
+            sinkTaskMetricsGroup.recordOffsetCommitSuccess();
         }
         committing = false;
     }
@@ -440,11 +444,15 @@ public class WorkerSinkTask extends WorkerTask {
      * @return
      */
     private List<MessageExt> pollConsumer(long timeoutMs) {
-        final long beginPullMsgTimestamp = System.currentTimeMillis();
         List<MessageExt> msgs = consumer.poll(timeoutMs);
         // metrics
-        recordReadSuccess(msgs.size(), beginPullMsgTimestamp);
+        recordReadSuccess(msgs.size());
         return msgs;
+    }
+
+    public void removeMetrics(){
+        super.removeMetrics();
+        Utils.closeQuietly(this.sinkTaskMetricsGroup, "Remove sink "+id.toString()+" metrics");
     }
 
     @Override
@@ -452,6 +460,7 @@ public class WorkerSinkTask extends WorkerTask {
         sinkTask.stop();
         consumer.shutdown();
         stopPullMsgLatch.countDown();
+        removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
     }
@@ -479,7 +488,12 @@ public class WorkerSinkTask extends WorkerTask {
             log.info("Received one message success : msgId {}", message.getMsgId());
         }
         try {
+            long start = System.currentTimeMillis();
             sinkTask.put(new ArrayList<>(messageBatch));
+            //metrics
+            recordMultiple(messageBatch.size());
+            sinkTaskMetricsGroup.recordPut(System.currentTimeMillis() - start);
+
             currentOffsets.putAll(originalOffsets);
             messageBatch.clear();
 
@@ -788,16 +802,11 @@ public class WorkerSinkTask extends WorkerTask {
                 iteration();
             } catch (RetriableException e) {
                 log.error(" Sink task {}, pull message RetriableException, Error {} ", this, e.getMessage(), e);
-                readRecordFailNum();
             } catch (InterruptedException interruptedException) {
                 //NO-op
             } catch (Throwable e) {
                 log.error(" Sink task {}, pull message Throwable, Error {} ", this, e.getMessage(), e);
-                readRecordFailNum();
                 throw e;
-            } finally {
-                // record sink read times
-                connectStatsManager.incSinkRecordReadTotalTimes();
             }
         }
 
@@ -805,6 +814,23 @@ public class WorkerSinkTask extends WorkerTask {
 
     public Set<RecordPartition> getRecordPartitions() {
         return recordPartitions;
+    }
+
+    @Override
+    protected void recordMultiple(int size) {
+        super.recordMultiple(size);
+        sinkTaskMetricsGroup.recordSend(size);
+    }
+
+    @Override
+    protected void recordCommitFailure(long duration) {
+        super.recordCommitFailure(duration);
+    }
+
+    @Override
+    protected void recordCommitSuccess(long duration) {
+        super.recordCommitSuccess(duration);
+        sinkTaskMetricsGroup.recordOffsetCommitSuccess();
     }
 
 
@@ -817,36 +843,77 @@ public class WorkerSinkTask extends WorkerTask {
         return errorRecordReporter;
     }
 
-    private void recordReadSuccess(int recordSize, long beginPullMsgTimestamp) {
-        long pullRT = System.currentTimeMillis() - beginPullMsgTimestamp;
-        recordReadNums(recordSize);
-        recordReadRT(pullRT);
-    }
-
-    private void recordReadNums(int size) {
-        connectStatsManager.incSinkRecordReadTotalNums(size);
-        connectStatsManager.incSinkRecordReadNums(id().toString(), size);
-    }
-
-    private void recordReadRT(long pullRT) {
-        connectStatsManager.incSinkRecordReadTotalRT(pullRT);
-        connectStatsManager.incSinkRecordReadRT(id().toString(), pullRT);
+    private void recordReadSuccess(int recordSize) {
+        sinkTaskMetricsGroup.recordRead(recordSize);
     }
 
 
-    private void readRecordFail(long beginPullMsgTimestamp) {
-        readRecordFailNum();
-        readRecordFailRT(System.currentTimeMillis() - beginPullMsgTimestamp);
-    }
+    static class SinkTaskMetricsGroup implements AutoCloseable {
+        private final MetricGroup metricGroup;
 
-    private void readRecordFailRT(long errorPullRT) {
-        connectStatsManager.incSinkRecordReadTotalFailRT(errorPullRT);
-        connectStatsManager.incSinkRecordReadFailRT(id().toString(), errorPullRT);
-    }
+        private final Sensor sinkRecordRead;
+        private final Sensor sinkRecordSend;
 
-    private void readRecordFailNum() {
-        connectStatsManager.incSinkRecordReadTotalFailNums();
-        connectStatsManager.incSinkRecordReadFailNums(id().toString());
+        private final Sensor offsetCompletion;
+        private final Sensor offsetCompletionSkip;
+        private final Sensor putBatchTime;
+
+
+        public SinkTaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
+            ConnectMetricsTemplates templates = connectMetrics.templates();
+            metricGroup = connectMetrics
+                    .group(templates.connectorTagName(), id.connector(), templates.taskTagName(),
+                            Integer.toString(id.task()));
+
+            MetricRegistry registry = connectMetrics.registry();
+
+            sinkRecordRead = metricGroup.sensor();
+            sinkRecordRead.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordReadRate)));
+            sinkRecordRead.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordReadTotal)));
+
+            sinkRecordSend = metricGroup.sensor();
+            sinkRecordSend.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordSendRate)));
+            sinkRecordSend.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordSendTotal)));
+
+            putBatchTime = metricGroup.sensor();
+            putBatchTime.addStat(new Max(registry, metricGroup.name(templates.sinkRecordPutBatchTimeMax)));
+            putBatchTime.addStat(new Avg(registry, metricGroup.name(templates.sinkRecordPutBatchTimeAvg)));
+
+            offsetCompletion = metricGroup.sensor();
+            offsetCompletion.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordOffsetCommitCompletionRate)));
+            offsetCompletion.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordOffsetCommitCompletionTotal)));
+
+            offsetCompletionSkip = metricGroup.sensor();
+            offsetCompletionSkip.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordOffsetCommitSkipRate)));
+            offsetCompletionSkip.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordOffsetCommitSkipTotal)));
+
+
+        }
+
+        public void close() {
+            metricGroup.close();
+        }
+
+        void recordRead(int batchSize) {
+            sinkRecordRead.record(batchSize);
+        }
+
+        void recordSend(int batchSize) {
+            sinkRecordSend.record(batchSize);
+        }
+
+        void recordPut(long duration) {
+            putBatchTime.record(duration);
+        }
+
+        void recordOffsetCommitSuccess() {
+            offsetCompletion.record();
+        }
+
+        void recordOffsetCommitSkip() {
+            offsetCompletionSkip.record();
+        }
+
     }
 
 }

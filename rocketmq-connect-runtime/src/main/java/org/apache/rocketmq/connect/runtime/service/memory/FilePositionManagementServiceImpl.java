@@ -75,7 +75,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
     @Override
     public void start() {
         executor = Executors.newFixedThreadPool(1, ThreadUtils.newThreadFactory(
-            this.getClass().getSimpleName() + "-%d", false));
+                this.getClass().getSimpleName() + "-%d", false));
         positionStore.load();
     }
 
@@ -92,7 +92,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
             }
             if (!executor.shutdownNow().isEmpty()) {
                 throw new ConnectException("Failed to stop MemoryOffsetManagementServiceImpl. Exiting without cleanly " +
-                    "shutting down pending tasks and/or callbacks.");
+                        "shutting down pending tasks and/or callbacks.");
             }
             executor = null;
         }
@@ -205,4 +205,3 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
     }
 
 }
-

@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class PluginClassLoaderTest {
 
@@ -42,11 +43,8 @@ public class PluginClassLoaderTest {
     @Test
     public void loadClassTest() throws ClassNotFoundException {
         Assertions.assertThatCode(() -> pluginClassLoader.loadClass("org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector"))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
-
-
-
 
 
 }

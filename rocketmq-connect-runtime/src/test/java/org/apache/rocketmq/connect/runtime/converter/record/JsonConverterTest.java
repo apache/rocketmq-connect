@@ -30,11 +30,10 @@ import io.openmessaging.connector.api.data.logical.Decimal;
 import io.openmessaging.connector.api.data.logical.Time;
 import io.openmessaging.connector.api.data.logical.Timestamp;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.converter.record.json.DecimalFormat;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverterConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonSchema;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,7 +58,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
-import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 
 public class JsonConverterTest {
     private static final String TOPIC = "topic";
@@ -497,7 +495,7 @@ public class JsonConverterTest {
 
     @Test
     public void testJsonSchemaMetadataTranslation() {
-        JSONObject converted= parse(converter.fromConnectData(TOPIC, SchemaBuilder.bool().build(), true));
+        JSONObject converted = parse(converter.fromConnectData(TOPIC, SchemaBuilder.bool().build(), true));
         assertEquals(parse("{ \"type\": \"boolean\", \"optional\": true }"), converted.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME));
         assertEquals(true, converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME));
 
@@ -571,7 +569,7 @@ public class JsonConverterTest {
 
 
     @Test
-    public void bytesToJson(){
+    public void bytesToJson() {
         JSONObject converted = parse(converter.fromConnectData(TOPIC, SchemaBuilder.bytes().required().build(), "test-string".getBytes()));
         assertEquals(parse("{ \"type\": \"bytes\", \"optional\": false }"), converted.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME));
         byte[] bytes = TypeUtils.castToBytes(converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME).toString());
@@ -622,14 +620,16 @@ public class JsonConverterTest {
         JSONArray payload = (JSONArray) converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME);
         assertEquals(2, payload.size());
         Set<JSONArray> payloadEntries = new HashSet<>();
-        for (Object elem : payload.toArray()){
-            JSONArray array = (JSONArray)elem;
+        for (Object elem : payload.toArray()) {
+            JSONArray array = (JSONArray) elem;
             payloadEntries.add(array);
         }
         JSONArray values01 = new JSONArray();
-        values01.add(1); values01.add(12);
+        values01.add(1);
+        values01.add(12);
         JSONArray values02 = new JSONArray();
-        values02.add(2); values02.add(15);
+        values02.add(2);
+        values02.add(15);
         assertEquals(new HashSet<>(Arrays.asList(values01, values02)), payloadEntries);
     }
 
@@ -643,7 +643,7 @@ public class JsonConverterTest {
                 .required()
                 .build();
         Struct input = new Struct(schema).put("field1", true).put("field2", "string2").put("field3", "string3").put("field4", false);
-        JSONObject converted =(JSONObject) parseObject(converter.fromConnectData(TOPIC, schema, input));
+        JSONObject converted = (JSONObject) parseObject(converter.fromConnectData(TOPIC, schema, input));
         JSONObject object = new JSONObject();
         object.put("field1", true);
         object.put("field2", "string2");
@@ -681,7 +681,7 @@ public class JsonConverterTest {
         JSONObject converted = parse(converter.fromConnectData(TOPIC, Decimal.schema(2), new BigDecimal(new BigInteger("156"), 2)));
         assertEquals(parse("{ \"type\": \"bytes\", \"optional\": true, \"name\": \"io.openmessaging.connector.api.data.logical.Decimal\", \"version\": 1, \"parameters\": { \"scale\": \"2\" } }"),
                 converted.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME));
-        byte[] bytes = TypeUtils.castToBytes( converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME).toString());
+        byte[] bytes = TypeUtils.castToBytes(converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME).toString());
         assertArrayEquals(new byte[]{0, -100}, bytes);
     }
 
@@ -690,7 +690,7 @@ public class JsonConverterTest {
         converter.configure(Collections.singletonMap(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name()));
         JSONObject converted = parse(converter.fromConnectData(TOPIC, Decimal.schema(2), new BigDecimal(new BigInteger("156"), 2)));
         assertEquals(parse("{ \"type\": \"bytes\", \"optional\": true, \"name\": \"io.openmessaging.connector.api.data.logical.Decimal\", \"version\": 1, \"parameters\": { \"scale\": \"2\" } }"),
-            converted.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME));
+                converted.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME));
         assertEquals(new BigDecimal("1.56"), converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME));
     }
 
@@ -698,9 +698,9 @@ public class JsonConverterTest {
     @Test
     public void decimalToJsonWithoutSchema() {
         assertThrows(
-            "expected data exception when serializing BigDecimal without schema",
-            ConnectException.class,
-            () -> converter.fromConnectData(TOPIC, null, new BigDecimal(new BigInteger("156"), 2)));
+                "expected data exception when serializing BigDecimal without schema",
+                ConnectException.class,
+                () -> converter.fromConnectData(TOPIC, null, new BigDecimal(new BigInteger("156"), 2)));
     }
 
     @Test
@@ -840,7 +840,7 @@ public class JsonConverterTest {
 
     private JSONObject parse(byte[] json) {
         try {
-            String objStr=new String(json, StandardCharsets.UTF_8);
+            String objStr = new String(json, StandardCharsets.UTF_8);
             return JSON.parseObject(objStr);
         } catch (Exception e) {
             fail("IOException during JSON parse: " + e.getMessage());
@@ -850,10 +850,10 @@ public class JsonConverterTest {
 
     private Object parseObject(byte[] json) {
         try {
-            String objStr=new String(json, StandardCharsets.UTF_8);
-            Object data= JSON.parse(objStr);
-            if (data instanceof JSONObject){
-                return (JSONObject)data;
+            String objStr = new String(json, StandardCharsets.UTF_8);
+            Object data = JSON.parse(objStr);
+            if (data instanceof JSONObject) {
+                return (JSONObject) data;
             }
             return data;
         } catch (Exception e) {

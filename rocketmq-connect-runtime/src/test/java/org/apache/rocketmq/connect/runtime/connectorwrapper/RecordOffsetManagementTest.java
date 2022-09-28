@@ -20,9 +20,6 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.RecordPosition;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.RecordOffsetManagement.SubmittedPosition;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,10 +27,14 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 @RunWith(MockitoJUnitRunner.class)
 public class RecordOffsetManagementTest {
 
-    private RecordOffsetManagement recordOffsetManagement  = new RecordOffsetManagement();
+    private RecordOffsetManagement recordOffsetManagement = new RecordOffsetManagement();
 
     private SubmittedPosition submittedPosition;
 
@@ -49,7 +50,7 @@ public class RecordOffsetManagementTest {
         RecordOffset recordOffset = new RecordOffset(new HashMap<>());
         RecordPartition recordPartition = new RecordPartition(new HashMap<>());
         offsets.put(recordPartition, recordOffset);
-        committableOffsets  = new RecordOffsetManagement.CommittableOffsets(offsets, 10, 10, 10, 50, recordPartition);
+        committableOffsets = new RecordOffsetManagement.CommittableOffsets(offsets, 10, 10, 10, 50, recordPartition);
     }
 
     @Test

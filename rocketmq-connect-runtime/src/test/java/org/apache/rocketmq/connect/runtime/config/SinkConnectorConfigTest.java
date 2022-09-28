@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.config;
 
-import java.util.Set;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Set;
 
 public class SinkConnectorConfigTest {
 
@@ -42,6 +43,6 @@ public class SinkConnectorConfigTest {
         final MessageQueue queue1 = SinkConnectorConfig.parseMessageQueueList("topic");
         assert queue1 == null;
         final MessageQueue queue2 = SinkConnectorConfig.parseMessageQueueList("topic;brokerName;1");
-        assert queue2  != null;
+        assert queue2 != null;
     }
 }

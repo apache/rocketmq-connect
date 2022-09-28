@@ -32,7 +32,9 @@ public class ConnectorInfo {
     private List<ConnectorTaskId> tasks;
     private ConnectorType type;
 
-    public ConnectorInfo(){}
+    public ConnectorInfo() {
+    }
+
     public ConnectorInfo(String name, Map<String, String> config, List<ConnectorTaskId> tasks, ConnectorType type) {
         this.name = name;
         this.config = config;

@@ -28,6 +28,7 @@
         <module>rocketmq-connect-cli</module>
         <module>distribution</module>
         <module>transforms</module>
+        <module>reporter-api</module>
     </modules>
     <name>RocketMQ Connect</name>
 
@@ -127,10 +128,11 @@
                 <artifactId>rocketmq-client</artifactId>
                 <version>${rocketmq.version}</version>
             </dependency>
+
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-tools</artifactId>
+                <version>${rocketmq.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.reflections</groupId>
@@ -157,6 +159,12 @@
                 <artifactId>rocketmq-connect-sample</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-connect-reporter</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>

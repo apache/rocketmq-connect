@@ -108,16 +108,16 @@ public class ConfigKeyInfo {
         if (o == null || getClass() != o.getClass()) return false;
         ConfigKeyInfo that = (ConfigKeyInfo) o;
         return Objects.equals(name, that.name) &&
-               Objects.equals(type, that.type) &&
-               Objects.equals(required, that.required) &&
-               Objects.equals(defaultValue, that.defaultValue) &&
-               Objects.equals(importance, that.importance) &&
-               Objects.equals(documentation, that.documentation) &&
-               Objects.equals(group, that.group) &&
-               Objects.equals(orderInGroup, that.orderInGroup) &&
-               Objects.equals(width, that.width) &&
-               Objects.equals(displayName, that.displayName) &&
-               Objects.equals(dependents, that.dependents);
+                Objects.equals(type, that.type) &&
+                Objects.equals(required, that.required) &&
+                Objects.equals(defaultValue, that.defaultValue) &&
+                Objects.equals(importance, that.importance) &&
+                Objects.equals(documentation, that.documentation) &&
+                Objects.equals(group, that.group) &&
+                Objects.equals(orderInGroup, that.orderInGroup) &&
+                Objects.equals(width, that.width) &&
+                Objects.equals(displayName, that.displayName) &&
+                Objects.equals(dependents, that.dependents);
     }
 
     @Override
@@ -129,28 +129,28 @@ public class ConfigKeyInfo {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("[")
-            .append(name)
-            .append(",")
-            .append(type)
-            .append(",")
-            .append(required)
-            .append(",")
-            .append(defaultValue)
-            .append(",")
-            .append(importance)
-            .append(",")
-            .append(documentation)
-            .append(",")
-            .append(group)
-            .append(",")
-            .append(orderInGroup)
-            .append(",")
-            .append(width)
-            .append(",")
-            .append(displayName)
-            .append(",")
-            .append(dependents)
-            .append("]");
+                .append(name)
+                .append(",")
+                .append(type)
+                .append(",")
+                .append(required)
+                .append(",")
+                .append(defaultValue)
+                .append(",")
+                .append(importance)
+                .append(",")
+                .append(documentation)
+                .append(",")
+                .append(group)
+                .append(",")
+                .append(orderInGroup)
+                .append(",")
+                .append(width)
+                .append(",")
+                .append(displayName)
+                .append(",")
+                .append(dependents)
+                .append("]");
         return sb.toString();
     }
 }

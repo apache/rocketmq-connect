@@ -19,7 +19,6 @@ package org.apache.rocketmq.connect.runtime.utils.datasync;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -38,6 +37,9 @@ import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.MAX_MESSAGE_SIZE;
 
@@ -136,11 +138,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
             producer.send(message, new SendCallback() {
-                @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+
+                @Override
+                public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                 }
 
-                @Override public void onException(Throwable throwable) {
+                @Override
+                public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
                     }
@@ -170,12 +175,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             Message message = new Message(topicName, body);
             message.setKeys(Base64Util.base64Encode(encode.getKey()));
             producer.send(message, new SendCallback() {
-                @Override public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                @Override
+                public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                     callback.onCompletion(null, value);
                 }
 
-                @Override public void onException(Throwable throwable) {
+                @Override
+                public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
                         callback.onCompletion(throwable, value);
@@ -229,10 +236,10 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         };
     }
 
+
     class MessageListenerImpl implements MessageListenerConcurrently {
         @Override
-        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList,
-            ConsumeConcurrentlyContext context) {
+        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList, ConsumeConcurrentlyContext context) {
             for (MessageExt messageExt : rmqMsgList) {
                 log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
                 try {

@@ -17,17 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
-import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
@@ -41,6 +36,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DistributedConnectControllerTest {
@@ -65,6 +62,7 @@ public class DistributedConnectControllerTest {
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
+
 
     @Before
     public void before() throws InterruptedException {

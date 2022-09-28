@@ -45,10 +45,11 @@ public class ConnAndTaskConfigs {
         this.taskConfigs = taskConfigs;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "ConnAndTaskConfigs{" +
-            "connectorConfigs=" + connectorConfigs +
-            ", taskConfigs=" + taskConfigs +
-            '}';
+                "connectorConfigs=" + connectorConfigs +
+                ", taskConfigs=" + taskConfigs +
+                '}';
     }
 }
