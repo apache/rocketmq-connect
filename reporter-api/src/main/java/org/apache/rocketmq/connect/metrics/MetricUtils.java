@@ -91,31 +91,33 @@ public class MetricUtils {
 
     /**
      * get meter value
+     *
      * @param name
      * @param meter
      * @return
      */
     public static Double getMeterValue(MetricName name, Meter meter) {
-       if (name.getType().equals(Stat.NoneType.none.name())) {
-           throw new IllegalArgumentException("Meter type configuration error");
-       }
-       Stat.RateType rateType = Stat.RateType.valueOf(name.getType());
-       switch (rateType) {
-           case MeanRate:
-               return meter.getMeanRate();
-           case OneMinuteRate:
-               return meter.getOneMinuteRate();
-           case FiveMinuteRate:
-               return meter.getFiveMinuteRate();
-           case FifteenMinuteRate:
-               return meter.getFifteenMinuteRate();
-           default:
-               return 0.0;
-       }
+        if (name.getType().equals(Stat.NoneType.none.name())) {
+            throw new IllegalArgumentException("Meter type configuration error");
+        }
+        Stat.RateType rateType = Stat.RateType.valueOf(name.getType());
+        switch (rateType) {
+            case MeanRate:
+                return meter.getMeanRate();
+            case OneMinuteRate:
+                return meter.getOneMinuteRate();
+            case FiveMinuteRate:
+                return meter.getFiveMinuteRate();
+            case FifteenMinuteRate:
+                return meter.getFifteenMinuteRate();
+            default:
+                return 0.0;
+        }
     }
 
     /**
      * get histogram value
+     *
      * @param name
      * @param histogram
      * @return
@@ -125,7 +127,7 @@ public class MetricUtils {
             throw new IllegalArgumentException("Histogram type configuration error");
         }
         Stat.HistogramType histogramType = Stat.HistogramType.valueOf(name.getType());
-        switch (histogramType){
+        switch (histogramType) {
             case Min:
                 return Double.valueOf(histogram.getSnapshot().getMin());
             case Avg:

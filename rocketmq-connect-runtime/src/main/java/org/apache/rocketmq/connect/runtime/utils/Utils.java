@@ -92,19 +92,6 @@ public class Utils {
     }
 
 
-    /**
-     * new instance
-     *
-     * @param klass
-     * @param base
-     * @param <T>
-     * @return
-     * @throws ClassNotFoundException
-     */
-    public static <T> T newInstance(String klass, Class<T> base) throws ClassNotFoundException {
-        return Utils.newInstance(loadClass(klass, base));
-    }
-
     public static <T> T newInstance(String klass, Class<T> base, Class[] parameterTypes, Object[] initargs) throws ClassNotFoundException {
         return Utils.newInstance(loadClass(klass, base), parameterTypes, initargs);
     }

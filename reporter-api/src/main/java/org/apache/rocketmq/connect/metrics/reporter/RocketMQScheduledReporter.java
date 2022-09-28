@@ -28,6 +28,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -141,7 +142,7 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
         } catch (Exception e) {
             log.error("Init config failed ", e);
         } finally {
-            if (defaultMQAdminExt != null){
+            if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
             }
         }
@@ -158,7 +159,7 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
             Message message = new Message();
             message.setTopic(this.topic);
             message.setKeys(name.getStr());
-            message.setBody(value.toString().getBytes("UTF-8"));
+            message.setBody(value.toString().getBytes(StandardCharsets.UTF_8));
             producer.send(message);
         } catch (Exception e) {
             log.error("Send metrics error", e);

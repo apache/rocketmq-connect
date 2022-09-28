@@ -24,7 +24,6 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Timer;
-import org.apache.rocketmq.connect.metrics.stats.Stat;
 
 import java.util.Map;
 import java.util.SortedMap;

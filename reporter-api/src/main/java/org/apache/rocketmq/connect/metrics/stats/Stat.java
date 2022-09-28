@@ -39,7 +39,7 @@ public interface Stat extends AutoCloseable {
 
 
 
-    enum HistogramType{
+    enum HistogramType {
         Avg,
         Max,
         Min,
@@ -53,7 +53,7 @@ public interface Stat extends AutoCloseable {
     /**
      * rate type
      */
-    enum RateType{
+    enum RateType {
         MeanRate,
         OneMinuteRate,
         FiveMinuteRate,
