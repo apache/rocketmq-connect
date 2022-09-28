@@ -19,8 +19,6 @@ package org.apache.rocketmq.connect.runtime.utils.datasync;
 
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -28,6 +26,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.serialization.Serde;
+import org.apache.rocketmq.connect.runtime.serialization.Serializer;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +42,7 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BrokerBasedLogTest {
@@ -69,6 +69,9 @@ public class BrokerBasedLogTest {
 
     private WorkerConfig connectConfig;
 
+    @Mock
+    private Serializer serializer;
+
     @Before
     public void init() throws IllegalAccessException, NoSuchFieldException {
         topicName = "testTopicName";
@@ -82,7 +85,6 @@ public class BrokerBasedLogTest {
         connectConfig.setRmqMaxConsumeThreadNums(32);
         connectConfig.setRmqMessageConsumeTimeout(3 * 1000);
 
-        doReturn(new byte[0]).when(serde).serializer().serialize("test", any(Object.class));
         brokerBasedLog = new BrokerBasedLog(connectConfig, topicName, consumerGroup, dataSynchronizerCallback, serde, serde);
 
         final Field producerField = BrokerBasedLog.class.getDeclaredField("producer");
@@ -111,7 +113,9 @@ public class BrokerBasedLogTest {
     }
 
     @Test
-    public void testSend() throws RemotingException, MQClientException, InterruptedException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testSend() throws RemotingException, MQClientException, InterruptedException {
+        doReturn(serializer).when(serde).serializer();
+        when(serializer.serialize(anyString(), any())).thenReturn(new byte[0]);
         brokerBasedLog.send(new Object(), new Object());
         verify(producer, times(1)).send(any(Message.class), any(SendCallback.class));
     }

@@ -36,6 +36,7 @@ import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
 import org.junit.After;
 import org.junit.Before;
@@ -220,17 +221,13 @@ public class PositionManagementServiceImplTest {
                 add(sourcePartition);
             }
         };
-        positionManagementService.removePosition(sourcePartitions);
-
-        assertFalse(needSyncPartition.contains(sourcePartition));
 
         positionManagementService.putPosition(sourcePartition, sourcePosition);
 
         assertTrue(needSyncPartition.contains(sourcePartition));
 
         positionManagementService.removePosition(sourcePartitions);
-
-        assertFalse(needSyncPartition.contains(sourcePartition));
+        assertFalse(positionStore.containsKey(sourcePartition));
     }
 
     @Test
@@ -268,7 +265,7 @@ public class PositionManagementServiceImplTest {
         needSyncPartition = needSyncPartitionTmp;
         needSyncPartition.addAll(sourcePartitions);
         positionManagementService.removePosition(sourcePartitions);
-        assertTrue(needSyncPartition.size() == 0);
+        assertTrue(positionStore.size() == 0);
     }
 
 }
