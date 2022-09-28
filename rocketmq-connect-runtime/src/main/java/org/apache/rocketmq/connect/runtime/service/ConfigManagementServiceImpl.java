@@ -235,40 +235,43 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     }
 
     @Override
-    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
+    public String putConnectorConfig(String connectorName, ConnectKeyValue connectKeyValue) {
         // check request config
         for (String requireConfig : ConnectorConfig.REQUEST_CONFIG) {
-            if (!configs.containsKey(requireConfig)) {
+            if (!connectKeyValue.containsKey(requireConfig)) {
                 throw new ConnectException("Request config key: " + requireConfig);
             }
         }
         // check exist
         ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
-        if (configs.equals(oldConfig)) {
+        if (connectKeyValue.equals(oldConfig)) {
             throw new ConnectException("Connector with same config already exist.");
         }
 
         // validate config
-        Connector connector = plugin.newConnector(configs.getString(CONNECTOR_CLASS));
+        Connector connector = plugin.newConnector(connectKeyValue.getString(CONNECTOR_CLASS));
         if (connector instanceof SourceConnector) {
-            new SourceConnectorConfig(configs).validate();
+            new SourceConnectorConfig(connectKeyValue).validate();
         } else if (connector instanceof SinkConnector) {
-            new SinkConnectorConfig(configs).validate();
+            new SinkConnectorConfig(connectKeyValue).validate();
         }
 
         // overlap of old config
-        connector.validate(configs);
+        connector.validate(connectKeyValue);
         TargetState state = oldConfig != null ? oldConfig.getTargetState() : TargetState.STARTED;
-        configs.setTargetState(state);
-        configs.setEpoch(System.currentTimeMillis());
+        connectKeyValue.setTargetState(state);
+        connectKeyValue.setEpoch(System.currentTimeMillis());
 
         // new Struct
         Struct connectConfig = new Struct(CONNECTOR_CONFIGURATION_V0);
-        connectConfig.put(FIELD_STATE, configs.getTargetState().name());
-        connectConfig.put(FIELD_EPOCH, configs.getEpoch());
-        connectConfig.put(FIELD_PROPS, configs.getProperties());
+        connectConfig.put(FIELD_STATE, connectKeyValue.getTargetState().name());
+        connectConfig.put(FIELD_EPOCH, connectKeyValue.getEpoch());
+        connectConfig.put(FIELD_PROPS, connectKeyValue.getProperties());
         byte[] config = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, connectConfig);
         dataSynchronizer.send(CONNECTOR_KEY(connectorName), config);
+
+        // add ConnectorConfig to connectorKeyValueStore
+        connectorKeyValueStore.put(connectorName, connectKeyValue);
         return connectorName;
     }
 
@@ -288,6 +291,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
         byte[] config = converter.fromConnectData(topic, CONNECTOR_DELETE_CONFIGURATION_V0, struct);
         dataSynchronizer.send(DELETE_CONNECTOR_KEY(connectorName), config);
+
+        // remove connectorConfig from connectorKeyValueStore
+        connectorKeyValueStore.remove(connectorName);
     }
 
     /**
