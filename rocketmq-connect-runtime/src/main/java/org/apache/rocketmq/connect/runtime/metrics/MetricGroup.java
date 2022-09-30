@@ -21,7 +21,6 @@ import org.apache.rocketmq.connect.metrics.MetricName;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
 
 /**

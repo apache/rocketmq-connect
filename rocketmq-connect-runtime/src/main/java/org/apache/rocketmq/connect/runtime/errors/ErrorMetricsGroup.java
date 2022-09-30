@@ -23,8 +23,6 @@ import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 
-import java.io.Closeable;
-import java.io.IOException;
 
 
 /**
