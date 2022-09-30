@@ -450,9 +450,9 @@ public class WorkerSinkTask extends WorkerTask {
         return msgs;
     }
 
-    public void removeMetrics(){
+    public void removeMetrics() {
         super.removeMetrics();
-        Utils.closeQuietly(this.sinkTaskMetricsGroup, "Remove sink "+id.toString()+" metrics");
+        Utils.closeQuietly(this.sinkTaskMetricsGroup, "Remove sink " + id.toString() + " metrics");
     }
 
     @Override

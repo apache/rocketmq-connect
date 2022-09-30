@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * connect metrics
  */
-public class ConnectMetrics implements AutoCloseable{
+public class ConnectMetrics implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     private final MetricRegistry metricRegistry = new MetricRegistry();
@@ -50,7 +50,7 @@ public class ConnectMetrics implements AutoCloseable{
 
     public ConnectMetrics(WorkerConfig config) {
         this.workerId = config.getWorkerId();
-        if (config.isOpenLogMetricReporter()){
+        if (config.isOpenLogMetricReporter()) {
             final Slf4jReporter slf4jReporter = Slf4jReporter.forRegistry(metricRegistry)
                     .outputTo(LoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS))
                     .convertRatesTo(TimeUnit.SECONDS)

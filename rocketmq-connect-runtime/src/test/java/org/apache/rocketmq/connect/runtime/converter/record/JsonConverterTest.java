@@ -778,7 +778,7 @@ public class JsonConverterTest {
         input.put("key2", "string");
         input.put("key3", true);
         JSONObject converted = parse(converter.fromConnectData(TOPIC, null, input));
-        assertEquals("[[\"key1\",12],[\"key2\",\"string\"],[\"key3\",true]]",
+        assertEquals("{\"key1\":12,\"key2\":\"string\",\"key3\":true}",
                 converted.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME).toString());
     }
 

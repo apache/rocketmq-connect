@@ -51,7 +51,7 @@ public class WorkerConfig {
      * config example:
      * namesrvAddr = localhost:9876
      */
-     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
+    private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
     /**
      * Http port for REST API.
@@ -212,7 +212,7 @@ public class WorkerConfig {
     private long offsetCommitIntervalMsConfig = 30000L;
 
 
-    private boolean openLogMetricReporter = false ;
+    private boolean openLogMetricReporter = false;
 
     private String metricsConfigPath;
     private Map<String, Map<String, String>> metricsConfig = new HashMap<>();

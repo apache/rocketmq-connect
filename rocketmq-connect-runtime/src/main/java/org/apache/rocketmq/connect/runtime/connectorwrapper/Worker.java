@@ -462,7 +462,9 @@ public class Worker {
         try {
             // close metrics
             connectMetrics.close();
-        } catch (Exception e) {}
+        } catch (Exception e) {
+
+        }
     }
 
     private void awaitStopTask(WorkerTask task, long timeout) {

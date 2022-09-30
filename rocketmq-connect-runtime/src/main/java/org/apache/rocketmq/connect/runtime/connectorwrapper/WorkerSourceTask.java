@@ -181,9 +181,9 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
-    public void removeMetrics(){
+    public void removeMetrics() {
         super.removeMetrics();
-        Utils.closeQuietly(sourceTaskMetricsGroup, "Remove source "+id.toString()+" metrics");
+        Utils.closeQuietly(sourceTaskMetricsGroup, "Remove source " + id.toString() + " metrics");
     }
     @Override
     public void close() {

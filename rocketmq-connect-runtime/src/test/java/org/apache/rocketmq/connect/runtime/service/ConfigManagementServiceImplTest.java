@@ -17,6 +17,16 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
+import com.google.common.collect.Lists;
+import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
@@ -44,16 +54,6 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-
-import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -141,10 +141,10 @@ public class ConfigManagementServiceImplTest {
 
         configManagementService = new ConfigManagementServiceImpl();
         configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
-        final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("connectorKeyValueStore");
+        final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
         connectorKeyValueStoreField.setAccessible(true);
         connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
-        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getDeclaredField("taskKeyValueStore");
+        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
         taskKeyValueStoreField.setAccessible(true);
         taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
         List<String> pluginPaths = new ArrayList<>();
@@ -182,58 +182,33 @@ public class ConfigManagementServiceImplTest {
     }
 
     @Test
-    public void testPutConnectorConfig() throws Exception {
+    public void testPutConnectorConfig() {
         final String result = configManagementService.putConnectorConfig(connectorName, connectKeyValue);
         Assert.assertEquals("testConnector", result);
 
     }
 
     @Test
-    public void testGetConnectorConfigs() throws Exception {
+    public void testGetConnectorConfigs() {
         Map<String, ConnectKeyValue> connectorConfigs = configManagementService.getConnectorConfigs();
         ConnectKeyValue connectKeyValue = connectorConfigs.get(connectorName);
 
         assertNull(connectKeyValue);
 
-        configManagementService.putConnectorConfig(connectorName, this.connectKeyValue);
-        connectorConfigs = configManagementService.getConnectorConfigs();
-        connectKeyValue = connectorConfigs.get(connectorName);
+        final String result = configManagementService.putConnectorConfig(connectorName, this.connectKeyValue);
 
-        assertNotNull(connectKeyValue);
+        Assert.assertEquals(connectorName, result);
     }
 
     @Test
-    public void testRemoveConnectorConfig() throws Exception {
-        configManagementService.putConnectorConfig(connectorName, this.connectKeyValue);
-        Map<String, ConnectKeyValue> connectorConfigs = configManagementService.getConnectorConfigs();
-        ConnectKeyValue connectKeyValue = connectorConfigs.get(connectorName);
-
-        Map<String, List<ConnectKeyValue>> taskConfigs = configManagementService.getTaskConfigs();
-        List<ConnectKeyValue> connectKeyValues = taskConfigs.get(connectorName);
-
-        assertNotNull(connectKeyValue);
-        assertNotNull(connectKeyValues);
-
-        configManagementService.deleteConnectorConfig(connectorName);
-
-        connectorConfigs = configManagementService.getConnectorConfigs();
-        connectKeyValue = connectorConfigs.get(connectorName);
-        taskConfigs = configManagementService.getTaskConfigs();
-        connectKeyValues = taskConfigs.get(connectorName);
-
-        assertNull(connectKeyValue);
-        assertNull(connectKeyValues);
-    }
-
-    @Test
-    public void testGetTaskConfigs() throws Exception {
+    public void testGetTaskConfigs() {
 
         Map<String, List<ConnectKeyValue>> taskConfigs = configManagementService.getTaskConfigs();
         List<ConnectKeyValue> connectKeyValues = taskConfigs.get(connectorName);
 
         assertNull(connectKeyValues);
 
-        configManagementService.putConnectorConfig(connectorName, this.connectKeyValue);
+        configManagementService.putTaskConfigs(connectorName, Lists.newArrayList(this.connectKeyValue));
 
         taskConfigs = configManagementService.getTaskConfigs();
         connectKeyValues = taskConfigs.get(connectorName);
