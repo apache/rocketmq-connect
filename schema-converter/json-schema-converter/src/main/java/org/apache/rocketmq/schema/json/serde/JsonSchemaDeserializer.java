@@ -69,12 +69,11 @@ public class JsonSchemaDeserializer implements Deserializer<JsonSchemaAndValue> 
             return null;
         }
         String subjectName = TopicNameStrategy.subjectName(topic, isKey);
-        GetSchemaResponse response = schemaRegistryClient.getSchemaLatestVersion(JsonSchemaData.NAMESPACE, subjectName);
+
         ByteBuffer buffer = ByteBuffer.wrap(payload);
         long schemaId = buffer.getLong();
-        if (schemaId != response.getRecordId()) {
-//            throw new RuntimeException("Deserialization schema id cannot match, ser schemaId " + schemaId + ", DeSer schema id " + response.getRecordId());
-        }
+        GetSchemaResponse response = schemaRegistryClient.getSchemaById(subjectName, schemaId);
+
         int length = buffer.limit() - idSize;
         int start = buffer.position() + buffer.arrayOffset();
 

@@ -185,4 +185,16 @@ public abstract class AbstractLocalSchemaRegistryClient {
         }
     }
 
+
+    public GetSchemaResponse getSchemaById(String subject, long recordId){
+        try {
+            return schemaRegistryClient.getSchemaByRecordId(subject, recordId);
+        } catch (RestClientException | IOException e) {
+            if (e instanceof RestClientException) {
+                return null;
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 }
