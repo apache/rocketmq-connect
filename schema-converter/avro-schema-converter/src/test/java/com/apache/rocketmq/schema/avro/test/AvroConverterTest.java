@@ -16,7 +16,7 @@ import java.util.Map;
 public class AvroConverterTest {
     private AvroConverter avroConverter = new AvroConverter();
 
-    private String topic = "test-topic-07";
+    private String topic = "test-topic-08";
 
     private String SCHEMA_REGISTRY_URL = "http://localhost:8080";
 

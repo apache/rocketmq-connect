@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class AbstractLocalSchemaRegistryClient {
 
-    protected String cluster = "Connect";
+    protected final String cluster = "Connect";
     protected final SchemaRegistryClient schemaRegistryClient;
     private final Long serdeSchemaRegistryId;
     protected final boolean autoRegisterSchemas;
@@ -52,6 +52,10 @@ public abstract class AbstractLocalSchemaRegistryClient {
         this.serdeSchemaRegistryId = config.getSerdeSchemaRegistryId();
         this.autoRegisterSchemas = config.isAutoRegisterSchemas();
         this.useLatestVersion = config.isUseLatestVersion();
+    }
+
+    public SchemaResponse autoRegisterOrGetSchema(String namespace, String subject, RegisterSchemaRequest request, ParsedSchema schema){
+        return autoRegisterOrGetSchema(namespace, subject,  null, request, schema);
     }
 
     /**
@@ -186,9 +190,9 @@ public abstract class AbstractLocalSchemaRegistryClient {
     }
 
 
-    public GetSchemaResponse getSchemaById(String subject, long recordId){
+    public GetSchemaResponse getSchemaById(String namespace, String subject, long recordId){
         try {
-            return schemaRegistryClient.getSchemaByRecordId(subject, recordId);
+            return schemaRegistryClient.getSchemaByRecordId(cluster, namespace, subject, recordId);
         } catch (RestClientException | IOException e) {
             if (e instanceof RestClientException) {
                 return null;

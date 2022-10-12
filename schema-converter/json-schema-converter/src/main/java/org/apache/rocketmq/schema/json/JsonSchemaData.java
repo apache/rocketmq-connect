@@ -198,6 +198,10 @@ public class JsonSchemaData {
     }
 
     private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema, Integer index){
+        return rawSchemaFromConnectSchema(schema, index, false);
+    }
+
+    private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema, Integer index,  boolean ignoreOptional){
         if (schema == null){
             return null;
         }
@@ -253,14 +257,27 @@ public class JsonSchemaData {
                 unprocessedProps.put(CONNECT_TYPE_PROP, schemaType.name().toLowerCase());
                 break;
             case STRUCT:
-               if (schema.isOptional()) {
+                if (JSON_TYPE_ONE_OF.equals(schema.getName())) {
                     CombinedSchema.Builder combinedBuilder = CombinedSchema.builder();
                     combinedBuilder.criterion(CombinedSchema.ONE_CRITERION);
-                   combinedBuilder.subschema(NullSchema.INSTANCE);
-                   combinedBuilder.subschema(rawSchemaFromConnectSchema(nonOptionalSchema(schema)));
-                   builder = combinedBuilder;
+                    if (schema.isOptional()) {
+                        combinedBuilder.subschema(NullSchema.INSTANCE);
+                    }
+                    for (Field field : schema.getFields()) {
+                        combinedBuilder.subschema(rawSchemaFromConnectSchema(nonOptionalSchema(field.getSchema()),
+                                field.getIndex(),
+                                true
+                        ));
+                    }
+                    builder = combinedBuilder;
+                } else if (schema.isOptional()) {
+                    CombinedSchema.Builder combinedBuilder = CombinedSchema.builder();
+                    combinedBuilder.criterion(CombinedSchema.ONE_CRITERION);
+                    combinedBuilder.subschema(NullSchema.INSTANCE);
+                    combinedBuilder.subschema(rawSchemaFromConnectSchema(nonOptionalSchema(schema)));
+                    builder = combinedBuilder;
                     break;
-                }else {
+                } else {
                     ObjectSchema.Builder objectBuilder = ObjectSchema.builder();
                     for (Field field : schema.getFields()) {
                         org.everit.json.schema.Schema fieldSchema = rawSchemaFromConnectSchema(field.getSchema(),
@@ -297,18 +314,20 @@ public class JsonSchemaData {
             if (schema.getDefaultValue() != null) {
                 builder.defaultValue(schema.getDefaultValue());
             }
-            if (schema.isOptional()) {
-                CombinedSchema.Builder combinedBuilder = CombinedSchema.builder();
-                combinedBuilder.criterion(CombinedSchema.ONE_CRITERION);
-                combinedBuilder.subschema(NullSchema.INSTANCE);
-                combinedBuilder.subschema(builder.unprocessedProperties(unprocessedProps).build());
-                if (index != null) {
-                    combinedBuilder.unprocessedProperties(Collections.singletonMap(CONNECT_INDEX_PROP,
-                            index
-                    ));
+            if (!ignoreOptional) {
+                if (schema.isOptional()) {
+                    CombinedSchema.Builder combinedBuilder = CombinedSchema.builder();
+                    combinedBuilder.criterion(CombinedSchema.ONE_CRITERION);
+                    combinedBuilder.subschema(NullSchema.INSTANCE);
+                    combinedBuilder.subschema(builder.unprocessedProperties(unprocessedProps).build());
+                    if (index != null) {
+                        combinedBuilder.unprocessedProperties(Collections.singletonMap(CONNECT_INDEX_PROP,
+                                index
+                        ));
+                    }
+                    builder = combinedBuilder;
+                    unprocessedProps = new HashMap<>();
                 }
-                builder = combinedBuilder;
-                unprocessedProps = new HashMap<>();
             }
         }
         if (index != null) {

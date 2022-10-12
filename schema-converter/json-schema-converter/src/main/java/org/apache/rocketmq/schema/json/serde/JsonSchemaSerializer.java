@@ -75,7 +75,7 @@ public class JsonSchemaSerializer implements Serializer<JsonSchema> {
                     .desc(schema.name())
                     .build();
 
-            SchemaResponse schemaResponse = registryClient.autoRegisterOrGetSchema(JsonSchemaData.NAMESPACE, subjectName, subjectName, schemaRequest, schema);
+            SchemaResponse schemaResponse = registryClient.autoRegisterOrGetSchema(JsonSchemaData.NAMESPACE, subjectName, schemaRequest, schema);
             long schemaId = schemaResponse.getRecordId();
             // parse idl
             if (StringUtils.isNotEmpty(schemaResponse.getIdl())){
