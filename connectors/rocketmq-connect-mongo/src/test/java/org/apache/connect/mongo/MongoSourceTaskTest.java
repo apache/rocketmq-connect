@@ -17,18 +17,13 @@
 
 package org.apache.connect.mongo;
 
-import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.PositionStorageReader;
-import io.openmessaging.connector.api.source.SourceTask;
-import io.openmessaging.connector.api.source.SourceTaskContext;
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
+import io.openmessaging.connector.api.storage.OffsetStorageReader;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.connect.mongo.connector.MongoSourceTask;
 import org.apache.connect.mongo.replicator.ReplicaSet;
@@ -49,7 +44,7 @@ public class MongoSourceTaskTest {
         defaultKeyValue.put("serverSelectionTimeoutMS", "10");
         defaultKeyValue.put("dataSync", "true");
 
-        Field context = SourceTask.class.getDeclaredField("context");
+        Field context = SourceTask.class.getDeclaredField("sourceTaskContext");
         context.setAccessible(true);
         context.set(mongoSourceTask, emptyTaskContext());
         mongoSourceTask.start(defaultKeyValue);
@@ -69,30 +64,26 @@ public class MongoSourceTaskTest {
         Assert.assertTrue(StringUtils.equals(replicaSetConfig1.getReplicaSetName(), "test"));
         Assert.assertTrue(StringUtils.equals(replicaSetConfig1.getHost(), "127.0.0.1:27027"));
         Assert.assertTrue(replicaSetConfig1.getPosition().getTimeStamp() == 11111111);
-        Assert.assertTrue(replicaSetConfig1.getPosition().getInc() == 111);
-        Assert.assertTrue(replicaSetConfig1.getPosition().isInitSync());
     }
 
     private SourceTaskContext emptyTaskContext() {
         return new SourceTaskContext() {
-            @Override
-            public PositionStorageReader positionStorageReader() {
-                return new PositionStorageReader() {
-                    @Override
-                    public ByteBuffer getPosition(ByteBuffer partition) {
-                        return null;
-                    }
 
-                    @Override
-                    public Map<ByteBuffer, ByteBuffer> getPositions(Collection<ByteBuffer> partitions) {
-                        return null;
-                    }
-                };
+            @Override public OffsetStorageReader offsetStorageReader() {
+                return new TestPositionStorageReader();
+            }
+
+            @Override public String getConnectorName() {
+                return "mongoSourceConnector";
+            }
+
+            @Override public String getTaskName() {
+                return "mongoSourceTask";
             }
 
             @Override
             public KeyValue configs() {
-                return null;
+                return new DefaultKeyValue();
             }
         };
     }
@@ -101,12 +92,12 @@ public class MongoSourceTaskTest {
     public void testContextStart() throws NoSuchFieldException, IllegalAccessException {
         MongoSourceTask mongoSourceTask = new MongoSourceTask();
         DefaultKeyValue defaultKeyValue = new DefaultKeyValue();
-        defaultKeyValue.put("mongoAddr", "test/127.0.0.1:27027");
+        defaultKeyValue.put("mongoAddr", "test/127.0.0.1:27017");
         defaultKeyValue.put("serverSelectionTimeoutMS", "10");
 
-        Field context = SourceTask.class.getDeclaredField("context");
+        Field context = SourceTask.class.getDeclaredField("sourceTaskContext");
         context.setAccessible(true);
-        context.set(mongoSourceTask, TaskContext());
+        context.set(mongoSourceTask, taskContext());
         mongoSourceTask.start(defaultKeyValue);
 
         Field replicaSetsContext = MongoSourceTask.class.getDeclaredField("replicaSetsContext");
@@ -122,37 +113,28 @@ public class MongoSourceTaskTest {
         replicaSetConfig.setAccessible(true);
         ReplicaSetConfig replicaSetConfig1 = (ReplicaSetConfig) replicaSetConfig.get(replicaSet);
         Assert.assertTrue(StringUtils.equals(replicaSetConfig1.getReplicaSetName(), "test"));
-        Assert.assertTrue(StringUtils.equals(replicaSetConfig1.getHost(), "127.0.0.1:27027"));
-        Assert.assertTrue(replicaSetConfig1.getPosition().getTimeStamp() == 22222222);
-        Assert.assertTrue(replicaSetConfig1.getPosition().getInc() == 222);
-        Assert.assertTrue(!replicaSetConfig1.getPosition().isInitSync());
+        Assert.assertTrue(StringUtils.equals(replicaSetConfig1.getHost(), "127.0.0.1:27017"));
+        Assert.assertTrue(replicaSetConfig1.getPosition().getTimeStamp() == 0);
     }
 
-    private SourceTaskContext TaskContext() {
+    private SourceTaskContext taskContext() {
         return new SourceTaskContext() {
-            @Override
-            public PositionStorageReader positionStorageReader() {
-                return new PositionStorageReader() {
-                    @Override
-                    public ByteBuffer getPosition(ByteBuffer partition) {
 
-                        Map<String, Object> po = new HashMap<>();
-                        po.put("timeStamp", 22222222);
-                        po.put("inc", 222);
-                        po.put("initSync", false);
-                        return ByteBuffer.wrap(JSONObject.toJSONString(po).getBytes());
-                    }
+            @Override public OffsetStorageReader offsetStorageReader() {
+                return new TestPositionStorageReader();
+            }
 
-                    @Override
-                    public Map<ByteBuffer, ByteBuffer> getPositions(Collection<ByteBuffer> partitions) {
-                        return null;
-                    }
-                };
+            @Override public String getConnectorName() {
+                return "mongoSourceConnector";
+            }
+
+            @Override public String getTaskName() {
+                return "mongoSourceTask";
             }
 
             @Override
             public KeyValue configs() {
-                return null;
+                return new DefaultKeyValue();
             }
         };
     }

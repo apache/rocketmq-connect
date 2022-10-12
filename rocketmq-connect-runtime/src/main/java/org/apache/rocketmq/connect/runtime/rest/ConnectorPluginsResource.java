@@ -42,13 +42,11 @@ import java.util.stream.Collectors;
  */
 public class ConnectorPluginsResource {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private final AbstractConnectController connectController;
-    private final List<PluginInfo> connectorPlugins;
-
     static final List<Class<? extends SinkConnector>> SINK_CONNECTOR_EXCLUDES = Arrays.asList();
     static final List<Class<? extends SourceConnector>> SOURCE_CONNECTOR_EXCLUDES = Arrays.asList();
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    private final AbstractConnectController connectController;
+    private final List<PluginInfo> connectorPlugins;
 
 
     public ConnectorPluginsResource(AbstractConnectController connectController) {
@@ -72,6 +70,7 @@ public class ConnectorPluginsResource {
 
     /**
      * validate plugin configs
+     *
      * @param context
      * @throws Throwable
      */
@@ -81,6 +80,7 @@ public class ConnectorPluginsResource {
 
     /**
      * list connector plugins
+     *
      * @param context
      * @return
      */
@@ -93,6 +93,7 @@ public class ConnectorPluginsResource {
 
     /**
      * list connector plugins
+     *
      * @param context
      * @return
      */
@@ -107,6 +108,7 @@ public class ConnectorPluginsResource {
 
     /**
      * Get connector config def
+     *
      * @param context
      * @return
      */
@@ -117,6 +119,7 @@ public class ConnectorPluginsResource {
 
     /**
      * reload plugins
+     *
      * @param context
      */
     public void reloadPlugins(Context context) {

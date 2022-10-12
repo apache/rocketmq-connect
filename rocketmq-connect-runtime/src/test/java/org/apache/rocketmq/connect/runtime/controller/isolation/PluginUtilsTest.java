@@ -17,17 +17,17 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
+import org.junit.Test;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.Test;
 
 public class PluginUtilsTest {
 
-    private Path path = new TestPath();
-
     private static final String PATH = "src/test/java/org/apache/rocketmq/connect/runtime";
+    private Path path = new TestPath();
 
     @Test
     public void isArchiveTest() {

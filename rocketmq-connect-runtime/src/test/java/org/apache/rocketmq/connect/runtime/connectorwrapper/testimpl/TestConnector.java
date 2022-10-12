@@ -29,7 +29,8 @@ public class TestConnector extends SourceConnector {
 
     private KeyValue config;
 
-    @Override public void validate(KeyValue config) {
+    @Override
+    public void validate(KeyValue config) {
 
     }
 
@@ -48,7 +49,8 @@ public class TestConnector extends SourceConnector {
 
     }
 
-    @Override public List<KeyValue> taskConfigs(int maxTasks) {
+    @Override
+    public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> configs = new ArrayList<>();
         this.config = new DefaultKeyValue();
         configs.add(this.config);

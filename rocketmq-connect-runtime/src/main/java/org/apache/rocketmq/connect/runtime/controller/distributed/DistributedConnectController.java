@@ -43,16 +43,14 @@ public class DistributedConnectController extends AbstractConnectController {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     private final RebalanceImpl rebalanceImpl;
-
-    /**
-     * Thread pool to run schedule task.
-     */
-    protected ScheduledExecutorService scheduledExecutorService;
-
     /**
      * A scheduled task to rebalance all connectors and tasks in the cluster.
      */
     private final RebalanceService rebalanceService;
+    /**
+     * Thread pool to run schedule task.
+     */
+    protected ScheduledExecutorService scheduledExecutorService;
 
     public DistributedConnectController(Plugin plugin,
                                         DistributedConfig connectConfig,

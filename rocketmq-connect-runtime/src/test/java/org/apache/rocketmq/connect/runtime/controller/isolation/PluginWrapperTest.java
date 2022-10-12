@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class PluginWrapperTest {
 
-    private PluginWrapper pluginWrapper = new PluginWrapper(TestPath.class,"1.0", TestPath.class.getClassLoader());
+    private PluginWrapper pluginWrapper = new PluginWrapper(TestPath.class, "1.0", TestPath.class.getClassLoader());
 
     @Test
     public void getClassLoaderTest() {

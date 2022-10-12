@@ -18,10 +18,11 @@
 package org.apache.rocketmq.connect.runtime.common;
 
 import io.openmessaging.KeyValue;
+import org.junit.Test;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

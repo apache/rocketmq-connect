@@ -41,43 +41,27 @@ import java.util.concurrent.atomic.AtomicReference;
 public class WorkerConnector implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(WorkerConnector.class);
     private static final String THREAD_NAME_PREFIX = "connector-thread-";
-
-    private enum State {
-        INIT,
-        STOPPED,
-        STARTED,
-        FAILED,
-    }
-
+    private final ConnectorContext context;
+    private final ConnectorStatus.Listener statusListener;
+    private final ClassLoader classloader;
+    private final AtomicReference<TargetState> targetStateChange;
+    private final AtomicReference<Callback<TargetState>> targetStateChangeCallback;
+    private final CountDownLatch shutdownLatch;
     /**
      * Name of the worker connector.
      */
     private String connectorName;
-
     /**
      * Instance of a connector implements.
      */
     private Connector connector;
-
     /**
      * The configs for the current connector.
      */
     private ConnectKeyValue keyValue;
-
-    private final ConnectorContext context;
-
-    private final ConnectorStatus.Listener statusListener;
-
-    private final ClassLoader classloader;
-
-    private final AtomicReference<TargetState> targetStateChange;
-    private final AtomicReference<Callback<TargetState>> targetStateChangeCallback;
-
     // stop status
     private volatile boolean stopping;
     private State state;
-
-    private final CountDownLatch shutdownLatch;
 
     public WorkerConnector(String connectorName,
                            Connector connector,
@@ -168,7 +152,6 @@ public class WorkerConnector implements Runnable {
         }
         doShutdown();
     }
-
 
     private boolean doStart() throws Throwable {
         try {
@@ -264,6 +247,7 @@ public class WorkerConnector implements Runnable {
 
     /**
      * Wait for this connector to finish shutting down.
+     *
      * @param timeoutMs time in milliseconds to await shutdown
      * @return true if successful, false if the timeout was reached
      */
@@ -332,6 +316,7 @@ public class WorkerConnector implements Runnable {
 
     /**
      * reconfigure
+     *
      * @param keyValue
      */
     public void reconfigure(ConnectKeyValue keyValue) {
@@ -365,6 +350,7 @@ public class WorkerConnector implements Runnable {
 
     /**
      * connector object
+     *
      * @return
      */
     public Connector getConnector() {
@@ -381,5 +367,12 @@ public class WorkerConnector implements Runnable {
         sb.append("connectorName:" + connectorName)
                 .append("\nConfigs:" + JSON.toJSONString(keyValue));
         return sb.toString();
+    }
+
+    private enum State {
+        INIT,
+        STOPPED,
+        STARTED,
+        FAILED,
     }
 }

@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,28 +17,18 @@
 
 package org.apache.rocketmq.connect.cassandra.connector;
 
-import com.alibaba.fastjson.JSONObject;
-
 import com.datastax.oss.driver.api.core.CqlSession;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.common.QueueMetaData;
-import io.openmessaging.connector.api.data.EntryType;
-import io.openmessaging.connector.api.data.Field;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SinkDataEntry;
-import io.openmessaging.connector.api.sink.SinkTask;
+import io.openmessaging.connector.api.component.task.sink.SinkTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import org.apache.rocketmq.connect.cassandra.common.ConstDefine;
 import org.apache.rocketmq.connect.cassandra.config.Config;
 import org.apache.rocketmq.connect.cassandra.common.DBUtils;
 import org.apache.rocketmq.connect.cassandra.config.ConfigUtil;
 import org.apache.rocketmq.connect.cassandra.sink.Updater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -63,7 +52,7 @@ public class CassandraSinkTask extends SinkTask {
     }
 
     @Override
-    public void put(Collection<SinkDataEntry> sinkDataEntries) {
+    public void put(List<ConnectRecord> connectRecords) {
         try {
             if (tableQueue.size() > 1) {
                 updater = tableQueue.poll(1000, TimeUnit.MILLISECONDS);
@@ -71,33 +60,13 @@ public class CassandraSinkTask extends SinkTask {
                 updater = tableQueue.peek();
             }
             log.info("Cassandra Sink Task trying to put()");
-            for (SinkDataEntry record : sinkDataEntries) {
-                Map<Field, Object[]> fieldMap = new HashMap<>();
-                Object[] payloads = record.getPayload();
-                Schema schema = record.getSchema();
-                EntryType entryType = record.getEntryType();
-                String cfName = schema.getName();
-                String keyspaceName = schema.getDataSource();
-                List<Field> fields = schema.getFields();
-                Boolean parseError = false;
-                if (!fields.isEmpty()) {
-                    for (Field field : fields) {
-                        Object fieldValue = payloads[field.getIndex()];
-                        Object[] value = JSONObject.parseArray((String)fieldValue).toArray();
-                        if (value.length == 2) {
-                            fieldMap.put(field, value);
-                        } else {
-                            log.error("parseArray error, fieldValue:{}", fieldValue);
-                            parseError = true;
-                        }
-                    }
-                }
-                if (!parseError) {
-                    log.info("Cassandra Sink Task trying to call updater.push()");
-                    Boolean isSuccess = updater.push(keyspaceName, cfName, fieldMap, entryType);
-                    if (!isSuccess) {
-                        log.error("push data error, keyspaceName:{}, cfName:{}, entryType:{}, fieldMap:{}", keyspaceName, cfName, fieldMap, entryType);
-                    }
+            for (ConnectRecord record : connectRecords) {
+                final String dbName = record.getExtension(ConstDefine.DATABASE_NAME);
+                final String table = record.getExtension(ConstDefine.TABLE);
+                log.info("Cassandra Sink Task trying to call updater.push()");
+                Boolean isSuccess = updater.pushData(dbName, table, record.getData());
+                if (!isSuccess) {
+                    log.error("push data error, dbName:{}, table:{},  struct:{}", dbName, table,  record.getData());
                 }
             }
         } catch (Exception e) {
@@ -105,10 +74,6 @@ public class CassandraSinkTask extends SinkTask {
         }
     }
 
-    @Override
-    public void commit(Map<QueueMetaData, Long> map) {
-
-    }
 
     /**
      * Remember always close the CqlSession according to
@@ -140,7 +105,7 @@ public class CassandraSinkTask extends SinkTask {
     @Override
     public void stop() {
         try {
-            if (cqlSession != null){
+            if (cqlSession != null) {
                 cqlSession.close();
                 log.info("cassandra sink task connection is closed.");
             }
@@ -149,13 +114,5 @@ public class CassandraSinkTask extends SinkTask {
         }
     }
 
-    @Override
-    public void pause() {
 
-    }
-
-    @Override
-    public void resume() {
-
-    }
 }

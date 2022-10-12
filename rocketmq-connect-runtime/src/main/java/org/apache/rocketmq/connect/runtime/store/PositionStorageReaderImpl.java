@@ -21,27 +21,30 @@ package org.apache.rocketmq.connect.runtime.store;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 
 public class PositionStorageReaderImpl implements OffsetStorageReader {
 
-    private PositionManagementService positionManagementService;
     private final String namespace;
+    private PositionManagementService positionManagementService;
 
     public PositionStorageReaderImpl(String namespace, PositionManagementService positionManagementService) {
         this.namespace = namespace;
         this.positionManagementService = positionManagementService;
     }
 
-    @Override public RecordOffset readOffset(RecordPartition partition) {
+    @Override
+    public RecordOffset readOffset(RecordPartition partition) {
         ExtendRecordPartition extendRecordPartition = new ExtendRecordPartition(namespace, partition.getPartition());
         return positionManagementService.getPositionTable().get(extendRecordPartition);
     }
 
-    @Override public  Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
+    @Override
+    public Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
         Map<RecordPartition, RecordOffset> result = new HashMap<>();
         Map<ExtendRecordPartition, RecordOffset> allData = positionManagementService.getPositionTable();
         for (RecordPartition key : partitions) {

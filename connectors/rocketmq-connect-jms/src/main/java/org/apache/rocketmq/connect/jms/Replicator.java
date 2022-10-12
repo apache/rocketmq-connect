@@ -38,14 +38,14 @@ public class Replicator {
     
     private BaseJmsSourceTask baseJmsSourceTask;
 
-    public Replicator(Config config , BaseJmsSourceTask baseJmsSourceTask) {
+    public Replicator(Config config, BaseJmsSourceTask baseJmsSourceTask) {
         this.config = config;
         this.baseJmsSourceTask = baseJmsSourceTask;
     }
 
-    public void start() throws Exception {
+    public void start(long offset) throws Exception {
         processor = baseJmsSourceTask.getPatternProcessor(this);
-        processor.start();
+        processor.start(offset);
         LOGGER.info("Replicator start succeed");
     }
 

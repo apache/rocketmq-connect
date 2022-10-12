@@ -17,18 +17,18 @@
 
 package org.apache.connect.mongo;
 
-import com.alibaba.fastjson.JSONObject;
-import io.openmessaging.connector.api.data.EntryType;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SourceDataEntry;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPosition;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.internal.DefaultKeyValue;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.connect.mongo.connector.MongoSourceConnector;
 import org.apache.connect.mongo.connector.MongoSourceTask;
+import org.apache.connect.mongo.replicator.Constants;
 import org.apache.connect.mongo.replicator.Position;
 import org.apache.connect.mongo.replicator.ReplicaSetConfig;
 import org.apache.connect.mongo.replicator.ReplicaSetsContext;
@@ -59,17 +59,12 @@ public class MongoSourceConnectorTest {
         Assert.assertEquals(mongoSourceConnector.taskClass(), MongoSourceTask.class);
     }
 
-    @Test
-    public void verifyConfig() {
-        String s = mongoSourceConnector.verifyAndSetConfig(keyValue);
-        Assert.assertTrue(s.contains("Request config key:"));
-    }
 
     @Test
     public void testPoll() throws Exception {
-        LinkedBlockingQueue<SourceDataEntry> entries = new LinkedBlockingQueue<>();
+        LinkedBlockingQueue<ConnectRecord> entries = new LinkedBlockingQueue<>();
         ReplicaSetsContext context = new ReplicaSetsContext(sourceTaskConfig);
-        Field dataEntryQueue = ReplicaSetsContext.class.getDeclaredField("dataEntryQueue");
+        Field dataEntryQueue = ReplicaSetsContext.class.getDeclaredField("connectRecordQueue");
         dataEntryQueue.setAccessible(true);
         dataEntryQueue.set(context, entries);
         ReplicationEvent event = new ReplicationEvent();
@@ -80,32 +75,29 @@ public class MongoSourceConnectorTest {
         event.setH(324243242L);
         event.setEventData(Optional.ofNullable(new Document("testEventKey", "testEventValue")));
         event.setObjectId(Optional.empty());
-        context.publishEvent(event, new ReplicaSetConfig("", "testReplicaName", "localhost:27027"));
-        List<SourceDataEntry> sourceDataEntries = (List<SourceDataEntry>) context.poll();
-        Assert.assertTrue(sourceDataEntries.size() == 1);
+        event.setReplicaSetName("testReplicaName");
+        event.setCollectionName("testCollectName");
+        final ReplicaSetConfig name = new ReplicaSetConfig("", "testReplicaName", "localhost:27027");
+        Position position = new Position();
+        position.setTimeStamp(0);
+        name.setPosition(position);
+        context.publishEvent(event, name);
+        List<ConnectRecord> connectRecords = context.poll();
+        Assert.assertTrue(connectRecords.size() == 1);
 
-        SourceDataEntry sourceDataEntry = sourceDataEntries.get(0);
-        Assert.assertEquals("test-person", sourceDataEntry.getQueueName());
+        ConnectRecord connectRecord = connectRecords.get(0);
+        final Struct data = (Struct) connectRecord.getData();
 
-        ByteBuffer sourcePartition = sourceDataEntry.getSourcePartition();
-        Assert.assertEquals("testReplicaName", new String(sourcePartition.array()));
+        Assert.assertEquals("test.person", connectRecord.getExtension(Constants.NAMESPACE));
+        Assert.assertEquals("testReplicaName", connectRecord.getExtension(Constants.REPLICA_SET_NAME));
 
-        ByteBuffer sourcePosition = sourceDataEntry.getSourcePosition();
-        Position position = JSONObject.parseObject(new String(sourcePosition.array()), Position.class);
-        Assert.assertEquals(position.getTimeStamp(), 1565609506);
-        Assert.assertEquals(position.getInc(), 1);
-        Assert.assertEquals(position.isInitSync(), false);
+        final RecordPosition recordPosition = connectRecord.getPosition();
+        final RecordOffset offsetMap = recordPosition.getOffset();
+        Assert.assertEquals(1565609506, offsetMap.getOffset().get(Constants.TIMESTAMP));
 
-        EntryType entryType = sourceDataEntry.getEntryType();
-        Assert.assertEquals(EntryType.CREATE, entryType);
+        final List<io.openmessaging.connector.api.data.Field> fields = connectRecord.getSchema().getFields();
+        Assert.assertEquals(1, fields.size());
 
-        String queueName = sourceDataEntry.getQueueName();
-        Assert.assertEquals("test-person", queueName);
-
-        Schema schema = sourceDataEntry.getSchema();
-        Assert.assertTrue(schema.getFields().size() == 6);
-        Object[] payload = sourceDataEntry.getPayload();
-        Assert.assertTrue(payload.length == 6);
 
     }
 

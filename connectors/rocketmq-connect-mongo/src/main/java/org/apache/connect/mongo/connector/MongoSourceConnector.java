@@ -18,8 +18,8 @@
 package org.apache.connect.mongo.connector;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.connect.mongo.SourceTaskConfig;
@@ -32,34 +32,26 @@ public class MongoSourceConnector extends SourceConnector {
     private KeyValue keyValueConfig;
 
     @Override
-    public String verifyAndSetConfig(KeyValue config) {
+    public void start(KeyValue config) {
         for (String requestKey : SourceTaskConfig.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
+                throw new RuntimeException("Request config key: " + requestKey);
             }
         }
         this.keyValueConfig = config;
-        return "";
-    }
-
-    @Override
-    public void start() {
-        logger.info("start mongo source connector:{}", keyValueConfig);
     }
 
     @Override
     public void stop() {
-
+        this.keyValueConfig = null;
     }
 
-    @Override
-    public void pause() {
 
-    }
 
-    @Override
-    public void resume() {
-
+    @Override public List<KeyValue> taskConfigs(int maxTasks) {
+        List<KeyValue> config = new ArrayList<>();
+        config.add(this.keyValueConfig);
+        return config;
     }
 
     @Override
@@ -67,10 +59,5 @@ public class MongoSourceConnector extends SourceConnector {
         return MongoSourceTask.class;
     }
 
-    @Override
-    public List<KeyValue> taskConfigs() {
-        List<KeyValue> config = new ArrayList<>();
-        config.add(this.keyValueConfig);
-        return config;
-    }
+
 }

@@ -57,7 +57,7 @@ public class PluginScanResult {
         this.converters = converters;
         this.transformations = transformations;
         this.allPlugins =
-            Arrays.asList(sinkConnectors, sourceConnectors, sourceTasks, sinkTasks, converters, transformations);
+                Arrays.asList(sinkConnectors, sourceConnectors, sourceTasks, sinkTasks, converters, transformations);
     }
 
     public Collection<PluginWrapper<SinkConnector>> sinkConnectors() {

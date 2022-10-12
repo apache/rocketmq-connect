@@ -96,17 +96,17 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         this.keyConverter.configure(new HashMap<>());
         this.valueConverter.configure(new HashMap<>());
         this.dataSynchronizer = new BrokerBasedLog(
-            workerConfig,
-            this.topic,
-            ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
-            new PositionChangeCallback(),
-            Serdes.serdeFrom(ByteBuffer.class),
-            Serdes.serdeFrom(ByteBuffer.class)
+                workerConfig,
+                this.topic,
+                ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
+                new PositionChangeCallback(),
+                Serdes.serdeFrom(ByteBuffer.class),
+                Serdes.serdeFrom(ByteBuffer.class)
         );
 
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(workerConfig.getStorePathRootDir()),
-            new RecordPartitionSerde(),
-            new RecordOffsetSerde());
+                new RecordPartitionSerde(),
+                new RecordOffsetSerde());
 
         this.positionUpdateListener = new HashSet<>();
         this.needSyncPartition = new ConcurrentSet<>();
@@ -364,4 +364,3 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         ONLINE_KEY
     }
 }
-

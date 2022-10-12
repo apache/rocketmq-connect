@@ -16,16 +16,54 @@ mvn clean install -DskipTest -U
 
 * **cassandra-source-connector** 启动
 
+
 ```
-http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-cassandra-source-connector-name}
-?config={"connector-class":"org.apache.rocketmq.connect.cassandra.connector.JdbcSourceConnector",“dbUrl”:"${source-db-ip}",dbPort”:"${source-db-port}",dbUsername”:"${source-db-username}",dbPassword”:"${source-db-password}","rocketmqTopic":"cassandraTopic","mode":"bulk","whiteDataBase":{"${source-db-name}":{"${source-table-name}":{"${source-column-name}":"${source-column-value}"}}},"source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+POST  http://${runtime-ip}:${runtime-port}/connectors/cassandraSourceConnector
+{
+    "connector.class": "org.apache.rocketmq.connect.cassandra.connector.CassandraSourceConnector",
+    "connect.topicname":"cassandraTopic",
+    "max.tasks":2,
+    "dbUrl": "127.0.0.1",
+    "dbPort": "9042",
+    "rocketmqTopic": "cassandraTopic",
+    "mode": "bulk",
+    "localDataCenter":"datacenter1",
+    "whiteDataBase": {
+        "hello_ca": {
+            "test_user": {
+                "id": "1"
+            }
+        }
+    },
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
+}
 ```
 
 * **cassandra-sink-connector** 启动
 
 ```
-http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-cassandra-sink-connector-name}
-?config={"connector-class":"org.apache.rocketmq.connect.cassandra.connector.JdbcSinkConnector",“dbUrl”:"${sink-db-ip}",dbPort”:"${sink-db-port}",dbUsername”:"${sink-db-username}",dbPassword”:"${sink-db-password}","rocketmqTopic":"cassandraTopic","mode":"bulk","topicNames":"${sink-topic-name}","source-record-converter":"org.apache.rocketmq.connect.runtime.converter.JsonConverter"}
+POST  http://${runtime-ip}:${runtime-port}/connectors/cassandraSinkConnector
+{
+    "connector.class": "org.apache.rocketmq.connect.cassandra.connector.CassandraSinkConnector",
+    "dbUrl": "127.0.0.1",
+    "dbPort": "9042",
+    "max.tasks":10,
+    "connect.topicnames":"cassandraTopic",
+    "source-rocketmq":"127.0.0.1:9876",
+    "topicNames":"cassandraTopic",
+    "rocketmqTopic":"cassandraTopic",
+    "source-cluster":"DefaultCluster",
+    "localDataCenter":"datacenter1",
+    "whiteDataBase": {
+        "hello_ca": {
+            "test_use": {
+                "id": "1"
+            }
+        }
+    },
+    "mode": "bulk",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
+}
 ```
 >**注：** `rocketmq-cassandra-connect` 的启动依赖于`rocketmq-connect-runtime`项目的启动，需将打好的`jar`包放置到`runtime`项目中`pluginPaths`配置的路径后再执行上面的启动请求,该值配置在`runtime`项目下的`connect.conf`文件中
 

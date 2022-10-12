@@ -17,11 +17,12 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class ServiceThread implements Runnable {
 
@@ -67,7 +68,7 @@ public abstract class ServiceThread implements Runnable {
             }
             long eclipseTime = System.currentTimeMillis() - beginTime;
             log.info("join thread " + this.getServiceName() + " eclipse time(ms) " + eclipseTime + " "
-                + this.getJointime());
+                    + this.getJointime());
         } catch (InterruptedException e) {
             log.error("Interrupted", e);
         }

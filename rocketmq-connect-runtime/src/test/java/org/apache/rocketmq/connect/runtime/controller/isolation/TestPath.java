@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -27,112 +29,152 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Iterator;
-import org.jetbrains.annotations.NotNull;
 
 public class TestPath implements Path {
-    @NotNull @Override public FileSystem getFileSystem() {
+    @NotNull
+    @Override
+    public FileSystem getFileSystem() {
         return new TestFileSystem();
     }
 
-    @Override public boolean isAbsolute() {
+    @Override
+    public boolean isAbsolute() {
         return false;
     }
 
-    @Override public Path getRoot() {
+    @Override
+    public Path getRoot() {
         return null;
     }
 
-    @Override public Path getFileName() {
+    @Override
+    public Path getFileName() {
         return null;
     }
 
-    @Override public Path getParent() {
+    @Override
+    public Path getParent() {
         return null;
     }
 
-    @Override public int getNameCount() {
+    @Override
+    public int getNameCount() {
         return 0;
     }
 
-    @NotNull @Override public Path getName(int index) {
+    @NotNull
+    @Override
+    public Path getName(int index) {
         return null;
     }
 
-    @NotNull @Override public Path subpath(int beginIndex, int endIndex) {
+    @NotNull
+    @Override
+    public Path subpath(int beginIndex, int endIndex) {
         return null;
     }
 
-    @Override public boolean startsWith(@NotNull Path other) {
+    @Override
+    public boolean startsWith(@NotNull Path other) {
         return false;
     }
 
-    @Override public boolean startsWith(@NotNull String other) {
+    @Override
+    public boolean startsWith(@NotNull String other) {
         return false;
     }
 
-    @Override public boolean endsWith(@NotNull Path other) {
+    @Override
+    public boolean endsWith(@NotNull Path other) {
         return false;
     }
 
-    @Override public boolean endsWith(@NotNull String other) {
+    @Override
+    public boolean endsWith(@NotNull String other) {
         return false;
     }
 
-    @NotNull @Override public Path normalize() {
+    @NotNull
+    @Override
+    public Path normalize() {
         return null;
     }
 
-    @NotNull @Override public Path resolve(@NotNull Path other) {
+    @NotNull
+    @Override
+    public Path resolve(@NotNull Path other) {
         return null;
     }
 
-    @NotNull @Override public Path resolve(@NotNull String other) {
+    @NotNull
+    @Override
+    public Path resolve(@NotNull String other) {
         return null;
     }
 
-    @NotNull @Override public Path resolveSibling(@NotNull Path other) {
+    @NotNull
+    @Override
+    public Path resolveSibling(@NotNull Path other) {
         return null;
     }
 
-    @NotNull @Override public Path resolveSibling(@NotNull String other) {
+    @NotNull
+    @Override
+    public Path resolveSibling(@NotNull String other) {
         return null;
     }
 
-    @NotNull @Override public Path relativize(@NotNull Path other) {
+    @NotNull
+    @Override
+    public Path relativize(@NotNull Path other) {
         return null;
     }
 
-    @NotNull @Override public URI toUri() {
+    @NotNull
+    @Override
+    public URI toUri() {
         return null;
     }
 
-    @NotNull @Override public Path toAbsolutePath() {
+    @NotNull
+    @Override
+    public Path toAbsolutePath() {
         return null;
     }
 
-    @NotNull @Override public Path toRealPath(@NotNull LinkOption... options) throws IOException {
+    @NotNull
+    @Override
+    public Path toRealPath(@NotNull LinkOption... options) throws IOException {
         return null;
     }
 
-    @NotNull @Override public File toFile() {
+    @NotNull
+    @Override
+    public File toFile() {
         return null;
     }
 
-    @NotNull @Override public WatchKey register(@NotNull WatchService watcher, @NotNull WatchEvent.Kind<?>[] events,
-        WatchEvent.Modifier... modifiers) throws IOException {
+    @NotNull
+    @Override
+    public WatchKey register(@NotNull WatchService watcher, @NotNull WatchEvent.Kind<?>[] events,
+                             WatchEvent.Modifier... modifiers) throws IOException {
         return null;
     }
 
-    @NotNull @Override
+    @NotNull
+    @Override
     public WatchKey register(@NotNull WatchService watcher, @NotNull WatchEvent.Kind<?>... events) throws IOException {
         return null;
     }
 
-    @NotNull @Override public Iterator<Path> iterator() {
+    @NotNull
+    @Override
+    public Iterator<Path> iterator() {
         return null;
     }
 
-    @Override public int compareTo(@NotNull Path other) {
+    @Override
+    public int compareTo(@NotNull Path other) {
         return 0;
     }
 }

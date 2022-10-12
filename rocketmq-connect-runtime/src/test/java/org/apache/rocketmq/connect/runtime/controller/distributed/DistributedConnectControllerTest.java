@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
+import io.openmessaging.connector.api.data.RecordConverter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositio
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
@@ -41,6 +43,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DistributedConnectControllerTest {
@@ -60,18 +64,28 @@ public class DistributedConnectControllerTest {
 
     private StateManagementService stateManagementService = new StateManagementServiceImpl();
 
-    private WorkerConfig connectConfig = new WorkerConfig();
+    private WorkerConfig workerConfig = new WorkerConfig();
 
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
 
+    private RecordConverter recordConverter;
+
+    private PluginClassLoader pluginClassLoader;
+
     @Before
-    public void before() throws InterruptedException {
+    public void before() throws InterruptedException, MalformedURLException {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
-        connectConfig.setNamesrvAddr("127.0.0.1:9876");
-        clusterManagementService.initialize(connectConfig);
+        workerConfig.setNamesrvAddr("127.0.0.1:9876");
+        recordConverter = new JsonConverter();
+        clusterManagementService.initialize(workerConfig);
+        stateManagementService.initialize(workerConfig, recordConverter);
+        URL url = new URL("file://src/test/java/org/apache/rocketmq/connect/runtime");
+        URL[] urls = new URL[]{};
+        pluginClassLoader = new PluginClassLoader(url, urls);
+        Thread.currentThread().setContextClassLoader(pluginClassLoader);
         distributedConnectController = new DistributedConnectController(
                 plugin,
                 distributedConfig,
@@ -79,19 +93,10 @@ public class DistributedConnectControllerTest {
                 configManagementService,
                 positionManagementService,
                 stateManagementService );
-
-        distributedConnectController = new DistributedConnectController(plugin, distributedConfig, clusterManagementService,
-            configManagementService, positionManagementService, stateManagementService);
     }
 
     @After
     public void after() {
-        distributedConnectController.shutdown();
-
-        nameServerMocker.shutdown();
-        brokerMocker.shutdown();
-
-        stateManagementService.stop();
         brokerMocker.shutdown();
         nameServerMocker.shutdown();
     }

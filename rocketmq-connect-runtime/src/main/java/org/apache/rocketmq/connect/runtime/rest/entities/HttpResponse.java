@@ -20,6 +20,7 @@ import java.util.Objects;
 
 /**
  * http response entity
+ *
  * @param <T>
  */
 public class HttpResponse<T> {

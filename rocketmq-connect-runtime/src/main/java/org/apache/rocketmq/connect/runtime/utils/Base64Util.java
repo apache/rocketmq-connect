@@ -28,6 +28,7 @@ public class Base64Util {
 
     /**
      * encode
+     *
      * @param in
      * @return
      */
@@ -40,6 +41,7 @@ public class Base64Util {
 
     /**
      * decode
+     *
      * @param in
      * @return
      */

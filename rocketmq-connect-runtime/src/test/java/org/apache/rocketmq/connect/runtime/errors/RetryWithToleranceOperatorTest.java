@@ -20,23 +20,31 @@ package org.apache.rocketmq.connect.runtime.errors;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class RetryWithToleranceOperatorTest {
 
-    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL);
+    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("test-connect",1), new ConnectMetrics(new
+            WorkerConfig())));
 
     private RecordPartition recordPartition;
 
     private RecordOffset recordOffset;
+    private Operation operation = new Operation() {
+        @Override
+        public Object call() throws Exception {
+            return true;
+        }
+    };
 
     @Before
     public void before() {
@@ -46,17 +54,11 @@ public class RetryWithToleranceOperatorTest {
         recordOffset = new RecordOffset(offset);
     }
 
-    private  Operation operation = new Operation() {
-        @Override public Object call() throws Exception {
-            return true;
-        }
-    };
-
     @Test
     public void executeFailedTest() {
         ConnectRecord connectRecord = new ConnectRecord(recordPartition, recordOffset, System.currentTimeMillis());
         Assertions.assertThatCode(() -> retryWithToleranceOperator.executeFailed(ErrorReporter.Stage.CONSUME, this.getClass(),
-            connectRecord, new RuntimeException())).doesNotThrowAnyException();
+                connectRecord, new RuntimeException())).doesNotThrowAnyException();
     }
 
     @Test
@@ -75,7 +77,7 @@ public class RetryWithToleranceOperatorTest {
     public void execAndHandleErrorTest() {
         operation = () -> {
             int i = 0;
-            if (i ==0 ) {
+            if (i == 0) {
                 throw new RuntimeException();
             }
             return true;

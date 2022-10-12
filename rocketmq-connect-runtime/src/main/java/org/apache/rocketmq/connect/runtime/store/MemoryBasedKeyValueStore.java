@@ -34,7 +34,8 @@ public class MemoryBasedKeyValueStore<K, V> implements KeyValueStore<K, V> {
         return this.data.put(key, value);
     }
 
-    @Override public void putAll(Map<K, V> map) {
+    @Override
+    public void putAll(Map<K, V> map) {
         data.putAll(map);
     }
 
@@ -73,7 +74,8 @@ public class MemoryBasedKeyValueStore<K, V> implements KeyValueStore<K, V> {
 
     }
 
-    @Override public Stage getStage() {
+    @Override
+    public Stage getStage() {
         return Stage.UNIVERSAL;
     }
 }

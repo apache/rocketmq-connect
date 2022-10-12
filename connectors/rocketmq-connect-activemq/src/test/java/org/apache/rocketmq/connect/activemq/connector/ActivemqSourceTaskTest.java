@@ -17,13 +17,12 @@
 
 package org.apache.rocketmq.connect.activemq.connector;
 
+import io.openmessaging.connector.api.data.ConnectRecord;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
@@ -54,7 +53,6 @@ import org.mockito.Mockito;
 import com.alibaba.fastjson.JSON;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.SourceDataEntry;
 import io.openmessaging.internal.DefaultKeyValue;
 
 public class ActivemqSourceTaskTest {
@@ -80,7 +78,7 @@ public class ActivemqSourceTaskTest {
         connection.close();
     }
 
-    //@Test
+    @Test
     public void test() throws InterruptedException {
         KeyValue kv = new DefaultKeyValue();
         kv.put("activemqUrl", "tcp://112.74.48.251:6166");
@@ -89,7 +87,7 @@ public class ActivemqSourceTaskTest {
         ActivemqSourceTask task = new ActivemqSourceTask();
         task.start(kv);
         for (int i = 0; i < 20; ) {
-            Collection<SourceDataEntry> sourceDataEntry = task.poll();
+            Collection<ConnectRecord> sourceDataEntry = task.poll();
             i = i + sourceDataEntry.size();
             System.out.println(sourceDataEntry);
         }
@@ -115,7 +113,7 @@ public class ActivemqSourceTaskTest {
         config.set(task, new Config());
 
         queue.put(textMessage);
-        Collection<SourceDataEntry> list = task.poll();
+        Collection<ConnectRecord> list = task.poll();
         Assert.assertEquals(list.size(), 1);
 
         list = task.poll();
@@ -129,24 +127,24 @@ public class ActivemqSourceTaskTest {
         ActivemqSourceTask task = new ActivemqSourceTask();
         TextMessage textMessage = new ActiveMQTextMessage();
         textMessage.setText(value);
-        ByteBuffer buffer = task.getMessageContent(textMessage);
-        Assert.assertEquals(new String(buffer.array()), textMessage.getText());
+        String content = task.getMessageContent(textMessage);
+        Assert.assertEquals(content, textMessage.getText());
 
         ObjectMessage objectMessage = new ActiveMQObjectMessage();
         objectMessage.setObject(value);
-        buffer = task.getMessageContent(objectMessage);
-        Assert.assertEquals(new String(buffer.array()), "\"" + objectMessage.getObject().toString() + "\"");
+        content = task.getMessageContent(objectMessage);
+        Assert.assertEquals(content, "\"" + objectMessage.getObject().toString() + "\"");
 
         BytesMessage bytes = new ActiveMQBytesMessage();
         bytes.writeBytes(value.getBytes());
         bytes.reset();
-        buffer = task.getMessageContent(bytes);
-        Assert.assertEquals(new String(buffer.array()), value);
+        content = task.getMessageContent(bytes);
+        Assert.assertEquals(content, value);
 
         MapMessage mapMessage = new ActiveMQMapMessage();
         mapMessage.setString("hello", "rocketmq");
-        buffer = task.getMessageContent(mapMessage);
-        Map<String, String> map = JSON.parseObject(buffer.array(), Map.class);
+        content = task.getMessageContent(mapMessage);
+        Map<String, String> map = JSON.parseObject(content, Map.class);
         Assert.assertEquals(map.get("hello"), "rocketmq");
         Assert.assertEquals(map.size(), 1);
 
@@ -157,8 +155,8 @@ public class ActivemqSourceTaskTest {
         }
         streamMessage.writeBytes(valueTwo.getBytes());
         streamMessage.reset();
-        buffer = task.getMessageContent(streamMessage);
-        Assert.assertEquals(new String(buffer.array()), valueTwo);
+        content = task.getMessageContent(streamMessage);
+        Assert.assertEquals(content, valueTwo);
 
         task.getMessageContent(null);
     }

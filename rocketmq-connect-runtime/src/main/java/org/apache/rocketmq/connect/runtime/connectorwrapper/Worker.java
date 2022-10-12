@@ -32,13 +32,15 @@ import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -77,15 +79,30 @@ import java.util.concurrent.atomic.AtomicReference;
  * A worker to schedule all connectors and tasks in a process.
  */
 public class Worker {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
     public static final long CONNECTOR_GRACEFUL_SHUTDOWN_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(5);
-
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    /**
+     * Thread pool for connectors and tasks.
+     */
+    private final ExecutorService taskExecutor;
+    /**
+     * Position management for source tasks.
+     */
+    private final PositionManagementService positionManagementService;
+    private final WorkerConfig workerConfig;
+    private final Plugin plugin;
+    private final ConnectStatsManager connectStatsManager;
+    private final ConnectStatsService connectStatsService;
+    private final WrapperStatusListener statusListener;
+    private final ConcurrentMap<String, WorkerConnector> connectors = new ConcurrentHashMap<>();
+    private final ExecutorService executor;
+    private final ConfigManagementService configManagementService;
+    private final ConnectMetrics connectMetrics;
+    Map<String, List<ConnectKeyValue>> latestTaskConfigs = new HashMap<>();
     /**
      * Current running connectors.
      */
     private Set<WorkerConnector> workingConnectors = new ConcurrentSet<>();
-
     /**
      * Current tasks state.
      */
@@ -96,38 +113,16 @@ public class Worker {
     private Set<Runnable> cleanedStoppedTasks = new ConcurrentSet<>();
     private Set<Runnable> errorTasks = new ConcurrentSet<>();
     private Set<Runnable> cleanedErrorTasks = new ConcurrentSet<>();
-
-    Map<String, List<ConnectKeyValue>> latestTaskConfigs = new HashMap<>();
     /**
      * Current running tasks to its Future map.
      */
     private Map<Runnable, Future> taskToFutureMap = new ConcurrentHashMap<>();
-    /**
-     * Thread pool for connectors and tasks.
-     */
-    private final ExecutorService taskExecutor;
-    /**
-     * Position management for source tasks.
-     */
-    private final PositionManagementService positionManagementService;
-
     private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
-    private final WorkerConfig workerConfig;
-    private final Plugin plugin;
-
     /**
      * Atomic state variable
      */
     private AtomicReference<WorkerState> workerState;
     private StateMachineService stateMachineService = new StateMachineService();
-    private final ConnectStatsManager connectStatsManager;
-    private final ConnectStatsService connectStatsService;
-    private final WrapperStatusListener statusListener;
-
-    private final ConcurrentMap<String, WorkerConnector> connectors = new ConcurrentHashMap<>();
-    private final ExecutorService executor;
-
-    private final ConfigManagementService configManagementService;
 
     public Worker(WorkerConfig workerConfig,
                   PositionManagementService positionManagementService,
@@ -145,6 +140,7 @@ public class Worker {
         this.sourceTaskOffsetCommitter = Optional.of(new SourceTaskOffsetCommitter(workerConfig));
         this.statusListener = new WrapperStatusListener(stateManagementService, workerConfig.getWorkerId());
         this.executor = Executors.newCachedThreadPool();
+        this.connectMetrics = new ConnectMetrics(workerConfig);
     }
 
     public void start() {
@@ -462,6 +458,13 @@ public class Worker {
         sourceTaskOffsetCommitter.ifPresent(committer -> committer.close(5000));
 
         stateMachineService.shutdown();
+
+        try {
+            // close metrics
+            connectMetrics.close();
+        } catch (Exception e) {
+
+        }
     }
 
     private void awaitStopTask(WorkerTask task, long timeout) {
@@ -516,6 +519,10 @@ public class Worker {
         return runningTasks;
     }
 
+    public void setWorkingTasks(Set<Runnable> workingTasks) {
+        this.runningTasks = workingTasks;
+    }
+
     public Set<Runnable> getErrorTasks() {
         return errorTasks;
     }
@@ -538,10 +545,6 @@ public class Worker {
 
     public Set<Runnable> getCleanedStoppedTasks() {
         return cleanedStoppedTasks;
-    }
-
-    public void setWorkingTasks(Set<Runnable> workingTasks) {
-        this.runningTasks = workingTasks;
     }
 
     public void maintainConnectorState() {
@@ -653,7 +656,6 @@ public class Worker {
     private void checkStoppedTasks() {
         for (Runnable runnable : stoppedTasks) {
             WorkerTask workerTask = (WorkerTask) runnable;
-            workerTask.cleanup();
             Future future = taskToFutureMap.get(runnable);
             try {
                 if (null != future) {
@@ -677,6 +679,7 @@ public class Worker {
             } finally {
                 // remove committer offset
                 sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
+                workerTask.cleanup();
                 future.cancel(true);
                 taskToFutureMap.remove(runnable);
                 stoppedTasks.remove(runnable);
@@ -702,8 +705,8 @@ public class Worker {
             } finally {
                 // remove committer offset
                 sourceTaskOffsetCommitter.ifPresent(commiter -> commiter.remove(workerTask.id()));
-                future.cancel(true);
                 workerTask.cleanup();
+                future.cancel(true);
                 taskToFutureMap.remove(runnable);
                 errorTasks.remove(runnable);
                 cleanedErrorTasks.add(runnable);
@@ -790,6 +793,9 @@ public class Worker {
             for (ConnectKeyValue keyValue : newTasks.get(connectorName)) {
                 int taskId = keyValue.getInt(ConnectorConfig.TASK_ID);
                 ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
+
+                ErrorMetricsGroup errorMetricsGroup = new ErrorMetricsGroup(id, this.connectMetrics);
+
                 String taskType = keyValue.getString(ConnectorConfig.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
                     createDirectTask(id, keyValue);
@@ -828,11 +834,11 @@ public class Worker {
                         DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
-                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(connectorName, keyValue));
+                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, errorMetricsGroup);
+                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id, keyValue, errorMetricsGroup));
 
                         WorkerSourceTask workerSourceTask = new WorkerSourceTask(workerConfig, id,
-                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, statusListener);
+                                (SourceTask) task, savedLoader, keyValue, positionManagementService, keyConverter, valueConverter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, statusListener, this.connectMetrics);
 
                         Future future = taskExecutor.submit(workerSourceTask);
                         // schedule offset committer
@@ -850,12 +856,12 @@ public class Worker {
                         }
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
-                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(connectorName, keyValue, workerConfig));
+                        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, errorMetricsGroup);
+                        retryWithToleranceOperator.reporters(ReporterManagerUtil.sinkTaskReporters(id, keyValue, workerConfig, errorMetricsGroup));
 
                         WorkerSinkTask workerSinkTask = new WorkerSinkTask(workerConfig, id,
                                 (SinkTask) task, savedLoader, keyValue, keyConverter, valueConverter, consumer, workerState, connectStatsManager, connectStatsService, transformChain,
-                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter), statusListener);
+                                retryWithToleranceOperator, ReporterManagerUtil.createWorkerErrorRecordReporter(keyValue, retryWithToleranceOperator, valueConverter), statusListener, this.connectMetrics);
                         Future future = taskExecutor.submit(workerSinkTask);
                         taskToFutureMap.put(workerSinkTask, future);
                         this.pendingTasks.put(workerSinkTask, System.currentTimeMillis());
@@ -898,8 +904,8 @@ public class Worker {
 
         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue);
-        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id.connector(), keyValue));
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, new ErrorMetricsGroup(id, this.connectMetrics));
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id, keyValue, new ErrorMetricsGroup(id, this.connectMetrics)));
 
         WorkerDirectTask workerDirectTask = new WorkerDirectTask(
                 workerConfig,
@@ -914,7 +920,8 @@ public class Worker {
                 connectStatsService,
                 transformChain,
                 retryWithToleranceOperator,
-                statusListener);
+                statusListener,
+                connectMetrics);
 
         Future future = taskExecutor.submit(workerDirectTask);
 
@@ -945,6 +952,12 @@ public class Worker {
         return task;
     }
 
+    public enum TaskType {
+        SOURCE,
+        SINK,
+        DIRECT;
+    }
+
     public class StateMachineService extends ServiceThread {
         @Override
         public void run() {
@@ -965,11 +978,5 @@ public class Worker {
         public String getServiceName() {
             return StateMachineService.class.getSimpleName();
         }
-    }
-
-    public enum TaskType {
-        SOURCE,
-        SINK,
-        DIRECT;
     }
 }
