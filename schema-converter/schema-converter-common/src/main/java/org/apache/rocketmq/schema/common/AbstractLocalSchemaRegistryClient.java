@@ -190,7 +190,7 @@ public abstract class AbstractLocalSchemaRegistryClient {
 
     public GetSchemaResponse getSchemaByRecordId(String namespace, String subject, long recordId){
         try {
-            return schemaRegistryClient.getSchemaByRecordId(subject, recordId);
+            return schemaRegistryClient.getSchemaByRecordId(cluster, namespace, subject, recordId);
         } catch (RestClientException | IOException e) {
             if (e instanceof RestClientException) {
                 return null;
