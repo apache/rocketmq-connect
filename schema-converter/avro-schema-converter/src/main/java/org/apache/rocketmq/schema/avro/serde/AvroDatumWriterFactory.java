@@ -39,17 +39,20 @@ public class AvroDatumWriterFactory extends AvroSerdeFactory {
     private final Map<Schema, DatumWriter<Object>> datumWriterCache = new ConcurrentHashMap<>();
 
 
-    private boolean useSchemaReflection;
-    private boolean avroUseLogicalTypeConverters;
-    private AvroDatumWriterFactory(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters){
+    private final boolean useSchemaReflection;
+    private final boolean avroUseLogicalTypeConverters;
+
+    private AvroDatumWriterFactory(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters) {
         this.useSchemaReflection = useSchemaReflection;
         this.avroUseLogicalTypeConverters = avroUseLogicalTypeConverters;
     }
+
     /**
      * Get avro datum factory
+     *
      * @return
      */
-    public static AvroDatumWriterFactory get(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters){
+    public static AvroDatumWriterFactory get(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters) {
         return new AvroDatumWriterFactory(useSchemaReflection, avroUseLogicalTypeConverters);
     }
 
@@ -69,6 +72,7 @@ public class AvroDatumWriterFactory extends AvroSerdeFactory {
 
     /**
      * get datum writer
+     *
      * @param value
      * @param schema
      * @return

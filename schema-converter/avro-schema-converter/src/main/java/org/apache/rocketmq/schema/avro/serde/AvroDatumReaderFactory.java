@@ -50,17 +50,19 @@ public class AvroDatumReaderFactory extends AvroSerdeFactory {
     private final boolean avroReflectionAllowNull;
 
 
-    private AvroDatumReaderFactory(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters, boolean useSpecificAvroReader, boolean avroReflectionAllowNull){
+    private AvroDatumReaderFactory(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters, boolean useSpecificAvroReader, boolean avroReflectionAllowNull) {
         this.useSchemaReflection = useSchemaReflection;
         this.avroUseLogicalTypeConverters = avroUseLogicalTypeConverters;
         this.useSpecificAvroReader = useSpecificAvroReader;
         this.avroReflectionAllowNull = avroReflectionAllowNull;
     }
+
     /**
      * Get avro datum factory
+     *
      * @return
      */
-    public static AvroDatumReaderFactory get(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters, boolean useSpecificAvroReader,  boolean avroReflectionAllowNull){
+    public static AvroDatumReaderFactory get(boolean useSchemaReflection, boolean avroUseLogicalTypeConverters, boolean useSpecificAvroReader, boolean avroReflectionAllowNull) {
         return new AvroDatumReaderFactory(useSchemaReflection, avroUseLogicalTypeConverters, useSpecificAvroReader, avroReflectionAllowNull);
     }
 
@@ -95,7 +97,7 @@ public class AvroDatumReaderFactory extends AvroSerdeFactory {
 
         return datumReaderCache.computeIfAbsent(cacheKey, schema -> {
             boolean writerSchemaIsPrimitive =
-                    AvroSchemaUtils.getPrimitiveSchemas().values().contains(writerSchema);
+                    AvroSchemaUtils.getPrimitiveSchemas().containsValue(writerSchema);
             if (writerSchemaIsPrimitive) {
                 GenericData genericData = new GenericData();
                 if (avroUseLogicalTypeConverters) {
@@ -125,7 +127,7 @@ public class AvroDatumReaderFactory extends AvroSerdeFactory {
             return readerSchema;
         }
         boolean writerSchemaIsPrimitive =
-                AvroSchemaUtils.getPrimitiveSchemas().values().contains(writerSchema);
+                AvroSchemaUtils.getPrimitiveSchemas().containsValue(writerSchema);
         if (writerSchemaIsPrimitive) {
             readerSchema = writerSchema;
         } else if (useSchemaReflection) {

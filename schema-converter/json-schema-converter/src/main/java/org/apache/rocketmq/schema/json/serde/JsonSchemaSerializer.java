@@ -42,19 +42,20 @@ import java.util.Map;
  * json schema serializer
  */
 public class JsonSchemaSerializer implements Serializer<JsonSchema> {
-    protected static final int idSize = 8;
+    protected static final int ID_SIZE = 8;
+    private static final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
     private JsonSchemaRegistryClient registryClient;
     private JsonSchemaConverterConfig converterConfig;
-    private final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
 
     @Override
     public void configure(Map<String, ?> props) {
         this.converterConfig = new JsonSchemaConverterConfig(props);
-        this.registryClient =  new JsonSchemaRegistryClient(this.converterConfig);
+        this.registryClient = new JsonSchemaRegistryClient(this.converterConfig);
     }
 
     /**
      * serialize
+     *
      * @param topic
      * @param isKey
      * @param value
@@ -62,7 +63,7 @@ public class JsonSchemaSerializer implements Serializer<JsonSchema> {
      * @return
      */
     public byte[] serialize(String topic, boolean isKey, JsonSchema schema, Object value) {
-        if (value == null){
+        if (value == null) {
             return null;
         }
         String subjectName = TopicNameStrategy.subjectName(topic, isKey);
@@ -78,7 +79,7 @@ public class JsonSchemaSerializer implements Serializer<JsonSchema> {
             SchemaResponse schemaResponse = registryClient.autoRegisterOrGetSchema(JsonSchemaData.NAMESPACE, topic, subjectName, schemaRequest, schema);
             long schemaId = schemaResponse.getRecordId();
             // parse idl
-            if (StringUtils.isNotEmpty(schemaResponse.getIdl())){
+            if (StringUtils.isNotEmpty(schemaResponse.getIdl())) {
                 schema = new JsonSchema(schemaResponse.getIdl());
             }
             // validate json value
@@ -87,7 +88,7 @@ public class JsonSchemaSerializer implements Serializer<JsonSchema> {
             }
             // serialize value
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            out.write(ByteBuffer.allocate(idSize).putLong(schemaId).array());
+            out.write(ByteBuffer.allocate(ID_SIZE).putLong(schemaId).array());
             out.write(OBJECT_MAPPER.writeValueAsBytes(value));
             byte[] bytes = out.toByteArray();
             out.close();

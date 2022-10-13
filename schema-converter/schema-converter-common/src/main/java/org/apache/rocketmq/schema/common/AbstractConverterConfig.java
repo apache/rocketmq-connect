@@ -32,29 +32,25 @@ public abstract class AbstractConverterConfig {
      * Convert message key or value
      */
     public static final String IS_KEY = "isKey";
-    private static final boolean IS_KEY_DEFAULT = false;
-
     /**
-     *  Specify serializer and deserializer registry id
+     * Specify serializer and deserializer registry id
      */
     public static final String SERDE_SCHEMA_REGISTRY_ID = "serde.schema.registry.id";
-
     /**
      * Specify schema cache size
      */
     public static final String SCHEMAS_CACHE_SIZE_CONFIG = "schemas.cache.size";
-    private static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
-
     /**
      * auto registry schema
      */
     public static final String AUTO_REGISTER_SCHEMAS = "auto.register.schemas";
-    private static final boolean AUTO_REGISTER_SCHEMAS_DEFAULT = true;
-
     /**
      * use latest version
      */
     public static final String USE_LATEST_VERSION = "use.latest.version";
+    private static final boolean IS_KEY_DEFAULT = false;
+    private static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
+    private static final boolean AUTO_REGISTER_SCHEMAS_DEFAULT = true;
     private static final boolean USE_LATEST_VERSION_DEFAULT = false;
 
     private final String schemaRegistryUrl;
@@ -67,15 +63,16 @@ public abstract class AbstractConverterConfig {
 
     /**
      * abstract converter config
+     *
      * @param props
      */
-    public AbstractConverterConfig(Map<String, ?> props){
+    public AbstractConverterConfig(Map<String, ?> props) {
         if (!props.containsKey(SCHEMA_REGISTRY_URL)) {
-            throw new IllegalArgumentException("Config ["+SCHEMA_REGISTRY_URL+"] can not empty");
+            throw new IllegalArgumentException("Config [" + SCHEMA_REGISTRY_URL + "] can not empty");
         }
         this.schemaRegistryUrl = String.valueOf(props.get(SCHEMA_REGISTRY_URL));
-        if (!props.containsKey(IS_KEY)){
-            throw new IllegalArgumentException("Config ["+IS_KEY+"] can not empty, Please specify the type of serialization");
+        if (!props.containsKey(IS_KEY)) {
+            throw new IllegalArgumentException("Config [" + IS_KEY + "] can not empty, Please specify the type of serialization");
         }
         this.isKey = Boolean.valueOf(props.get(IS_KEY).toString());
         serdeSchemaRegistryId = props.containsKey(SERDE_SCHEMA_REGISTRY_ID) ?

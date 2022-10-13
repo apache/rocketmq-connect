@@ -22,20 +22,23 @@ import java.util.Map;
 
 /**
  * deserializer
+ *
  * @param <T>
  */
 public interface Deserializer<T> {
 
     /**
      * configure
+     *
      * @param props
      */
-    default void configure(Map<String, ?> props){
+    default void configure(Map<String, ?> props) {
 
     }
 
     /**
      * deserialize
+     *
      * @param topic
      * @param isKey
      * @param payload

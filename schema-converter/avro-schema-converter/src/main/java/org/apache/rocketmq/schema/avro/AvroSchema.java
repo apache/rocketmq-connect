@@ -30,126 +30,127 @@ import java.util.Objects;
  */
 public class AvroSchema implements ParsedSchema<Schema> {
 
-  private static final Logger log = LoggerFactory.getLogger(AvroSchema.class);
+    private static final Logger log = LoggerFactory.getLogger(AvroSchema.class);
 
-  private final Schema schemaObj;
-  private String canonicalString;
-  private final Integer version;
-  private final boolean isNew;
+    private final Schema schemaObj;
+    private final Integer version;
+    private final boolean isNew;
+    private String canonicalString;
 
-  public AvroSchema(String schemaString) {
-    this(schemaString, null);
-  }
-
-  public AvroSchema(String schemaString,
-                    Integer version) {
-    this(schemaString, version, false);
-  }
-
-  public AvroSchema(String schemaString,
-                    Integer version,
-                    boolean isNew) {
-    this.isNew = isNew;
-    Schema.Parser parser = getParser();
-    this.schemaObj = parser.parse(schemaString);
-    this.version = version;
-  }
-
-  public AvroSchema(Schema schemaObj) {
-    this(schemaObj, null);
-  }
-  public AvroSchema(Schema schemaObj, Integer version) {
-    this.isNew = false;
-    this.schemaObj = schemaObj;
-    this.version = version;
-  }
-
-  private AvroSchema(
-      Schema schemaObj,
-      String canonicalString,
-      Integer version,
-      boolean isNew
-  ) {
-    this.isNew = isNew;
-    this.schemaObj = schemaObj;
-    this.canonicalString = canonicalString;
-    this.version = version;
-  }
-
-  public AvroSchema copy() {
-    return new AvroSchema(
-        this.schemaObj,
-        this.canonicalString,
-        this.version,
-        this.isNew
-    );
-  }
-
-  @Override
-  public Schema rawSchema() {
-    return schemaObj;
-  }
-
-  @Override
-  public SchemaType schemaType() {
-    return SchemaType.AVRO;
-  }
-
-  @Override
-  public String name() {
-    if (schemaObj != null && schemaObj.getType() == Schema.Type.RECORD) {
-      return schemaObj.getFullName();
+    public AvroSchema(String schemaString) {
+        this(schemaString, null);
     }
-    return null;
-  }
 
-  @Override
-  public String idl() {
-    if (schemaObj == null) {
-      return null;
+    public AvroSchema(String schemaString,
+                      Integer version) {
+        this(schemaString, version, false);
     }
-    if (canonicalString == null) {
-      Schema.Parser parser = getParser();
-      canonicalString = schemaObj.toString(false);
+
+    public AvroSchema(String schemaString,
+                      Integer version,
+                      boolean isNew) {
+        this.isNew = isNew;
+        Schema.Parser parser = getParser();
+        this.schemaObj = parser.parse(schemaString);
+        this.version = version;
     }
-    return canonicalString;
-  }
 
-  @Override
-  public Integer version() {
-    return version;
-  }
-
-  private Schema.Parser getParser() {
-    Schema.Parser parser = new Schema.Parser();
-    parser.setValidateDefaults(isNew());
-    return parser;
-  }
-
-  public boolean isNew() {
-    return isNew;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    public AvroSchema(Schema schemaObj) {
+        this(schemaObj, null);
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
+
+    public AvroSchema(Schema schemaObj, Integer version) {
+        this.isNew = false;
+        this.schemaObj = schemaObj;
+        this.version = version;
     }
-    AvroSchema that = (AvroSchema) o;
-    return Objects.equals(idl(), that.idl())
-        && Objects.equals(version, that.version);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(idl(), version);
-  }
+    private AvroSchema(
+            Schema schemaObj,
+            String canonicalString,
+            Integer version,
+            boolean isNew
+    ) {
+        this.isNew = isNew;
+        this.schemaObj = schemaObj;
+        this.canonicalString = canonicalString;
+        this.version = version;
+    }
 
-  @Override
-  public String toString() {
-    return idl();
-  }
+    public AvroSchema copy() {
+        return new AvroSchema(
+                this.schemaObj,
+                this.canonicalString,
+                this.version,
+                this.isNew
+        );
+    }
+
+    @Override
+    public Schema rawSchema() {
+        return schemaObj;
+    }
+
+    @Override
+    public SchemaType schemaType() {
+        return SchemaType.AVRO;
+    }
+
+    @Override
+    public String name() {
+        if (schemaObj != null && schemaObj.getType() == Schema.Type.RECORD) {
+            return schemaObj.getFullName();
+        }
+        return null;
+    }
+
+    @Override
+    public String idl() {
+        if (schemaObj == null) {
+            return null;
+        }
+        if (canonicalString == null) {
+            Schema.Parser parser = getParser();
+            canonicalString = schemaObj.toString(false);
+        }
+        return canonicalString;
+    }
+
+    @Override
+    public Integer version() {
+        return version;
+    }
+
+    private Schema.Parser getParser() {
+        Schema.Parser parser = new Schema.Parser();
+        parser.setValidateDefaults(isNew());
+        return parser;
+    }
+
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AvroSchema that = (AvroSchema) o;
+        return Objects.equals(idl(), that.idl())
+                && Objects.equals(version, that.version);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(idl(), version);
+    }
+
+    @Override
+    public String toString() {
+        return idl();
+    }
 }

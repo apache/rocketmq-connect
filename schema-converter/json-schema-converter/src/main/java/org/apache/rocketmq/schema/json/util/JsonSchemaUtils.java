@@ -35,9 +35,8 @@ import org.json.JSONObject;
  * json schema utils
  */
 public class JsonSchemaUtils {
-    private static Object NONE_MARKER = new Object();
-
-    private static final ObjectMapper objectMapper = JacksonMapper.INSTANCE;
+    private static final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
+    private static final Object NONE_MARKER = new Object();
 
     /**
      * validate object
@@ -67,13 +66,13 @@ public class JsonSchemaUtils {
         } else {
             Object jsonObject;
             if (value instanceof ArrayNode) {
-                jsonObject = objectMapper.treeToValue(((ArrayNode) value), JSONArray.class);
+                jsonObject = OBJECT_MAPPER.treeToValue((ArrayNode) value, JSONArray.class);
             } else if (value instanceof JsonNode) {
-                jsonObject = new JSONObject(objectMapper.writeValueAsString(value));
+                jsonObject = new JSONObject(OBJECT_MAPPER.writeValueAsString(value));
             } else if (value.getClass().isArray()) {
-                jsonObject = objectMapper.convertValue(value, JSONArray.class);
+                jsonObject = OBJECT_MAPPER.convertValue(value, JSONArray.class);
             } else {
-                jsonObject = objectMapper.convertValue(value, JSONObject.class);
+                jsonObject = OBJECT_MAPPER.convertValue(value, JSONObject.class);
             }
             schema.validate(jsonObject);
         }

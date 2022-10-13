@@ -23,36 +23,36 @@ import java.util.Objects;
 
 
 public class GenericContainerWithVersion {
-  private final GenericContainer container;
-  private final Integer version;
+    private final GenericContainer container;
+    private final Integer version;
 
-  public GenericContainerWithVersion(GenericContainer container, Integer version) {
-    this.container = container;
-    this.version = version;
-  }
-
-  public GenericContainer container() {
-    return container;
-  }
-
-  public Integer version() {
-    return version;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    public GenericContainerWithVersion(GenericContainer container, Integer version) {
+        this.container = container;
+        this.version = version;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    GenericContainerWithVersion that = (GenericContainerWithVersion) o;
-    return Objects.equals(container, that.container) && Objects.equals(version, that.version);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(container, version);
-  }
+    public GenericContainer container() {
+        return container;
+    }
+
+    public Integer version() {
+        return version;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        GenericContainerWithVersion that = (GenericContainerWithVersion) o;
+        return Objects.equals(container, that.container) && Objects.equals(version, that.version);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(container, version);
+    }
 }

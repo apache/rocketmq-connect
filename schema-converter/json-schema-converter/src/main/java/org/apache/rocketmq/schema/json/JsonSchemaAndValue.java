@@ -26,7 +26,10 @@ import java.util.Objects;
 public class JsonSchemaAndValue {
     private JsonSchema schema;
     private JsonNode value;
-    public JsonSchemaAndValue(){}
+
+    public JsonSchemaAndValue() {
+    }
+
     public JsonSchemaAndValue(JsonSchema jsonSchema, JsonNode value) {
         this.schema = jsonSchema;
         this.value = value;

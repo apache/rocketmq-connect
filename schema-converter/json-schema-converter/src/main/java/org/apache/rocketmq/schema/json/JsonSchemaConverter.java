@@ -64,7 +64,7 @@ public class JsonSchemaConverter implements RecordConverter {
             return null;
         }
         org.everit.json.schema.Schema jsonSchema = jsonSchemaData.fromJsonSchema(schema);
-        JsonNode jsonNode =  jsonSchemaData.fromConnectData(schema, value);
+        JsonNode jsonNode = jsonSchemaData.fromConnectData(schema, value);
         return serializer.serialize(topic, isKey, new JsonSchema(jsonSchema), jsonNode);
     }
 

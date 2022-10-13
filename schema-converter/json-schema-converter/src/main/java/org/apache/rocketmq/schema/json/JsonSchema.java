@@ -24,8 +24,6 @@ import org.apache.rocketmq.schema.registry.common.model.SchemaType;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -35,18 +33,14 @@ import java.util.Objects;
  */
 public class JsonSchema implements ParsedSchema<Schema> {
 
+    private static final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
     private final JsonNode jsonNode;
-
-    private transient org.everit.json.schema.Schema schemaObj;
-
     private final Integer version;
-
+    private transient org.everit.json.schema.Schema schemaObj;
     private transient String canonicalString;
 
-    private static final ObjectMapper objectMapper = JacksonMapper.INSTANCE;
-
     public JsonSchema(JsonNode jsonNode) {
-       this(jsonNode, null);
+        this(jsonNode, null);
     }
 
     public JsonSchema(JsonNode jsonNode, Integer version) {
@@ -55,12 +49,12 @@ public class JsonSchema implements ParsedSchema<Schema> {
     }
 
     public JsonSchema(String schemaString) {
-       this(schemaString, null);
+        this(schemaString, null);
     }
 
     public JsonSchema(String schemaString, Integer version) {
         try {
-            this.jsonNode = objectMapper.readTree(schemaString);
+            this.jsonNode = OBJECT_MAPPER.readTree(schemaString);
             this.version = version;
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid JSON " + schemaString, e);
@@ -73,11 +67,11 @@ public class JsonSchema implements ParsedSchema<Schema> {
 
     public JsonSchema(org.everit.json.schema.Schema schemaObj, Integer version) {
         try {
-            this.jsonNode = schemaObj != null ? objectMapper.readTree(schemaObj.toString()) : null;
+            this.jsonNode = schemaObj != null ? OBJECT_MAPPER.readTree(schemaObj.toString()) : null;
             this.schemaObj = schemaObj;
             this.version = version;
         } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid JSON " + schemaObj.toString(), e);
+            throw new IllegalArgumentException("Invalid JSON " + schemaObj, e);
         }
     }
 
@@ -95,7 +89,7 @@ public class JsonSchema implements ParsedSchema<Schema> {
             try {
                 SchemaLoader.SchemaLoaderBuilder builder = SchemaLoader.builder()
                         .useDefaults(true).draftV7Support();
-                JSONObject jsonObject = new JSONObject(objectMapper.writeValueAsString(jsonNode));
+                JSONObject jsonObject = new JSONObject(OBJECT_MAPPER.writeValueAsString(jsonNode));
                 builder.schemaJson(jsonObject);
                 SchemaLoader loader = builder.build();
                 schemaObj = loader.load().build();
@@ -118,7 +112,7 @@ public class JsonSchema implements ParsedSchema<Schema> {
         }
         if (canonicalString == null) {
             try {
-                canonicalString = objectMapper.writeValueAsString(jsonNode);
+                canonicalString = OBJECT_MAPPER.writeValueAsString(jsonNode);
             } catch (IOException e) {
                 throw new IllegalArgumentException("Invalid JSON", e);
             }

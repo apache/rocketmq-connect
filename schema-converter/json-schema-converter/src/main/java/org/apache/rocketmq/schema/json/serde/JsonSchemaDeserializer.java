@@ -20,7 +20,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.rocketmq.schema.common.Deserializer;
-import org.apache.rocketmq.schema.common.TopicNameStrategy;
 import org.apache.rocketmq.schema.json.JsonSchema;
 import org.apache.rocketmq.schema.json.JsonSchemaAndValue;
 import org.apache.rocketmq.schema.json.JsonSchemaConverterConfig;
@@ -44,15 +43,15 @@ import java.util.Map;
  */
 public class JsonSchemaDeserializer implements Deserializer<JsonSchemaAndValue> {
 
-    protected static final int idSize = 8;
+    protected static final int ID_SIZE = 8;
+    private static final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
     private JsonSchemaRegistryClient schemaRegistryClient;
-    private final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
     private JsonSchemaConverterConfig jsonSchemaConverterConfig;
 
     @Override
     public void configure(Map<String, ?> props) {
-       this.jsonSchemaConverterConfig = new JsonSchemaConverterConfig(props);
-       this.schemaRegistryClient = new JsonSchemaRegistryClient(this.jsonSchemaConverterConfig);
+        this.jsonSchemaConverterConfig = new JsonSchemaConverterConfig(props);
+        this.schemaRegistryClient = new JsonSchemaRegistryClient(this.jsonSchemaConverterConfig);
     }
 
     /**
@@ -73,7 +72,7 @@ public class JsonSchemaDeserializer implements Deserializer<JsonSchemaAndValue> 
         long recordId = buffer.getLong();
         GetSchemaResponse response = schemaRegistryClient.getSchemaByRecordId(JsonSchemaData.NAMESPACE, topic, recordId);
 
-        int length = buffer.limit() - idSize;
+        int length = buffer.limit() - ID_SIZE;
         int start = buffer.position() + buffer.arrayOffset();
 
         // Return JsonNode if type is null

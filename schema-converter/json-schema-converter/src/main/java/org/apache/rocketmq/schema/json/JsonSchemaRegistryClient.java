@@ -38,9 +38,9 @@ public class JsonSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
         JsonSchema currentJsonSchema = (JsonSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            if (StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaName.equals(schemaName(schemaRecord.getSchema()))){
+            if (StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaName.equals(schemaName(schemaRecord.getSchema()))) {
                 JsonSchema compareSchema = new JsonSchema(schemaRecord.getIdl());
-                if (currentJsonSchema.deepEquals(compareSchema)){
+                if (currentJsonSchema.deepEquals(compareSchema)) {
                     matchSchemaRecord = schemaRecord;
                     break;
                 }

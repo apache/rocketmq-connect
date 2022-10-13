@@ -53,6 +53,7 @@ public class AvroConverter implements RecordConverter {
 
     /**
      * from connect data
+     *
      * @param topic  the topic associated with the data
      * @param schema record schema
      * @param value  record value
@@ -60,7 +61,7 @@ public class AvroConverter implements RecordConverter {
      */
     @Override
     public byte[] fromConnectData(String topic, Schema schema, Object value) {
-        if (value == null){
+        if (value == null) {
             return null;
         }
         org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(schema);

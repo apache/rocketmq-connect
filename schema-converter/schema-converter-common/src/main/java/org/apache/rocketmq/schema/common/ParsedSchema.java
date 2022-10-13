@@ -17,6 +17,7 @@
 package org.apache.rocketmq.schema.common;
 
 import org.apache.rocketmq.schema.registry.common.model.SchemaType;
+
 import java.util.Objects;
 
 /**
@@ -25,18 +26,21 @@ import java.util.Objects;
 public interface ParsedSchema<T> {
     /**
      * get schema type
+     *
      * @return
      */
     SchemaType schemaType();
 
     /**
      * raw schema
+     *
      * @return
      */
     T rawSchema();
 
     /**
      * get schema version
+     *
      * @return
      */
     Integer version();
@@ -49,6 +53,7 @@ public interface ParsedSchema<T> {
 
     /**
      * get schema string
+     *
      * @return
      */
     String idl();
@@ -56,12 +61,14 @@ public interface ParsedSchema<T> {
 
     /**
      * get schema name
+     *
      * @return
      */
     String name();
 
     /**
      * deep equals
+     *
      * @param schema
      * @return
      */

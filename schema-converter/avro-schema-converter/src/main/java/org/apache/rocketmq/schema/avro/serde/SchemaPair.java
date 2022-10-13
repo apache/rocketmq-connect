@@ -22,37 +22,37 @@ import org.apache.avro.Schema;
 import java.util.Objects;
 
 public class SchemaPair {
-  private final Schema writerSchema;
-  private final Schema readerSchema;
+    private final Schema writerSchema;
+    private final Schema readerSchema;
 
-  public SchemaPair(Schema writerSchema, Schema readerSchema) {
-    this.writerSchema = writerSchema;
-    this.readerSchema = readerSchema;
-  }
-
-  public Schema getWriterSchema() {
-    return writerSchema;
-  }
-
-  public Schema getReaderSchema() {
-    return readerSchema;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    public SchemaPair(Schema writerSchema, Schema readerSchema) {
+        this.writerSchema = writerSchema;
+        this.readerSchema = readerSchema;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    SchemaPair that = (SchemaPair) o;
-    return Objects.equals(writerSchema, that.writerSchema)
-        && Objects.equals(readerSchema, that.readerSchema);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(writerSchema, readerSchema);
-  }
+    public Schema getWriterSchema() {
+        return writerSchema;
+    }
+
+    public Schema getReaderSchema() {
+        return readerSchema;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SchemaPair that = (SchemaPair) o;
+        return Objects.equals(writerSchema, that.writerSchema)
+                && Objects.equals(readerSchema, that.readerSchema);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(writerSchema, readerSchema);
+    }
 }

@@ -18,7 +18,6 @@
 package org.apache.rocketmq.schema.avro;
 
 
-import java.util.HashMap;
 import java.util.Map;
 
 
@@ -27,41 +26,40 @@ import java.util.Map;
  */
 public class AvroDataConfig {
 
-  public static final String ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG = "enhanced.avro.schema.support";
-  private static final boolean ENHANCED_AVRO_SCHEMA_SUPPORT_DEFAULT = false;
-  private static final String ENHANCED_AVRO_SCHEMA_SUPPORT_DOC =
-      "Toggle for enabling/disabling enhanced avro schema support: Enum symbol preservation and "
-      + "Package Name awareness";
+    public static final String ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG = "enhanced.avro.schema.support";
+    public static final String CONNECT_META_DATA_CONFIG = "connect.meta.data";
+    public static final String SCHEMAS_CACHE_SIZE_CONFIG = "schemas.cache.config";
+    private static final boolean ENHANCED_AVRO_SCHEMA_SUPPORT_DEFAULT = false;
+    private static final String ENHANCED_AVRO_SCHEMA_SUPPORT_DOC =
+            "Toggle for enabling/disabling enhanced avro schema support: Enum symbol preservation and "
+                    + "Package Name awareness";
+    private static final boolean CONNECT_META_DATA_DEFAULT = true;
+    private static final String CONNECT_META_DATA_DOC =
+            "Toggle for enabling/disabling connect converter to add its meta data to the output schema "
+                    + "or not";
+    private static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
+    private static final String SCHEMAS_CACHE_SIZE_DOC =
+            "Size of the converted schemas cache";
 
-  public static final String CONNECT_META_DATA_CONFIG = "connect.meta.data";
-  private static final boolean CONNECT_META_DATA_DEFAULT = true;
-  private static final String CONNECT_META_DATA_DOC =
-      "Toggle for enabling/disabling connect converter to add its meta data to the output schema "
-      + "or not";
+    private final Map<?, ?> props;
 
-  public static final String SCHEMAS_CACHE_SIZE_CONFIG = "schemas.cache.config";
-  private static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
-  private static final String SCHEMAS_CACHE_SIZE_DOC =
-      "Size of the converted schemas cache";
+    public AvroDataConfig(Map<?, ?> props) {
+        this.props = props;
+    }
 
-  private final Map<?, ?> props;
-  public AvroDataConfig(Map<?, ?> props) {
-    this.props = props;
-  }
+    public boolean isEnhancedAvroSchemaSupport() {
+        return props.containsKey(ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG) ?
+                Boolean.valueOf(props.get(ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG).toString()) : ENHANCED_AVRO_SCHEMA_SUPPORT_DEFAULT;
+    }
 
-  public boolean isEnhancedAvroSchemaSupport() {
-    return  props.containsKey(ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG) ?
-            Boolean.valueOf(props.get(ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG).toString()) : ENHANCED_AVRO_SCHEMA_SUPPORT_DEFAULT;
-  }
+    public boolean isConnectMetaData() {
+        return props.containsKey(CONNECT_META_DATA_CONFIG) ?
+                Boolean.valueOf(props.get(CONNECT_META_DATA_CONFIG).toString()) : CONNECT_META_DATA_DEFAULT;
+    }
 
-  public boolean isConnectMetaData() {
-    return  props.containsKey(CONNECT_META_DATA_CONFIG) ?
-            Boolean.valueOf(props.get(CONNECT_META_DATA_CONFIG).toString()) : CONNECT_META_DATA_DEFAULT;
-  }
-
-  public int getSchemasCacheSize() {
-    return  props.containsKey(SCHEMAS_CACHE_SIZE_CONFIG) ?
-            Integer.parseInt(props.get(CONNECT_META_DATA_CONFIG).toString()) : SCHEMAS_CACHE_SIZE_DEFAULT;
-  }
+    public int getSchemasCacheSize() {
+        return props.containsKey(SCHEMAS_CACHE_SIZE_CONFIG) ?
+                Integer.parseInt(props.get(CONNECT_META_DATA_CONFIG).toString()) : SCHEMAS_CACHE_SIZE_DEFAULT;
+    }
 
 }

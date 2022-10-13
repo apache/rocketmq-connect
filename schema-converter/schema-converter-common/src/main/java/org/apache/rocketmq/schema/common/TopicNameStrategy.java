@@ -23,6 +23,7 @@ public class TopicNameStrategy {
 
     /**
      * generate subject name
+     *
      * @param topic
      * @param isKey
      * @return

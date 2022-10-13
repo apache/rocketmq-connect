@@ -91,10 +91,214 @@ public class JsonSchemaData {
 
     private static final JsonNodeFactory JSON_NODE_FACTORY = JsonNodeFactory.withExactBigDecimals(true);
     private static final ObjectMapper OBJECT_MAPPER = JacksonMapper.INSTANCE;
-    private JsonSchemaConverterConfig config;
+    private static final Map<FieldType, JsonToConnectTypeConverter> TO_CONNECT_CONVERTERS = new ConcurrentHashMap<>();
+    private static final HashMap<String, JsonToConnectLogicalTypeConverter>
+            TO_CONNECT_LOGICAL_CONVERTERS = new HashMap<>();
+    private static final HashMap<String, ConnectToJsonLogicalTypeConverter>
+            TO_JSON_LOGICAL_CONVERTERS = new HashMap<>();
+
+    static {
+        TO_CONNECT_CONVERTERS.put(FieldType.BOOLEAN, (schema, value) -> value.booleanValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.INT8, (schema, value) -> (byte) value.shortValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.INT16, (schema, value) -> value.shortValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.INT32, (schema, value) -> value.intValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.INT64, (schema, value) -> value.longValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.FLOAT32, (schema, value) -> value.floatValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.FLOAT64, (schema, value) -> value.doubleValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.BYTES, (schema, value) -> {
+            try {
+                Object o = value.binaryValue();
+                if (o == null) {
+                    o = value.decimalValue();  // decimal logical type
+                }
+                return o;
+            } catch (IOException e) {
+                throw new ConnectException("Invalid bytes field", e);
+            }
+        });
+        TO_CONNECT_CONVERTERS.put(FieldType.STRING, (schema, value) -> value.textValue());
+        TO_CONNECT_CONVERTERS.put(FieldType.ARRAY, (schema, value) -> {
+            Schema elemSchema = schema == null ? null : schema.getValueSchema();
+            ArrayList<Object> result = new ArrayList<>();
+            for (JsonNode elem : value) {
+                result.add(toConnectData(elemSchema, elem));
+            }
+            return result;
+        });
+        TO_CONNECT_CONVERTERS.put(FieldType.MAP, (schema, value) -> {
+            Schema keySchema = schema == null ? null : schema.getKeySchema();
+            Schema valueSchema = schema == null ? null : schema.getValueSchema();
+            Map<Object, Object> result = new HashMap<>();
+            if (schema == null || (keySchema.getFieldType() == FieldType.STRING && !keySchema.isOptional())) {
+                if (!value.isObject()) {
+                    throw new ConnectException(
+                            "Maps with string fields should be encoded as JSON objects, but found "
+                                    + value.getNodeType());
+                }
+                Iterator<Map.Entry<String, JsonNode>> fieldIt = value.fields();
+                while (fieldIt.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fieldIt.next();
+                    result.put(entry.getKey(), toConnectData(valueSchema, entry.getValue()));
+                }
+            } else {
+                if (!value.isArray()) {
+                    throw new ConnectException(
+                            "Maps with non-string fields should be encoded as JSON array of objects, but "
+                                    + "found "
+                                    + value.getNodeType());
+                }
+                for (JsonNode entry : value) {
+                    if (!entry.isObject()) {
+                        throw new ConnectException("Found invalid map entry instead of object: "
+                                + entry.getNodeType());
+                    }
+                    if (entry.size() != 2) {
+                        throw new ConnectException("Found invalid map entry, expected length 2 but found :" + entry
+                                .size());
+                    }
+                    result.put(toConnectData(keySchema, entry.get(KEY_FIELD)),
+                            toConnectData(valueSchema, entry.get(VALUE_FIELD))
+                    );
+                }
+            }
+            return result;
+        });
+        TO_CONNECT_CONVERTERS.put(FieldType.STRUCT, (schema, value) -> {
+            if (schema.getName() != null && schema.getName().equals(JSON_TYPE_ONE_OF)) {
+                int numMatchingProperties = -1;
+                Field matchingField = null;
+                for (Field field : schema.getFields()) {
+                    Schema fieldSchema = field.getSchema();
+
+                    if (isSimpleSchema(fieldSchema, value)) {
+                        return new Struct(schema).put(JSON_TYPE_ONE_OF + ".field." + field.getIndex(),
+                                toConnectData(fieldSchema, value)
+                        );
+                    } else {
+                        int matching = matchStructSchema(fieldSchema, value);
+                        if (matching > numMatchingProperties) {
+                            numMatchingProperties = matching;
+                            matchingField = field;
+                        }
+                    }
+                }
+                if (matchingField != null) {
+                    return new Struct(schema).put(
+                            JSON_TYPE_ONE_OF + ".field." + matchingField.getIndex(),
+                            toConnectData(matchingField.getSchema(), value)
+                    );
+                }
+                throw new ConnectException("Did not find matching oneof field for data: " + value.toString());
+            } else {
+                if (!value.isObject()) {
+                    throw new ConnectException("Structs should be encoded as JSON objects, but found "
+                            + value.getNodeType());
+                }
+
+                Struct result = new Struct(schema);
+                for (Field field : schema.getFields()) {
+                    Object fieldValue = toConnectData(field.getSchema(), value.get(field.getName()));
+                    if (fieldValue != null) {
+                        result.put(field, fieldValue);
+                    }
+                }
+
+                return result;
+            }
+        });
+    }
+
+    static {
+        TO_CONNECT_LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, (schema, value) -> {
+            if (value.isNumber()) {
+                return value.decimalValue();
+            }
+            if (value.isBinary() || value.isTextual()) {
+                try {
+                    return Decimal.toLogical(schema, value.binaryValue());
+                } catch (Exception e) {
+                    throw new ConnectException("Invalid bytes for Decimal field", e);
+                }
+            }
+
+            throw new ConnectException("Invalid type for Decimal, "
+                    + "underlying representation should be numeric or bytes but was " + value.getNodeType());
+        });
+
+        TO_CONNECT_LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, (schema, value) -> {
+            if (!(value.isInt())) {
+                throw new ConnectException(
+                        "Invalid type for Date, "
+                                + "underlying representation should be integer but was " + value.getNodeType());
+            }
+            return Date.toLogical(schema, value.intValue());
+        });
+
+        TO_CONNECT_LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, (schema, value) -> {
+            if (!(value.isInt())) {
+                throw new ConnectException(
+                        "Invalid type for Time, "
+                                + "underlying representation should be integer but was " + value.getNodeType());
+            }
+            return Time.toLogical(schema, value.intValue());
+        });
+
+        TO_CONNECT_LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, (schema, value) -> {
+            if (!(value.isIntegralNumber())) {
+                throw new ConnectException(
+                        "Invalid type for Timestamp, "
+                                + "underlying representation should be integral but was " + value.getNodeType());
+            }
+            return Timestamp.toLogical(schema, value.longValue());
+        });
+    }
+
+    static {
+        TO_JSON_LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, (schema, value, config) -> {
+            if (!(value instanceof BigDecimal)) {
+                throw new ConnectException("Invalid type for Decimal, "
+                        + "expected BigDecimal but was " + value.getClass());
+            }
+
+            final BigDecimal decimal = (BigDecimal) value;
+            switch (config.decimalFormat()) {
+                case NUMERIC:
+                    return JSON_NODE_FACTORY.numberNode(decimal);
+                case BASE64:
+                    return JSON_NODE_FACTORY.binaryNode(Decimal.fromLogical(schema, decimal));
+                default:
+                    throw new ConnectException("Unexpected "
+                            + JsonSchemaConverterConfig.DECIMAL_FORMAT_CONFIG + ": " + config.decimalFormat());
+            }
+        });
+
+        TO_JSON_LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, (schema, value, config) -> {
+            if (!(value instanceof java.util.Date)) {
+                throw new ConnectException("Invalid type for Date, expected Date but was " + value.getClass());
+            }
+            return JSON_NODE_FACTORY.numberNode(Date.fromLogical(schema, (java.util.Date) value));
+        });
+
+        TO_JSON_LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, (schema, value, config) -> {
+            if (!(value instanceof java.util.Date)) {
+                throw new ConnectException("Invalid type for Time, expected Date but was " + value.getClass());
+            }
+            return JSON_NODE_FACTORY.numberNode(Time.fromLogical(schema, (java.util.Date) value));
+        });
+
+        TO_JSON_LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, (schema, value, config) -> {
+            if (!(value instanceof java.util.Date)) {
+                throw new ConnectException("Invalid type for Timestamp, "
+                        + "expected Date but was " + value.getClass());
+            }
+            return JSON_NODE_FACTORY.numberNode(
+                    Timestamp.fromLogical(schema, (java.util.Date) value));
+        });
+    }
 
     private final Map<Schema, org.everit.json.schema.Schema> fromConnectSchemaCache;
     private final Map<org.everit.json.schema.Schema, Schema> toConnectSchemaCache;
+    private final JsonSchemaConverterConfig config;
 
     public JsonSchemaData(JsonSchemaConverterConfig jsonSchemaDataConfig) {
         this.config = jsonSchemaDataConfig;
@@ -184,6 +388,70 @@ public class JsonSchemaData {
         return typeConverter.convert(schema, jsonValue);
     }
 
+    /**
+     * no optional schema
+     *
+     * @param schema
+     * @return
+     */
+    private static Schema nonOptionalSchema(Schema schema) {
+        return new Schema(schema.getName(),
+                schema.getFieldType(),
+                false,
+                schema.getDefaultValue(),
+                schema.getVersion(),
+                schema.getDoc(),
+                FieldType.STRUCT.equals(schema.getFieldType()) ? schema.getFields() : null,
+                (FieldType.MAP.equals(schema.getFieldType())) ? schema.getKeySchema() : null,
+                (FieldType.MAP.equals(schema.getFieldType()) || FieldType.ARRAY.equals(schema.getFieldType())) ? schema.getValueSchema() : null,
+                schema.getParameters()
+        );
+    }
+
+    private static boolean isSimpleSchema(Schema fieldSchema, JsonNode value) {
+        switch (fieldSchema.getFieldType()) {
+            case INT8:
+            case INT16:
+            case INT32:
+            case INT64:
+                return value.isIntegralNumber();
+            case FLOAT32:
+            case FLOAT64:
+                return value.isNumber();
+            case BOOLEAN:
+                return value.isBoolean();
+            case STRING:
+                return value.isTextual();
+            case BYTES:
+                return value.isBinary() || value.isBigDecimal();
+            case ARRAY:
+                return value.isArray();
+            case MAP:
+                return value.isObject() || value.isArray();
+            case STRUCT:
+                return false;
+            default:
+                throw new IllegalArgumentException("Unsupported type " + fieldSchema.getFieldType());
+        }
+    }
+
+    private static int matchStructSchema(Schema fieldSchema, JsonNode value) {
+        if (fieldSchema.getFieldType() != FieldType.STRUCT || !value.isObject()) {
+            return -1;
+        }
+        Set<String> schemaFields = fieldSchema.getFields()
+                .stream()
+                .map(Field::getName)
+                .collect(Collectors.toSet());
+        Set<String> objectFields = new HashSet<>();
+        for (Iterator<Map.Entry<String, JsonNode>> iter = value.fields(); iter.hasNext(); ) {
+            objectFields.add(iter.next().getKey());
+        }
+        Set<String> intersectSet = new HashSet<>(schemaFields);
+        intersectSet.retainAll(objectFields);
+        return intersectSet.size();
+    }
+
     private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema) {
         if (schema == null) {
             return null;
@@ -197,12 +465,12 @@ public class JsonSchemaData {
         return resultSchema;
     }
 
-    private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema, Integer index){
+    private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema, Integer index) {
         return rawSchemaFromConnectSchema(schema, index, false);
     }
 
-    private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema, Integer index,  boolean ignoreOptional){
-        if (schema == null){
+    private org.everit.json.schema.Schema rawSchemaFromConnectSchema(Schema schema, Integer index, boolean ignoreOptional) {
+        if (schema == null) {
             return null;
         }
         org.everit.json.schema.Schema.Builder builder;
@@ -336,34 +604,14 @@ public class JsonSchemaData {
         return builder.unprocessedProperties(unprocessedProps).build();
     }
 
-
     /**
      * from json schema
+     *
      * @param schema
      * @return
      */
     public org.everit.json.schema.Schema fromJsonSchema(Schema schema) {
         return rawSchemaFromConnectSchema(schema);
-    }
-
-    /**
-     * no optional schema
-     *
-     * @param schema
-     * @return
-     */
-    private static Schema nonOptionalSchema(Schema schema) {
-        return new Schema(schema.getName(),
-                schema.getFieldType(),
-                false,
-                schema.getDefaultValue(),
-                schema.getVersion(),
-                schema.getDoc(),
-                FieldType.STRUCT.equals(schema.getFieldType()) ? schema.getFields() : null,
-                (FieldType.MAP.equals(schema.getFieldType())) ? schema.getKeySchema() : null,
-                (FieldType.MAP.equals(schema.getFieldType()) || FieldType.ARRAY.equals(schema.getFieldType())) ? schema.getValueSchema() : null,
-                schema.getParameters()
-        );
     }
 
     /**
@@ -567,10 +815,9 @@ public class JsonSchemaData {
         return result;
     }
 
-
-
     /**
      * all of to connect schema
+     *
      * @param combinedSchema
      * @param version
      * @param forceOptional
@@ -606,49 +853,6 @@ public class JsonSchemaData {
             throw new IllegalArgumentException("Unsupported criterion "
                     + combinedSchema.getCriterion() + " for " + combinedSchema);
         }
-    }
-    private static boolean isSimpleSchema(Schema fieldSchema, JsonNode value) {
-        switch (fieldSchema.getFieldType()) {
-            case INT8:
-            case INT16:
-            case INT32:
-            case INT64:
-                return value.isIntegralNumber();
-            case FLOAT32:
-            case FLOAT64:
-                return value.isNumber();
-            case BOOLEAN:
-                return value.isBoolean();
-            case STRING:
-                return value.isTextual();
-            case BYTES:
-                return value.isBinary() || value.isBigDecimal();
-            case ARRAY:
-                return value.isArray();
-            case MAP:
-                return value.isObject() || value.isArray();
-            case STRUCT:
-                return false;
-            default:
-                throw new IllegalArgumentException("Unsupported type " + fieldSchema.getFieldType());
-        }
-    }
-
-    private static int matchStructSchema(Schema fieldSchema, JsonNode value) {
-        if (fieldSchema.getFieldType() != FieldType.STRUCT || !value.isObject()) {
-            return -1;
-        }
-        Set<String> schemaFields = fieldSchema.getFields()
-                .stream()
-                .map(Field::getName)
-                .collect(Collectors.toSet());
-        Set<String> objectFields = new HashSet<>();
-        for (Iterator<Map.Entry<String, JsonNode>> iter = value.fields(); iter.hasNext(); ) {
-            objectFields.add(iter.next().getKey());
-        }
-        Set<String> intersectSet = new HashSet<>(schemaFields);
-        intersectSet.retainAll(objectFields);
-        return intersectSet.size();
     }
 
     /**
@@ -719,7 +923,7 @@ public class JsonSchemaData {
                     } else if (value instanceof ByteBuffer) {
                         return JSON_NODE_FACTORY.binaryNode(((ByteBuffer) value).array());
                     } else if (value instanceof BigDecimal) {
-                        return JSON_NODE_FACTORY.numberNode(((BigDecimal) value));
+                        return JSON_NODE_FACTORY.numberNode((BigDecimal) value);
                     } else {
                         throw new ConnectException("Invalid type for bytes type: " + value.getClass());
                     }
@@ -809,219 +1013,6 @@ public class JsonSchemaData {
             throw new ConnectException("Invalid type for " + schemaTypeStr + ": " + value.getClass());
         }
     }
-
-
-    private static final Map<FieldType, JsonToConnectTypeConverter> TO_CONNECT_CONVERTERS = new ConcurrentHashMap<>();
-
-    static {
-        TO_CONNECT_CONVERTERS.put(FieldType.BOOLEAN, (schema, value) -> value.booleanValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.INT8, (schema, value) -> (byte) value.shortValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.INT16, (schema, value) -> value.shortValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.INT32, (schema, value) -> value.intValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.INT64, (schema, value) -> value.longValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.FLOAT32, (schema, value) -> value.floatValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.FLOAT64, (schema, value) -> value.doubleValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.BYTES, (schema, value) -> {
-            try {
-                Object o = value.binaryValue();
-                if (o == null) {
-                    o = value.decimalValue();  // decimal logical type
-                }
-                return o;
-            } catch (IOException e) {
-                throw new ConnectException("Invalid bytes field", e);
-            }
-        });
-        TO_CONNECT_CONVERTERS.put(FieldType.STRING, (schema, value) -> value.textValue());
-        TO_CONNECT_CONVERTERS.put(FieldType.ARRAY, (schema, value) -> {
-            Schema elemSchema = schema == null ? null : schema.getValueSchema();
-            ArrayList<Object> result = new ArrayList<>();
-            for (JsonNode elem : value) {
-                result.add(toConnectData(elemSchema, elem));
-            }
-            return result;
-        });
-        TO_CONNECT_CONVERTERS.put(FieldType.MAP, (schema, value) -> {
-            Schema keySchema = schema == null ? null : schema.getKeySchema();
-            Schema valueSchema = schema == null ? null : schema.getValueSchema();
-            Map<Object, Object> result = new HashMap<>();
-            if (schema == null || (keySchema.getFieldType() == FieldType.STRING && !keySchema.isOptional())) {
-                if (!value.isObject()) {
-                    throw new ConnectException(
-                            "Maps with string fields should be encoded as JSON objects, but found "
-                                    + value.getNodeType());
-                }
-                Iterator<Map.Entry<String, JsonNode>> fieldIt = value.fields();
-                while (fieldIt.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fieldIt.next();
-                    result.put(entry.getKey(), toConnectData(valueSchema, entry.getValue()));
-                }
-            } else {
-                if (!value.isArray()) {
-                    throw new ConnectException(
-                            "Maps with non-string fields should be encoded as JSON array of objects, but "
-                                    + "found "
-                                    + value.getNodeType());
-                }
-                for (JsonNode entry : value) {
-                    if (!entry.isObject()) {
-                        throw new ConnectException("Found invalid map entry instead of object: "
-                                + entry.getNodeType());
-                    }
-                    if (entry.size() != 2) {
-                        throw new ConnectException("Found invalid map entry, expected length 2 but found :" + entry
-                                .size());
-                    }
-                    result.put(toConnectData(keySchema, entry.get(KEY_FIELD)),
-                            toConnectData(valueSchema, entry.get(VALUE_FIELD))
-                    );
-                }
-            }
-            return result;
-        });
-        TO_CONNECT_CONVERTERS.put(FieldType.STRUCT, (schema, value) -> {
-            if (schema.getName() != null && schema.getName().equals(JSON_TYPE_ONE_OF)) {
-                int numMatchingProperties = -1;
-                Field matchingField = null;
-                for (Field field : schema.getFields()) {
-                    Schema fieldSchema = field.getSchema();
-
-                    if (isSimpleSchema(fieldSchema, value)) {
-                        return new Struct(schema).put(JSON_TYPE_ONE_OF + ".field." + field.getIndex(),
-                                toConnectData(fieldSchema, value)
-                        );
-                    } else {
-                        int matching = matchStructSchema(fieldSchema, value);
-                        if (matching > numMatchingProperties) {
-                            numMatchingProperties = matching;
-                            matchingField = field;
-                        }
-                    }
-                }
-                if (matchingField != null) {
-                    return new Struct(schema).put(
-                            JSON_TYPE_ONE_OF + ".field." + matchingField.getIndex(),
-                            toConnectData(matchingField.getSchema(), value)
-                    );
-                }
-                throw new ConnectException("Did not find matching oneof field for data: " + value.toString());
-            } else {
-                if (!value.isObject()) {
-                    throw new ConnectException("Structs should be encoded as JSON objects, but found "
-                            + value.getNodeType());
-                }
-
-                Struct result = new Struct(schema);
-                for (Field field : schema.getFields()) {
-                    Object fieldValue = toConnectData(field.getSchema(), value.get(field.getName()));
-                    if (fieldValue != null) {
-                        result.put(field, fieldValue);
-                    }
-                }
-
-                return result;
-            }
-        });
-    }
-
-
-    private static final HashMap<String, JsonToConnectLogicalTypeConverter>
-            TO_CONNECT_LOGICAL_CONVERTERS = new HashMap<>();
-
-    static {
-        TO_CONNECT_LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, (schema, value) -> {
-            if (value.isNumber()) {
-                return value.decimalValue();
-            }
-            if (value.isBinary() || value.isTextual()) {
-                try {
-                    return Decimal.toLogical(schema, value.binaryValue());
-                } catch (Exception e) {
-                    throw new ConnectException("Invalid bytes for Decimal field", e);
-                }
-            }
-
-            throw new ConnectException("Invalid type for Decimal, "
-                    + "underlying representation should be numeric or bytes but was " + value.getNodeType());
-        });
-
-        TO_CONNECT_LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, (schema, value) -> {
-            if (!(value.isInt())) {
-                throw new ConnectException(
-                        "Invalid type for Date, "
-                                + "underlying representation should be integer but was " + value.getNodeType());
-            }
-            return Date.toLogical(schema, value.intValue());
-        });
-
-        TO_CONNECT_LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, (schema, value) -> {
-            if (!(value.isInt())) {
-                throw new ConnectException(
-                        "Invalid type for Time, "
-                                + "underlying representation should be integer but was " + value.getNodeType());
-            }
-            return Time.toLogical(schema, value.intValue());
-        });
-
-        TO_CONNECT_LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, (schema, value) -> {
-            if (!(value.isIntegralNumber())) {
-                throw new ConnectException(
-                        "Invalid type for Timestamp, "
-                                + "underlying representation should be integral but was " + value.getNodeType());
-            }
-            return Timestamp.toLogical(schema, value.longValue());
-        });
-    }
-
-
-    private static final HashMap<String, ConnectToJsonLogicalTypeConverter>
-            TO_JSON_LOGICAL_CONVERTERS = new HashMap<>();
-
-    static {
-        TO_JSON_LOGICAL_CONVERTERS.put(Decimal.LOGICAL_NAME, (schema, value, config) -> {
-            if (!(value instanceof BigDecimal)) {
-                throw new ConnectException("Invalid type for Decimal, "
-                        + "expected BigDecimal but was " + value.getClass());
-            }
-
-            final BigDecimal decimal = (BigDecimal) value;
-            switch (config.decimalFormat()) {
-                case NUMERIC:
-                    return JSON_NODE_FACTORY.numberNode(decimal);
-                case BASE64:
-                    return JSON_NODE_FACTORY.binaryNode(Decimal.fromLogical(schema, decimal));
-                default:
-                    throw new ConnectException("Unexpected "
-                            + JsonSchemaConverterConfig.DECIMAL_FORMAT_CONFIG + ": " + config.decimalFormat());
-            }
-        });
-
-        TO_JSON_LOGICAL_CONVERTERS.put(Date.LOGICAL_NAME, (schema, value, config) -> {
-            if (!(value instanceof java.util.Date)) {
-                throw new ConnectException("Invalid type for Date, expected Date but was " + value.getClass());
-            }
-            return JSON_NODE_FACTORY.numberNode(Date.fromLogical(schema, (java.util.Date) value));
-        });
-
-        TO_JSON_LOGICAL_CONVERTERS.put(Time.LOGICAL_NAME, (schema, value, config) -> {
-            if (!(value instanceof java.util.Date)) {
-                throw new ConnectException("Invalid type for Time, expected Date but was " + value.getClass());
-            }
-            return JSON_NODE_FACTORY.numberNode(Time.fromLogical(schema, (java.util.Date) value));
-        });
-
-        TO_JSON_LOGICAL_CONVERTERS.put(Timestamp.LOGICAL_NAME, (schema, value, config) -> {
-            if (!(value instanceof java.util.Date)) {
-                throw new ConnectException("Invalid type for Timestamp, "
-                        + "expected Date but was " + value.getClass());
-            }
-            return JSON_NODE_FACTORY.numberNode(
-                    Timestamp.fromLogical(schema, (java.util.Date) value));
-        });
-    }
-
-
-
 
 
     private interface JsonToConnectTypeConverter {

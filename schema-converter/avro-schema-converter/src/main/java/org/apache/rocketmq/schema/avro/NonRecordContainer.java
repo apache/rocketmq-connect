@@ -25,41 +25,41 @@ import java.util.Objects;
 
 public class NonRecordContainer implements GenericContainer {
 
-  private final Schema schema;
-  private final Object value;
+    private final Schema schema;
+    private final Object value;
 
-  public NonRecordContainer(Schema schema, Object value) {
-    if (schema == null) {
-      throw new SerializationException("Schema may not be null.");
+    public NonRecordContainer(Schema schema, Object value) {
+        if (schema == null) {
+            throw new SerializationException("Schema may not be null.");
+        }
+        this.schema = schema;
+        this.value = value;
     }
-    this.schema = schema;
-    this.value = value;
-  }
 
-  @Override
-  public Schema getSchema() {
-    return schema;
-  }
-
-  public Object getValue() {
-    return value;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    @Override
+    public Schema getSchema() {
+        return schema;
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    NonRecordContainer that = (NonRecordContainer) o;
-    return Objects.equals(schema, that.schema)
-           && Objects.equals(value, that.value);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(schema, value);
-  }
+    public Object getValue() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        NonRecordContainer that = (NonRecordContainer) o;
+        return Objects.equals(schema, that.schema)
+                && Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(schema, value);
+    }
 }

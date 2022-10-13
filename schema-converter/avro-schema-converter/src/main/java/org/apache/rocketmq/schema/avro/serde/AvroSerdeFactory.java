@@ -27,6 +27,7 @@ public class AvroSerdeFactory {
 
     /**
      * add logical type conversion
+     *
      * @param avroData
      */
     public void addLogicalTypeConversion(GenericData avroData) {

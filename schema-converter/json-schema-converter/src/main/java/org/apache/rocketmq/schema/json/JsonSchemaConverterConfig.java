@@ -22,42 +22,43 @@ import java.util.Locale;
 import java.util.Map;
 
 public class JsonSchemaConverterConfig extends AbstractConverterConfig {
-  public static final String USE_OPTIONAL_FOR_NON_REQUIRED_CONFIG = "use.optional.for.nonrequired";
-  private static final boolean USE_OPTIONAL_FOR_NON_REQUIRED_DEFAULT = false;
-  public static final String DECIMAL_FORMAT_CONFIG = "decimal.format";
-  private static final DecimalFormat DECIMAL_FORMAT_DEFAULT = DecimalFormat.BASE64;
-  /**
-   * validate schema enabled
-   */
-  public static final String VALIDATE_ENABLED = "validate.enabled";
-  private static final boolean VALIDATE_ENABLED_DEFAULT = true;
+    public static final String USE_OPTIONAL_FOR_NON_REQUIRED_CONFIG = "use.optional.for.nonrequired";
+    public static final String DECIMAL_FORMAT_CONFIG = "decimal.format";
+    /**
+     * validate schema enabled
+     */
+    public static final String VALIDATE_ENABLED = "validate.enabled";
+    private static final boolean USE_OPTIONAL_FOR_NON_REQUIRED_DEFAULT = false;
+    private static final DecimalFormat DECIMAL_FORMAT_DEFAULT = DecimalFormat.BASE64;
+    private static final boolean VALIDATE_ENABLED_DEFAULT = true;
 
-  private final Map<String, ?> props;
+    private final Map<String, ?> props;
 
-  public JsonSchemaConverterConfig(Map<String, ?> props) {
-    super(props);
-    this.props = props;
-  }
+    public JsonSchemaConverterConfig(Map<String, ?> props) {
+        super(props);
+        this.props = props;
+    }
 
 
-  public boolean validate() {
-    return props.containsKey(VALIDATE_ENABLED) ?
-            Boolean.valueOf(props.get(VALIDATE_ENABLED).toString()) : VALIDATE_ENABLED_DEFAULT;
-  }
+    public boolean validate() {
+        return props.containsKey(VALIDATE_ENABLED) ?
+                Boolean.valueOf(props.get(VALIDATE_ENABLED).toString()) : VALIDATE_ENABLED_DEFAULT;
+    }
 
-  public boolean useOptionalForNonRequiredProperties() {
-    return props.containsKey(USE_OPTIONAL_FOR_NON_REQUIRED_CONFIG) ?
-            Boolean.valueOf(props.get(USE_OPTIONAL_FOR_NON_REQUIRED_CONFIG).toString()) : USE_OPTIONAL_FOR_NON_REQUIRED_DEFAULT;
-  }
+    public boolean useOptionalForNonRequiredProperties() {
+        return props.containsKey(USE_OPTIONAL_FOR_NON_REQUIRED_CONFIG) ?
+                Boolean.valueOf(props.get(USE_OPTIONAL_FOR_NON_REQUIRED_CONFIG).toString()) : USE_OPTIONAL_FOR_NON_REQUIRED_DEFAULT;
+    }
 
-  /**
-   * decimal format
-   * @return
-   */
-  public DecimalFormat decimalFormat() {
-    return props.containsKey(DECIMAL_FORMAT_CONFIG) ?
-            DecimalFormat.valueOf(props.get(DECIMAL_FORMAT_CONFIG).toString().toUpperCase(Locale.ROOT)) : DECIMAL_FORMAT_DEFAULT;
+    /**
+     * decimal format
+     *
+     * @return
+     */
+    public DecimalFormat decimalFormat() {
+        return props.containsKey(DECIMAL_FORMAT_CONFIG) ?
+                DecimalFormat.valueOf(props.get(DECIMAL_FORMAT_CONFIG).toString().toUpperCase(Locale.ROOT)) : DECIMAL_FORMAT_DEFAULT;
 
-  }
+    }
 
 }

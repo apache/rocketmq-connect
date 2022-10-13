@@ -23,6 +23,10 @@ import java.util.Objects;
  * auto schema generic response
  */
 public class SchemaResponse {
+    private String subjectName;
+    private String schemaName;
+    private long recordId;
+    private String idl;
     public SchemaResponse(String subjectName, String schemaName, long recordId, String idl) {
         this.subjectName = subjectName;
         this.schemaName = schemaName;
@@ -30,14 +34,9 @@ public class SchemaResponse {
         this.idl = idl;
     }
 
-    public static Builder builder(){
+    public static Builder builder() {
         return new Builder();
     }
-
-    private String subjectName;
-    private String schemaName;
-    private long recordId;
-    private String idl;
 
     public String getSubjectName() {
         return subjectName;
@@ -71,34 +70,6 @@ public class SchemaResponse {
         this.idl = idl;
     }
 
-    public static class Builder{
-        private String subjectName;
-        private String schemaName;
-        private long recordId;
-        private String idl;
-
-        public Builder subjectName(String subjectName){
-            this.subjectName = subjectName;
-            return this;
-        }
-        public Builder schemaName(String schemaName){
-            this.schemaName = schemaName;
-            return this;
-        }
-        public Builder recordId(long recordId){
-            this.recordId = recordId;
-            return this;
-        }
-        public Builder idl(String idl){
-            this.idl = idl;
-            return this;
-        }
-        public SchemaResponse build(){
-            return new SchemaResponse(subjectName, schemaName, recordId, idl);
-        }
-    }
-
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -120,5 +91,36 @@ public class SchemaResponse {
                 ", recordId=" + recordId +
                 ", idl='" + idl + '\'' +
                 '}';
+    }
+
+    public static class Builder {
+        private String subjectName;
+        private String schemaName;
+        private long recordId;
+        private String idl;
+
+        public Builder subjectName(String subjectName) {
+            this.subjectName = subjectName;
+            return this;
+        }
+
+        public Builder schemaName(String schemaName) {
+            this.schemaName = schemaName;
+            return this;
+        }
+
+        public Builder recordId(long recordId) {
+            this.recordId = recordId;
+            return this;
+        }
+
+        public Builder idl(String idl) {
+            this.idl = idl;
+            return this;
+        }
+
+        public SchemaResponse build() {
+            return new SchemaResponse(subjectName, schemaName, recordId, idl);
+        }
     }
 }

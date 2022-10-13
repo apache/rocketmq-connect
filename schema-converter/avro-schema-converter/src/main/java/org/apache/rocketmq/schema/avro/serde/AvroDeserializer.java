@@ -28,6 +28,7 @@ import org.apache.rocketmq.schema.avro.NonRecordContainer;
 import org.apache.rocketmq.schema.common.Deserializer;
 import org.apache.rocketmq.schema.common.TopicNameStrategy;
 import org.apache.rocketmq.schema.registry.common.dto.GetSchemaResponse;
+
 import java.nio.ByteBuffer;
 import java.util.Map;
 
@@ -52,6 +53,7 @@ public class AvroDeserializer implements Deserializer<GenericContainerWithVersio
 
     /**
      * deserialize
+     *
      * @param topic
      * @param isKey
      * @param payload
@@ -59,7 +61,7 @@ public class AvroDeserializer implements Deserializer<GenericContainerWithVersio
      */
     @Override
     public GenericContainerWithVersion deserialize(String topic, boolean isKey, byte[] payload) {
-        if (payload == null){
+        if (payload == null) {
             return null;
         }
         // get subject name

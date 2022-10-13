@@ -21,15 +21,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.schema.common.AbstractConverterConfig;
 import org.apache.rocketmq.schema.common.AbstractLocalSchemaRegistryClient;
 import org.apache.rocketmq.schema.common.ParsedSchema;
-import org.apache.rocketmq.schema.common.SchemaResponse;
-import org.apache.rocketmq.schema.registry.client.exceptions.RestClientException;
-import org.apache.rocketmq.schema.registry.common.dto.GetSchemaResponse;
-import org.apache.rocketmq.schema.registry.common.dto.RegisterSchemaRequest;
 import org.apache.rocketmq.schema.registry.common.dto.SchemaRecordDto;
-import org.apache.rocketmq.schema.registry.common.dto.UpdateSchemaRequest;
-import org.apache.rocketmq.schema.registry.common.dto.UpdateSchemaResponse;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -45,9 +38,9 @@ public class AvroSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
         AvroSchema currentAvroSchema = (AvroSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            if ( StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaName.equals(schemaName(schemaRecord.getSchema())) ){
+            if (StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaName.equals(schemaName(schemaRecord.getSchema()))) {
                 AvroSchema compareSchema = new AvroSchema(schemaRecord.getIdl());
-                if (currentAvroSchema.deepEquals(compareSchema)){
+                if (currentAvroSchema.deepEquals(compareSchema)) {
                     matchSchemaRecord = schemaRecord;
                     break;
                 }

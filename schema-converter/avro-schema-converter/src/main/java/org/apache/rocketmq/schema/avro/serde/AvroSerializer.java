@@ -58,6 +58,7 @@ public class AvroSerializer implements Serializer<AvroSchema> {
 
     /**
      * avro serialize
+     *
      * @param topic
      * @param isKey
      * @param schema
@@ -65,7 +66,7 @@ public class AvroSerializer implements Serializer<AvroSchema> {
      * @return
      */
     public byte[] serialize(String topic, boolean isKey, AvroSchema schema, Object data) {
-        if (data == null){
+        if (data == null) {
             return null;
         }
         String subjectName = TopicNameStrategy.subjectName(topic, isKey);
@@ -78,7 +79,7 @@ public class AvroSerializer implements Serializer<AvroSchema> {
             SchemaResponse schemaResponse = schemaRegistryClient.autoRegisterOrGetSchema(AvroData.NAMESPACE, topic, subjectName, registerSchemaRequest, schema);
             long recordId = schemaResponse.getRecordId();
             // parse idl
-            if (StringUtils.isNotEmpty(schemaResponse.getIdl())){
+            if (StringUtils.isNotEmpty(schemaResponse.getIdl())) {
                 schema = new AvroSchema(schemaResponse.getIdl());
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();

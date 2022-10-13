@@ -22,5 +22,5 @@ package org.apache.rocketmq.schema.json;
  */
 public enum DecimalFormat {
     BASE64,
-    NUMERIC;
+    NUMERIC
 }
