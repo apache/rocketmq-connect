@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.schema.avro;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.schema.common.AbstractConverterConfig;
 import org.apache.rocketmq.schema.common.AbstractLocalSchemaRegistryClient;
 import org.apache.rocketmq.schema.common.ParsedSchema;
@@ -44,7 +45,7 @@ public class AvroSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
         AvroSchema currentAvroSchema = (AvroSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            if (schemaName.equals(schemaRecord.getSchema())){
+            if (StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaRecord.getSchema().endsWith(schemaName)){
                 AvroSchema compareSchema = new AvroSchema(schemaRecord.getIdl());
                 if (currentAvroSchema.deepEquals(compareSchema)){
                     matchSchemaRecord = schemaRecord;

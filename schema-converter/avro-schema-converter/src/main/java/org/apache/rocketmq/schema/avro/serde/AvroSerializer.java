@@ -76,14 +76,14 @@ public class AvroSerializer implements Serializer<AvroSchema> {
                     .compatibility(Compatibility.BACKWARD)
                     .schemaIdl(avroSchema.toString()).build();
             SchemaResponse schemaResponse = schemaRegistryClient.autoRegisterOrGetSchema(AvroData.NAMESPACE, topic, subjectName, registerSchemaRequest, schema);
-            long schemaId = schemaResponse.getRecordId();
+            long recordId = schemaResponse.getRecordId();
             // parse idl
             if (StringUtils.isNotEmpty(schemaResponse.getIdl())){
                 schema = new AvroSchema(schemaResponse.getIdl());
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             // Add record id in the header
-            out.write(ByteBuffer.allocate(idSize).putLong(schemaId).array());
+            out.write(ByteBuffer.allocate(idSize).putLong(recordId).array());
 
             Object value = data instanceof NonRecordContainer
                     ? ((NonRecordContainer) data).getValue()

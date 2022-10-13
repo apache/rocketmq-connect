@@ -16,7 +16,8 @@ import java.util.Map;
 public class AvroConverterTest {
     private AvroConverter avroConverter = new AvroConverter();
 
-    private String topic = "test-topic-08";
+//    private String topic = "test-topic-08";
+    private String topic = "test-topic-13";
 
     private String SCHEMA_REGISTRY_URL = "http://localhost:8080";
 
@@ -50,6 +51,7 @@ public class AvroConverterTest {
         struct.put("test_str_02", "test_str_02");
         struct.put("test_str_03", "test_str_03");
         byte[] value = avroConverter.fromConnectData(topic, schema, struct);
+
         SchemaAndValue schemaAndValue = avroConverter.toConnectData(topic, value);
         Assert.assertEquals(schema, schemaAndValue.schema());
         Assert.assertEquals(struct, schemaAndValue.value());
