@@ -814,17 +814,17 @@ public class Worker {
                     /**
                      * create key/value converter
                      */
-                    RecordConverter valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
-                    RecordConverter keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter valueConverter = plugin.newConverter(keyValue, false, ConnectorConfig.VALUE_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter keyConverter = plugin.newConverter(keyValue,true, ConnectorConfig.KEY_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
 
                     if (keyConverter == null) {
-                        keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);
+                        keyConverter = plugin.newConverter(keyValue, true, ConnectorConfig.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);
                         log.info("Set up the key converter {} for task {} using the worker config", keyConverter.getClass(), id);
                     } else {
                         log.info("Set up the key converter {} for task {} using the connector config", keyConverter.getClass(), id);
                     }
                     if (valueConverter == null) {
-                        valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.PLUGINS);
+                        valueConverter = plugin.newConverter(keyValue, false, ConnectorConfig.VALUE_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.PLUGINS);
                         log.info("Set up the value converter {} for task {} using the worker config", valueConverter.getClass(), id);
                     } else {
                         log.info("Set up the value converter {} for task {} using the connector config", valueConverter.getClass(), id);
