@@ -173,7 +173,7 @@ public class WorkerDirectTask extends WorkerSourceTask {
             updateCommittableOffsets();
             try {
                 Collection<ConnectRecord> toSendEntries = sourceTask.poll();
-                if (toSendEntries.isEmpty()) {
+                if (!toSendEntries.isEmpty()) {
                     sendRecord(toSendEntries);
                 }
             } catch (Exception e) {
