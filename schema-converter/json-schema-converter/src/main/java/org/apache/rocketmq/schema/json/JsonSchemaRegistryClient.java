@@ -26,7 +26,7 @@ import org.apache.rocketmq.schema.registry.common.dto.SchemaRecordDto;
 import java.util.List;
 
 /**
- * avro local schema registry client
+ * json local schema registry client
  */
 public class JsonSchemaRegistryClient extends AbstractLocalSchemaRegistryClient {
     public JsonSchemaRegistryClient(AbstractConverterConfig config) {
