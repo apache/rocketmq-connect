@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.schema.json;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.schema.common.AbstractConverterConfig;
 import org.apache.rocketmq.schema.common.AbstractLocalSchemaRegistryClient;
 import org.apache.rocketmq.schema.common.ParsedSchema;
@@ -34,13 +35,14 @@ public class JsonSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
 
     @Override
     protected SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, String schemaName, ParsedSchema schema) {
-        JsonSchema currentAvroSchema = (JsonSchema) schema;
+        JsonSchema currentJsonSchema = (JsonSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            if (schemaName.equals(schemaRecord.getSchema())){
+            if (StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaName.equals(schemaName(schemaRecord.getSchema()))){
                 JsonSchema compareSchema = new JsonSchema(schemaRecord.getIdl());
-                if (currentAvroSchema.deepEquals(compareSchema)){
+                if (currentJsonSchema.deepEquals(compareSchema)){
                     matchSchemaRecord = schemaRecord;
+                    break;
                 }
             }
         }

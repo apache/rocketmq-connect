@@ -21,7 +21,7 @@ public class JsonSchemaConverterTest {
 
     private JsonSchemaConverter jsonSchemaConverter;
 
-    private String topic = "json-test-topic-081";
+    private String topic = "json-test-topic-082";
 
     @Before
     public void init(){

@@ -199,4 +199,10 @@ public abstract class AbstractLocalSchemaRegistryClient {
             }
         }
     }
+
+
+
+    protected String schemaName(String schemaName){
+        return schemaName.split("/")[1];
+    }
 }

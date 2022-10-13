@@ -45,7 +45,7 @@ public class AvroSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
         AvroSchema currentAvroSchema = (AvroSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            if (StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaRecord.getSchema().endsWith(schemaName)){
+            if ( StringUtils.isNotEmpty(schemaRecord.getSchema()) && schemaName.equals(schemaName(schemaRecord.getSchema())) ){
                 AvroSchema compareSchema = new AvroSchema(schemaRecord.getIdl());
                 if (currentAvroSchema.deepEquals(compareSchema)){
                     matchSchemaRecord = schemaRecord;
