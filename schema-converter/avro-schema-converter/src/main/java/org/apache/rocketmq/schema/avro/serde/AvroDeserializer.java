@@ -66,10 +66,7 @@ public class AvroDeserializer implements Deserializer<GenericContainerWithVersio
         String subjectName = TopicNameStrategy.subjectName(topic, isKey);
         ByteBuffer byteBuffer = ByteBuffer.wrap(payload);
         long recordId = byteBuffer.getLong();
-        GetSchemaResponse schemaResponse = schemaRegistryClient.getSchemaByRecordId(AvroData.NAMESPACE, subjectName, recordId);
-        if (schemaResponse == null){
-
-        }
+        GetSchemaResponse schemaResponse = schemaRegistryClient.getSchemaByRecordId(AvroData.NAMESPACE, topic, recordId);
         String avroSchemaIdl = schemaResponse.getIdl();
         Integer version = Integer.parseInt(String.valueOf(schemaResponse.getVersion()));
         AvroSchema avroSchema = new AvroSchema(avroSchemaIdl);

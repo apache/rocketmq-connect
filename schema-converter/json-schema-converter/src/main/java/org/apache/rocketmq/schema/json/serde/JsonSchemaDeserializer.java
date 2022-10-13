@@ -68,14 +68,11 @@ public class JsonSchemaDeserializer implements Deserializer<JsonSchemaAndValue> 
         if (payload == null) {
             return null;
         }
-        String subjectName = TopicNameStrategy.subjectName(topic, isKey);
 
         ByteBuffer buffer = ByteBuffer.wrap(payload);
         long recordId = buffer.getLong();
-        GetSchemaResponse response = schemaRegistryClient.getSchemaByRecordId(JsonSchemaData.NAMESPACE, subjectName, recordId);
-        if (response == null){
+        GetSchemaResponse response = schemaRegistryClient.getSchemaByRecordId(JsonSchemaData.NAMESPACE, topic, recordId);
 
-        }
         int length = buffer.limit() - idSize;
         int start = buffer.position() + buffer.arrayOffset();
 
