@@ -74,7 +74,7 @@ public class JsonSchemaDeserializer implements Deserializer<JsonSchemaAndValue> 
         long recordId = buffer.getLong();
         GetSchemaResponse response = schemaRegistryClient.getSchemaById(JsonSchemaData.NAMESPACE, subjectName, recordId);
         if (response == null){
-
+            
         }
         int length = buffer.limit() - idSize;
         int start = buffer.position() + buffer.arrayOffset();

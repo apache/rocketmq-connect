@@ -121,7 +121,7 @@ public abstract class AbstractLocalSchemaRegistryClient {
      * @return
      */
     protected SchemaResponse compareAndGet(String namespace, String subject, String schemaName, RegisterSchemaRequest request, List<SchemaRecordDto> schemaRecordAllVersion, ParsedSchema schema) {
-        SchemaRecordDto matchSchemaRecord = compareAndGet(schemaRecordAllVersion, schema);
+        SchemaRecordDto matchSchemaRecord = compareAndGet(schemaRecordAllVersion, schemaName,schema);
         if (matchSchemaRecord != null){
             GetSchemaResponse getSchemaResponse = new GetSchemaResponse();
             getSchemaResponse.setRecordId(matchSchemaRecord.getSchemaId());
@@ -152,7 +152,7 @@ public abstract class AbstractLocalSchemaRegistryClient {
         }
     }
 
-    protected abstract SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, ParsedSchema schema);
+    protected abstract SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, String schemaName, ParsedSchema schema);
 
     /**
      * check subject exists

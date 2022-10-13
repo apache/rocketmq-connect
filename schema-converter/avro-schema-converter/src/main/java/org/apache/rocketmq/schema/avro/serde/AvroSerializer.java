@@ -75,7 +75,7 @@ public class AvroSerializer implements Serializer<AvroSchema> {
                     .schemaType(schema.schemaType())
                     .compatibility(Compatibility.BACKWARD)
                     .schemaIdl(avroSchema.toString()).build();
-            SchemaResponse schemaResponse = schemaRegistryClient.autoRegisterOrGetSchema(AvroData.NAMESPACE, subjectName, subjectName, registerSchemaRequest, schema);
+            SchemaResponse schemaResponse = schemaRegistryClient.autoRegisterOrGetSchema(AvroData.NAMESPACE, topic, subjectName, registerSchemaRequest, schema);
             long schemaId = schemaResponse.getRecordId();
             // parse idl
             if (StringUtils.isNotEmpty(schemaResponse.getIdl())){

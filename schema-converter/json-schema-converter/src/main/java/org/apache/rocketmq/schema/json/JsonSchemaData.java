@@ -559,8 +559,8 @@ public class JsonSchemaData {
             builder.defaultValue(toConnectData(builder.build(), jsonNode));
         }
 
-        if (forceOptional) {
-            builder.optional();
+        if (!forceOptional) {
+            builder.required();
         }
 
         Schema result = builder.build();

@@ -33,13 +33,15 @@ public class JsonSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
     }
 
     @Override
-    protected SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, ParsedSchema schema) {
+    protected SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, String schemaName, ParsedSchema schema) {
         JsonSchema currentAvroSchema = (JsonSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            JsonSchema compareSchema = new JsonSchema(schemaRecord.getIdl());
-            if (currentAvroSchema.deepEquals(compareSchema)){
-                matchSchemaRecord = schemaRecord;
+            if (schemaName.equals(schemaRecord.getSchema())){
+                JsonSchema compareSchema = new JsonSchema(schemaRecord.getIdl());
+                if (currentAvroSchema.deepEquals(compareSchema)){
+                    matchSchemaRecord = schemaRecord;
+                }
             }
         }
         return matchSchemaRecord;

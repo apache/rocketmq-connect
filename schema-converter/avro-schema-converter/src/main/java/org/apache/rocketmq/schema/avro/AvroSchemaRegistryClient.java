@@ -40,14 +40,16 @@ public class AvroSchemaRegistryClient extends AbstractLocalSchemaRegistryClient 
     }
 
     @Override
-    protected SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, ParsedSchema schema) {
+    protected SchemaRecordDto compareAndGet(List<SchemaRecordDto> schemaRecordAllVersion, String schemaName, ParsedSchema schema) {
         AvroSchema currentAvroSchema = (AvroSchema) schema;
         SchemaRecordDto matchSchemaRecord = null;
         for (SchemaRecordDto schemaRecord : schemaRecordAllVersion) {
-            AvroSchema compareSchema = new AvroSchema(schemaRecord.getIdl());
-            if (currentAvroSchema.deepEquals(compareSchema)){
-                matchSchemaRecord = schemaRecord;
-                break;
+            if (schemaName.equals(schemaRecord.getSchema())){
+                AvroSchema compareSchema = new AvroSchema(schemaRecord.getIdl());
+                if (currentAvroSchema.deepEquals(compareSchema)){
+                    matchSchemaRecord = schemaRecord;
+                    break;
+                }
             }
         }
         return matchSchemaRecord;
