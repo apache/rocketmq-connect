@@ -40,7 +40,7 @@ public class ConnectKeyValueDeserializer implements Deserializer<ConnectKeyValue
 
             return JSON.parseObject(jsonString, ConnectKeyValue.class);
         } catch (UnsupportedEncodingException e) {
-            log.error("ConnAndTaskConfigConverter#byteToObject failed", e);
+            log.error("ConnectKeyValueDeserializer#deserialize failed", e);
         }
         return null;
     }
