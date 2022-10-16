@@ -240,16 +240,16 @@ public class Worker {
      * @param assigns
      */
     private void checkAndStopConnectors(Collection<String> assigns) {
+        Set<String> connectors = this.connectors.keySet();
         if (CollectionUtils.isEmpty(assigns)) {
             // delete all
-            Set<String> connectors = this.connectors.keySet();
             for (String connector : connectors) {
                 log.info("It may be that the load balancing assigns this connector to other nodes,connector {}", connector);
                 stopAndAwaitConnector(connector);
             }
             return;
         }
-        for (String connectorName : assigns) {
+        for (String connectorName : connectors) {
             if (!assigns.contains(connectorName)) {
                 log.info("It may be that the load balancing assigns this connector to other nodes,connector {}", connectorName);
                 stopAndAwaitConnector(connectorName);
@@ -562,6 +562,9 @@ public class Worker {
             connectorConfig.putAll(latestTaskConfigs);
         }
 
+        //  STEP 0 cleaned error Stopped Task
+        clearErrorOrStopedTask();
+
         //  STEP 1: check running tasks and put to error status
         checkRunningTasks(connectorConfig);
 
@@ -582,6 +585,24 @@ public class Worker {
 
         //  STEP 6 check errorTasks and stopped tasks
         checkStoppedTasks();
+    }
+
+    private void clearErrorOrStopedTask() {
+        if (cleanedStoppedTasks.size() >= 10) {
+            log.info("clean cleanedStoppedTasks from mem. {}", JSON.toJSONString(cleanedStoppedTasks));
+            for (Runnable task : cleanedStoppedTasks) {
+                taskToFutureMap.remove(task);
+            }
+            cleanedStoppedTasks.clear();
+        }
+        if (cleanedErrorTasks.size() >= 10) {
+            log.info("clean cleanedErrorTasks from mem. {}", JSON.toJSONString(cleanedErrorTasks));
+            for (Runnable task : cleanedErrorTasks) {
+                taskToFutureMap.remove(task);
+            }
+            cleanedErrorTasks.clear();
+        }
+
     }
 
     /**

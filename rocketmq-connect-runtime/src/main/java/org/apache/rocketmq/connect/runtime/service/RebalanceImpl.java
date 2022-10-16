@@ -98,12 +98,12 @@ public class RebalanceImpl {
 
         // exculde delete connector
         Map<String, ConnectKeyValue> curConnectorConfigs = configManagementService.getConnectorConfigs();
-        log.info("Current ConnectorConfigs : " + curConnectorConfigs);
+        log.trace("Current ConnectorConfigs : " + curConnectorConfigs);
         Map<String, List<ConnectKeyValue>> curTaskConfigs = configManagementService.getTaskConfigs();
-        log.info("Current TaskConfigs : " + curTaskConfigs);
+        log.trace("Current TaskConfigs : " + curTaskConfigs);
         ConnAndTaskConfigs allocateResult = allocateConnAndTaskStrategy.allocate(curAliveWorkers, clusterManagementService.getCurrentWorker(), curConnectorConfigs, curTaskConfigs);
-        log.info("Allocated connector:{}", allocateResult.getConnectorConfigs());
-        log.info("Allocated task:{}", allocateResult.getTaskConfigs());
+        log.trace("Allocated connector:{}", allocateResult.getConnectorConfigs());
+        log.trace("Allocated task:{}", allocateResult.getTaskConfigs());
         updateProcessConfigsInRebalance(allocateResult);
     }
 
