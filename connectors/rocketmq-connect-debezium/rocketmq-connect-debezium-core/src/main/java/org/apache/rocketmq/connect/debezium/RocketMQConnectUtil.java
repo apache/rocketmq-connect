@@ -62,8 +62,39 @@ public class RocketMQConnectUtil {
         return new StringBuffer(prefix).append("-").append(UUID.randomUUID()).toString();
     }
 
-    private static RPCHook getAclRPCHook(String accessKey, String secretKey) {
+    public static RPCHook getAclRPCHook(String accessKey, String secretKey) {
         return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+    }
+
+    /**
+     * init default lite pull consumer
+     *
+     * @param connectConfig
+     * @param autoCommit
+     * @return
+     * @throws MQClientException
+     */
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(RocketMqConnectConfig connectConfig, boolean autoCommit) throws MQClientException {
+        DefaultLitePullConsumer consumer = null;
+        if (Objects.isNull(consumer)) {
+            if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
+                consumer = new DefaultLitePullConsumer(
+                        connectConfig.getRmqConsumerGroup()
+                );
+            } else {
+                consumer = new DefaultLitePullConsumer(
+                        connectConfig.getRmqConsumerGroup(),
+                        getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey())
+                );
+            }
+        }
+        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        String uniqueName = Thread.currentThread().getName() + "-" + System.currentTimeMillis() % 1000;
+        consumer.setInstanceName(uniqueName);
+        consumer.setUnitName(uniqueName);
+        consumer.setAutoCommit(autoCommit);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        return consumer;
     }
 
     /**

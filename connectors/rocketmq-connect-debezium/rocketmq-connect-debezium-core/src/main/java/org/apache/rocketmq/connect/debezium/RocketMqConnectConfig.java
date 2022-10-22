@@ -20,13 +20,12 @@ package org.apache.rocketmq.connect.debezium;
 
 import io.debezium.config.Configuration;
 
+import java.util.Objects;
+
 /**
  * rocketmq connect config
  */
 public class RocketMqConnectConfig {
-
-    private String dbHistoryName;
-
     private String namesrvAddr;
 
     private int operationTimeout = 3000;
@@ -48,25 +47,27 @@ public class RocketMqConnectConfig {
     private String secretKey;
 
 
+    public static Builder newBuilder(){
+        return new Builder();
+    }
+
     public RocketMqConnectConfig() {}
 
-    public RocketMqConnectConfig(Configuration config, String dbHistoryName) {
-        this.dbHistoryName = dbHistoryName;
-        this.rmqConsumerGroup = this.dbHistoryName.concat("-group");
+    public RocketMqConnectConfig(String rmqConsumerGroup, String namesrvAddr, boolean aclEnable, String accessKey, String secretKey) {
+        this.rmqConsumerGroup = rmqConsumerGroup;
+        this.namesrvAddr = namesrvAddr;
+        this.aclEnable = aclEnable;
+        this.accessKey = accessKey;
+        this.secretKey = secretKey;
+    }
+
+    public RocketMqConnectConfig(Configuration config, String prefixGroupName) {
+        this.rmqConsumerGroup = prefixGroupName.concat("-group");
         // init rocketmq connection
         this.namesrvAddr = config.getString(RocketMqDatabaseHistory.NAME_SRV_ADDR);
         this.aclEnable = config.getBoolean(RocketMqDatabaseHistory.ROCKETMQ_ACL_ENABLE);
         this.accessKey = config.getString(RocketMqDatabaseHistory.ROCKETMQ_ACCESS_KEY);
         this.secretKey = config.getString(RocketMqDatabaseHistory.ROCKETMQ_SECRET_KEY);
-    }
-
-
-    public String getDbHistoryName() {
-        return dbHistoryName;
-    }
-
-    public void setDbHistoryName(String dbHistoryName) {
-        this.dbHistoryName = dbHistoryName;
     }
 
     public String getNamesrvAddr() {
@@ -150,10 +151,22 @@ public class RocketMqConnectConfig {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RocketMqConnectConfig that = (RocketMqConnectConfig) o;
+        return operationTimeout == that.operationTimeout && rmqMaxRedeliveryTimes == that.rmqMaxRedeliveryTimes && rmqMessageConsumeTimeout == that.rmqMessageConsumeTimeout && rmqMaxConsumeThreadNums == that.rmqMaxConsumeThreadNums && rmqMinConsumeThreadNums == that.rmqMinConsumeThreadNums && aclEnable == that.aclEnable && Objects.equals(namesrvAddr, that.namesrvAddr) && Objects.equals(rmqConsumerGroup, that.rmqConsumerGroup) && Objects.equals(accessKey, that.accessKey) && Objects.equals(secretKey, that.secretKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(namesrvAddr, operationTimeout, rmqConsumerGroup, rmqMaxRedeliveryTimes, rmqMessageConsumeTimeout, rmqMaxConsumeThreadNums, rmqMinConsumeThreadNums, aclEnable, accessKey, secretKey);
+    }
+
+    @Override
     public String toString() {
         return "RocketMqConnectConfig{" +
-                "dbHistoryName='" + dbHistoryName + '\'' +
-                ", namesrvAddr='" + namesrvAddr + '\'' +
+                "namesrvAddr='" + namesrvAddr + '\'' +
                 ", operationTimeout=" + operationTimeout +
                 ", rmqConsumerGroup='" + rmqConsumerGroup + '\'' +
                 ", rmqMaxRedeliveryTimes=" + rmqMaxRedeliveryTimes +
@@ -164,5 +177,41 @@ public class RocketMqConnectConfig {
                 ", accessKey='" + accessKey + '\'' +
                 ", secretKey='" + secretKey + '\'' +
                 '}';
+    }
+
+    public static class Builder{
+        private String namesrvAddr;
+        private String rmqConsumerGroup;
+        /** set acl config **/
+        private boolean aclEnable;
+        private String accessKey;
+        private String secretKey;
+
+        public Builder namesrvAddr(String namesrvAddr){
+            this.namesrvAddr = namesrvAddr;
+            return this;
+        }
+
+        public Builder rmqConsumerGroup(String rmqConsumerGroup){
+            this.rmqConsumerGroup = rmqConsumerGroup;
+            return this;
+        }
+
+        public Builder aclEnable(boolean aclEnable){
+            this.aclEnable = aclEnable;
+            return this;
+        }
+
+        public Builder accessKey(String accessKey){
+            this.accessKey = accessKey;
+            return this;
+        }
+        public Builder secretKey(String secretKey){
+            this.secretKey = secretKey;
+            return this;
+        }
+        public  RocketMqConnectConfig build(){
+            return new RocketMqConnectConfig(rmqConsumerGroup, namesrvAddr, aclEnable, accessKey, secretKey);
+        }
     }
 }
