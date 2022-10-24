@@ -1,20 +1,25 @@
 /*
- * Copyright Debezium Authors.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
+
 package io.debezium.connector.mysql;
 
-import java.sql.SQLException;
-import java.util.List;
-import java.util.function.Consumer;
-
+import io.debezium.DebeziumException;
 import io.debezium.connector.mysql.signal.ExecuteSnapshotRocketMqSignal;
 import io.debezium.connector.mysql.signal.RocketMqSignalThread;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.debezium.DebeziumException;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.snapshot.incremental.AbstractIncrementalSnapshotChangeEventSource;
@@ -26,6 +31,12 @@ import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.schema.DataCollectionId;
 import io.debezium.schema.DatabaseSchema;
 import io.debezium.util.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A MySQL specific read-only incremental snapshot change event source.
@@ -112,8 +123,7 @@ public class MySqlReadOnlyIncrementalSnapshotChangeEventSource<T extends DataCol
         if (windowClosed) {
             sendWindowEvents(partition, offsetContext);
             readChunk();
-        }
-        else if (!window.isEmpty() && getContext().deduplicationNeeded()) {
+        } else if (!window.isEmpty() && getContext().deduplicationNeeded()) {
             deduplicateWindow(dataCollectionId, key);
         }
     }
@@ -190,15 +200,13 @@ public class MySqlReadOnlyIncrementalSnapshotChangeEventSource<T extends DataCol
                         // This column exists only in MySQL 5.6.5 or later ...
                         final String gtidSet = rs.getString(5); // GTID set, may be null, blank, or contain a GTID set
                         watermark.accept(new GtidSet(gtidSet));
-                    }
-                    else {
+                    } else {
                         throw new UnsupportedOperationException("Need to add support for executed GTIDs for versions prior to 5.6.5");
                     }
                 }
             });
             jdbcConnection.commit();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new DebeziumException(e);
         }
     }

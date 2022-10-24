@@ -1,19 +1,32 @@
 /*
- * Copyright Debezium Authors.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
+
 package io.debezium.connector.mysql.signal;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-
 import com.google.common.collect.Lists;
+import io.debezium.config.CommonConnectorConfig;
+import io.debezium.config.Configuration;
+import io.debezium.config.Field;
 import io.debezium.connector.mysql.MySqlReadOnlyIncrementalSnapshotChangeEventSource;
+import io.debezium.document.Document;
+import io.debezium.document.DocumentReader;
+import io.debezium.pipeline.signal.ExecuteSnapshot;
+import io.debezium.schema.DataCollectionId;
+import io.debezium.util.Threads;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -26,14 +39,12 @@ import org.apache.rocketmq.connect.debezium.RocketMqConnectConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.debezium.config.CommonConnectorConfig;
-import io.debezium.config.Configuration;
-import io.debezium.config.Field;
-import io.debezium.document.Document;
-import io.debezium.document.DocumentReader;
-import io.debezium.pipeline.signal.ExecuteSnapshot;
-import io.debezium.schema.DataCollectionId;
-import io.debezium.util.Threads;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 /**
  * The class responsible for processing of signals delivered to Debezium via a dedicated Kafka topic.
@@ -46,8 +57,41 @@ import io.debezium.util.Threads;
  */
 public class RocketMqSignalThread<T extends DataCollectionId> {
 
+    public static final String CONFIGURATION_FIELD_PREFIX_STRING = "signal.";
+    public static final Field SIGNAL_TOPIC = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "rocketmq.topic")
+            .withDisplayName("Signal topic name")
+            .withType(ConfigDef.Type.STRING)
+            .withWidth(ConfigDef.Width.LONG)
+            .withImportance(ConfigDef.Importance.HIGH)
+            .withDescription("The name of the topic for the signals to the connector")
+            .withValidation(Field::isRequired);
+    public static final Field NAME_SRV_ADDR = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "name.srv.addr")
+            .withDisplayName("Name server addresses")
+            .withType(ConfigDef.Type.STRING)
+            .withWidth(ConfigDef.Width.LONG)
+            .withImportance(ConfigDef.Importance.HIGH)
+            .withDescription("Rocketmq name server addresses.")
+            .withValidation(Field::isRequired);
+    public static final Field ROCKETMQ_ACL_ENABLE = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "acl.enabled")
+            .withDisplayName("Rocketmq acl enabled")
+            .withType(ConfigDef.Type.BOOLEAN)
+            .withDefault(false)
+            .withWidth(ConfigDef.Width.LONG)
+            .withImportance(ConfigDef.Importance.HIGH)
+            .withDescription("Rocketmq acl enabled");
+    public static final Field ROCKETMQ_ACCESS_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "access.key")
+            .withDisplayName("Rocketmq acl access key")
+            .withType(ConfigDef.Type.STRING)
+            .withWidth(ConfigDef.Width.LONG)
+            .withImportance(ConfigDef.Importance.HIGH)
+            .withDescription("Rocketmq acl access key");
+    public static final Field ROCKETMQ_SECRET_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "secret.key")
+            .withDisplayName("Rocketmq acl secret key")
+            .withType(ConfigDef.Type.STRING)
+            .withWidth(ConfigDef.Width.LONG)
+            .withImportance(ConfigDef.Importance.HIGH)
+            .withDescription("Rocketmq acl secret key");
     private static final Logger LOGGER = LoggerFactory.getLogger(RocketMqSignalThread.class);
-
     private final ExecutorService signalTopicListenerExecutor;
     private final String topicName;
     private final String nameSrvAddrs;
@@ -59,46 +103,6 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
     private final RocketMqConnectConfig rocketMqConnectConfig;
     private final MySqlReadOnlyIncrementalSnapshotChangeEventSource<T> eventSource;
     private final DefaultLitePullConsumer signalsConsumer;
-
-    public static final String CONFIGURATION_FIELD_PREFIX_STRING = "signal.";
-
-    public static final Field SIGNAL_TOPIC = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "rocketmq.topic")
-            .withDisplayName("Signal topic name")
-            .withType(ConfigDef.Type.STRING)
-            .withWidth(ConfigDef.Width.LONG)
-            .withImportance(ConfigDef.Importance.HIGH)
-            .withDescription("The name of the topic for the signals to the connector")
-            .withValidation(Field::isRequired);
-
-    public static final Field NAME_SRV_ADDR = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "name.srv.addr")
-            .withDisplayName("Name server addresses")
-            .withType(ConfigDef.Type.STRING)
-            .withWidth(ConfigDef.Width.LONG)
-            .withImportance(ConfigDef.Importance.HIGH)
-            .withDescription("Rocketmq name server addresses.")
-            .withValidation(Field::isRequired);
-
-    public static final Field ROCKETMQ_ACL_ENABLE = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "acl.enabled")
-            .withDisplayName("Rocketmq acl enabled")
-            .withType(ConfigDef.Type.BOOLEAN)
-            .withDefault(false)
-            .withWidth(ConfigDef.Width.LONG)
-            .withImportance(ConfigDef.Importance.HIGH)
-            .withDescription("Rocketmq acl enabled");
-
-    public static final Field ROCKETMQ_ACCESS_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "access.key")
-            .withDisplayName("Rocketmq acl access key")
-            .withType(ConfigDef.Type.STRING)
-            .withWidth(ConfigDef.Width.LONG)
-            .withImportance(ConfigDef.Importance.HIGH)
-            .withDescription("Rocketmq acl access key");
-
-    public static final Field ROCKETMQ_SECRET_KEY = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "secret.key")
-            .withDisplayName("Rocketmq acl secret key")
-            .withType(ConfigDef.Type.STRING)
-            .withWidth(ConfigDef.Width.LONG)
-            .withImportance(ConfigDef.Importance.HIGH)
-            .withDescription("Rocketmq acl secret key");
 
     public RocketMqSignalThread(Class<? extends SourceConnector> connectorType, CommonConnectorConfig connectorConfig,
                                 MySqlReadOnlyIncrementalSnapshotChangeEventSource<T> eventSource) {
@@ -141,13 +145,13 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
 
     private DefaultLitePullConsumer initDefaultLitePullConsumer() throws MQClientException {
         // create topic
-        if (!RocketMQConnectUtil.topicExist(this.rocketMqConnectConfig, this.topicName)){
+        if (!RocketMQConnectUtil.topicExist(this.rocketMqConnectConfig, this.topicName)) {
             // read queue 1, write queue 1, prem 1
-            RocketMQConnectUtil.createTopic(this.rocketMqConnectConfig, new TopicConfig(this.topicName, 1,1,6));
+            RocketMQConnectUtil.createTopic(this.rocketMqConnectConfig, new TopicConfig(this.topicName, 1, 1, 6));
             LOGGER.info("Create rocketmq signal topic {}", this.topicName);
         }
         String groupName = connectorName.concat("-signal-group");
-        Set<String> groupSet =  RocketMQConnectUtil.fetchAllConsumerGroup(this.rocketMqConnectConfig);
+        Set<String> groupSet = RocketMQConnectUtil.fetchAllConsumerGroup(this.rocketMqConnectConfig);
         if (!groupSet.contains(groupName)) {
             // create consumer group
             RocketMQConnectUtil.createSubGroup(this.rocketMqConnectConfig, rocketMqConnectConfig.getRmqConsumerGroup());
@@ -171,8 +175,7 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
                     LOGGER.error("Signals processing was interrupted", e);
                     signalsConsumer.shutdown();
                     return;
-                }
-                catch (final Exception e) {
+                } catch (final Exception e) {
                     LOGGER.error("Skipped signal due to an error '{}'", record, e);
                 }
             }
@@ -210,9 +213,9 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
     }
 
     public void seek(long signalOffset) {
-        try{
+        try {
             signalsConsumer.seek(this.messageQueue, signalOffset + 1);
-        }catch (MQClientException e) {
+        } catch (MQClientException e) {
             LOGGER.error("Signals consumer seek failure , error {}", e);
         }
     }

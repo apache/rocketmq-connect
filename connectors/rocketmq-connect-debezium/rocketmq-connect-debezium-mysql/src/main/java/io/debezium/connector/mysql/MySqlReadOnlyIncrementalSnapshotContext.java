@@ -1,35 +1,46 @@
 /*
- * Copyright Debezium Authors.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
+
 package io.debezium.connector.mysql;
 
-import static io.debezium.connector.mysql.GtidSet.GTID_DELIMITER;
+import io.debezium.annotation.NotThreadSafe;
+import io.debezium.connector.mysql.signal.ExecuteSnapshotRocketMqSignal;
+import io.debezium.pipeline.source.snapshot.incremental.AbstractIncrementalSnapshotContext;
+import io.debezium.pipeline.source.snapshot.incremental.IncrementalSnapshotContext;
+import io.debezium.pipeline.spi.OffsetContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import io.debezium.connector.mysql.signal.ExecuteSnapshotRocketMqSignal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.debezium.annotation.NotThreadSafe;
-import io.debezium.pipeline.source.snapshot.incremental.AbstractIncrementalSnapshotContext;
-import io.debezium.pipeline.source.snapshot.incremental.IncrementalSnapshotContext;
-import io.debezium.pipeline.spi.OffsetContext;
+import static io.debezium.connector.mysql.GtidSet.GTID_DELIMITER;
 
 @NotThreadSafe
 public class MySqlReadOnlyIncrementalSnapshotContext<T> extends AbstractIncrementalSnapshotContext<T> {
 
+    public static final String SIGNAL_OFFSET = INCREMENTAL_SNAPSHOT_KEY + "_signal_offset";
     private static final Logger LOGGER = LoggerFactory.getLogger(MySqlReadOnlyIncrementalSnapshotContext.class);
+    private final Queue<ExecuteSnapshotRocketMqSignal> executeSnapshotSignals = new ConcurrentLinkedQueue<>();
     private GtidSet lowWatermark = null;
     private GtidSet highWatermark = null;
     private Long signalOffset;
-    private final Queue<ExecuteSnapshotRocketMqSignal> executeSnapshotSignals = new ConcurrentLinkedQueue<>();
-    public static final String SIGNAL_OFFSET = INCREMENTAL_SNAPSHOT_KEY + "_signal_offset";
 
     public MySqlReadOnlyIncrementalSnapshotContext() {
         this(true);
