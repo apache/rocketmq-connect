@@ -66,7 +66,8 @@ high watermark = executed_gtid_set - low watermark
 
 ```
 ### 参数说明
-
+- "read.only": "true",
+> true 为开启 readonly 的增量快照模式
 - snapshot.mode
 > 增量快照下配置成schema_only，其它方式暂未测试，never会有空指针错误，后面修复 
 - incremental.snapshot.allow.schema.changes
