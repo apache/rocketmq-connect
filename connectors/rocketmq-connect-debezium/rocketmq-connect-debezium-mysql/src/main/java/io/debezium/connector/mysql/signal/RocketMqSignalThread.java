@@ -18,6 +18,7 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -140,7 +141,12 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
 
 
     private DefaultLitePullConsumer initDefaultLitePullConsumer() throws MQClientException {
-        DefaultLitePullConsumer consumer = null;
+        // create topic
+        if (RocketMQConnectUtil.topicExist(this.rocketMqConnectConfig, this.topicName)){
+            // read queue 1, write queue 1, prem 1
+            RocketMQConnectUtil.createTopic(this.rocketMqConnectConfig, new TopicConfig(this.topicName, 1,1,1));
+            LOGGER.info("Create rocketmq signal topic {}", this.topicName);
+        }
         String groupName = connectorName.concat("-signal-group");
         Set<String> groupSet =  RocketMQConnectUtil.fetchAllConsumerGroup(this.rocketMqConnectConfig);
         if (!groupSet.contains(groupName)) {
