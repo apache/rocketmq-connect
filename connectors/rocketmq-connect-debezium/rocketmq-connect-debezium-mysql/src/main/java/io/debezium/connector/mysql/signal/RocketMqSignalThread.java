@@ -9,17 +9,16 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Lists;
+import io.debezium.connector.mysql.MySqlReadOnlyIncrementalSnapshotChangeEventSource;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.source.SourceConnector;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.debezium.RocketMQConnectUtil;
@@ -30,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import io.debezium.config.CommonConnectorConfig;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
-import io.debezium.connector.mysql.MySqlReadOnlyIncrementalSnapshotChangeEventSource;
 import io.debezium.document.Document;
 import io.debezium.document.DocumentReader;
 import io.debezium.pipeline.signal.ExecuteSnapshot;
@@ -128,6 +126,7 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
         try {
             // init and start
             this.signalsConsumer = initDefaultLitePullConsumer();
+            this.signalsConsumer.start();
             List<MessageQueue> messageQueues = new ArrayList<>(this.signalsConsumer.fetchMessageQueues(topicName));
             // only get first message queue
             this.messageQueue = messageQueues.stream().findFirst().get();
