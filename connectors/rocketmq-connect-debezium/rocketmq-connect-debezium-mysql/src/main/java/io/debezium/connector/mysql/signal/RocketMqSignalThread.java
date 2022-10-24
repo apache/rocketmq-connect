@@ -143,7 +143,7 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
         // create topic
         if (!RocketMQConnectUtil.topicExist(this.rocketMqConnectConfig, this.topicName)){
             // read queue 1, write queue 1, prem 1
-            RocketMQConnectUtil.createTopic(this.rocketMqConnectConfig, new TopicConfig(this.topicName, 1,1,4));
+            RocketMQConnectUtil.createTopic(this.rocketMqConnectConfig, new TopicConfig(this.topicName, 1,1,6));
             LOGGER.info("Create rocketmq signal topic {}", this.topicName);
         }
         String groupName = connectorName.concat("-signal-group");
