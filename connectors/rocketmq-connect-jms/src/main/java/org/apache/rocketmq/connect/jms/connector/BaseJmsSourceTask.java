@@ -57,9 +57,9 @@ public abstract class BaseJmsSourceTask extends SourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(BaseJmsSourceTask.class);
 
-    private Replicator replicator;
+    protected Replicator replicator;
 
-    private Config config;
+    protected Config config;
 
     @Override
     public List<ConnectRecord> poll() {
@@ -141,7 +141,7 @@ public abstract class BaseJmsSourceTask extends SourceTask {
         return data;
     }
 
-    private ConnectRecord message2ConnectRecord(Message message) throws JMSException {
+    protected ConnectRecord message2ConnectRecord(Message message) throws JMSException {
         Schema schema = SchemaBuilder.struct().name("jms").build();
         final List<Field> fields = buildFields();
         schema.setFields(fields);
@@ -152,34 +152,34 @@ public abstract class BaseJmsSourceTask extends SourceTask {
             buildPayLoad(fields, message, schema));
     }
 
-    private RecordOffset buildRecordOffset(Message message) throws JMSException {
+    protected RecordOffset buildRecordOffset(Message message) throws JMSException {
         Map<String, Long> offsetMap = new HashMap<>();
-        offsetMap.put(Config.POSITION, Long.parseLong(message.getJMSMessageID().split(":")[5]));
+        offsetMap.put(Config.POSITION, message.getJMSTimestamp());
         RecordOffset recordOffset = new RecordOffset(offsetMap);
         return recordOffset;
     }
 
-    private RecordPartition buildRecordPartition() {
+    protected RecordPartition buildRecordPartition() {
         Map<String, String> partitionMap = new HashMap<>();
-        partitionMap.put("partition", config.getBrokerUrl());
+        partitionMap.put("partition", config.getHost() + ":" + config.getPort());
         RecordPartition  recordPartition = new RecordPartition(partitionMap);
         return recordPartition;
     }
 
-    private List<Field> buildFields() {
+    protected List<Field> buildFields() {
         final Schema stringSchema = SchemaBuilder.string().build();
         List<Field> fields = new ArrayList<>();
         fields.add(new Field(0, Config.MESSAGE, stringSchema));
         return fields;
     }
 
-    private Struct buildPayLoad(List<Field> fields, Message message, Schema schema) throws JMSException {
+    protected Struct buildPayLoad(List<Field> fields, Message message, Schema schema) throws JMSException {
         Struct payLoad = new Struct(schema);
         payLoad.put(fields.get(0), getMessageContent(message));
         return payLoad;
     }
 
-    private KeyValue buildExtendFiled() {
+    protected KeyValue buildExtendFiled() {
         KeyValue keyValue = new DefaultKeyValue();
         keyValue.put(Config.DESTINATION_NAME,  config.getDestinationName());
         keyValue.put(Config.DESTINATION_TYPE, config.getDestinationType());

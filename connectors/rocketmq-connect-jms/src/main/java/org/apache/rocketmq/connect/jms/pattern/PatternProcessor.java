@@ -21,26 +21,27 @@ import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSException;
-import javax.jms.Message;
 import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
 import javax.jms.Session;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.jms.Config;
 import org.apache.rocketmq.connect.jms.Replicator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class PatternProcessor {
 
-    private Replicator replicator;
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    protected Replicator replicator;
 
     protected Config config;
 
-    private Connection connection;
+    protected MessageConsumer consumer;
 
-    private Session session;
+    protected Connection connection;
 
-    private MessageConsumer consumer;
 
     public PatternProcessor(Replicator replicator) {
         this.replicator = replicator;
@@ -50,14 +51,12 @@ public abstract class PatternProcessor {
     public abstract ConnectionFactory connectionFactory();
 
     public void start(long offset) throws Exception {
-        if (!StringUtils.equals("topic", config.getDestinationType())
-            && !StringUtils.equals("queue", config.getDestinationType())) {
+        if (!StringUtils.equals(Config.TOPIC_DESTINATION_TYPE, config.getDestinationType())
+            && !StringUtils.equals(Config.QUEUE_DESTINATION_TYPE, config.getDestinationType())) {
             // RuntimeException is caught by DataConnectException
             throw new RuntimeException("destination type is incorrectness");
         }
-
         ConnectionFactory connectionFactory = connectionFactory();
-
         if (StringUtils.isNotBlank(config.getUsername())
             && StringUtils.isNotBlank(config.getPassword())) {
             connection = connectionFactory.createConnection(config.getUsername(), config.getPassword());
@@ -67,29 +66,29 @@ public abstract class PatternProcessor {
         connection.start();
         Session session = connection.createSession(config.getSessionTransacted(), config.getSessionAcknowledgeMode());
         Destination destination = null;
-        if (StringUtils.equals("topic", config.getDestinationType())) {
+        if (StringUtils.equals(Config.TOPIC_DESTINATION_TYPE, config.getDestinationType())) {
             destination = session.createTopic(config.getDestinationName());
-        } else if (StringUtils.equals("queue", config.getDestinationType())) {
+        } else if (StringUtils.equals(Config.QUEUE_DESTINATION_TYPE, config.getDestinationType())) {
             destination = session.createQueue(config.getDestinationName());
         }
-        consumer = session.createConsumer(destination, config.getMessageSelector());
+        consumer = session.createConsumer(destination);
         consumer.setMessageListener(message -> {
             try {
-                if (Long.valueOf(message.getJMSMessageID().split(":")[5]) < offset) {
+                if (message.getJMSTimestamp() < offset) {
                     return;
                 }
             } catch (JMSException e) {
-                throw new RuntimeException("parse JMSMessageId failed", e);
+                logger.error("get jmsTimestamp failed", e);
+                throw new RuntimeException(e);
             }
             replicator.commit(message, true);
         });
 
     }
 
-    public void stop() throws Exception {
-        consumer.close();
-        session.close();
+    public void stop() throws JMSException {
         connection.close();
+        consumer.close();
     }
 
 }

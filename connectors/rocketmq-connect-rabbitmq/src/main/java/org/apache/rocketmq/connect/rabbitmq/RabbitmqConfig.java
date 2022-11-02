@@ -23,39 +23,15 @@ import org.apache.rocketmq.connect.jms.Config;
 
 public class RabbitmqConfig extends Config {
 
-    @SuppressWarnings("serial")
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
-            add("rabbitmqUrl");
-            add("rabbitmqUsername");
-            add("rabbitmqPassword");
+            add("username");
+            add("password");
+            add("host");
+            add("port");
             add("destinationType");
             add("destinationName");
         }
     };
-
-    public String getRabbitmqUrl() {
-        return getBrokerUrl();
-    }
-
-    public void setRabbitmqUrl(String rabbitmqUrl) {
-        setBrokerUrl(rabbitmqUrl);
-    }
-
-    public String getRabbitmqUsername() {
-        return getUsername();
-    }
-
-    public void setRabbitmqUsername(String rabbitmqUsername) {
-        setUsername(rabbitmqUsername);
-    }
-
-    public String getRabbitmqPassword() {
-        return getPassword();
-    }
-
-    public void setRabbitmqPassword(String rabbitmqPassword) {
-        setPassword(rabbitmqPassword);
-    }
 
 }
