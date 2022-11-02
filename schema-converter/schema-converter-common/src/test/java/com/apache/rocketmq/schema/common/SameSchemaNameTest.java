@@ -15,7 +15,6 @@ public class SameSchemaNameTest extends BaseRegistrySchema{
 
     String idl = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"int\"}}";
     String subject = "test-topic";
-
     String schemaNameOne = "test-topic-10";
     String schemaNameTwo = "test-topic-11";
 
@@ -27,9 +26,9 @@ public class SameSchemaNameTest extends BaseRegistrySchema{
      */
     @Test
     public void testSameIdlRegistry() throws RestClientException, IOException {
-        RegisterSchemaRequest registerSchemaRequest = RegisterSchemaRequest.builder().schemaIdl(idl).schemaType(SchemaType.JSON).build();
-        RegisterSchemaResponse registerSchemaOne = schemaRegistryClient.registerSchema(subject,schemaNameOne, registerSchemaRequest);
-        RegisterSchemaResponse registerSchemaTwo = schemaRegistryClient.registerSchema(subject,schemaNameTwo, registerSchemaRequest);
+//        RegisterSchemaRequest registerSchemaRequest = RegisterSchemaRequest.builder().schemaIdl(idl).schemaType(SchemaType.JSON).build();
+//        RegisterSchemaResponse registerSchemaOne = schemaRegistryClient.registerSchema(subject,schemaNameOne, registerSchemaRequest);
+//        RegisterSchemaResponse registerSchemaTwo = schemaRegistryClient.registerSchema(subject,schemaNameTwo, registerSchemaRequest);
         // schema 不是唯一
     }
 }
