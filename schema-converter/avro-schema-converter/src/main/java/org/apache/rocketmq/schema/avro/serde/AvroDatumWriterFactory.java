@@ -62,9 +62,7 @@ public class AvroDatumWriterFactory extends AvroSerdeFactory {
         BinaryEncoder encoder = encoderFactory.directBinaryEncoder(out, null);
 
         DatumWriter<Object> writer;
-        writer = datumWriterCache.computeIfAbsent(rawSchema,
-                v -> (DatumWriter<Object>) getDatumWriter(value, rawSchema)
-        );
+        writer = datumWriterCache.computeIfAbsent(rawSchema, v -> (DatumWriter<Object>) getDatumWriter(value, rawSchema));
         writer.write(value, encoder);
         encoder.flush();
     }
