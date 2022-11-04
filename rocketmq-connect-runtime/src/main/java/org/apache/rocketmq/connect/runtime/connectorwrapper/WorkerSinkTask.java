@@ -29,6 +29,20 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -57,26 +71,11 @@ import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
 import org.apache.rocketmq.connect.runtime.metrics.Sensor;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 
@@ -527,8 +526,14 @@ public class WorkerSinkTask extends WorkerTask {
         RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
 
 
-        SchemaAndValue schemaAndKey = retryWithToleranceOperator.execute(() -> keyConverter.toConnectData(message.getTopic(), Base64Util.base64Decode(message.getKeys())),
-                ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
+        byte[] keysBytes = null;
+        String keys = message.getKeys();
+        if (StringUtils.isNotEmpty(keys) && StringUtils.isNotBlank(keys)) {
+            keysBytes = keys.getBytes(StandardCharsets.UTF_8);
+        }
+        byte[] finalKeysBytes = keysBytes;
+        SchemaAndValue schemaAndKey = retryWithToleranceOperator.execute(() -> keyConverter.toConnectData(message.getTopic(), finalKeysBytes),
+            ErrorReporter.Stage.CONVERTER, keyConverter.getClass());
 
         // convert value
         SchemaAndValue schemaAndValue = retryWithToleranceOperator.execute(() -> valueConverter.toConnectData(message.getTopic(), message.getBody()),
@@ -640,26 +645,31 @@ public class WorkerSinkTask extends WorkerTask {
                     removeMessageQueues.add(messageQueue);
                 }
             }
+        } else {
+            // filter not contains in messageQueues
+            removeMessageQueues = messageQueues.stream().filter(messageQueue -> topic.equals(messageQueue.getTopic()) && !queues.contains(messageQueue)).collect(Collectors.toSet());
         }
-        // filter not contains in messageQueues
-        removeMessageQueues = messageQueues.stream().filter(messageQueue -> topic.equals(messageQueue.getTopic()) && !queues.contains(messageQueue)).collect(Collectors.toSet());
         if (removeMessageQueues == null || removeMessageQueues.isEmpty()) {
             return;
         }
-        // start remove
-        messageQueues.removeAll(removeMessageQueues);
-
-        // remove record partitions
-        Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
-        recordPartitions.forEach(key -> {
-            if (key.getPartition().get(TOPIC).equals(topic)) {
-                waitRemoveQueueMetaDatas.add(key);
-            }
-        });
-        recordPartitions.removeAll(waitRemoveQueueMetaDatas);
 
         // clean message queues offset
         closeMessageQueues(removeMessageQueues, false);
+
+        // remove record partitions
+        Set<RecordPartition> waitRemoveQueueMetaDatas = new HashSet<>();
+        for (MessageQueue messageQueue : removeMessageQueues) {
+            recordPartitions.forEach(key -> {
+                if (key.getPartition().get(TOPIC).equals(messageQueue.getTopic()) && key.getPartition().get(BROKER_NAME).equals(messageQueue.getBrokerName())
+                    && Integer.valueOf(String.valueOf(key.getPartition().get(QUEUE_ID))).equals(messageQueue.getQueueId())) {
+                    waitRemoveQueueMetaDatas.add(key);
+                }
+            });
+        }
+
+        recordPartitions.removeAll(waitRemoveQueueMetaDatas);
+        // start remove
+        messageQueues.removeAll(removeMessageQueues);
     }
 
     /**

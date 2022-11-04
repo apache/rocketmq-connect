@@ -17,6 +17,7 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 public class FloatSerializer implements Serializer<Float> {
+
     @Override
     public byte[] serialize(final String topic, final Float data) {
         if (data == null) {

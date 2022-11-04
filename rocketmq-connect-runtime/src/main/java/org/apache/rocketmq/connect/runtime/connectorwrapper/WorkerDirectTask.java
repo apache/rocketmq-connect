@@ -171,9 +171,23 @@ public class WorkerDirectTask extends WorkerSourceTask {
     protected void execute() {
         while (isRunning()) {
             updateCommittableOffsets();
+
+            if (shouldPause()) {
+                onPause();
+                try {
+                    // wait unpause
+                    if (awaitUnpause()) {
+                        onResume();
+                    }
+                    continue;
+                } catch (InterruptedException e) {
+                    // do exception
+                }
+            }
+
             try {
                 Collection<ConnectRecord> toSendEntries = sourceTask.poll();
-                if (toSendEntries.isEmpty()) {
+                if (!toSendEntries.isEmpty()) {
                     sendRecord(toSendEntries);
                 }
             } catch (Exception e) {

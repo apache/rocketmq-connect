@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.rabbitmq.connector;
 
-import io.openmessaging.connector.api.Task;
+import io.openmessaging.connector.api.component.task.Task;
 import java.util.Set;
 import org.apache.rocketmq.connect.jms.connector.BaseJmsSourceConnector;
 import org.apache.rocketmq.connect.rabbitmq.RabbitmqConfig;
@@ -29,6 +29,7 @@ public class RabbitmqSourceConnector extends BaseJmsSourceConnector {
         return RabbitmqSourceTask.class;
     }
 
+    @Override
     public Set<String> getRequiredConfig() {
         return RabbitmqConfig.REQUEST_CONFIG;
     }
