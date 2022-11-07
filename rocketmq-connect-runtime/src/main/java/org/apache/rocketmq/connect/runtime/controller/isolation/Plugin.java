@@ -41,6 +41,7 @@ public class Plugin {
 
     private static final Logger log = LoggerFactory.getLogger(Plugin.class);
     private final DelegatingClassLoader delegatingLoader;
+
     public Plugin(List<String> pluginLocations) {
         delegatingLoader = newDelegatingClassLoader(pluginLocations);
         delegatingLoader.initLoaders();
@@ -48,7 +49,7 @@ public class Plugin {
 
     public static ClassLoader compareAndSwapLoaders(ClassLoader loader) {
         ClassLoader current = Thread.currentThread().getContextClassLoader();
-        if (!current.equals(loader)) {
+        if (null == current || !current.equals(loader)) {
             Thread.currentThread().setContextClassLoader(loader);
         }
         return current;
