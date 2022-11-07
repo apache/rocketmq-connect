@@ -1,0 +1,20 @@
+{
+    "connector.class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
+    "max.tasks":"1",
+    "connect.topicname":"employee-test-topic-avro-0003",
+    "connection.url":"jdbc:mysql://localhost:3306",
+    "connection.user":"XXXXXX",
+    "connection.password":"XXXXXX",
+    "table.whitelist":"test_database.employee_copy_test03",
+    "mode": "incrementing",
+    "incrementing.column.name":"id",
+    "transforms": "Replace",
+    "transforms.Replace.delete.handling.mode": "none",
+    "transforms.Replace.field.pattern": "company",
+    "transforms.Replace.field.replacement": "company02",
+    "transforms.Replace.class": "org.apache.rocketmq.connect.transforms.PatternRename$Value",
+    "key.converter.schema.registry.url":"http://localhost:8080",
+    "value.converter.schema.registry.url":"http://localhost:8080",
+    "key.converter":"org.apache.rocketmq.schema.json.JsonSchemaConverter",
+    "value.converter":"org.apache.rocketmq.schema.json.JsonSchemaConverter"
+}

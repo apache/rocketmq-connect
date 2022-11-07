@@ -24,6 +24,7 @@ import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,7 +169,7 @@ public class Plugin {
         return newPlugin(taskClass);
     }
 
-    public RecordConverter newConverter(ConnectKeyValue config, String classPropertyName, String defaultConverter, ClassLoaderUsage classLoaderUsage) {
+    public RecordConverter newConverter(ConnectKeyValue config, boolean isKey, String classPropertyName, String defaultConverter, ClassLoaderUsage classLoaderUsage) {
         if (!config.containsKey(classPropertyName)) {
             config.put(classPropertyName, defaultConverter);
         }
@@ -203,6 +204,7 @@ public class Plugin {
         ClassLoader savedLoader = compareAndSwapLoaders(klass.getClassLoader());
         try {
             plugin = newPlugin(klass);
+            converterConfig.put(ConnectorConfig.IS_KEY, String.valueOf(isKey));
             plugin.configure(converterConfig);
         } finally {
             compareAndSwapLoaders(savedLoader);
