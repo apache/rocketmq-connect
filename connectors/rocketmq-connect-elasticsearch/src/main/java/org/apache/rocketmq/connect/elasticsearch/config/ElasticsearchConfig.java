@@ -34,6 +34,13 @@ public class ElasticsearchConfig {
         }
     };
 
+    public static final Set<String> REQUEST_CONFIG_SINK = new HashSet<String>() {
+        {
+            add(ElasticsearchConstant.ES_HOST);
+            add(ElasticsearchConstant.ES_PORT);
+        }
+    };
+
     private String index;
 
     private String elasticsearchHost;

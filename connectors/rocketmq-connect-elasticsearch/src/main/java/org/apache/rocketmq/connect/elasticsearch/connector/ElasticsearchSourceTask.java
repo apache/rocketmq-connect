@@ -26,6 +26,7 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -87,6 +88,7 @@ public class ElasticsearchSourceTask extends SourceTask {
             System.currentTimeMillis(),
             schema,
             hit.getSourceAsString());
+        connectRecord.setExtensions(this.buildExtensions(hit));
         return connectRecord;
     }
 
@@ -115,6 +117,12 @@ public class ElasticsearchSourceTask extends SourceTask {
         offsetMap.put(hit.getIndex() + ":" + ElasticsearchConstant.ES_POSITION, Long.parseLong(value.toString()));
         RecordOffset recordOffset = new RecordOffset(offsetMap);
         return recordOffset;
+    }
+
+    private KeyValue buildExtensions(SearchHit hit) {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(ElasticsearchConstant.INDEX, hit.getIndex());
+        return keyValue;
     }
 
     private Schema getSchema(Object obj) {

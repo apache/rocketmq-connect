@@ -16,7 +16,22 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/elasticsearchSourceConnect
         }
     },
     "max.tasks":1,
-    "connect.topicname":"configInfo",
+    "connect.topicname":"esTopic",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter",
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter"
+}
+```
+
+**elasticsearch-sink-connector** start
+
+```
+POST  http://${runtime-ip}:${runtime-port}/connectors/elasticsearchSinkConnector
+{
+    "connector.class":"org.apache.rocketmq.connect.elasticsearch.connector.ElasticsearchSinkConnector",
+    "elasticsearchHost":"localhost",
+    "elasticsearchPort":9200,
+    "max.tasks":1,
+    "connect.topicnames":"esTopic",
     "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter",
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter"
 }
