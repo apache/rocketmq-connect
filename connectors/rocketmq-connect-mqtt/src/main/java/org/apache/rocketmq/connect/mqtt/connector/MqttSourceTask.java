@@ -87,15 +87,15 @@ public class MqttSourceTask extends SourceTask {
         final List<Field> fields = buildFields();
         schema.setFields(fields);
         final ConnectRecord connectRecord = new ConnectRecord(buildRecordPartition(),
-            buildRecordOffset(message),
+            buildRecordOffset(),
             System.currentTimeMillis(),
             schema,
-            buildPayLoad(message));
+            buildPayLoad(fields, message, schema));
         connectRecord.setExtensions(buildExtendFiled());
         return connectRecord;
     }
 
-    private RecordOffset buildRecordOffset(MqttMessage message) {
+    private RecordOffset buildRecordOffset() {
         Map<String, Long> offsetMap = new HashMap<>();
         offsetMap.put(SourceConnectorConfig.POSITION, 0l);
         RecordOffset recordOffset = new RecordOffset(offsetMap);
@@ -110,14 +110,16 @@ public class MqttSourceTask extends SourceTask {
     }
 
     private List<Field> buildFields() {
-        final Schema structSchema = SchemaBuilder.struct().build();
+        final Schema stringSchema = SchemaBuilder.string().build();
         List<Field> fields = new ArrayList<>();
-        fields.add(new Field(0, SourceConnectorConfig.MESSAGE, structSchema));
+        fields.add(new Field(0, SourceConnectorConfig.MESSAGE, stringSchema));
         return fields;
     }
 
-    private String buildPayLoad(MqttMessage message) {
-        return new String(message.getPayload());
+    private Struct buildPayLoad(List<Field> fields, MqttMessage message, Schema schema) {
+        Struct payLoad = new Struct(schema);
+        payLoad.put(fields.get(0), new String(message.getPayload()));
+        return payLoad;
 
     }
 
