@@ -23,7 +23,6 @@ import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.connect.mqtt.config.SinkConnectorConfig;
-import org.apache.rocketmq.connect.mqtt.config.SourceConnectorConfig;
 
 public class MqttSinkConnector extends SinkConnector {
 

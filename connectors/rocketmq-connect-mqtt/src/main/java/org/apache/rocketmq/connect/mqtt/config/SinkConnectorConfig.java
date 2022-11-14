@@ -30,7 +30,7 @@ public class SinkConnectorConfig extends ConnectorConfig {
             add(MQTT_SINK_TOPIC);
         }
     };
-
+    public static final String MESSAGE = "message";
     public static final String MQTT_SINK_TOPIC = "sinkTopic";
     protected String sinkTopic;
 

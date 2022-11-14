@@ -19,6 +19,12 @@
 package org.apache.rocketmq.connect.mqtt.sink;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.Field;
+import io.openmessaging.connector.api.data.FieldType;
+import io.openmessaging.connector.api.data.Struct;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.connect.mqtt.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.mqtt.util.MqttConnectionUtil;
 import org.apache.rocketmq.connect.mqtt.util.Utils;
@@ -45,14 +51,25 @@ public class Updater {
     }
 
     private MqttMessage sinkDataEntry2MqttMessage(ConnectRecord record) {
-        MqttMessage mqttMessage = null;
         try {
-            byte[] recordBytes = ((String) record.getData()).getBytes("UTF8");
-            mqttMessage = new MqttMessage(recordBytes);
+            Object object = record.getData();
+            log.info("Updater.sinkDataEntry2MqttMessage() get called ");
+            final Struct struct = (Struct) object;
+            final Object[] values = struct.getValues();
+            final List<Field> fields = struct.getSchema().getFields();
+            for (int i = 0; i < fields.size(); i++) {
+                final String name = fields.get(i).getName();
+                Object value = values[i];
+                if (name.equals(SinkConnectorConfig.MESSAGE) && value != null) {
+                    byte[] recordBytes = ((String) value).getBytes(StandardCharsets.UTF_8);
+                    MqttMessage mqttMessage = new MqttMessage(recordBytes);
+                    return mqttMessage;
+                }
+            }
         } catch (Exception e) {
             log.error("convert record to mqttMessage error", e);
         }
-        return mqttMessage;
+        return null;
     }
 
     public void start() throws Exception {
