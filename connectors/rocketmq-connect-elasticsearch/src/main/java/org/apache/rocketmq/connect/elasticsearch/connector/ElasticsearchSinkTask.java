@@ -33,8 +33,12 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ElasticsearchSinkTask extends SinkTask {
+
+    private static final Logger log = LoggerFactory.getLogger(ElasticsearchSinkTask.class);
 
     private ElasticsearchConfig config;
 
@@ -56,7 +60,7 @@ public class ElasticsearchSinkTask extends SinkTask {
             try {
                 restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                log.error("save data error, indexName:{}, schema:{},  data:{}", indexName, record.getSchema(),  record.getData());
             }
         }
 
