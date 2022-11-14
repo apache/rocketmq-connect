@@ -48,6 +48,7 @@ public class ConnectorConfig {
      */
     public static final String VALUE_CONVERTER = "value.converter";
     public static final String KEY_CONVERTER = "key.converter";
+    public static final String IS_KEY = "isKey";
     public static final String TRANSFORMS = "transforms";
     public static final String CONNECT_TIMESTAMP = "connect.timestamp";
     public static final String HASH_FUNC = "consistentHashFunc";

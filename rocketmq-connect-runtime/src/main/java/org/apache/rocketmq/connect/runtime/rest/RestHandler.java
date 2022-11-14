@@ -18,8 +18,10 @@
 package org.apache.rocketmq.connect.runtime.rest;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONException;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
@@ -134,12 +136,20 @@ public class RestHandler {
         } else {
             arg = context.req.getParameter("config");
         }
-        if (arg == null) {
+        if (StringUtils.isBlank(arg)) {
             context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Failed! query param 'config' is required "));
             return;
         }
         log.info("connect config: {}", arg);
-        Map keyValue = JSON.parseObject(arg, Map.class);
+
+        Map keyValue;
+        try {
+            keyValue = JSON.parseObject(arg, Map.class);
+        } catch (JSONException e) {
+            context.json(new ErrorMessage(HttpStatus.BAD_REQUEST_400, "Failed! query param 'config' is malformed"));
+            return;
+        }
+
         ConnectKeyValue configs = new ConnectKeyValue();
         for (Object key : keyValue.keySet()) {
             configs.put((String) key, keyValue.get(key).toString());
