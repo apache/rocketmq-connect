@@ -1,0 +1,21 @@
+{
+    "connector.class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
+    "max.tasks":"2",
+    "connect.topicnames":"employee-test-topic-avro-0003",
+    "connection.url":"jdbc:mysql://localhost:3306/test_database_02",
+    "connection.user":"XXXXXX",
+    "connection.password":"XXXXXX",
+    "pk.fields":"id",
+    "pk.mode":"record_value",
+    "insert.mode":"UPSERT",
+    "db.timezone":"UTC",
+    "table.types":"TABLE",
+    "errors.deadletterqueue.topic.name":"dlq-topic",
+    "errors.log.enable":"true",
+    "errors.tolerance":"ALL",
+    "key.converter.schema.registry.url":"http://localhost:8080",
+    "value.converter.schema.registry.url":"http://localhost:8080",
+    "key.converter":"org.apache.rocketmq.schema.avro.AvroConverter",
+    "value.converter":"org.apache.rocketmq.schema.avro.AvroConverter"
+}
+

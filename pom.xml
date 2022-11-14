@@ -29,6 +29,7 @@
         <module>distribution</module>
         <module>transforms</module>
         <module>reporter-api</module>
+        <module>schema-converter</module>
     </modules>
     <name>RocketMQ Connect</name>
 
@@ -53,7 +54,7 @@
         <commons.cli.version>1.2</commons.cli.version>
         <reflections.version>0.10.2</reflections.version>
         <guava.version>22.0</guava.version>
-        <jackson.version>2.13.3</jackson.version>
+        <jackson.version>2.13.4.1</jackson.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <!-- RocketMQ Version-->
         <rocketmq.version>4.7.1</rocketmq.version>

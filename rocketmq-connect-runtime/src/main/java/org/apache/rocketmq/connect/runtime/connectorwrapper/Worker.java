@@ -106,23 +106,23 @@ public class Worker {
     /**
      * Current tasks state.
      */
-    private Map<Runnable, Long/*timestamp*/> pendingTasks = new ConcurrentHashMap<>();
+    private final Map<Runnable, Long/*timestamp*/> pendingTasks = new ConcurrentHashMap<>();
     private Set<Runnable> runningTasks = new ConcurrentSet<>();
-    private Map<Runnable, Long/*timestamp*/> stoppingTasks = new ConcurrentHashMap<>();
-    private Set<Runnable> stoppedTasks = new ConcurrentSet<>();
-    private Set<Runnable> cleanedStoppedTasks = new ConcurrentSet<>();
-    private Set<Runnable> errorTasks = new ConcurrentSet<>();
-    private Set<Runnable> cleanedErrorTasks = new ConcurrentSet<>();
+    private final Map<Runnable, Long/*timestamp*/> stoppingTasks = new ConcurrentHashMap<>();
+    private final Set<Runnable> stoppedTasks = new ConcurrentSet<>();
+    private final Set<Runnable> cleanedStoppedTasks = new ConcurrentSet<>();
+    private final Set<Runnable> errorTasks = new ConcurrentSet<>();
+    private final Set<Runnable> cleanedErrorTasks = new ConcurrentSet<>();
     /**
      * Current running tasks to its Future map.
      */
-    private Map<Runnable, Future> taskToFutureMap = new ConcurrentHashMap<>();
-    private Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
+    private final Map<Runnable, Future> taskToFutureMap = new ConcurrentHashMap<>();
+    private final Optional<SourceTaskOffsetCommitter> sourceTaskOffsetCommitter;
     /**
      * Atomic state variable
      */
     private AtomicReference<WorkerState> workerState;
-    private StateMachineService stateMachineService = new StateMachineService();
+    private final StateMachineService stateMachineService = new StateMachineService();
 
     public Worker(WorkerConfig workerConfig,
                   PositionManagementService positionManagementService,
@@ -765,7 +765,7 @@ public class Worker {
                     break;
                 default:
                     log.error("[BUG] Illegal State in when checking stopping tasks, {} is in {} state",
-                            ((WorkerTask) runnable).id().connector(), state.toString());
+                            ((WorkerTask) runnable).id().connector(), state);
             }
         }
     }
@@ -797,7 +797,7 @@ public class Worker {
                     break;
                 default:
                     log.error("[BUG] Illegal State in when checking pending tasks, {} is in {} state",
-                            ((WorkerTask) runnable).id().connector(), state.toString());
+                            ((WorkerTask) runnable).id().connector(), state);
                     break;
             }
         }
@@ -835,17 +835,17 @@ public class Worker {
                     /**
                      * create key/value converter
                      */
-                    RecordConverter valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
-                    RecordConverter keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter valueConverter = plugin.newConverter(keyValue, false, ConnectorConfig.VALUE_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
+                    RecordConverter keyConverter = plugin.newConverter(keyValue, true, ConnectorConfig.KEY_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.CURRENT_CLASSLOADER);
 
                     if (keyConverter == null) {
-                        keyConverter = plugin.newConverter(keyValue, ConnectorConfig.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);
+                        keyConverter = plugin.newConverter(keyValue, true, ConnectorConfig.KEY_CONVERTER, workerConfig.getValueConverter(), Plugin.ClassLoaderUsage.PLUGINS);
                         log.info("Set up the key converter {} for task {} using the worker config", keyConverter.getClass(), id);
                     } else {
                         log.info("Set up the key converter {} for task {} using the connector config", keyConverter.getClass(), id);
                     }
                     if (valueConverter == null) {
-                        valueConverter = plugin.newConverter(keyValue, ConnectorConfig.VALUE_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.PLUGINS);
+                        valueConverter = plugin.newConverter(keyValue, false, ConnectorConfig.VALUE_CONVERTER, workerConfig.getKeyConverter(), Plugin.ClassLoaderUsage.PLUGINS);
                         log.info("Set up the value converter {} for task {} using the worker config", valueConverter.getClass(), id);
                     } else {
                         log.info("Set up the value converter {} for task {} using the connector config", valueConverter.getClass(), id);
@@ -900,10 +900,7 @@ public class Worker {
         Map<String, List<ConnectKeyValue>> newTasks = new HashMap<>();
         for (String connectorName : taskConfigs.keySet()) {
             for (ConnectKeyValue keyValue : taskConfigs.get(connectorName)) {
-                boolean isNewTask = true;
-                if (isConfigInSet(keyValue, runningTasks) || isConfigInSet(keyValue, pendingTasks.keySet()) || isConfigInSet(keyValue, errorTasks)) {
-                    isNewTask = false;
-                }
+                boolean isNewTask = !isConfigInSet(keyValue, runningTasks) && !isConfigInSet(keyValue, pendingTasks.keySet()) && !isConfigInSet(keyValue, errorTasks);
                 if (isNewTask) {
                     if (!newTasks.containsKey(connectorName)) {
                         newTasks.put(connectorName, new ArrayList<>());
@@ -976,7 +973,7 @@ public class Worker {
     public enum TaskType {
         SOURCE,
         SINK,
-        DIRECT;
+        DIRECT
     }
 
     public class StateMachineService extends ServiceThread {
