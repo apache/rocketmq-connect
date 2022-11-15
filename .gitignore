@@ -11,3 +11,4 @@ devenv
 .idea/
 *.versionsBackup
 .DS_Store
+.vscode
