@@ -23,6 +23,7 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.RecordConverter;
+import org.apache.commons.lang3.StringUtils;
 import org.reflections.Configuration;
 import org.reflections.Reflections;
 import org.reflections.ReflectionsException;
@@ -143,9 +144,12 @@ public class DelegatingClassLoader extends URLClassLoader {
      * @return
      */
     public PluginClassLoader pluginClassLoader(String name) {
-//        if (!PluginUtils.shouldLoadInIsolation(name)) {
-//            return null;
-//        }
+        if (StringUtils.isEmpty(name) || StringUtils.isBlank(name)) {
+            return null;
+        }
+        if (!PluginUtils.shouldLoadInIsolation(name)) {
+            return null;
+        }
         SortedMap<PluginWrapper<?>, ClassLoader> inner = pluginLoaders.get(name);
         if (inner == null) {
             return null;
