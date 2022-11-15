@@ -51,7 +51,6 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.version></project.version>
         <openmessaging.connector.version>0.1.4</openmessaging.connector.version>
         <schema-registry.version>0.1.0</schema-registry.version>
         <junit.version>4.13.1</junit.version>
