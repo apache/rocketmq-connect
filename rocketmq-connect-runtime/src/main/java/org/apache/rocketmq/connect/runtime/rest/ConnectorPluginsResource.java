@@ -100,7 +100,7 @@ public class ConnectorPluginsResource {
     public void listConnectorPlugins(Context context) {
         synchronized (this) {
             List<PluginInfo> pluginInfos = Collections.unmodifiableList(connectorPlugins.stream()
-                    .filter(p -> PluginType.SINK.toString().equals(p.getType()) || PluginType.SOURCE.toString().equals(p.getType()))
+                    .filter(p -> PluginType.SINK.equals(p.getType()) || PluginType.SOURCE.equals(p.getType()))
                     .collect(Collectors.toList()));
             context.json(new HttpResponse<>(context.status(), pluginInfos));
         }
