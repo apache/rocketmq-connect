@@ -17,8 +17,8 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/elasticsearchSourceConnect
     },
     "max.tasks":1,
     "connect.topicname":"esTopic",
-    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter",
-    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter"
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 ```
 
@@ -32,8 +32,8 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/elasticsearchSinkConnector
     "elasticsearchPort":9200,
     "max.tasks":1,
     "connect.topicnames":"esTopic",
-    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter",
-    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.StringConverter"
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
 ```
 

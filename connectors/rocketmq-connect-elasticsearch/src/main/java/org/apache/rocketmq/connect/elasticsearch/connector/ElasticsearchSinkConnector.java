@@ -39,8 +39,13 @@ public class ElasticsearchSinkConnector extends SinkConnector {
 
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
+        if (maxTasks == 0) {
+            maxTasks = 1;
+        }
         List<KeyValue> configs = new ArrayList<>();
-        configs.add(this.config);
+        for (int i = 0; i < maxTasks; i++) {
+            configs.add(this.config);
+        }
         return configs;
     }
 

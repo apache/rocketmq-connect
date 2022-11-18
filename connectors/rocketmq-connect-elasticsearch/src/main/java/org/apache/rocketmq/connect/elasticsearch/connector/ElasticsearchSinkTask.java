@@ -17,13 +17,20 @@
 
 package org.apache.rocketmq.connect.elasticsearch.connector;
 
+import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.Field;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import java.io.IOException;
 import java.util.List;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.rocketmq.connect.elasticsearch.config.ElasticsearchConfig;
 import org.apache.rocketmq.connect.elasticsearch.config.ElasticsearchConstant;
 import org.elasticsearch.action.index.IndexRequest;
@@ -54,9 +61,14 @@ public class ElasticsearchSinkTask extends SinkTask {
             if (indexName == null || indexName == "") {
                 continue;
             }
-            final String data = record.getData().toString();
+            final List<Field> fields = record.getSchema().getFields();
+            final Struct structData = (Struct) record.getData();
+            JSONObject object = new JSONObject();
+            for (Field field : fields) {
+                object.put(field.getName(), structData.get(field));
+            }
             IndexRequest indexRequest = new IndexRequest(indexName);
-            indexRequest.source(data, XContentType.JSON);
+            indexRequest.source(object.toJSONString(), XContentType.JSON);
             try {
                 restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
             } catch (IOException e) {
@@ -72,7 +84,13 @@ public class ElasticsearchSinkTask extends SinkTask {
         this.config.load(keyValue);
         HttpHost httpHost = new HttpHost(config.getElasticsearchHost(), config.getElasticsearchPort());
         Node node = new Node(httpHost);
+
         RestClientBuilder restClientBuilder = RestClient.builder(node);
+        if (config.getUsername() != null && config.getPassword() != null) {
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(config.getUsername(), config.getPassword()));
+            restClientBuilder.setHttpClientConfigCallback(httpAsyncClientBuilder -> httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+        }
         restHighLevelClient = new RestHighLevelClient(restClientBuilder);
     }
 

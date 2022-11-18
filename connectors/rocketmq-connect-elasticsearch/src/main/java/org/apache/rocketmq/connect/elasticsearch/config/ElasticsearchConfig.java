@@ -47,6 +47,10 @@ public class ElasticsearchConfig {
 
     private Integer elasticsearchPort;
 
+    private String username;
+
+    private String password;
+
     /**
      * key is indexName, value is field name
      */
@@ -74,6 +78,22 @@ public class ElasticsearchConfig {
 
     public void setElasticsearchPort(Integer elasticsearchPort) {
         this.elasticsearchPort = elasticsearchPort;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public Map<String, String> getIndexMap() {
