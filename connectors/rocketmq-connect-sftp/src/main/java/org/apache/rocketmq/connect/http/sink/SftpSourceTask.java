@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.rocketmq.connect.http.sink;
 
 import io.openmessaging.KeyValue;
@@ -6,18 +23,27 @@ import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.FileSystemException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.connect.http.sink.SftpConstant.*;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.RECORD_OFFSET_STORAGE_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.RECORD_PARTITION_STORAGE_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_FILENAME_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_HOST_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PASSWORD_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PATH_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PORT_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_USERNAME_KEY;
 
 public class SftpSourceTask extends SourceTask {
 
@@ -29,13 +55,11 @@ public class SftpSourceTask extends SourceTask {
 
     private static final int MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME = 2000;
 
-    @Override
-    public void init(SourceTaskContext sourceTaskContext) {
+    @Override public void init(SourceTaskContext sourceTaskContext) {
         super.init(sourceTaskContext);
     }
 
-    @Override
-    public void start(KeyValue config) {
+    @Override public void start(KeyValue config) {
         String host = config.getString(SFTP_HOST_KEY);
         int port = config.getInt(SFTP_PORT_KEY);
         String username = config.getString(SFTP_USERNAME_KEY);
@@ -45,15 +69,12 @@ public class SftpSourceTask extends SourceTask {
         sftpClient = new SftpClient(host, port, username, password, path);
     }
 
-    @Override
-    public void stop() {
+    @Override public void stop() {
     }
 
-    @Override
-    public List<ConnectRecord> poll() {
+    @Override public List<ConnectRecord> poll() {
         int offset = readRecordOffset();
-        try (InputStream inputStream = sftpClient.get(filename);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+        try (InputStream inputStream = sftpClient.get(filename); BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             inputStream.skip(offset);
             List<ConnectRecord> records = new ArrayList<>();
             String line;
@@ -61,8 +82,7 @@ public class SftpSourceTask extends SourceTask {
 
             while ((line = reader.readLine()) != null) {
                 offset = offset + line.getBytes().length + 1;
-                connectRecord = new ConnectRecord(buildRecordPartition(filename), buildRecordOffset(offset),
-                        System.currentTimeMillis());
+                connectRecord = new ConnectRecord(buildRecordPartition(filename), buildRecordOffset(offset), System.currentTimeMillis());
                 connectRecord.setData(line);
                 records.add(connectRecord);
                 if (records.size() > MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME) {
@@ -93,27 +113,25 @@ public class SftpSourceTask extends SourceTask {
     }
 
     private int readRecordOffset() {
-        RecordOffset positionInfo = this.sourceTaskContext.offsetStorageReader()
-                .readOffset(buildRecordPartition(filename));
-        if(positionInfo == null) {
+        RecordOffset positionInfo = this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition(filename));
+        if (positionInfo == null) {
             return 0;
         }
         Object offset = positionInfo.getOffset().get(RECORD_OFFSET_STORAGE_KEY);
-        if(offset == null) {
+        if (offset == null) {
             return 0;
         } else {
             return (int) offset;
         }
     }
 
-    @Override
-    public void validate(KeyValue config) {
+    @Override public void validate(KeyValue config) {
         if (StringUtils.isBlank(config.getString(SFTP_HOST_KEY))
-                || StringUtils.isBlank(config.getString(SFTP_PORT_KEY))
-                || StringUtils.isBlank(config.getString(SFTP_USERNAME_KEY))
-                || StringUtils.isBlank(config.getString(SFTP_PASSWORD_KEY))
-                || StringUtils.isBlank(config.getString(SFTP_PATH_KEY))
-                || StringUtils.isBlank(config.getString(SFTP_FILENAME_KEY))) {
+            || StringUtils.isBlank(config.getString(SFTP_PORT_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_USERNAME_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_PASSWORD_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_PATH_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_FILENAME_KEY))) {
             throw new RuntimeException("missing required config");
         }
     }
