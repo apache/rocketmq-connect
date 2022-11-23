@@ -78,11 +78,12 @@ public class ElasticsearchSinkTask extends SinkTask {
         }
         for (ConnectRecord record : sinkRecords) {
             String indexName = record.getExtension(ElasticsearchConstant.INDEX);
+            if (indexName == null || indexName == "") {
+                indexName = config.getTopic();
+            }
             this.checkIndexIsExist(indexName);
             this.checkMappingIsExist(indexName, record);
-            if (indexName == null || indexName == "") {
-                continue;
-            }
+
             final List<Field> fields = record.getSchema().getFields();
             final Struct structData = (Struct) record.getData();
             JSONObject object = new JSONObject();

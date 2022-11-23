@@ -51,6 +51,8 @@ public class ElasticsearchConfig {
 
     private String password;
 
+    private String topic;
+
     /**
      * key is indexName, value is field name
      */
@@ -96,12 +98,20 @@ public class ElasticsearchConfig {
         this.password = password;
     }
 
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
     public Map<String, String> getIndexMap() {
         return indexMap;
     }
 
     public void load(KeyValue props) {
-
+        this.setTopic(props.getString(ElasticsearchConstant.CONNECT_TOPIC_NAME));
         properties2Object(props, this);
     }
 

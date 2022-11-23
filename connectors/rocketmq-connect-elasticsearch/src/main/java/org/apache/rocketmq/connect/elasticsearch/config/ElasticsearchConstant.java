@@ -38,4 +38,6 @@ public class ElasticsearchConstant {
     public static final String PRIMARY_SHARDS = "primaryShards";
 
     public static final String PRIMARY_SHARD = "primaryShard";
+
+    public static final String CONNECT_TOPIC_NAME = "connect.topicnames";
 }
