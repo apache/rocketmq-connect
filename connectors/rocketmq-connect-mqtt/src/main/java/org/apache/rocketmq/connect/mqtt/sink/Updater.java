@@ -86,7 +86,7 @@ public class Updater {
 
             @Override
             public void connectionLost(Throwable throwable) {
-                throwable.printStackTrace();
+                log.error("connection lost {}", throwable.getMessage());
             }
 
             @Override
