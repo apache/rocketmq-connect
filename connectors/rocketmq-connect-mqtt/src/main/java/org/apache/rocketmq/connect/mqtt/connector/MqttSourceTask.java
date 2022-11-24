@@ -83,7 +83,7 @@ public class MqttSourceTask extends SourceTask {
     }
 
     private ConnectRecord message2ConnectRecord(MqttMessage message) {
-        Schema schema = SchemaBuilder.struct().name("mqtt").build();
+        Schema schema = SchemaBuilder.struct().name("topicName").build();
         final List<Field> fields = buildFields();
         schema.setFields(fields);
         final ConnectRecord connectRecord = new ConnectRecord(buildRecordPartition(),

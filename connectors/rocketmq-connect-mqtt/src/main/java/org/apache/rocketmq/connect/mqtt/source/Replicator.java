@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.mqtt.source;
 
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.rocketmq.connect.mqtt.config.SourceConnectorConfig;
@@ -57,13 +58,13 @@ public class Replicator {
                 try {
                     mqttClient.subscribe(sourceTopic, 1);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("{} subscribe failed", recvClientId);
                 }
             }
 
             @Override
             public void connectionLost(Throwable throwable) {
-                throwable.printStackTrace();
+                log.error("connection lost {}", throwable.getMessage());
             }
 
             @Override
@@ -71,7 +72,7 @@ public class Replicator {
                 try {
                     commit(mqttMessage, true);
                 } catch (Exception e) {
-                    throw new RuntimeException("commit MqttMessage failed", e);
+                    throw new ConnectException("commit MqttMessage failed", e);
                 }
             }
 
@@ -84,8 +85,7 @@ public class Replicator {
             mqttClient.connect(mqttConnectOptions);
             log.info("Replicator start succeed");
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("connect fail");
+            log.error("connect fail {}", e.getMessage());
         }
     }
 

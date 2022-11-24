@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.mqtt.connector;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
+import io.openmessaging.connector.api.errors.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.connect.mqtt.config.SourceConnectorConfig;
@@ -31,7 +32,7 @@ public class MqttSourceConnector extends SourceConnector {
     @Override public void start(KeyValue config) {
         for (String requestKey : SourceConnectorConfig.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                throw new RuntimeException("Request config key: " + requestKey);
+                throw new ConnectException("Request config key: " + requestKey);
             }
         }
         this.config = config;
