@@ -23,6 +23,10 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.rocketmq.connect.elasticsearch.config.ElasticsearchConfig;
 import org.apache.rocketmq.connect.elasticsearch.config.ElasticsearchConstant;
 import org.elasticsearch.action.search.SearchRequest;
@@ -61,6 +65,11 @@ public class ElasticsearchQuery {
         HttpHost httpHost = new HttpHost(config.getElasticsearchHost(), config.getElasticsearchPort());
         Node node = new Node(httpHost);
         RestClientBuilder restClientBuilder = RestClient.builder(node);
+        if (config.getUsername() != null && config.getPassword() != null) {
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(config.getUsername(), config.getPassword()));
+            restClientBuilder.setHttpClientConfigCallback(httpAsyncClientBuilder -> httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+        }
         restClient = restClientBuilder.build();
         client = new RestHighLevelClient(restClientBuilder);
     }

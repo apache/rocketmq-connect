@@ -26,6 +26,8 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -86,15 +88,17 @@ public class ElasticsearchSourceTask extends SourceTask {
             buildRecordOffset(hit),
             System.currentTimeMillis(),
             schema,
-            hit.getSourceAsString());
+            this.buildPayLoad(fields, schema, hit.getSourceAsMap()));
+        connectRecord.setExtensions(this.buildExtensions(hit));
         return connectRecord;
     }
 
     private List<Field> buildFields(SearchHit hit) {
         List<Field> fields = new ArrayList<>();
         final Map<String, Object> map = hit.getSourceAsMap();
+        int i = 0;
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            fields.add(new Field(0, entry.getKey(), getSchema(entry.getValue())));
+            fields.add(new Field(i++, entry.getKey(), getSchema(entry.getValue())));
         }
         return fields;
     }
@@ -115,6 +119,20 @@ public class ElasticsearchSourceTask extends SourceTask {
         offsetMap.put(hit.getIndex() + ":" + ElasticsearchConstant.ES_POSITION, Long.parseLong(value.toString()));
         RecordOffset recordOffset = new RecordOffset(offsetMap);
         return recordOffset;
+    }
+
+    private KeyValue buildExtensions(SearchHit hit) {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(ElasticsearchConstant.INDEX, hit.getIndex());
+        return keyValue;
+    }
+
+    private Struct buildPayLoad(List<Field> fields, Schema schema, Map<String, Object> dataMap) {
+        Struct payLoad = new Struct(schema);
+        for (int i = 0; i < fields.size(); i++) {
+            payLoad.put(fields.get(i), dataMap.get(fields.get(i).getName()));
+        }
+        return payLoad;
     }
 
     private Schema getSchema(Object obj) {
