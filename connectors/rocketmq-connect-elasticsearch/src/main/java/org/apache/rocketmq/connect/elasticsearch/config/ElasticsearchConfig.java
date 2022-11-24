@@ -34,11 +34,24 @@ public class ElasticsearchConfig {
         }
     };
 
+    public static final Set<String> REQUEST_CONFIG_SINK = new HashSet<String>() {
+        {
+            add(ElasticsearchConstant.ES_HOST);
+            add(ElasticsearchConstant.ES_PORT);
+        }
+    };
+
     private String index;
 
     private String elasticsearchHost;
 
     private Integer elasticsearchPort;
+
+    private String username;
+
+    private String password;
+
+    private String topic;
 
     /**
      * key is indexName, value is field name
@@ -69,12 +82,36 @@ public class ElasticsearchConfig {
         this.elasticsearchPort = elasticsearchPort;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
     public Map<String, String> getIndexMap() {
         return indexMap;
     }
 
     public void load(KeyValue props) {
-
+        this.setTopic(props.getString(ElasticsearchConstant.CONNECT_TOPIC_NAME));
         properties2Object(props, this);
     }
 
