@@ -31,6 +31,10 @@ public class SftpConstant {
 
     public static final String SFTP_PATH_KEY = "filePath";
 
+    public static final String SFTP_FIELD_SEPARATOR = "fieldSeparator";
+
+    public static final String SFTP_FIELD_SCHEMA = "fieldSchema";
+
     public static final String RECORD_PARTITION_STORAGE_KEY = "partition";
 
     public static final String RECORD_OFFSET_STORAGE_KEY = "offset";

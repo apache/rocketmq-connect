@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.http.sink;
 
+import com.alibaba.fastjson.JSONObject;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import net.schmizz.sshj.sftp.RemoteFile;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -38,6 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.RECORD_OFFSET_STORAGE_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.RECORD_PARTITION_STORAGE_KEY;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_FIELD_SCHEMA;
+import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_FIELD_SEPARATOR;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_HOST_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PASSWORD_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PATH_KEY;
@@ -52,10 +56,24 @@ public class SftpSourceTask extends SourceTask {
 
     private String filePath;
 
+    private String fieldSeparator;
+
+    private String[] fieldSchema;
+
     private static final int MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME = 2000;
 
     @Override public void init(SourceTaskContext sourceTaskContext) {
         super.init(sourceTaskContext);
+    }
+
+    @Override public void validate(KeyValue config) {
+        if (StringUtils.isBlank(config.getString(SFTP_HOST_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_PORT_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_USERNAME_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_PASSWORD_KEY))
+            || StringUtils.isBlank(config.getString(SFTP_PATH_KEY))) {
+            throw new RuntimeException("missing required config");
+        }
     }
 
     @Override public void start(KeyValue config) {
@@ -65,6 +83,9 @@ public class SftpSourceTask extends SourceTask {
         String password = config.getString(SFTP_PASSWORD_KEY);
         this.filePath = config.getString(SFTP_PATH_KEY);
         this.sftpClient = new SftpClient(host, port, username, password);
+        fieldSeparator = config.getString(SFTP_FIELD_SEPARATOR);
+        String fieldSchemaStr = config.getString(SFTP_FIELD_SCHEMA);
+        fieldSchema = fieldSchemaStr.split(Pattern.quote(fieldSeparator));
     }
 
     @Override public void stop() {
@@ -81,10 +102,17 @@ public class SftpSourceTask extends SourceTask {
 
             while ((line = reader.readLine()) != null) {
                 offset = offset + line.getBytes().length + 1;
-                connectRecord = new ConnectRecord(buildRecordPartition(filePath), buildRecordOffset(offset), System.currentTimeMillis());
+
                 // do not send empty string to mq
-                if(!StringUtils.isEmpty(line)) {
-                    connectRecord.setData(line);
+                if (!StringUtils.isEmpty(line)) {
+                    String[] data = line.split(Pattern.quote(fieldSeparator));
+                    JSONObject jsonObject = new JSONObject();
+                    for (int i = 0; i < fieldSchema.length; i++) {
+                        jsonObject.put(fieldSchema[i], data[i]);
+                    }
+                    connectRecord = new ConnectRecord(buildRecordPartition(filePath), buildRecordOffset(offset), System.currentTimeMillis());
+
+                    connectRecord.setData(jsonObject.toString());
                     records.add(connectRecord);
                     if (records.size() > MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME) {
                         break;
@@ -122,16 +150,6 @@ public class SftpSourceTask extends SourceTask {
             return 0;
         } else {
             return (int) offset;
-        }
-    }
-
-    @Override public void validate(KeyValue config) {
-        if (StringUtils.isBlank(config.getString(SFTP_HOST_KEY))
-            || StringUtils.isBlank(config.getString(SFTP_PORT_KEY))
-            || StringUtils.isBlank(config.getString(SFTP_USERNAME_KEY))
-            || StringUtils.isBlank(config.getString(SFTP_PASSWORD_KEY))
-            || StringUtils.isBlank(config.getString(SFTP_PATH_KEY))) {
-            throw new RuntimeException("missing required config");
         }
     }
 }
