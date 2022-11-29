@@ -17,78 +17,58 @@
 
 package org.apache.rocketmq.connect.http.sink;
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.Set;
+import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.sftp.OpenMode;
+import net.schmizz.sshj.sftp.RemoteFile;
+import net.schmizz.sshj.sftp.SFTPClient;
+import net.schmizz.sshj.transport.TransportException;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import net.schmizz.sshj.userauth.UserAuthException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SftpClient implements Closeable {
 
-    private String host;
+    private static final Logger log = LoggerFactory.getLogger(SftpClient.class);
 
-    private int port;
+    private SSHClient sshClient;
 
-    private String username;
+    private SFTPClient internalSFTPClient;
 
-    private String password;
-
-    private String path;
-
-    private Session session;
-
-    private ChannelSftp channel;
-
-    public SftpClient(String host, int port, String username, String password, String path) {
-        this.host = host;
-        this.port = port;
-        this.username = username;
-        this.password = password;
-        this.path = path;
-    }
-
-    public InputStream get(String filename) throws IOException {
-        JSch jsch = new JSch();
+    public SftpClient(String host, int port, String username, String password) {
+        sshClient = new SSHClient();
+        sshClient.addHostKeyVerifier(new PromiscuousVerifier());
         try {
-            session = jsch.getSession(username, host, port);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setPassword(password);
-            session.connect(30000);
-            channel = (ChannelSftp) session.openChannel("sftp");
-            channel.connect(30000);
-            channel.cd(path);
-            return channel.get(filename);
-        } catch (JSchException | SftpException e) {
-            throw new IOException(e);
+            sshClient.connect(host, port);
+            sshClient.authPassword(username, password);
+            internalSFTPClient = sshClient.newSFTPClient();
+        } catch (UserAuthException e) {
+            log.error(e.getMessage(), e);
+        } catch (TransportException e) {
+            log.error(e.getMessage(), e);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
         }
     }
 
-    public void append(InputStream inputStream, String filename) throws IOException {
-        JSch jsch = new JSch();
-        try {
-            session = jsch.getSession(username, host, port);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setPassword(password);
-            session.connect(30000);
-            channel = (ChannelSftp) session.openChannel("sftp");
-            channel.connect(30000);
-            channel.cd(path);
-            channel.put(inputStream, filename, ChannelSftp.APPEND);
-        } catch (JSchException | SftpException e) {
-            throw new IOException(e);
-        }
+    public RemoteFile open(String filename) throws IOException {
+        return internalSFTPClient.getSFTPEngine().open(filename);
+    }
+
+    public RemoteFile open(String filename, Set<OpenMode> modes) throws IOException {
+        return internalSFTPClient.getSFTPEngine().open(filename, modes);
     }
 
     @Override
     public void close() {
-        if (channel != null) {
-            channel.disconnect();
-        }
-        if (session != null) {
-            session.disconnect();
+        try {
+            internalSFTPClient.close();
+            sshClient.close();
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
         }
     }
 }

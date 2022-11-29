@@ -29,9 +29,7 @@ public class SftpConstant {
 
     public static final String SFTP_PASSWORD_KEY = "password";
 
-    public static final String SFTP_PATH_KEY = "path";
-
-    public static final String SFTP_FILENAME_KEY = "filename";
+    public static final String SFTP_PATH_KEY = "filePath";
 
     public static final String RECORD_PARTITION_STORAGE_KEY = "partition";
 

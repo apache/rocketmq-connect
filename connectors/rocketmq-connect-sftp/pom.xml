@@ -23,7 +23,7 @@
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <openmessaging.connector.version>0.1.4</openmessaging.connector.version>
-        <jsch.version>0.1.55</jsch.version>
+        <sshj.version>0.32.0</sshj.version>
     </properties>
 
     <build>
@@ -171,9 +171,9 @@
             <version>${commons-lang3.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.jcraft</groupId>
-            <artifactId>jsch</artifactId>
-            <version>${jsch.version}</version>
+            <groupId>com.hierynomus</groupId>
+            <artifactId>sshj</artifactId>
+            <version>${sshj.version}</version>
         </dependency>
         <dependency>
             <groupId>io.openmessaging</groupId>

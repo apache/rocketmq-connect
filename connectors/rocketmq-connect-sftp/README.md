@@ -7,6 +7,7 @@ Plugin for Rocketmq Connect. Tansfer file based on SFTP.
 * start rocketmq nameserver
 
 ```shell
+cd ${ROCKETMQ_HOME}
 nohup ./bin/mqnamesrv &
 ```
 
@@ -43,10 +44,9 @@ Content-Type: application/json
   "connector.class": "org.apache.rocketmq.connect.http.sink.SftpSourceConnector",
   "host": "127.0.0.1",
   "port": 22,
-  "filename": "source.txt",
   "username": "wencheng",
   "password": "",
-  "path": "Documents",
+  "filePath": "/Users/wencheng/Documents/source.txt",
   "connect.topicname": "sftpTopic"
 }
 ```
@@ -64,10 +64,10 @@ Content-Type: application/json
   "connector.class": "org.apache.rocketmq.connect.http.sink.SftpSinkConnector",
   "host": "127.0.0.1",
   "port": 22,
-  "filename": "sink.txt",
   "username": "wencheng",
   "password": "",
-  "connect.topicname": "sftpTopic"
+  "filePath": "/Users/wencheng/Documents/sink.txt",
+  "connect.topicnames": "sftpTopic"
 }
 ```
 
@@ -77,29 +77,27 @@ The file named sink.txt will be created, and the content of the "source.txt" wil
 
 ## Appendix: Connector Configuration
 
-### sftp-source-connector configuration
+co### sftp-source-connector configuration
 
-| KEY               | TYPE   | REQUIRED | DESCRIPTION                                            | EXAMPLE               |
-|-------------------|--------|----------|--------------------------------------------------------|-----------------------|
-| host              | String | Y        | SFTP host                                              | localhost             |
-| port              | int    | Y        | SFTP port                                              | 22                    |
-| username          | String | Y        | SFTP username                                          | wencheng              |
-| password          | String | Y        | SFTP password                                          |                       |
-| path              | String | Y        | SFTP path                                              | /Documents            |
-| filename          | String | Y        | The name of the file which will be transferred         | source.txt            |
-| connect.topicname | String | Y        | The Message Queue topic which the data will be send to |                       |
+| KEY               | TYPE   | REQUIRED | DESCRIPTION                                            | EXAMPLE             |
+|-------------------|--------|----------|--------------------------------------------------------|---------------------|
+| host              | String | Y        | SFTP host                                              | localhost           |
+| port              | int    | Y        | SFTP port                                              | 22                  |
+| username          | String | Y        | SFTP username                                          | wencheng            |
+| password          | String | Y        | SFTP password                                          |                     |
+| filePath          | String | Y        | The name of the file which will be transferred         | /path/to/source.txt |
+| connect.topicname | String | Y        | The Message Queue topic which the data will be send to |                     |
 
 ### sftp-sink-connector configuration
 
-| KEY               | TYPE   | REQUIRED | DESCRIPTION                                                | EXAMPLE               |
-|-------------------|--------|----------|------------------------------------------------------------|-----------------------|
-| host              | String | Y        | SFTP host                                                  | localhost             |
-| port              | int    | Y        | SFTP port                                                  | 22                    |
-| username          | String | Y        | SFTP username                                              | wencheng              |
-| password          | String | Y        | SFTP password                                              |                       |
-| path              | String | Y        | SFTP path                                                  | /Documents            |
-| filename          | String | Y        | The name of the file which will be transferred             | sink.txt              |
-| connect.topicname | String | Y        | The Message Queue topic which the data will be pulled from |                       |
+| KEY                | TYPE   | REQUIRED | DESCRIPTION                                                | EXAMPLE           |
+|--------------------|--------|----------|------------------------------------------------------------|-------------------|
+| host               | String | Y        | SFTP host                                                  | localhost         |
+| port               | int    | Y        | SFTP port                                                  | 22                |
+| username           | String | Y        | SFTP username                                              | wencheng          |
+| password           | String | Y        | SFTP password                                              |                   |
+| filePath           | String | Y        | The name of the file which will be transferred             | /path/to/sink.txt |
+| connect.topicnames | String | Y        | The Message Queue topic which the data will be pulled from |                   |
 
 
 

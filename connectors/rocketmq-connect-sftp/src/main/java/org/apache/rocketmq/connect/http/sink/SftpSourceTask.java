@@ -25,20 +25,19 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.FileSystemException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.schmizz.sshj.sftp.RemoteFile;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.RECORD_OFFSET_STORAGE_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.RECORD_PARTITION_STORAGE_KEY;
-import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_FILENAME_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_HOST_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PASSWORD_KEY;
 import static org.apache.rocketmq.connect.http.sink.SftpConstant.SFTP_PATH_KEY;
@@ -51,7 +50,7 @@ public class SftpSourceTask extends SourceTask {
 
     private SftpClient sftpClient;
 
-    private String filename;
+    private String filePath;
 
     private static final int MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME = 2000;
 
@@ -64,29 +63,32 @@ public class SftpSourceTask extends SourceTask {
         int port = config.getInt(SFTP_PORT_KEY);
         String username = config.getString(SFTP_USERNAME_KEY);
         String password = config.getString(SFTP_PASSWORD_KEY);
-        String path = config.getString(SFTP_PATH_KEY);
-        filename = config.getString(SFTP_FILENAME_KEY);
-        sftpClient = new SftpClient(host, port, username, password, path);
+        this.filePath = config.getString(SFTP_PATH_KEY);
+        this.sftpClient = new SftpClient(host, port, username, password);
     }
 
     @Override public void stop() {
+        sftpClient.close();
     }
 
     @Override public List<ConnectRecord> poll() {
         int offset = readRecordOffset();
-        try (InputStream inputStream = sftpClient.get(filename); BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            inputStream.skip(offset);
+        try (RemoteFile remoteFile = sftpClient.open(filePath);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(remoteFile.new RemoteFileInputStream(offset)))) {
             List<ConnectRecord> records = new ArrayList<>();
             String line;
             ConnectRecord connectRecord;
 
             while ((line = reader.readLine()) != null) {
                 offset = offset + line.getBytes().length + 1;
-                connectRecord = new ConnectRecord(buildRecordPartition(filename), buildRecordOffset(offset), System.currentTimeMillis());
-                connectRecord.setData(line);
-                records.add(connectRecord);
-                if (records.size() > MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME) {
-                    break;
+                connectRecord = new ConnectRecord(buildRecordPartition(filePath), buildRecordOffset(offset), System.currentTimeMillis());
+                // do not send empty string to mq
+                if(!StringUtils.isEmpty(line)) {
+                    connectRecord.setData(line);
+                    records.add(connectRecord);
+                    if (records.size() > MAX_NUMBER_SEND_CONNECT_RECORD_EACH_TIME) {
+                        break;
+                    }
                 }
             }
             return records;
@@ -94,8 +96,6 @@ public class SftpSourceTask extends SourceTask {
             log.error("File system error", e);
         } catch (IOException e) {
             log.error("SFTP IOException", e);
-        } finally {
-            sftpClient.close();
         }
         return null;
     }
@@ -113,7 +113,7 @@ public class SftpSourceTask extends SourceTask {
     }
 
     private int readRecordOffset() {
-        RecordOffset positionInfo = this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition(filename));
+        RecordOffset positionInfo = this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition(filePath));
         if (positionInfo == null) {
             return 0;
         }
@@ -130,8 +130,7 @@ public class SftpSourceTask extends SourceTask {
             || StringUtils.isBlank(config.getString(SFTP_PORT_KEY))
             || StringUtils.isBlank(config.getString(SFTP_USERNAME_KEY))
             || StringUtils.isBlank(config.getString(SFTP_PASSWORD_KEY))
-            || StringUtils.isBlank(config.getString(SFTP_PATH_KEY))
-            || StringUtils.isBlank(config.getString(SFTP_FILENAME_KEY))) {
+            || StringUtils.isBlank(config.getString(SFTP_PATH_KEY))) {
             throw new RuntimeException("missing required config");
         }
     }
