@@ -89,20 +89,22 @@ The file named sink.txt will be created, and the content of the "source.txt" wil
 | username          | String | Y        | SFTP username                                          | wencheng            |
 | password          | String | Y        | SFTP password                                          |                     |
 | filePath          | String | Y        | The name of the file which will be transferred         | /path/to/source.txt |
-| fieldSchema       | String | N        |                                                        |                     |
-| partition         | String | N        |                                                        |                     |
+| fieldSchema       | String | Y        | the data schema of each line                           |                     |
+| fieldSeparator    | String | Y        | Symbol that separates each field                       |                     |
 | connect.topicname | String | Y        | The Message Queue topic which the data will be send to |                     |
 
 ### sftp-sink-connector configuration
 
 | KEY                | TYPE   | REQUIRED | DESCRIPTION                                                | EXAMPLE           |
-|--------------------|--------|----------|------------------------------------------------------------|-------------------|
+| ------------------ | ------ | -------- | ---------------------------------------------------------- | ----------------- |
 | host               | String | Y        | SFTP host                                                  | localhost         |
 | port               | int    | Y        | SFTP port                                                  | 22                |
 | username           | String | Y        | SFTP username                                              | wencheng          |
 | password           | String | Y        | SFTP password                                              |                   |
 | filePath           | String | Y        | The name of the file which will be transferred             | /path/to/sink.txt |
 | connect.topicnames | String | Y        | The Message Queue topic which the data will be pulled from |                   |
+| fieldSchema        | String | Y        | the data schema of each line                               |                   |
+| fieldSeparator     | String | Y        | Symbol that separates each field                           |                   |
 
 
 
