@@ -150,8 +150,7 @@ public class HttpSinkTask extends SinkTask {
     @Override
     public void validate(KeyValue config) {
         if (CheckUtils.checkNull(config.getString(HttpConstant.URL_PATTERN_CONSTANT))
-            || CheckUtils.checkNull(config.getString(HttpConstant.AUTH_TYPE_CONSTANT))
-            || CheckUtils.checkNull(config.getString(HttpConstant.BODYS_CONSTANT))) {
+            || CheckUtils.checkNull(config.getString(HttpConstant.METHOD_CONSTANT))) {
             throw new RuntimeException("http required parameter is null !");
         }
         final List<AuthTypeEnum> collect = Arrays.stream(AuthTypeEnum.values()).filter(authTypeEnum -> authTypeEnum.getAuthType().equals(config.getString(HttpConstant.AUTH_TYPE_CONSTANT))).collect(Collectors.toList());
