@@ -64,17 +64,18 @@ public class HttpRequestCallable implements Callable<String> {
             Long startTime = System.currentTimeMillis();
             loadSocks5ProxyConfig();
             response = httpclient.execute(httpUriRequest, context);
+            String result = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
             if (response.getStatusLine()
                     .getStatusCode() / 100 != 2) {
                 String msg = MessageFormat.format("Http Status:{0},Msg:{1}", response.getStatusLine()
-                        .getStatusCode(), EntityUtils.toString(response.getEntity()));
+                        .getStatusCode(), result);
                 httpCallback.setMsg(msg);
                 httpCallback.setFailed(Boolean.TRUE);
             }
             log.info("The cost of one http request:{}， Connection Connection={},Keep-Alive={}",
                     System.currentTimeMillis() - startTime, response.getHeaders("Connection"),
                     response.getHeaders("Keep-Alive"));
-            return EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            return result;
         } catch (Throwable e) {
             log.error("http execute failed.", e);
             httpCallback.setFailed(Boolean.TRUE);
