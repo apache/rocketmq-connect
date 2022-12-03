@@ -134,6 +134,38 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         triggerListener();
     }
 
+    @Override
+    public void restartConnectorConfig(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
+
+        stop();
+        ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
+        config.setEpoch(System.currentTimeMillis());
+        config.setTargetState(TargetState.STARTED);
+        connectorKeyValueStore.put(connectorName, config.nextGeneration());
+        triggerListener();
+    }
+
+    @Override
+    public void restartTaskConfig(String connectorName, Integer task) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
+        else if(!taskKeyValueStore.containsKey(connectorName))
+        {
+            throw new ConnectException("Task [" + connectorName + "/" + task + "] does not exist");
+        }
+
+        stop();
+        ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
+        config.setEpoch(System.currentTimeMillis());
+        config.setTargetState(TargetState.STARTED);
+        connectorKeyValueStore.put(connectorName, config.nextGeneration());
+        triggerListener();
+    }
+
     /**
      * pause connector
      *

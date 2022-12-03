@@ -226,6 +226,25 @@ public abstract class AbstractConnectController implements ConnectController {
     }
 
     /**
+     * Restart the connector with the specified connector name in the cluster.
+     *
+     * @param connectorName
+     */
+    public void restartConnectorConfig(String connectorName) {
+        configManagementService.restartConnectorConfig(connectorName);
+    }
+
+    /**
+     * Restart the task with the specified task name in the cluster.
+     *
+     * @param connectorName
+     * @param task
+     */
+    public void restartTaskConfig(String connectorName,Integer task) {
+        configManagementService.restartTaskConfig(connectorName,task);
+    }
+
+    /**
      * Pause the connector. This call will asynchronously suspend processing by the connector and all
      * of its tasks.
      *

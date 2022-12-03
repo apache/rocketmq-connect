@@ -85,9 +85,18 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     }
 
     public static final String DELETE_CONNECTOR_PREFIX = "delete-";
+    public static final String RESTART_CONNECTOR_KEY = "restart-connector-";
 
     public static String DELETE_CONNECTOR_KEY(String connectorName) {
         return DELETE_CONNECTOR_PREFIX + connectorName;
+    }
+
+    public static String RESTART_CONNECTOR_KEY(String connectorName) {
+        return RESTART_CONNECTOR_KEY + connectorName;
+    }
+
+    public static String RESTART_TASK_KEY(String connectorName, Integer task) {
+        return RESTART_CONNECTOR_KEY + connectorName+"-"+task;
     }
 
     private static final String FIELD_STATE = "state";
@@ -120,6 +129,20 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
             .field(FIELD_EPOCH, SchemaBuilder.int64().build())
             .build();
+
+    /**
+     * restart connector
+     */
+    public static final Schema CONNECTOR_RESTART_CONFIGURATION_V0 = SchemaBuilder.struct()
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
+
+    /**
+     * restart task
+     */
+    public static final Schema TASK_RESTART_CONFIGURATION_V0 = SchemaBuilder.struct()
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
 
     /**
      * task configuration
@@ -288,6 +311,46 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
         byte[] config = converter.fromConnectData(topic, CONNECTOR_DELETE_CONFIGURATION_V0, struct);
         dataSynchronizer.send(DELETE_CONNECTOR_KEY(connectorName), config);
+    }
+
+    /**
+     * restart connector config
+     *
+     * @param connectorName
+     */
+    @Override
+    public void restartConnectorConfig(String connectorName) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
+        // new struct
+        Struct struct = new Struct(CONNECTOR_RESTART_CONFIGURATION_V0);
+        struct.put(FIELD_EPOCH, System.currentTimeMillis());
+
+        byte[] config = converter.fromConnectData(topic, CONNECTOR_RESTART_CONFIGURATION_V0, struct);
+        dataSynchronizer.send(RESTART_CONNECTOR_KEY(connectorName), config);
+    }
+
+    /**
+     * restart task config
+     *
+     * @param connectorName
+     * @param task
+     */
+    @Override
+    public void restartTaskConfig(String connectorName,Integer task) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Connector [" + connectorName + "] does not exist");
+        }
+        else if (!taskKeyValueStore.containsKey(connectorName)) {
+            throw new ConnectException("Task [" + connectorName + "/" + task + "] does not exist");
+        }
+        // new struct
+        Struct struct = new Struct(TASK_RESTART_CONFIGURATION_V0);
+        struct.put(FIELD_EPOCH, System.currentTimeMillis());
+
+        byte[] config = converter.fromConnectData(topic, TASK_RESTART_CONFIGURATION_V0, struct);
+        dataSynchronizer.send(RESTART_TASK_KEY(connectorName,task), config);
     }
 
     /**

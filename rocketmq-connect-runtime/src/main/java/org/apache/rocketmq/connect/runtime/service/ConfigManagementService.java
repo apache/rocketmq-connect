@@ -77,6 +77,21 @@ public interface ConfigManagementService {
     void deleteConnectorConfig(String connectorName);
 
     /**
+     * restart the connector with the specified connector name in the cluster.
+     *
+     * @param connectorName
+     */
+    void restartConnectorConfig(String connectorName);
+
+    /**
+     * restart the task with the specified task  in the cluster.
+     *
+     * @param connectorName
+     * @param task
+     */
+    void restartTaskConfig(String connectorName,Integer task);
+
+    /**
      * pause connector
      *
      * @param connectorName
