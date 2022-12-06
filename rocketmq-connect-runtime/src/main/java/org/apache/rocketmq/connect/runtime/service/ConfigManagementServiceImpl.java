@@ -96,7 +96,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     }
 
     public static String RESTART_TASK_KEY(String connectorName, Integer task) {
-        return RESTART_CONNECTOR_KEY + connectorName+"-"+task;
+        return RESTART_CONNECTOR_KEY + connectorName + "-" + task;
     }
 
     private static final String FIELD_STATE = "state";
@@ -338,7 +338,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * @param task
      */
     @Override
-    public void restartTaskConfig(String connectorName,Integer task) {
+    public void restartTaskConfig(String connectorName, Integer task) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
@@ -350,7 +350,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         struct.put(FIELD_EPOCH, System.currentTimeMillis());
 
         byte[] config = converter.fromConnectData(topic, TASK_RESTART_CONFIGURATION_V0, struct);
-        dataSynchronizer.send(RESTART_TASK_KEY(connectorName,task), config);
+        dataSynchronizer.send(RESTART_TASK_KEY(connectorName, task), config);
     }
 
     /**

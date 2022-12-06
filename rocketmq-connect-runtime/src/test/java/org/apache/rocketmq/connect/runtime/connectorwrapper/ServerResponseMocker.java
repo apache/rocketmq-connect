@@ -98,7 +98,7 @@ public abstract class ServerResponseMocker {
         }
         Future<?> future = eventLoopGroup.shutdownGracefully();
         try {
-            future.get();
+            Object o = future.get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }

@@ -89,7 +89,7 @@ public interface ConfigManagementService {
      * @param connectorName
      * @param task
      */
-    void restartTaskConfig(String connectorName,Integer task);
+    void restartTaskConfig(String connectorName, Integer task);
 
     /**
      * pause connector

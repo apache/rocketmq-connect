@@ -153,7 +153,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
-        else if(!taskKeyValueStore.containsKey(connectorName))
+        else if (!taskKeyValueStore.containsKey(connectorName))
         {
             throw new ConnectException("Task [" + connectorName + "/" + task + "] does not exist");
         }
