@@ -81,7 +81,7 @@ public interface ConfigManagementService {
      *
      * @param connectorName
      */
-    void restartConnectorConfig(String connectorName);
+    void restartConnector(String connectorName);
 
     /**
      * restart the task with the specified task  in the cluster.
@@ -89,7 +89,7 @@ public interface ConfigManagementService {
      * @param connectorName
      * @param task
      */
-    void restartTaskConfig(String connectorName, Integer task);
+    void restartTask(String connectorName, Integer task);
 
     /**
      * pause connector

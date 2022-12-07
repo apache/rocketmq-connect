@@ -230,8 +230,8 @@ public abstract class AbstractConnectController implements ConnectController {
      *
      * @param connectorName
      */
-    public void restartConnectorConfig(String connectorName) {
-        configManagementService.restartConnectorConfig(connectorName);
+    public void restartConnector(String connectorName) {
+        configManagementService.restartConnector(connectorName);
     }
 
     /**
@@ -240,8 +240,8 @@ public abstract class AbstractConnectController implements ConnectController {
      * @param connectorName
      * @param task
      */
-    public void restartTaskConfig(String connectorName, Integer task) {
-        configManagementService.restartTaskConfig(connectorName, task);
+    public void restartTask(String connectorName, Integer task) {
+        configManagementService.restartTask(connectorName, task);
     }
 
     /**

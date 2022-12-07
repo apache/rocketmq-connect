@@ -243,7 +243,7 @@ public class RestHandler {
     private void handleRestartConnector(Context context) {
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
-            connectController.restartConnectorConfig(connectorName);
+            connectController.restartConnector(connectorName);
             context.json(new HttpResponse<>(context.status(), "Connector [" + connectorName + "] restarted successfully"));
         } catch (Exception e) {
             log.error("Restart connector failed .", e);
@@ -255,7 +255,7 @@ public class RestHandler {
         try {
             String connectorName = context.pathParam(CONNECTOR_NAME);
             Integer task = Integer.valueOf(context.pathParam(TASK_NAME));
-            connectController.restartTaskConfig(connectorName, task);
+            connectController.restartTask(connectorName, task);
             context.json(new HttpResponse<>(context.status(), "Task [" + connectorName + "/ " + task + "] restarted successfully"));
         } catch (Exception ex) {
             log.error("Restart task failed .", ex);

@@ -85,18 +85,18 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
     }
 
     public static final String DELETE_CONNECTOR_PREFIX = "delete-";
-    public static final String RESTART_CONNECTOR_KEY = "restart-connector-";
+    public static final String RESTART_CONNECTOR_PREFIX = "restart-";
 
     public static String DELETE_CONNECTOR_KEY(String connectorName) {
         return DELETE_CONNECTOR_PREFIX + connectorName;
     }
 
     public static String RESTART_CONNECTOR_KEY(String connectorName) {
-        return RESTART_CONNECTOR_KEY + connectorName;
+        return RESTART_CONNECTOR_PREFIX + connectorName;
     }
 
     public static String RESTART_TASK_KEY(String connectorName, Integer task) {
-        return RESTART_CONNECTOR_KEY + connectorName + "-" + task;
+        return RESTART_CONNECTOR_PREFIX + TASK_PREFIX + connectorName + "-" + task;
     }
 
     private static final String FIELD_STATE = "state";
@@ -319,7 +319,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * @param connectorName
      */
     @Override
-    public void restartConnectorConfig(String connectorName) {
+    public void restartConnector(String connectorName) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
@@ -338,7 +338,7 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * @param task
      */
     @Override
-    public void restartTaskConfig(String connectorName, Integer task) {
+    public void restartTask(String connectorName, Integer task) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
@@ -496,6 +496,20 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
                 String connectorName = key.substring(DELETE_CONNECTOR_PREFIX.length());
                 processDeleteConnectorRecord(connectorName, schemaAndValue);
 
+            } else if (key.startsWith(RESTART_CONNECTOR_PREFIX)) {
+                if(key.contains(TASK_PREFIX))
+                {
+                    Integer lastIndex = key.lastIndexOf("-");
+                    // restart task
+                    String connectorName = key.substring(RESTART_CONNECTOR_PREFIX.length() + TASK_PREFIX.length(), lastIndex);
+                    String taskNum = key.substring(lastIndex+1);
+                    processRestartTaskRecord(connectorName, taskNum, schemaAndValue);
+                }
+                else {
+                    // restart connector
+                    String connectorName = key.substring(RESTART_CONNECTOR_PREFIX.length());
+                    processRestartConnectorRecord(connectorName, schemaAndValue);
+                }
             } else {
                 log.error("Discarding config update record with invalid key: {}", key);
             }
@@ -521,6 +535,47 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
             // remove
             connectorKeyValueStore.remove(connectorName);
             taskKeyValueStore.remove(connectorName);
+            // reblance
+            triggerListener();
+        }
+    }
+
+    /**
+     * process restarte connector
+     *
+     * @param connectorName
+     * @param schemaAndValue
+     */
+    private void processRestartConnectorRecord(String connectorName, SchemaAndValue schemaAndValue) {
+        processDeleteConnectorRecord(connectorName,schemaAndValue);
+        processTargetStateRecord(connectorName,schemaAndValue);
+    }
+
+    /**
+     * process restart task
+     *
+     * @param connectorName
+     * @param taskNum
+     * @param schemaAndValue
+     */
+    private void processRestartTaskRecord(String connectorName,String taskNum, SchemaAndValue schemaAndValue) {
+        if (!connectorKeyValueStore.containsKey(connectorName)) {
+            return;
+        }
+        Struct value = (Struct) schemaAndValue.value();
+        Object epoch = value.get(FIELD_EPOCH);
+        // validate
+        ConnectKeyValue oldConfig = connectorKeyValueStore.get(connectorName);
+        Struct struct = (Struct) schemaAndValue.value();
+        Object targetState = struct.get(FIELD_STATE);
+        // config update
+        if ((Long) epoch > oldConfig.getEpoch()) {
+            // remove
+            connectorKeyValueStore.remove(connectorName);
+            taskKeyValueStore.remove(connectorName);
+            //start
+            TargetState state = TargetState.valueOf(targetState.toString());
+            oldConfig.setTargetState(state);
             // reblance
             triggerListener();
         }

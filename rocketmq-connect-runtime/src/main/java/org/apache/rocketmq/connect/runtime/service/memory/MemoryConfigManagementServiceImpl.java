@@ -135,7 +135,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
     @Override
-    public void restartConnectorConfig(String connectorName) {
+    public void restartConnector(String connectorName) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
@@ -149,7 +149,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
     @Override
-    public void restartTaskConfig(String connectorName, Integer task) {
+    public void restartTask(String connectorName, Integer task) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
