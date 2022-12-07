@@ -19,12 +19,13 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
+
+import java.util.List;
+import java.util.Map;
 
 public class TestPositionManageServiceImpl implements PositionManagementService {
 
@@ -43,7 +44,8 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
-    @Override public void load() {
+    @Override
+    public void load() {
 
     }
 
@@ -52,23 +54,28 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
-    @Override public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
+    @Override
+    public Map<ExtendRecordPartition, RecordOffset> getPositionTable() {
         return null;
     }
 
-    @Override public RecordOffset getPosition(ExtendRecordPartition partition) {
+    @Override
+    public RecordOffset getPosition(ExtendRecordPartition partition) {
         return null;
     }
 
-    @Override public void putPosition(Map<ExtendRecordPartition, RecordOffset> positions) {
+    @Override
+    public void putPosition(Map<ExtendRecordPartition, RecordOffset> positions) {
 
     }
 
-    @Override public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
+    @Override
+    public void putPosition(ExtendRecordPartition partition, RecordOffset position) {
 
     }
 
-    @Override public void removePosition(List<ExtendRecordPartition> partitions) {
+    @Override
+    public void removePosition(List<ExtendRecordPartition> partitions) {
 
     }
 
@@ -77,11 +84,13 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     }
 
+
     @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
 
     }
 
-    @Override public StagingMode getStagingMode() {
+    @Override
+    public StagingMode getStagingMode() {
         return null;
     }
 }

@@ -20,24 +20,18 @@ import java.util.Objects;
 
 /**
  * abstract state
+ *
  * @param <T>
  */
 public abstract class AbstractStatus<T> {
-    public enum State {
-        UNASSIGNED,
-        RUNNING,
-        PAUSED,
-        FAILED,
-        DESTROYED,
-        RESTARTING,
-    }
-
     private T id;
     private State state;
     private String workerId;
     private Long generation;
     private String trace;
-    public AbstractStatus(){}
+    public AbstractStatus() {
+    }
+
     public AbstractStatus(T id,
                           State state,
                           String workerId,
@@ -113,5 +107,14 @@ public abstract class AbstractStatus<T> {
                 ", generation=" + generation +
                 ", trace='" + trace + '\'' +
                 '}';
+    }
+
+    public enum State {
+        UNASSIGNED,
+        RUNNING,
+        PAUSED,
+        FAILED,
+        DESTROYED,
+        RESTARTING,
     }
 }

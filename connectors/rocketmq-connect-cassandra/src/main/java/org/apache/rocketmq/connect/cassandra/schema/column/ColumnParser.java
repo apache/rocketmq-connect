@@ -79,8 +79,8 @@ public abstract class ColumnParser {
             case "mediumint":
             case "int":
                 return FieldType.INT32;
-            case "bigint":
-                return FieldType.BIG_INTEGER;
+//            case "bigint":
+//                return FieldType.BIG_INTEGER;
             case "tinytext":
             case "text":
             case "mediumtext":

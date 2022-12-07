@@ -146,6 +146,12 @@ public class RmqSourceTask extends SourceTask {
                     PullResult pullResult = consumer.pull(taskTopicConfig, "*",
                         this.mqOffsetMap.get(taskTopicConfig), 32);
                     switch (pullResult.getPullStatus()) {
+                        case OFFSET_ILLEGAL: {
+                            if (this.mqOffsetMap.get(taskTopicConfig) < pullResult.getNextBeginOffset()) {
+                                this.mqOffsetMap.put(taskTopicConfig, pullResult.getNextBeginOffset());
+                            }
+                            break;
+                        }
                         case FOUND: {
                             this.mqOffsetMap.put(taskTopicConfig, pullResult.getNextBeginOffset());
                             List<MessageExt> msgs = pullResult.getMsgFoundList();

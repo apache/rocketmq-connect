@@ -27,9 +27,11 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -39,6 +41,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -62,8 +65,39 @@ public class RocketMQConnectUtil {
         return new StringBuffer(prefix).append("-").append(UUID.randomUUID()).toString();
     }
 
-    private static RPCHook getAclRPCHook(String accessKey, String secretKey) {
+    public static RPCHook getAclRPCHook(String accessKey, String secretKey) {
         return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+    }
+
+    /**
+     * init default lite pull consumer
+     *
+     * @param connectConfig
+     * @param autoCommit
+     * @return
+     * @throws MQClientException
+     */
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(RocketMqConnectConfig connectConfig, boolean autoCommit) throws MQClientException {
+        DefaultLitePullConsumer consumer = null;
+        if (Objects.isNull(consumer)) {
+            if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
+                consumer = new DefaultLitePullConsumer(
+                        connectConfig.getRmqConsumerGroup()
+                );
+            } else {
+                consumer = new DefaultLitePullConsumer(
+                        connectConfig.getRmqConsumerGroup(),
+                        getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey())
+                );
+            }
+        }
+        consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+        String uniqueName = Thread.currentThread().getName() + "-" + System.currentTimeMillis() % 1000;
+        consumer.setInstanceName(uniqueName);
+        consumer.setUnitName(uniqueName);
+        consumer.setAutoCommit(autoCommit);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        return consumer;
     }
 
     /**
@@ -168,6 +202,7 @@ public class RocketMQConnectUtil {
         }
         return foundTopicRouteInfo;
     }
+
 
     public static Set<String> fetchAllConsumerGroup(RocketMqConnectConfig connectConfig) {
         Set<String> consumerGroupSet = Sets.newHashSet();

@@ -109,6 +109,18 @@ public class MongoClientFactory {
             sb.append(taskConfig.getZlibCompressionLevel());
         }
 
+        if (taskConfig.getMaxConnectionIdleTime() > 0) {
+            sb.append("&");
+            sb.append("maxConnectionIdleTime=");
+            sb.append(taskConfig.getMaxConnectionIdleTime());
+        }
+
+        if (taskConfig.getSocketKeepAlive()) {
+            sb.append("&");
+            sb.append("socketKeepAlive=");
+            sb.append(true);
+        }
+
         if (StringUtils.isNotBlank(taskConfig.getTrustStore())) {
             Properties properties = System.getProperties();
             properties.put("javax.net.ssl.trustStore", taskConfig.getTrustStore());
@@ -123,7 +135,8 @@ public class MongoClientFactory {
 
         logger.info("connection string :{}", sb.toString());
         ConnectionString connectionString = new ConnectionString(sb.toString());
-        return MongoClients.create(connectionString);
+        final MongoClient client = MongoClients.create(connectionString);
+        return client;
     }
 
 }

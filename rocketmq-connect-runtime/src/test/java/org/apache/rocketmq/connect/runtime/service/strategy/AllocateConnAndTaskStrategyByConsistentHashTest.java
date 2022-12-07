@@ -16,15 +16,16 @@
  */
 package org.apache.rocketmq.connect.runtime.service.strategy;
 
+import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

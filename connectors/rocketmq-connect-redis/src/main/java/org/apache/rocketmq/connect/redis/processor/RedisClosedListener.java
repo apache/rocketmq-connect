@@ -23,15 +23,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RedisClosedListener implements CloseListener {
-    protected final Logger LOGGER = LoggerFactory.getLogger(RedisClosedListener.class);
+    protected final Logger logger = LoggerFactory.getLogger(RedisClosedListener.class);
 
     private RedisEventProcessor processor;
 
-    public RedisClosedListener(RedisEventProcessor processor){
+    public RedisClosedListener(RedisEventProcessor processor) {
         this.processor = processor;
     }
 
     @Override public void handle(Replicator replicator) {
-        LOGGER.error("replicator is stopped");
+        logger.error("replicator is stopped");
     }
 }

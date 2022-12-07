@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.file.DirectoryStream;
@@ -33,8 +36,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PluginUtils {
 
@@ -42,85 +43,85 @@ public class PluginUtils {
 
     // Be specific about javax packages and exclude those existing in Java SE and Java EE libraries.
     private static final Pattern BLACKLIST = Pattern.compile("^(?:"
-        + "java"
-        + "|javax\\.accessibility"
-        + "|javax\\.activation"
-        + "|javax\\.activity"
-        + "|javax\\.annotation"
-        + "|javax\\.batch\\.api"
-        + "|javax\\.batch\\.operations"
-        + "|javax\\.batch\\.runtime"
-        + "|javax\\.crypto"
-        + "|javax\\.decorator"
-        + "|javax\\.ejb"
-        + "|javax\\.el"
-        + "|javax\\.enterprise\\.concurrent"
-        + "|javax\\.enterprise\\.context"
-        + "|javax\\.enterprise\\.context\\.spi"
-        + "|javax\\.enterprise\\.deploy\\.model"
-        + "|javax\\.enterprise\\.deploy\\.shared"
-        + "|javax\\.enterprise\\.deploy\\.spi"
-        + "|javax\\.enterprise\\.event"
-        + "|javax\\.enterprise\\.inject"
-        + "|javax\\.enterprise\\.inject\\.spi"
-        + "|javax\\.enterprise\\.util"
-        + "|javax\\.faces"
-        + "|javax\\.imageio"
-        + "|javax\\.inject"
-        + "|javax\\.interceptor"
-        + "|javax\\.jms"
-        + "|javax\\.json"
-        + "|javax\\.jws"
-        + "|javax\\.lang\\.model"
-        + "|javax\\.mail"
-        + "|javax\\.management"
-        + "|javax\\.management\\.j2ee"
-        + "|javax\\.naming"
-        + "|javax\\.net"
-        + "|javax\\.persistence"
-        + "|javax\\.print"
-        + "|javax\\.resource"
-        + "|javax\\.rmi"
-        + "|javax\\.script"
-        + "|javax\\.security\\.auth"
-        + "|javax\\.security\\.auth\\.message"
-        + "|javax\\.security\\.cert"
-        + "|javax\\.security\\.jacc"
-        + "|javax\\.security\\.sasl"
-        + "|javax\\.servlet"
-        + "|javax\\.sound\\.midi"
-        + "|javax\\.sound\\.sampled"
-        + "|javax\\.sql"
-        + "|javax\\.swing"
-        + "|javax\\.tools"
-        + "|javax\\.transaction"
-        + "|javax\\.validation"
-        + "|javax\\.websocket"
-        + "|javax\\.ws\\.rs"
-        + "|javax\\.xml"
-        + "|javax\\.xml\\.bind"
-        + "|javax\\.xml\\.registry"
-        + "|javax\\.xml\\.rpc"
-        + "|javax\\.xml\\.soap"
-        + "|javax\\.xml\\.ws"
-        + "|org\\.ietf\\.jgss"
-        + "|org\\.omg\\.CORBA"
-        + "|org\\.omg\\.CosNaming"
-        + "|org\\.omg\\.Dynamic"
-        + "|org\\.omg\\.DynamicAny"
-        + "|org\\.omg\\.IOP"
-        + "|org\\.omg\\.Messaging"
-        + "|org\\.omg\\.PortableInterceptor"
-        + "|org\\.omg\\.PortableServer"
-        + "|org\\.omg\\.SendingContext"
-        + "|org\\.omg\\.stub\\.java\\.rmi"
-        + "|org\\.w3c\\.dom"
-        + "|org\\.xml\\.sax"
-        + "|io\\.openmessaging\\.connector\\.api"
-        + "|org\\.slf4j"
-        + "|org\\.apache\\.rocketmq"
-        + ")\\..*$"
-        + "|io\\.openmessaging\\.KeyValue");
+            + "java"
+            + "|javax\\.accessibility"
+            + "|javax\\.activation"
+            + "|javax\\.activity"
+            + "|javax\\.annotation"
+            + "|javax\\.batch\\.api"
+            + "|javax\\.batch\\.operations"
+            + "|javax\\.batch\\.runtime"
+            + "|javax\\.crypto"
+            + "|javax\\.decorator"
+            + "|javax\\.ejb"
+            + "|javax\\.el"
+            + "|javax\\.enterprise\\.concurrent"
+            + "|javax\\.enterprise\\.context"
+            + "|javax\\.enterprise\\.context\\.spi"
+            + "|javax\\.enterprise\\.deploy\\.model"
+            + "|javax\\.enterprise\\.deploy\\.shared"
+            + "|javax\\.enterprise\\.deploy\\.spi"
+            + "|javax\\.enterprise\\.event"
+            + "|javax\\.enterprise\\.inject"
+            + "|javax\\.enterprise\\.inject\\.spi"
+            + "|javax\\.enterprise\\.util"
+            + "|javax\\.faces"
+            + "|javax\\.imageio"
+            + "|javax\\.inject"
+            + "|javax\\.interceptor"
+            + "|javax\\.jms"
+            + "|javax\\.json"
+            + "|javax\\.jws"
+            + "|javax\\.lang\\.model"
+            + "|javax\\.mail"
+            + "|javax\\.management"
+            + "|javax\\.management\\.j2ee"
+            + "|javax\\.naming"
+            + "|javax\\.net"
+            + "|javax\\.persistence"
+            + "|javax\\.print"
+            + "|javax\\.resource"
+            + "|javax\\.rmi"
+            + "|javax\\.script"
+            + "|javax\\.security\\.auth"
+            + "|javax\\.security\\.auth\\.message"
+            + "|javax\\.security\\.cert"
+            + "|javax\\.security\\.jacc"
+            + "|javax\\.security\\.sasl"
+            + "|javax\\.servlet"
+            + "|javax\\.sound\\.midi"
+            + "|javax\\.sound\\.sampled"
+            + "|javax\\.sql"
+            + "|javax\\.swing"
+            + "|javax\\.tools"
+            + "|javax\\.transaction"
+            + "|javax\\.validation"
+            + "|javax\\.websocket"
+            + "|javax\\.ws\\.rs"
+            + "|javax\\.xml"
+            + "|javax\\.xml\\.bind"
+            + "|javax\\.xml\\.registry"
+            + "|javax\\.xml\\.rpc"
+            + "|javax\\.xml\\.soap"
+            + "|javax\\.xml\\.ws"
+            + "|org\\.ietf\\.jgss"
+            + "|org\\.omg\\.CORBA"
+            + "|org\\.omg\\.CosNaming"
+            + "|org\\.omg\\.Dynamic"
+            + "|org\\.omg\\.DynamicAny"
+            + "|org\\.omg\\.IOP"
+            + "|org\\.omg\\.Messaging"
+            + "|org\\.omg\\.PortableInterceptor"
+            + "|org\\.omg\\.PortableServer"
+            + "|org\\.omg\\.SendingContext"
+            + "|org\\.omg\\.stub\\.java\\.rmi"
+            + "|org\\.w3c\\.dom"
+            + "|org\\.xml\\.sax"
+            + "|io\\.openmessaging\\.connector\\.api"
+            + "|org\\.slf4j"
+            + "|org\\.apache\\.rocketmq"
+            + ")\\..*$"
+            + "|io\\.openmessaging\\.KeyValue");
 
 
     // If the base interface or class that will be used to identify Connect plugins resides within
@@ -133,7 +134,7 @@ public class PluginUtils {
 
 
     private static final DirectoryStream.Filter<Path> PLUGIN_PATH_FILTER = new DirectoryStream
-        .Filter<Path>() {
+            .Filter<Path>() {
         @Override
         public boolean accept(Path path) {
             return Files.isDirectory(path) || isArchive(path) || isClassFile(path);
@@ -152,10 +153,10 @@ public class PluginUtils {
     public static List<Path> pluginLocations(Path topPath) throws IOException {
         List<Path> locations = new ArrayList<>();
         try (
-            DirectoryStream<Path> listing = Files.newDirectoryStream(
-                topPath,
-                PLUGIN_PATH_FILTER
-            )
+                DirectoryStream<Path> listing = Files.newDirectoryStream(
+                        topPath,
+                        PLUGIN_PATH_FILTER
+                )
         ) {
             for (Path dir : listing) {
                 locations.add(dir);
@@ -182,12 +183,13 @@ public class PluginUtils {
     public static boolean shouldLoadInIsolation(String name) {
         return !(BLACKLIST.matcher(name).matches() && !INCLUDE.matcher(name).matches());
     }
+
     /**
      * Verify whether a given plugin's alias matches another alias in a collection of plugins.
      *
-     * @param alias the plugin descriptor to test for alias matching.
+     * @param alias   the plugin descriptor to test for alias matching.
      * @param plugins the collection of plugins to test against.
-     * @param <U> the plugin type.
+     * @param <U>     the plugin type.
      * @return false if a match was found in the collection, otherwise true.
      */
     public static <U> boolean isAliasUnique(
@@ -252,8 +254,8 @@ public class PluginUtils {
         }
 
         DirectoryStream<Path> topListing = Files.newDirectoryStream(
-            topPath,
-            PLUGIN_PATH_FILTER
+                topPath,
+                PLUGIN_PATH_FILTER
         );
         dfs.push(new DirectoryEntry(topListing));
         visited.add(topPath);
@@ -281,9 +283,9 @@ public class PluginUtils {
                         }
                     } catch (IOException e) {
                         log.warn(
-                            "Resolving symbolic link '{}' failed. Ignoring this path.",
-                            adjacent,
-                            e
+                                "Resolving symbolic link '{}' failed. Ignoring this path.",
+                                adjacent,
+                                e
                         );
                         continue;
                     }
@@ -297,8 +299,8 @@ public class PluginUtils {
                         containsClassFiles = true;
                     } else {
                         DirectoryStream<Path> listing = Files.newDirectoryStream(
-                            adjacent,
-                            PLUGIN_PATH_FILTER
+                                adjacent,
+                                PLUGIN_PATH_FILTER
                         );
                         dfs.push(new DirectoryEntry(listing));
                     }
@@ -315,9 +317,13 @@ public class PluginUtils {
                 return Collections.singletonList(topPath);
             }
             log.warn("Plugin path contains both java archives and class files. Returning only the"
-                + " archives");
+                    + " archives");
         }
         return Arrays.asList(archives.toArray(new Path[0]));
+    }
+
+    public static boolean shouldNotLoadInIsolation(String name) {
+        return BLACKLIST.matcher(name).matches();
     }
 
     private static class DirectoryEntry {
@@ -328,10 +334,6 @@ public class PluginUtils {
             this.stream = stream;
             this.iterator = stream.iterator();
         }
-    }
-
-    public static boolean shouldNotLoadInIsolation(String name) {
-        return BLACKLIST.matcher(name).matches();
     }
 
 }

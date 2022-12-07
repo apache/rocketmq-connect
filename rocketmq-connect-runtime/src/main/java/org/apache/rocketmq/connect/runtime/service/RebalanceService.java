@@ -44,7 +44,7 @@ public class RebalanceService extends ServiceThread {
     private final ClusterManagementService clusterManagementService;
 
     public RebalanceService(RebalanceImpl rebalanceImpl, ConfigManagementService configManagementService,
-        ClusterManagementService clusterManagementService) {
+                            ClusterManagementService clusterManagementService) {
         this.rebalanceImpl = rebalanceImpl;
         this.configManagementService = configManagementService;
         this.clusterManagementService = clusterManagementService;

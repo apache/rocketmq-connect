@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
-import java.util.Iterator;
-import java.util.ServiceLoader;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -26,9 +24,13 @@ import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Iterator;
+import java.util.ServiceLoader;
+
 public class ServiceProviderUtil {
 
-    @NotNull public static ClusterManagementService getClusterManagementServices(StagingMode stagingMode) {
+    @NotNull
+    public static ClusterManagementService getClusterManagementServices(StagingMode stagingMode) {
         ClusterManagementService clusterManagementService = null;
         ClusterManagementService universalClusterManagementService = null;
         ServiceLoader<ClusterManagementService> clusterManagementServiceServiceLoader = ServiceLoader.load(ClusterManagementService.class);
@@ -50,7 +52,8 @@ public class ServiceProviderUtil {
         return clusterManagementService;
     }
 
-    @NotNull public static ConfigManagementService getConfigManagementServices(StagingMode stagingMode) {
+    @NotNull
+    public static ConfigManagementService getConfigManagementServices(StagingMode stagingMode) {
         ConfigManagementService configManagementService = null;
         ConfigManagementService universalConfigManagementService = null;
         ServiceLoader<ConfigManagementService> configManagementServiceServiceLoader = ServiceLoader.load(ConfigManagementService.class);
@@ -72,7 +75,8 @@ public class ServiceProviderUtil {
         return configManagementService;
     }
 
-    @NotNull public static PositionManagementService getPositionManagementServices(StagingMode stagingMode) {
+    @NotNull
+    public static PositionManagementService getPositionManagementServices(StagingMode stagingMode) {
         PositionManagementService positionManagementService = null;
         PositionManagementService universalPositionManagementService = null;
         ServiceLoader<PositionManagementService> positionManagementServiceServiceLoader = ServiceLoader.load(PositionManagementService.class);
@@ -96,10 +100,12 @@ public class ServiceProviderUtil {
 
     /**
      * state management service
+     *
      * @param stagingMode
      * @return
      */
-    @NotNull public static StateManagementService getStateManagementServices(StagingMode stagingMode) {
+    @NotNull
+    public static StateManagementService getStateManagementServices(StagingMode stagingMode) {
         StateManagementService stateManagementService = null;
         StateManagementService universalStateManagementService = null;
         ServiceLoader<StateManagementService> stateManagementServices = ServiceLoader.load(StateManagementService.class);

@@ -98,48 +98,48 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * start signal
      */
     public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-        .field(START_SIGNAL, SchemaBuilder.string().build())
-        .build();
+            .field(START_SIGNAL, SchemaBuilder.string().build())
+            .build();
 
     /**
      * connector configuration
      */
     public static final Schema CONNECTOR_CONFIGURATION_V0 = SchemaBuilder.struct()
-        .field(FIELD_STATE, SchemaBuilder.string().build())
-        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-        .field(FIELD_PROPS,
-            SchemaBuilder.map(
-                SchemaBuilder.string().optional().build(),
-                SchemaBuilder.string().optional().build()
-            ).build())
-        .build();
+            .field(FIELD_STATE, SchemaBuilder.string().build())
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .field(FIELD_PROPS,
+                    SchemaBuilder.map(
+                            SchemaBuilder.string().optional().build(),
+                            SchemaBuilder.string().optional().build()
+                    ).build())
+            .build();
 
     /**
      * delete connector
      */
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
-        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-        .build();
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .build();
 
     /**
      * task configuration
      */
     public static final Schema TASK_CONFIGURATION_V0 = SchemaBuilder.struct()
-        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-        .field(FIELD_PROPS,
-            SchemaBuilder.map(
-                SchemaBuilder.string().build(),
-                SchemaBuilder.string().optional().build()
-            ).build())
-        .build();
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .field(FIELD_PROPS,
+                    SchemaBuilder.map(
+                            SchemaBuilder.string().build(),
+                            SchemaBuilder.string().optional().build()
+                    ).build())
+            .build();
 
     /**
      * connector state
      */
     public static final Schema TARGET_STATE_V0 = SchemaBuilder.struct()
-        .field(FIELD_STATE, SchemaBuilder.string().build())
-        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-        .build();
+            .field(FIELD_STATE, SchemaBuilder.string().build())
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .build();
 
     /**
      * All listeners to trigger while config change.
@@ -171,24 +171,24 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
 
         this.connectorConfigUpdateListener = new HashSet<>();
         this.dataSynchronizer = new BrokerBasedLog<>(workerConfig,
-            this.topic,
-            ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
-            new ConfigChangeCallback(),
-            Serdes.serdeFrom(String.class),
-            Serdes.serdeFrom(byte[].class)
+                this.topic,
+                ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
+                new ConfigChangeCallback(),
+                Serdes.serdeFrom(String.class),
+                Serdes.serdeFrom(byte[].class)
         );
 
         // store connector config
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
-            new Serdes.StringSerde(),
-            new JsonSerde(ConnectKeyValue.class));
+                FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
+                new Serdes.StringSerde(),
+                new JsonSerde(ConnectKeyValue.class));
 
         // store task config
         this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
-            new Serdes.StringSerde(),
-            new ListSerde(ConnectKeyValue.class));
+                FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
+                new Serdes.StringSerde(),
+                new ListSerde(ConnectKeyValue.class));
 
         this.prepare(workerConfig);
     }
@@ -377,9 +377,9 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         configs.setConnectorConfigs(connectorKeyValueStore.getKVMap());
         connectorKeyValueStore.getKVMap().forEach((connectName, connectKeyValue) -> {
             Struct struct = new Struct(CONNECTOR_CONFIGURATION_V0)
-                .put(FIELD_EPOCH, connectKeyValue.getEpoch())
-                .put(FIELD_STATE, connectKeyValue.getTargetState().name())
-                .put(FIELD_PROPS, connectKeyValue.getProperties());
+                    .put(FIELD_EPOCH, connectKeyValue.getEpoch())
+                    .put(FIELD_STATE, connectKeyValue.getTargetState().name())
+                    .put(FIELD_PROPS, connectKeyValue.getProperties());
             byte[] body = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, struct);
             dataSynchronizer.send(CONNECTOR_KEY(connectName), body);
         });
@@ -391,8 +391,8 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
             taskConfigs.forEach(taskConfig -> {
                 ConnectorTaskId taskId = new ConnectorTaskId(connectName, taskConfig.getInt(ConnectorConfig.TASK_ID));
                 Struct struct = new Struct(TASK_CONFIGURATION_V0)
-                    .put(FIELD_EPOCH, System.currentTimeMillis())
-                    .put(FIELD_PROPS, taskConfig.getProperties());
+                        .put(FIELD_EPOCH, System.currentTimeMillis())
+                        .put(FIELD_PROPS, taskConfig.getProperties());
                 byte[] body = converter.fromConnectData(topic, TASK_CONFIGURATION_V0, struct);
                 dataSynchronizer.send(TASK_KEY(taskId), body);
             });
@@ -503,14 +503,14 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         if (!(targetState instanceof String)) {
             // target state
             log.error("Invalid data for target state for connector '{}': 'state' field should be a String but is {}",
-                connectorName, className(targetState));
+                    connectorName, className(targetState));
             return;
         }
         Object epoch = struct.get(FIELD_EPOCH);
         if (!(epoch instanceof Long)) {
             // epoch
             log.error("Invalid data for epoch for connector '{}': 'epoch' field should be a Long but is {}",
-                connectorName, className(epoch));
+                    connectorName, className(epoch));
             return;
         }
 
@@ -538,21 +538,21 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
         if (!(targetState instanceof String)) {
             // target state
             log.error("Invalid data for target state for connector '{}': 'state' field should be a String but is {}",
-                connectName, className(targetState));
+                    connectName, className(targetState));
             return false;
         }
         Object epoch = value.get(FIELD_EPOCH);
         if (!(epoch instanceof Long)) {
             // epoch
             log.error("Invalid data for epoch for connector '{}': 'state' field should be a long but is {}",
-                connectName, className(epoch));
+                    connectName, className(epoch));
             return false;
         }
         Object props = value.get(FIELD_PROPS);
         if (!(props instanceof Map)) {
             // properties
             log.error("Invalid data for properties for connector '{}': 'state' field should be a Map but is {}",
-                connectName, className(props));
+                    connectName, className(props));
             return false;
         }
         // new configs

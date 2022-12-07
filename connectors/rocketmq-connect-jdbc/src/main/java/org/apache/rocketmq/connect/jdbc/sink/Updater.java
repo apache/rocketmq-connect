@@ -91,6 +91,7 @@ public class Updater {
             }
             connection.commit();
         } catch (SQLException | TableAlterOrCreateException e) {
+            log.error("Jdbc writer error {}", e);
             connection.rollback();
         }
     }

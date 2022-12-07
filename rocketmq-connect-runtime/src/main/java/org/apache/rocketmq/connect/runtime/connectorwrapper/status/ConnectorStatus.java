@@ -22,7 +22,9 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.status;
  */
 public class ConnectorStatus extends AbstractStatus<String> {
 
-    public ConnectorStatus(){}
+    public ConnectorStatus() {
+    }
+
     public ConnectorStatus(String id, State state, String workerId, Long generation) {
         super(id, state, workerId, generation, null);
     }
@@ -35,12 +37,14 @@ public class ConnectorStatus extends AbstractStatus<String> {
 
         /**
          * Invoked after connector has successfully been shutdown.
+         *
          * @param connector The connector name
          */
         void onShutdown(String connector);
 
         /**
          * error
+         *
          * @param connector
          * @param cause
          */
@@ -48,24 +52,28 @@ public class ConnectorStatus extends AbstractStatus<String> {
 
         /**
          * Invoked when the connector is paused through the REST API
+         *
          * @param connector The connector name
          */
         void onPause(String connector);
 
         /**
          * Invoked after the connector has been resumed.
+         *
          * @param connector The connector name
          */
         void onResume(String connector);
 
         /**
          * Invoked after successful startup of the connector.
+         *
          * @param connector The connector name
          */
         void onStartup(String connector);
 
         /**
          * Invoked when the connector is deleted through the REST API.
+         *
          * @param connector The connector name
          */
         void onDeletion(String connector);

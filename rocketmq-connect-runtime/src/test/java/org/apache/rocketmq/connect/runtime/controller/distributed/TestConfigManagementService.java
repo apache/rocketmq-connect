@@ -28,21 +28,28 @@ import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 
+import java.util.List;
+import java.util.Map;
+
 public class TestConfigManagementService implements ConfigManagementService {
-    @Override public void start() {
+    @Override
+    public void start() {
 
     }
 
-    @Override public void stop() {
+    @Override
+    public void stop() {
 
     }
 
-    @Override public Map<String, ConnectKeyValue> getConnectorConfigs() {
+    @Override
+    public Map<String, ConnectKeyValue> getConnectorConfigs() {
         return null;
     }
 
 
-    @Override public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
+    @Override
+    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
         return null;
     }
 
@@ -61,22 +68,27 @@ public class TestConfigManagementService implements ConfigManagementService {
     }
 
 
-    @Override public void recomputeTaskConfigs(String connectorName,
-                                               ConnectKeyValue configs) {
+    @Override
+    public void recomputeTaskConfigs(String connectorName,
+                                     ConnectKeyValue configs) {
 
     }
 
-    @Override public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
+    @Override
+    public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
         return null;
     }
 
-    @Override public void persist() {
+    @Override
+    public void persist() {
 
     }
 
-    @Override public void registerListener(ConnectorConfigUpdateListener listener) {
+    @Override
+    public void registerListener(ConnectorConfigUpdateListener listener) {
 
     }
+
 
     @Override public void initialize(WorkerConfig connectConfig, RecordConverter converter, Plugin plugin) {
 
@@ -87,11 +99,13 @@ public class TestConfigManagementService implements ConfigManagementService {
         return null;
     }
 
-    @Override public Plugin getPlugin() {
+    @Override
+    public Plugin getPlugin() {
         return null;
     }
 
-    @Override public StagingMode getStagingMode() {
+    @Override
+    public StagingMode getStagingMode() {
         return null;
     }
 }

@@ -24,11 +24,11 @@ import org.apache.rocketmq.connect.redis.pojo.RedisEvent;
 
 public interface RedisEventProcessor {
 
-    void registEventHandler(RedisEventHandler eventHandler);
+    void registerEventHandler(RedisEventHandler eventHandler);
 
-    void registProcessorCallback(RedisEventProcessorCallback redisEventProcessorCallback);
+    void registerProcessorCallback(RedisEventProcessorCallback redisEventProcessorCallback);
 
-    void start() throws IllegalStateException, IOException;
+    void start(Long offset) throws IllegalStateException, IOException;
 
     void stop() throws IOException;
 

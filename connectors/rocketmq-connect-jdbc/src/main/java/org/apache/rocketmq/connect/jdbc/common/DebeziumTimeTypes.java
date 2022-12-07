@@ -111,7 +111,7 @@ public class DebeziumTimeTypes {
                 return localDateTime.toInstant(ZoneOffset.ofHours(0)).toEpochMilli();
 
             case Date.SCHEMA_NAME:
-                return LocalDate.ofEpochDay((long) value)
+                return LocalDate.ofEpochDay(Long.valueOf((int) value))
                         .atStartOfDay(ZoneOffset.ofHours(0))
                         .toInstant()
                         .toEpochMilli();

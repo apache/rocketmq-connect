@@ -22,6 +22,7 @@ import org.apache.rocketmq.connect.runtime.utils.Callback;
 
 /**
  * Synchronize data between workers in a same cluster.
+ *
  * @param <K>
  * @param <V>
  */
@@ -39,6 +40,7 @@ public interface DataSynchronizer<K, V> {
 
     /**
      * Send data to all workers.
+     *
      * @param key
      * @param value
      */
@@ -46,6 +48,7 @@ public interface DataSynchronizer<K, V> {
 
     /**
      * send data to all workers
+     *
      * @param key
      * @param value
      * @param callback

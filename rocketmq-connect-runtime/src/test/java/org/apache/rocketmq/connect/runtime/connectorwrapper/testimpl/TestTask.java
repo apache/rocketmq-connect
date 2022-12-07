@@ -24,7 +24,8 @@ import io.openmessaging.connector.api.component.task.Task;
 
 class TestTask implements Task {
 
-    @Override public void validate(KeyValue config) {
+    @Override
+    public void validate(KeyValue config) {
 
     }
 
@@ -39,11 +40,13 @@ class TestTask implements Task {
     }
 
 
-    @Override public void start(KeyValue config) {
+    @Override
+    public void start(KeyValue config) {
 
     }
 
-    @Override public void stop() {
+    @Override
+    public void stop() {
 
     }
 

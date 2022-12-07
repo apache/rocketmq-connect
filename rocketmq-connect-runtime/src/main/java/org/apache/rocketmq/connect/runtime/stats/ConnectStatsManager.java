@@ -17,9 +17,6 @@
  */
 package org.apache.rocketmq.connect.runtime.stats;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.stats.StatsItem;
@@ -28,6 +25,10 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_CONNECT_STATS;
 
@@ -79,13 +80,13 @@ public class ConnectStatsManager {
 
 
     private static final InternalLogger COMMERCIAL_LOG = InternalLoggerFactory.getLogger(
-        LoggerName.COMMERCIAL_LOGGER_NAME);
+            LoggerName.COMMERCIAL_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService =
-        ThreadUtils.newSingleThreadScheduledExecutor("ConnectStatsThread", true);
+            ThreadUtils.newSingleThreadScheduledExecutor("ConnectStatsThread", true);
     private final ScheduledExecutorService commercialExecutor =
-        ThreadUtils.newSingleThreadScheduledExecutor("CommercialStatsThread", true);
+            ThreadUtils.newSingleThreadScheduledExecutor("CommercialStatsThread", true);
     private final ScheduledExecutorService accountExecutor =
-        ThreadUtils.newSingleThreadScheduledExecutor("AccountStatsThread", true);
+            ThreadUtils.newSingleThreadScheduledExecutor("AccountStatsThread", true);
 
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<String, StatsItemSet>();
     private final String worker;
@@ -247,8 +248,6 @@ public class ConnectStatsManager {
     }
 
 
-
-
     public void incSinkRecordPutTotalFailRT(final long rt) {
         this.statsTable.get(SINK_RECORD_PUT_TOTAL_FAIL_RT).addValue(worker, (int) rt, 1);
     }
@@ -311,7 +310,7 @@ public class ConnectStatsManager {
         }
     }
 
-    public void incAdditionalItem(String additionalItem, String key,  int incValue, int incTimes) {
+    public void incAdditionalItem(String additionalItem, String key, int incValue, int incTimes) {
         StatsItemSet statsItemSet = this.statsTable.get(additionalItem);
         if (statsItemSet != null) {
             statsItemSet.addValue(key, incValue, incTimes);

@@ -42,5 +42,4 @@ public class RedisConstants {
 
     public static final Integer EVENT_COMMIT_RETRY_TIMES = 5;
     public static final Long EVENT_COMMIT_RETRY_INTERVAL = 100L;
-
 }

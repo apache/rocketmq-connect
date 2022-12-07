@@ -31,7 +31,10 @@ public  class RabbitMQPatternProcessorTest{
 	@Test
 	public  void connectionFactory() {
 		RabbitmqConfig rabbitmqConfig = new RabbitmqConfig();
-		rabbitmqConfig.setRabbitmqUrl("amqp://112.74.48.251:5672");
+		rabbitmqConfig.setHost("localhost");
+		rabbitmqConfig.setPort(5672);
+		rabbitmqConfig.setUsername("guest");
+		rabbitmqConfig.setPassword("guest");
 		Replicator replicator = new Replicator(rabbitmqConfig, null);
 		RabbitMQPatternProcessor patternProcessor = new RabbitMQPatternProcessor(replicator);
 		assertEquals(RMQConnectionFactory.class, patternProcessor.connectionFactory().getClass());

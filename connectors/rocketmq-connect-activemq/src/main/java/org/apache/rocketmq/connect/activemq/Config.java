@@ -34,6 +34,14 @@ public class Config {
         }
     };
 
+    public static final String DESTINATION_TYPE = "destinationType";
+
+    public static final String DESTINATION_NAME = "destinationName";
+
+    public static final String MESSAGE = "message";
+
+    public static final String POSITION =  "position";
+
     public String activemqUrl;
 
     public String activemqUsername;

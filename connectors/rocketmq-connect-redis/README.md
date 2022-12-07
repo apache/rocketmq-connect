@@ -3,6 +3,21 @@
 org.apache.rocketmq.connect.redis.connector.RedisSourceConnector
 
 
+* **redis-source-connector** start
+
+```
+POST  http://${runtime-ip}:${runtime-port}/connectors/redisSourceConnector
+{
+    "connector.class":"org.apache.rocketmq.connect.redis.connector.RedisSourceConnector",
+    "max.tasks":"3",
+    "redisAddr":"localhost",
+    "redisPort":"6379",
+    "connect.topicname":"targetTopic",
+    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
+    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
+}
+```
+
 ##### parameter configuration
 
 parameter | effect | required |default

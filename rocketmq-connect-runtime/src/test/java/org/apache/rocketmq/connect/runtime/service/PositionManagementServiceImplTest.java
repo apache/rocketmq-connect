@@ -21,6 +21,32 @@ import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.Future;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.producer.SendResult;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
+import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.TestUtils;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.assertj.core.util.Lists;
+import org.assertj.core.util.Maps;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
+
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -31,29 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
-import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
-import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.TestUtils;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
-import org.assertj.core.util.Maps;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -65,39 +68,27 @@ import static org.mockito.Mockito.doAnswer;
 @RunWith(MockitoJUnitRunner.class)
 public class PositionManagementServiceImplTest {
 
+    private final String namespace = "namespace";
     private WorkerConfig connectConfig;
-
     @Mock
     private DefaultMQProducer producer;
-
     @Mock
     private DefaultMQPushConsumer consumer;
-
     @Mock
     private Future<SendResult> future;
-
     private PositionManagementServiceImpl positionManagementService;
-
     private Set<ExtendRecordPartition> needSyncPartition;
-
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
-
     private ExtendRecordPartition sourcePartition;
-
     private RecordOffset sourcePosition;
-
     private Map<ExtendRecordPartition, RecordOffset> positions;
-
     private ServerResponseMocker nameServerMocker;
-
     private ServerResponseMocker brokerMocker;
-
-    private final String namespace = "namespace";
 
     @Before
     public void init() throws Exception {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
-        brokerMocker =  ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
+        brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
         connectConfig = new WorkerConfig();
 
         connectConfig.setHttpPort(8081);
@@ -153,7 +144,7 @@ public class PositionManagementServiceImplTest {
         needSyncPartitionField.setAccessible(true);
         needSyncPartition = (ConcurrentSet<ExtendRecordPartition>) needSyncPartitionField.get(positionManagementService);
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.13306");
-        sourcePartition = new ExtendRecordPartition(namespace,map);
+        sourcePartition = new ExtendRecordPartition(namespace, map);
         Map<String, String> map1 = Maps.newHashMap("binlog_file", "binlogFilename");
         map1.put("next_position", "100");
         sourcePosition = new RecordOffset(map1);
@@ -230,17 +221,13 @@ public class PositionManagementServiceImplTest {
                 add(sourcePartition);
             }
         };
-        positionManagementService.removePosition(sourcePartitions);
-
-        assertFalse(needSyncPartition.contains(sourcePartition));
 
         positionManagementService.putPosition(sourcePartition, sourcePosition);
 
         assertTrue(needSyncPartition.contains(sourcePartition));
 
         positionManagementService.removePosition(sourcePartitions);
-
-        assertFalse(needSyncPartition.contains(sourcePartition));
+        assertFalse(positionStore.containsKey(sourcePartition));
     }
 
     @Test
@@ -248,7 +235,7 @@ public class PositionManagementServiceImplTest {
         positionManagementService.putPosition(positions);
 
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.2:3306");
-        ExtendRecordPartition sourcePartitionTmp = new ExtendRecordPartition(namespace,map);
+        ExtendRecordPartition sourcePartitionTmp = new ExtendRecordPartition(namespace, map);
         Map<String, String> map1 = Maps.newHashMap("binlog_file", "binlogFilename");
         map1.put("next_position", "100");
         RecordOffset sourcePositionTmp = new RecordOffset(map1);
@@ -257,8 +244,8 @@ public class PositionManagementServiceImplTest {
         Set<ExtendRecordPartition> needSyncPartitionTmp = needSyncPartition;
         needSyncPartition = new ConcurrentSet<>();
         Map<ExtendRecordPartition, RecordOffset> needSyncPosition = positionStore.getKVMap().entrySet().stream()
-            .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
-            .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
+                .filter(entry -> needSyncPartitionTmp.contains(entry.getKey()))
+                .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
         assertTrue(needSyncPartition.size() == 0);
 
@@ -278,7 +265,7 @@ public class PositionManagementServiceImplTest {
         needSyncPartition = needSyncPartitionTmp;
         needSyncPartition.addAll(sourcePartitions);
         positionManagementService.removePosition(sourcePartitions);
-        assertTrue(needSyncPartition.size() == 0);
+        assertTrue(positionStore.size() == 0);
     }
 
 }

@@ -19,12 +19,8 @@ package org.apache.rocketmq.connect.rabbitmq.connector;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.rocketmq.connect.jms.Config;
 import org.apache.rocketmq.connect.rabbitmq.RabbitmqConfig;
 import org.junit.Test;
-
-import io.openmessaging.KeyValue;
-import io.openmessaging.internal.DefaultKeyValue;
 
 public class RabbitmqSourceConnectorTest {
 
@@ -38,17 +34,5 @@ public class RabbitmqSourceConnectorTest {
 	@Test
 	public void getRequiredConfig() {
 		assertEquals( RabbitmqConfig.REQUEST_CONFIG , rabbitmqSourceConnector.getRequiredConfig());
-	}
-	
-	
-	@Test
-	public void verifyAndSetConfig() {
-        KeyValue keyValue = new DefaultKeyValue();
-
-        for (String requestKey :RabbitmqConfig.REQUEST_CONFIG) {
-            assertEquals(rabbitmqSourceConnector.verifyAndSetConfig(keyValue), "Request config key: " + requestKey);
-            keyValue.put(requestKey, requestKey);
-        }
-        assertEquals(rabbitmqSourceConnector.verifyAndSetConfig(keyValue), "");
 	}
 }

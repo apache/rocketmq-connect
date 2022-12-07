@@ -19,14 +19,9 @@ package org.apache.rocketmq.redis.test.connector;
 
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyStringValueString;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.PositionStorageReader;
-import io.openmessaging.connector.api.data.FieldType;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.source.SourceTaskContext;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Map;
 import org.apache.rocketmq.connect.redis.connector.RedisSourceTask;
 import org.apache.rocketmq.connect.redis.pojo.RedisEvent;
 import org.apache.rocketmq.connect.redis.processor.DefaultRedisEventProcessor;
@@ -35,12 +30,16 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import static com.moilioncircle.redis.replicator.Constants.RDB_TYPE_STRING;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class RedisSourceTaskTest {
     private KeyValue keyValue;
     private RedisSourceTask task;
@@ -50,27 +49,7 @@ public class RedisSourceTaskTest {
         try {
             initKeyValue();
             this.task = new RedisSourceTask();
-            this.task.initialize(new SourceTaskContext() {
-                @Override
-                public PositionStorageReader positionStorageReader() {
-                    return new PositionStorageReader() {
-                        @Override
-                        public ByteBuffer getPosition(ByteBuffer byteBuffer) {
-                            return null;
-                        }
-
-                        @Override
-                        public Map<ByteBuffer, ByteBuffer> getPositions(Collection<ByteBuffer> collection) {
-                            return null;
-                        }
-                    };
-                }
-
-                @Override
-                public KeyValue configs() {
-                    return keyValue;
-                }
-            });
+            this.task.init(new TestSourceTaskContext());
             this.task.start(this.keyValue);
         } catch (JedisConnectionException e) {
 
@@ -80,9 +59,9 @@ public class RedisSourceTaskTest {
     @Test
     public void testTask() throws Exception {
         if (this.task != null) {
-            RedisEvent redisEvent = getRedisEvent();
+            RedisEvent redisEvent = this.getRedisEvent();
             this.task.getEventProcessor().commit(redisEvent);
-            Collection<SourceDataEntry> col = this.task.poll();
+            Collection<ConnectRecord> col = this.task.poll();
             Assert.assertNotNull(col);
             Assert.assertEquals(1, col.size());
             Assert.assertNotNull(this.task.getConfig());
@@ -119,8 +98,6 @@ public class RedisSourceTaskTest {
     @After
     public void stopTask() {
         if (this.task != null) {
-            this.task.pause();
-            this.task.resume();
             this.task.stop();
         }
     }

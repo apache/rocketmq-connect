@@ -20,6 +20,40 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
+import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
+import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
+import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
+import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
+import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
+import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.TestUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -30,37 +64,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
-import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
-import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
-import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
-import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
-import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
-import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.utils.TestUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -151,22 +154,22 @@ public class WorkerTest {
             connectKeyValue.getProperties().put("key2", "TEST-TASK-" + i + "2");
 
             // create retry operator
-            RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue);
-            retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters("TEST-CONN-" + i, connectKeyValue));
+            RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(new WorkerConfig())));
+            retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("TEST-CONN", 1), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("TEST-CONN", 1), new ConnectMetrics(new WorkerConfig()))));
             final WorkerSourceTask task = new WorkerSourceTask(new WorkerConfig(),
-                new ConnectorTaskId("TEST-CONN-" + i, i),
-                new TestSourceTask(),
-                null,
-                connectKeyValue,
-                new TestPositionManageServiceImpl(),
-                new JsonConverter(),
-                new JsonConverter(),
-                producer,
-                new AtomicReference(WorkerState.STARTED),
-                connectStatsManager, connectStatsService,
-                transformChain,
-                retryWithToleranceOperator, wrapperStatusListener);
-           runnables.add(task);
+                    new ConnectorTaskId("TEST-CONN-" + i, i),
+                    new TestSourceTask(),
+                    null,
+                    connectKeyValue,
+                    new TestPositionManageServiceImpl(),
+                    new JsonConverter(),
+                    new JsonConverter(),
+                    producer,
+                    new AtomicReference(WorkerState.STARTED),
+                    connectStatsManager, connectStatsService,
+                    transformChain,
+                    retryWithToleranceOperator, wrapperStatusListener, new ConnectMetrics(new WorkerConfig()));
+            runnables.add(task);
         }
         worker.setWorkingTasks(runnables);
         assertThat(worker.getWorkingTasks().size()).isEqualTo(3);

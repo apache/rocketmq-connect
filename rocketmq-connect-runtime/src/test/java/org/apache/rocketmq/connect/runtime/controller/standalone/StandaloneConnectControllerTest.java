@@ -41,6 +41,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+
 @RunWith(MockitoJUnitRunner.class)
 public class StandaloneConnectControllerTest {
 
@@ -56,7 +57,6 @@ public class StandaloneConnectControllerTest {
     private ConfigManagementService configManagementService = new TestConfigManagementService();
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
-
 
     @Mock
     private StateManagementService stateManagementService;

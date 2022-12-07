@@ -26,18 +26,14 @@ public class JsonConverterConfig {
 
     public static final String SCHEMAS_ENABLE_CONFIG = "schemas.enable";
     public static final boolean SCHEMAS_ENABLE_DEFAULT = true;
-    private static final String SCHEMAS_ENABLE_DOC = "Include schemas within each of the serialized values and keys.";
-    private static final String SCHEMAS_ENABLE_DISPLAY = "Enable Schemas";
-
-
     public static final String SCHEMAS_CACHE_SIZE_CONFIG = "schemas.cache.size";
     public static final int SCHEMAS_CACHE_SIZE_DEFAULT = 1000;
-    private static final String SCHEMAS_CACHE_SIZE_DOC = "The maximum number of schemas that can be cached in this converter instance.";
-    private static final String SCHEMAS_CACHE_SIZE_DISPLAY = "Schema Cache Size";
-
-
     public static final String DECIMAL_FORMAT_CONFIG = "decimal.format";
     public static final String DECIMAL_FORMAT_DEFAULT = DecimalFormat.BASE64.name();
+    private static final String SCHEMAS_ENABLE_DOC = "Include schemas within each of the serialized values and keys.";
+    private static final String SCHEMAS_ENABLE_DISPLAY = "Enable Schemas";
+    private static final String SCHEMAS_CACHE_SIZE_DOC = "The maximum number of schemas that can be cached in this converter instance.";
+    private static final String SCHEMAS_CACHE_SIZE_DISPLAY = "Schema Cache Size";
     private static final String DECIMAL_FORMAT_DOC = "Controls which format this converter will serialize decimals in."
             + " This value is case insensitive and can be either 'BASE64' (default) or 'NUMERIC'";
     private static final String DECIMAL_FORMAT_DISPLAY = "Decimal Format";

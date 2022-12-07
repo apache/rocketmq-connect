@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -19,14 +18,11 @@
 package org.apache.rocketmq.connect.cassandra.strategy;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
 import org.apache.rocketmq.connect.cassandra.config.DbConnectorConfig;
 import org.apache.rocketmq.connect.cassandra.config.TaskDivideConfig;
-import org.apache.rocketmq.connect.cassandra.config.TaskTopicInfo;
 
 import java.util.List;
-import java.util.Map;
 
 public abstract class TaskDivideStrategy {
-    public abstract List<KeyValue> divide(DbConnectorConfig dbConnectorConfig, TaskDivideConfig tdc);
+    public abstract List<KeyValue> divide(DbConnectorConfig dbConnectorConfig, TaskDivideConfig tdc, KeyValue keyValue);
 }

@@ -10,7 +10,7 @@ public class StringConverterTest extends AbstractRecordConverterTest {
 
 
     @Before
-    public void before(){
+    public void before() {
         this.recordConverter = new StringConverter();
     }
 

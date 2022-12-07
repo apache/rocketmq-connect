@@ -47,6 +47,26 @@ public class SourceTaskConfig {
     private String trustStorePassword;
     private int copyThread = Runtime.getRuntime().availableProcessors();
 
+    private long maxConnectionIdleTime;
+
+    private boolean socketKeepAlive;
+
+    public boolean getSocketKeepAlive() {
+        return socketKeepAlive;
+    }
+
+    public void setSocketKeepAlive(boolean socketKeepAlive) {
+        this.socketKeepAlive = socketKeepAlive;
+    }
+
+    public long getMaxConnectionIdleTime() {
+        return maxConnectionIdleTime;
+    }
+
+    public void setMaxConnectionIdleTime(long maxConnectionIdleTime) {
+        this.maxConnectionIdleTime = maxConnectionIdleTime;
+    }
+
     public static final Set<String> REQUEST_CONFIG = Collections.unmodifiableSet(new HashSet<String>() {
         {
             add("mongoAddr");

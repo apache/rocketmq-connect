@@ -72,18 +72,18 @@ public class StateManagementServiceImpl implements StateManagementService {
     public static final String WORKER_ID_KEY_NAME = "worker_id";
     public static final String GENERATION_KEY_NAME = "generation";
     private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
-        .field(STATE_KEY_NAME, SchemaBuilder.string().build())
-        .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
-        .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
-        .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
-        .build();
+            .field(STATE_KEY_NAME, SchemaBuilder.string().build())
+            .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
+            .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
+            .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
+            .build();
 
     /**
      * start signal
      */
     public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-        .field(START_SIGNAL, SchemaBuilder.string().build())
-        .build();
+            .field(START_SIGNAL, SchemaBuilder.string().build())
+            .build();
     /**
      * Synchronize config with other workers.
      */
@@ -126,23 +126,23 @@ public class StateManagementServiceImpl implements StateManagementService {
         this.statusTopic = config.getConnectStatusTopic();
 
         this.dataSynchronizer = new BrokerBasedLog(config,
-            this.statusTopic,
-            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
-            new StatusChangeCallback(),
-            Serdes.serdeFrom(String.class),
-            Serdes.serdeFrom(byte[].class));
+                this.statusTopic,
+                ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+                new StatusChangeCallback(),
+                Serdes.serdeFrom(String.class),
+                Serdes.serdeFrom(byte[].class));
 
         /**connector status store*/
         this.connectorStatusStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
-            new Serdes.StringSerde(),
-            new JsonSerde(ConnectorStatus.class));
+                FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
+                new Serdes.StringSerde(),
+                new JsonSerde(ConnectorStatus.class));
 
         /**task status store*/
         this.taskStatusStore = new FileBaseKeyValueStore<>(
-            FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
-            new Serdes.StringSerde(),
-            new ListSerde(TaskStatus.class));
+                FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
+                new Serdes.StringSerde(),
+                new ListSerde(TaskStatus.class));
         // create topic
         this.prepare(config);
     }
@@ -293,9 +293,9 @@ public class StateManagementServiceImpl implements StateManagementService {
     }
 
     private <V extends AbstractStatus<?>> void send(final String key,
-        final V status,
-        final ConnAndTaskStatus.CacheEntry<V> entry,
-        final boolean safeWrite) {
+                                                    final V status,
+                                                    final ConnAndTaskStatus.CacheEntry<V> entry,
+                                                    final boolean safeWrite) {
         synchronized (this) {
             if (safeWrite && !entry.canWrite(status)) {
                 return;
