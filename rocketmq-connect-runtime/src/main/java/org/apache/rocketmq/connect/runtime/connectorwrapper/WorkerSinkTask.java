@@ -516,9 +516,8 @@ public class WorkerSinkTask extends WorkerTask {
     }
 
     private ConnectRecord convertMessages(MessageExt message) {
-        Map<String, String> properties = message.getProperties();
         // timestamp
-        String connectTimestamp = properties.get(ConnectorConfig.CONNECT_TIMESTAMP);
+        String connectTimestamp = message.getProperties().get(ConnectorConfig.CONNECT_TIMESTAMP);
         Long timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.valueOf(connectTimestamp) : message.getBornTimestamp();
 
         // partition and offset
@@ -558,11 +557,12 @@ public class WorkerSinkTask extends WorkerTask {
         }
 
         // add extension
-        addExtension(properties, record);
-        return record;
+        addExtension(message, transformedRecord);
+        return transformedRecord;
     }
 
-    private void addExtension(Map<String, String> properties, ConnectRecord sinkDataEntry) {
+    private void addExtension(MessageExt message, ConnectRecord sinkDataEntry) {
+        Map<String, String> properties = message.getProperties();
         KeyValue keyValue = new DefaultKeyValue();
         if (MapUtils.isNotEmpty(properties)) {
             for (Map.Entry<String, String> entry : properties.entrySet()) {
@@ -575,6 +575,10 @@ public class WorkerSinkTask extends WorkerTask {
                 }
             }
         }
+
+        // add msgId to extension
+        keyValue.put("MQ-SYS-MSG_ID", message.getMsgId());
+
         sinkDataEntry.addExtension(keyValue);
     }
 
