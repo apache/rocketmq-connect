@@ -431,7 +431,7 @@ public class WorkerSourceTask extends WorkerTask {
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
         }
-        if (ConnectUtil.isTopicExist(workerConfig, topic)) {
+        if (!ConnectUtil.isTopicExist(workerConfig, topic)) {
             ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
         }
         return topic;
