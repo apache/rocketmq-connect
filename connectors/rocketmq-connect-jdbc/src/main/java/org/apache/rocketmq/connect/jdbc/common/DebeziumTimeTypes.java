@@ -35,20 +35,6 @@ import java.util.TimeZone;
  * debezium time type
  */
 public class DebeziumTimeTypes {
-    public static final String DATE = "io.debezium.time.Date";
-    public static final String INTERVAL = "io.debezium.time.Interval";
-    public static final String MICRO_DURATION = "io.debezium.time.MicroDuration";
-    public static final String MICRO_TIME = "io.debezium.time.MicroTime";
-    public static final String MICRO_TIMESTAMP = "io.debezium.time.MicroTimestamp";
-    public static final String NANO_DURATION = "io.debezium.time.NanoDuration";
-    public static final String NANO_TIME = "io.debezium.time.NanoTime";
-    public static final String NANO_TIMESTAMP = "io.debezium.time.NanoTimestamp";
-    public static final String TIME = "io.debezium.time.Time";
-    public static final String TIMESTAMP = "io.debezium.time.Timestamp";
-    public static final String YEAR = "io.debezium.time.Year";
-    public static final String ZONED_TIME = "io.debezium.time.ZonedTime";
-    public static final String ZONED_TIMESTAMP = "io.debezium.time.ZonedTimestamp";
-
 
     /**
      * maybe bind debezium logical

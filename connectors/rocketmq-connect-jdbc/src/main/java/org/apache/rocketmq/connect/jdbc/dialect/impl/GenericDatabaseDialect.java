@@ -107,7 +107,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         public Provider() {
             super(GenericDatabaseDialect.class.getSimpleName(), "");
         }
-
         @Override
         public DatabaseDialect create(AbstractConfig config) {
             return new GenericDatabaseDialect(config);
@@ -125,8 +124,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     private static final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
-    //    @Deprecated
-//    protected final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
     protected AbstractConfig config;
     /**
      * Whether to map {@code NUMERIC} JDBC types by precision.
@@ -181,7 +178,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     @Override
     public String name() {
         return DialectName.generateDialectName(getClass());
-//    return getClass().getSimpleName().replace("DatabaseDialect", "");
     }
 
     /**
@@ -232,14 +228,12 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         if (jdbcDriverInfo().jdbcMajorVersion() >= 4) {
             return connection.isValid(timeout);
         }
-        // issue a test query ...
         String query = checkConnectionQuery();
         if (query != null) {
             try (Statement statement = connection.createStatement()) {
                 if (statement.execute(query)) {
                     ResultSet rs = null;
                     try {
-                        // do nothing with the result set
                         rs = statement.getResultSet();
                     } finally {
                         if (rs != null) {
@@ -338,7 +332,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Return whether the database uses JDBC catalogs.
-     *
      * @return true if catalogs are used, or false otherwise
      */
     protected boolean useCatalog() {
@@ -427,8 +420,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     @Override
     public IdentifierRules identifierRules() {
         if (identifierRules.get() == null) {
-            // Otherwise try to get the actual quote string and separator from the database, since
-            // many databases allow them to be changed
             try (Connection connection = getConnection()) {
                 DatabaseMetaData metaData = connection.getMetaData();
                 String leadingQuoteStr = metaData.getIdentifierQuoteString();
@@ -1682,6 +1673,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     ) throws SQLException {
        return DebeziumTimeTypes.maybeBindDebeziumLogical(statement, index, schema, value, timeZone);
     }
+
     protected boolean maybeBindPrimitive(
             PreparedStatement statement,
             int index,
@@ -1741,6 +1733,12 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return true;
     }
 
+    /**
+     * create table statement
+     * @param table
+     * @param fields
+     * @return
+     */
     @Override
     public String buildCreateTableStatement(
             TableId table,
@@ -1765,13 +1763,18 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return builder.toString();
     }
 
+    /**
+     * Drop table statement
+     * @param table
+     * @param options
+     * @return
+     */
     @Override
     public String buildDropTableStatement(
             TableId table,
             DropOptions options
     ) {
         ExpressionBuilder builder = expressionBuilder();
-
         builder.append("DROP TABLE ");
         builder.append(table);
         if (options.ifExists()) {
@@ -1783,13 +1786,18 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return builder.toString();
     }
 
+    /**
+     * alter table statement
+     * @param table
+     * @param fields
+     * @return
+     */
     @Override
     public List<String> buildAlterTable(
             TableId table,
             Collection<SinkRecordField> fields
     ) {
         final boolean newlines = fields.size() > 1;
-
         final ExpressionBuilder.Transform<SinkRecordField> transform = (builder, field) -> {
             if (newlines) {
                 builder.appendNewLine();
@@ -1797,7 +1805,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             builder.append("ADD ");
             writeColumnSpec(builder, field);
         };
-
         ExpressionBuilder builder = expressionBuilder();
         builder.append("ALTER TABLE ");
         builder.append(table);
@@ -1814,6 +1821,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             ResultSetMetaData rsMetadata,
             List<ColumnId> columns
     ) throws io.openmessaging.connector.api.errors.ConnectException {
+        // No-op
     }
 
     protected List<String> extractPrimaryKeyFieldNames(Collection<SinkRecordField> fields) {
@@ -1913,7 +1921,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
      * @return
      */
     protected String sanitizedUrl(String url) {
-        // Only replace standard URL-type properties ...
         return url.replaceAll("(?i)([?&]([^=&]*)password([^=&]*)=)[^&]*", "$1****");
     }
 
