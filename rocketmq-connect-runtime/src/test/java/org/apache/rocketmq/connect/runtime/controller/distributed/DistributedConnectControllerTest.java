@@ -79,20 +79,21 @@ public class DistributedConnectControllerTest {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
         workerConfig.setNamesrvAddr("127.0.0.1:9876");
+        workerConfig.setOperationTimeout(20000);
         recordConverter = new JsonConverter();
         clusterManagementService.initialize(workerConfig);
         stateManagementService.initialize(workerConfig, recordConverter);
         URL url = new URL("file://src/test/java/org/apache/rocketmq/connect/runtime");
-        URL[] urls = new URL[]{};
+        URL[] urls = new URL[] {};
         pluginClassLoader = new PluginClassLoader(url, urls);
         Thread.currentThread().setContextClassLoader(pluginClassLoader);
         distributedConnectController = new DistributedConnectController(
-                plugin,
-                distributedConfig,
-                clusterManagementService,
-                configManagementService,
-                positionManagementService,
-                stateManagementService );
+            plugin,
+            distributedConfig,
+            clusterManagementService,
+            configManagementService,
+            positionManagementService,
+            stateManagementService);
     }
 
     @After

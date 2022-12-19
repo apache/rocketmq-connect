@@ -16,11 +16,13 @@
  */
 package org.apache.rocketmq.connect.runtime.service.memory;
 
-
 import io.openmessaging.connector.api.component.connector.Connector;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.data.RecordConverter;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -33,6 +35,7 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +56,30 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
 
-    public MemoryConfigManagementServiceImpl() {}
+    public static final String RESTART_CONNECTOR_PREFIX = "restart-";
+
+    public static final String TASK_PREFIX = "task-";
+
+    private static final String FIELD_EPOCH = "epoch";
+
+    /**
+     * Synchronize config with other workers.
+     */
+    private DataSynchronizer<String, byte[]> dataSynchronizer;
+
+    // converter
+    public RecordConverter converter;
+
+    public MemoryConfigManagementServiceImpl() {
+    }
+
+    public static String RESTART_CONNECTOR_KEY(String connectorName) {
+        return RESTART_CONNECTOR_PREFIX + connectorName;
+    }
+
+    public static String RESTART_TASK_KEY(String connectorName, Integer task) {
+        return RESTART_CONNECTOR_PREFIX + TASK_PREFIX + connectorName + "-" + task;
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
@@ -78,6 +104,20 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
     /**
+     * restart connector
+     */
+    public static final Schema CONNECTOR_RESTART_CONFIGURATION_V0 = SchemaBuilder.struct()
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
+
+    /**
+     * restart task
+     */
+    public static final Schema TASK_RESTART_CONFIGURATION_V0 = SchemaBuilder.struct()
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
+
+    /**
      * get all connector configs enabled
      *
      * @return
@@ -86,7 +126,6 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     public Map<String, ConnectKeyValue> getConnectorConfigs() {
         return connectorKeyValueStore.getKVMap();
     }
-
 
     @Override
     public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
@@ -139,31 +178,27 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
+        // new struct
+        Struct struct = new Struct(CONNECTOR_RESTART_CONFIGURATION_V0);
+        struct.put(FIELD_EPOCH, System.currentTimeMillis());
 
-        stop();
-        ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
-        config.setEpoch(System.currentTimeMillis());
-        config.setTargetState(TargetState.STARTED);
-        connectorKeyValueStore.put(connectorName, config.nextGeneration());
-        triggerListener();
+        byte[] config = converter.fromConnectData(topic, CONNECTOR_RESTART_CONFIGURATION_V0, struct);
+        dataSynchronizer.send(RESTART_CONNECTOR_KEY(connectorName), config);
     }
 
     @Override
     public void restartTask(String connectorName, Integer task) {
         if (!connectorKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
-        }
-        else if (!taskKeyValueStore.containsKey(connectorName))
-        {
+        } else if (!taskKeyValueStore.containsKey(connectorName)) {
             throw new ConnectException("Task [" + connectorName + "/" + task + "] does not exist");
         }
+        // new struct
+        Struct struct = new Struct(TASK_RESTART_CONFIGURATION_V0);
+        struct.put(FIELD_EPOCH, System.currentTimeMillis());
 
-        stop();
-        ConnectKeyValue config = connectorKeyValueStore.get(connectorName);
-        config.setEpoch(System.currentTimeMillis());
-        config.setTargetState(TargetState.STARTED);
-        connectorKeyValueStore.put(connectorName, config.nextGeneration());
-        triggerListener();
+        byte[] config = converter.fromConnectData(topic, TASK_RESTART_CONFIGURATION_V0, struct);
+        dataSynchronizer.send(RESTART_TASK_KEY(connectorName, task), config);
     }
 
     /**
@@ -198,7 +233,6 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         connectorKeyValueStore.put(connectorName, config.nextGeneration());
         triggerListener();
     }
-
 
     @Override
     public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
