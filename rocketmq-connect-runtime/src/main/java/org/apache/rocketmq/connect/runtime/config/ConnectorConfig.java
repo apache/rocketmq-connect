@@ -36,6 +36,8 @@ public class ConnectorConfig {
      */
     public static final String CONNECTOR_CLASS = "connector.class";
     public static final String TASK_CLASS = "task.class";
+    public static final String CONNECTOR_ID = "connector.id";
+
     public static final String TASK_ID = "task.id";
     public static final String MAX_TASK = "max.tasks";
     public static final int TASKS_MAX_DEFAULT = 1;
@@ -51,6 +53,7 @@ public class ConnectorConfig {
     public static final String IS_KEY = "isKey";
     public static final String TRANSFORMS = "transforms";
     public static final String CONNECT_TIMESTAMP = "connect.timestamp";
+    public static final String CONNECT_SCHEMA = "connect.schema";
     public static final String HASH_FUNC = "consistentHashFunc";
     public static final String VIRTUAL_NODE = "virtualNode";
     public static final String ERRORS_LOG_INCLUDE_MESSAGES_CONFIG = "errors.log.include.messages";

@@ -14,30 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.replicator.exception;
 
-package org.apache.rocketmq.connect.elasticsearch.config;
-
-public class ElasticsearchConstant {
-
-    public static final String ES_DOC = "doc";
-
-    public static final String ES_PARTITION = "ES_PARTITION";
-
-    public static final String ES_POSITION = "ES_POSITION";
-
-    public static final String ES_HOST = "elasticsearchHost";
-
-    public static final String ES_PORT = "elasticsearchPort";
-
-    public static final String INDEX = "index";
-
-    public static final String INCREMENT_FIELD = "incrementField";
-
-    public static final String INCREMENT = "increment";
-
-    public static final String PRIMARY_SHARDS = "primaryShards";
-
-    public static final String PRIMARY_SHARD = "primaryShard";
-
-    public static final String CONNECT_TOPIC_NAME = "connect.topicnames";
+/**
+ * @author osgoo
+ * @date 2022/7/25
+ */
+public class InitMQClientException extends RuntimeException {
+    public InitMQClientException(String msg) {
+        super(msg);
+    }
+    public InitMQClientException(Exception e) {
+        super(e);
+    }
+    public InitMQClientException(String msg, Exception e) {
+        super(msg, e);
+    }
 }

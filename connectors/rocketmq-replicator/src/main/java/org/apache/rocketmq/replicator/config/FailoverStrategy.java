@@ -14,30 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.replicator.config;
 
-package org.apache.rocketmq.connect.elasticsearch.config;
-
-public class ElasticsearchConstant {
-
-    public static final String ES_DOC = "doc";
-
-    public static final String ES_PARTITION = "ES_PARTITION";
-
-    public static final String ES_POSITION = "ES_POSITION";
-
-    public static final String ES_HOST = "elasticsearchHost";
-
-    public static final String ES_PORT = "elasticsearchPort";
-
-    public static final String INDEX = "index";
-
-    public static final String INCREMENT_FIELD = "incrementField";
-
-    public static final String INCREMENT = "increment";
-
-    public static final String PRIMARY_SHARDS = "primaryShards";
-
-    public static final String PRIMARY_SHARD = "primaryShard";
-
-    public static final String CONNECT_TOPIC_NAME = "connect.topicnames";
+/**
+ * @author osgoo
+ * @date 2022/6/20
+ */
+public enum FailoverStrategy {
+    DISMISS,
+    CUSTOMER,
 }

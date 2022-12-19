@@ -15,29 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.elasticsearch.config;
+package org.apache.rocketmq.connect.http.sink;
 
-public class ElasticsearchConstant {
+public class SftpConstant {
 
-    public static final String ES_DOC = "doc";
+    public static final String LOGGER_NAME = "SftpConnector";
 
-    public static final String ES_PARTITION = "ES_PARTITION";
+    public static final String SFTP_HOST_KEY = "host";
 
-    public static final String ES_POSITION = "ES_POSITION";
+    public static final String SFTP_PORT_KEY = "port";
 
-    public static final String ES_HOST = "elasticsearchHost";
+    public static final String SFTP_USERNAME_KEY = "username";
 
-    public static final String ES_PORT = "elasticsearchPort";
+    public static final String SFTP_PASSWORD_KEY = "password";
 
-    public static final String INDEX = "index";
+    public static final String SFTP_PATH_KEY = "filePath";
 
-    public static final String INCREMENT_FIELD = "incrementField";
+    public static final String SFTP_FIELD_SEPARATOR = "fieldSeparator";
 
-    public static final String INCREMENT = "increment";
+    public static final String SFTP_FIELD_SCHEMA = "fieldSchema";
 
-    public static final String PRIMARY_SHARDS = "primaryShards";
+    public static final String RECORD_PARTITION_STORAGE_KEY = "partition";
 
-    public static final String PRIMARY_SHARD = "primaryShard";
+    public static final String RECORD_OFFSET_STORAGE_KEY = "offset";
 
-    public static final String CONNECT_TOPIC_NAME = "connect.topicnames";
 }

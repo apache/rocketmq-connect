@@ -15,103 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.elasticsearch.config;
+package org.apache.rocketmq.connect.mqtt.config;
 
 import io.openmessaging.KeyValue;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-public class ElasticsearchConfig {
+public class ConnectorConfig {
 
+    @SuppressWarnings("serial")
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
-            add(ElasticsearchConstant.ES_HOST);
-            add(ElasticsearchConstant.ES_PORT);
-            add(ElasticsearchConstant.INDEX);
+            add(MQTT_BROKER_URL);
+            add(MQTT_ACCESS_KEY);
+            add(MQTT_SECRET_KEY);
         }
     };
 
-    public static final Set<String> REQUEST_CONFIG_SINK = new HashSet<String>() {
-        {
-            add(ElasticsearchConstant.ES_HOST);
-            add(ElasticsearchConstant.ES_PORT);
-        }
-    };
+    public static final String MQTT_BROKER_URL = "mqttBrokerUrl";
+    public static final String MQTT_ACCESS_KEY = "mqttAccessKey";
+    public static final String MQTT_SECRET_KEY = "mqttSecretKey";
 
-    private String index;
-
-    private String elasticsearchHost;
-
-    private Integer elasticsearchPort;
-
-    private String username;
-
-    private String password;
-
-    private String topic;
-
-    /**
-     * key is indexName, value is field name
-     */
-    private Map<String, String> indexMap = new HashMap<>();
-
-    public String getIndex() {
-        return index;
-    }
-
-    public void setIndex(String index) {
-        this.index = index;
-    }
-
-    public String getElasticsearchHost() {
-        return elasticsearchHost;
-    }
-
-    public void setElasticsearchHost(String elasticsearchHost) {
-        this.elasticsearchHost = elasticsearchHost;
-    }
-
-    public Integer getElasticsearchPort() {
-        return elasticsearchPort;
-    }
-
-    public void setElasticsearchPort(Integer elasticsearchPort) {
-        this.elasticsearchPort = elasticsearchPort;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public Map<String, String> getIndexMap() {
-        return indexMap;
-    }
+    protected String mqttAccessKey;
+    protected String mqttSecretKey;
+    protected String mqttBrokerUrl;
 
     public void load(KeyValue props) {
-        this.setTopic(props.getString(ElasticsearchConstant.CONNECT_TOPIC_NAME));
+
         properties2Object(props, this);
     }
 
@@ -154,5 +85,29 @@ public class ElasticsearchConfig {
                 }
             }
         }
+    }
+
+    public String getMqttAccessKey() {
+        return mqttAccessKey;
+    }
+
+    public void setMqttAccessKey(String mqttAccessKey) {
+        this.mqttAccessKey = mqttAccessKey;
+    }
+
+    public String getMqttSecretKey() {
+        return mqttSecretKey;
+    }
+
+    public void setMqttSecretKey(String mqttSecretKey) {
+        this.mqttSecretKey = mqttSecretKey;
+    }
+
+    public String getMqttBrokerUrl() {
+        return mqttBrokerUrl;
+    }
+
+    public void setMqttBrokerUrl(String mqttBrokerUrl) {
+        this.mqttBrokerUrl = mqttBrokerUrl;
     }
 }

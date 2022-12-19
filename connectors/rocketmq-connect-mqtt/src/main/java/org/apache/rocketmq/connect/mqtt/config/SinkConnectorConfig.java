@@ -15,103 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.elasticsearch.config;
+package org.apache.rocketmq.connect.mqtt.config;
 
 import io.openmessaging.KeyValue;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-public class ElasticsearchConfig {
+public class SinkConnectorConfig extends ConnectorConfig {
 
+    @SuppressWarnings("serial")
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
-            add(ElasticsearchConstant.ES_HOST);
-            add(ElasticsearchConstant.ES_PORT);
-            add(ElasticsearchConstant.INDEX);
+            add(MQTT_SINK_TOPIC);
         }
     };
-
-    public static final Set<String> REQUEST_CONFIG_SINK = new HashSet<String>() {
-        {
-            add(ElasticsearchConstant.ES_HOST);
-            add(ElasticsearchConstant.ES_PORT);
-        }
-    };
-
-    private String index;
-
-    private String elasticsearchHost;
-
-    private Integer elasticsearchPort;
-
-    private String username;
-
-    private String password;
-
-    private String topic;
-
-    /**
-     * key is indexName, value is field name
-     */
-    private Map<String, String> indexMap = new HashMap<>();
-
-    public String getIndex() {
-        return index;
-    }
-
-    public void setIndex(String index) {
-        this.index = index;
-    }
-
-    public String getElasticsearchHost() {
-        return elasticsearchHost;
-    }
-
-    public void setElasticsearchHost(String elasticsearchHost) {
-        this.elasticsearchHost = elasticsearchHost;
-    }
-
-    public Integer getElasticsearchPort() {
-        return elasticsearchPort;
-    }
-
-    public void setElasticsearchPort(Integer elasticsearchPort) {
-        this.elasticsearchPort = elasticsearchPort;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public Map<String, String> getIndexMap() {
-        return indexMap;
-    }
+    public static final String MESSAGE = "message";
+    public static final String MQTT_SINK_TOPIC = "sinkTopic";
+    protected String sinkTopic;
 
     public void load(KeyValue props) {
-        this.setTopic(props.getString(ElasticsearchConstant.CONNECT_TOPIC_NAME));
+
         properties2Object(props, this);
     }
 
@@ -154,5 +78,13 @@ public class ElasticsearchConfig {
                 }
             }
         }
+    }
+
+    public String getSinkTopic() {
+        return sinkTopic;
+    }
+
+    public void setSinkTopic(String sinkTopic) {
+        this.sinkTopic = sinkTopic;
     }
 }
