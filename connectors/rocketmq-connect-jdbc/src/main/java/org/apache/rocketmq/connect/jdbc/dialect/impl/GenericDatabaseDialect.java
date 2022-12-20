@@ -22,10 +22,11 @@ import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.logical.Date;
 import io.openmessaging.connector.api.data.logical.Decimal;
 import io.openmessaging.connector.api.data.logical.Time;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.common.DebeziumTimeTypes;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConfig;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory;
 import org.apache.rocketmq.connect.jdbc.dialect.DropOptions;
@@ -793,9 +794,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                 tableTypes
         )) {
             if (rs.next()) {
-                //final String catalogName = rs.getString(1);
-                //final String schemaName = rs.getString(2);
-                //final String tableName = rs.getString(3);
                 final String tableType = rs.getString(4);
                 try {
                     return TableType.get(tableType);
@@ -821,34 +819,8 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
 
     /**
-     * Create a ColumnDefinition with supplied values and the result set from the {@link
-     * DatabaseMetaData#getColumns(String, String, String, String)} call. By default that method does
-     * not describe whether the column is signed, case sensitive, searchable, currency, or the
-     * preferred display size.
-     *
-     * <p>Subclasses can override this method to extract additional non-standard characteristics from
-     * the result set, and override the characteristics determined using the standard JDBC metadata
-     * columns and supplied as parameters.
-     *
-     * @param resultSet        the result set
-     * @param id               the column identifier
-     * @param jdbcType         the JDBC type of the column
-     * @param typeName         the name of the column's type
-     * @param classNameForType the name of the class used as instances of the value when {@link
-     *                         ResultSet#getObject(int)} is called
-     * @param nullability      the nullability of the column
-     * @param mutability       the mutability of the column
-     * @param precision        the precision of the column for numeric values, or the length for
-     *                         non-numeric values
-     * @param scale            the scale of the column for numeric values; ignored for other values
-     * @param signedNumbers    true if the column holds signed numeric values; null if not known
-     * @param displaySize      the preferred display size for the column values; null if not known
-     * @param autoIncremented  true if the column is auto-incremented; null if not known
-     * @param caseSensitive    true if the column values are case-sensitive; null if not known
-     * @param searchable       true if the column is searchable; null if no; null if not known known
-     * @param currency         true if the column is a currency value
-     * @param isPrimaryKey     true if the column is part of the primary key; null if not known known
-     * @return the column definition; never null
+     * column definition
+     * @return
      */
     protected ColumnDefinition columnDefinition(
             ResultSet resultSet,
@@ -886,17 +858,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
                 isPrimaryKey != null ? isPrimaryKey.booleanValue() : false
         );
     }
-
-//  @Override
-//  public TimestampIncrementingCriteria criteriaFor(
-//          ColumnId incrementingColumn,
-//          Long incrementingColumnStep,
-//          List<ColumnId> timestampColumns,
-//          Long timestampColumnStep
-//  ) {
-//    return new TimestampIncrementingCriteria(
-//            incrementingColumn, incrementingColumnStep, timestampColumns,timestampColumnStep, timeZone);
-//  }
 
     /**
      * Determine the name of the field. By default this is the column alias or name.
@@ -1146,7 +1107,14 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         );
     }
 
-    @SuppressWarnings({"deprecation", "fallthrough"})
+    /**
+     * column converter
+     * @param mapping
+     * @param defn
+     * @param col
+     * @param isJdbc4
+     * @return
+     */
     protected ColumnConverter columnConverterFor(
             final ColumnMapping mapping,
             final ColumnDefinition defn,
@@ -1154,11 +1122,9 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             final boolean isJdbc4
     ) {
         switch (mapping.columnDefn().type()) {
-
             case Types.BOOLEAN: {
                 return rs -> rs.getBoolean(col);
             }
-
             case Types.BIT: {
                 /**
                  * BIT should be either 0 or 1.
@@ -1497,8 +1463,78 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return builder.toString();
     }
 
+    @Override
+    public String getInsertSql(JdbcSinkConfig config, FieldsMetadata fieldsMetadata, TableId tableId) {
+        switch (config.getInsertMode()) {
+            case INSERT:
+                return this.buildInsertStatement(
+                        tableId,
+                        asColumns(fieldsMetadata.keyFieldNames, tableId),
+                        asColumns(fieldsMetadata.nonKeyFieldNames, tableId)
+                );
+            case UPSERT:
+                if (fieldsMetadata.keyFieldNames.isEmpty()) {
+                    throw new ConnectException(String.format(
+                            "Write to table '%s' in UPSERT mode requires key field names to be known, check the"
+                                    + " primary key configuration",
+                            tableId
+                    ));
+                }
+                try {
+                    return this.buildUpsertQueryStatement(
+                            tableId,
+                            asColumns(fieldsMetadata.keyFieldNames, tableId),
+                            asColumns(fieldsMetadata.nonKeyFieldNames, tableId)
+                    );
+                } catch (UnsupportedOperationException e) {
+                    throw new ConnectException(String.format(
+                            "Write to table '%s' in UPSERT mode is not supported with the %s dialect.",
+                            tableId,
+                            name()
+                    ));
+                }
+            case UPDATE:
+                return this.buildUpdateStatement(
+                        tableId,
+                        asColumns(fieldsMetadata.keyFieldNames, tableId),
+                        asColumns(fieldsMetadata.nonKeyFieldNames, tableId)
+                );
+            default:
+                throw new ConnectException("Invalid insert mode");
+        }
+    }
+
+    @Override
+    public String getDeleteSql(JdbcSinkConfig config, FieldsMetadata fieldsMetadata, TableId tableId) {
+        String sql = null;
+        if (config.isDeleteEnabled()) {
+            switch (config.pkMode) {
+                case RECORD_KEY:
+                    if (fieldsMetadata.keyFieldNames.isEmpty()) {
+                        throw new ConnectException("Require primary keys to support delete");
+                    }
+                    try {
+                        sql = this.buildDeleteStatement(
+                                tableId,
+                                asColumns(fieldsMetadata.keyFieldNames, tableId)
+                        );
+                    } catch (UnsupportedOperationException e) {
+                        throw new ConnectException(String.format(
+                                "Deletes to table '%s' are not supported with the %s dialect.",
+                                tableId,
+                                name()
+                        ));
+                    }
+                    break;
+                default:
+                    throw new ConnectException("Deletes are only supported for pk.mode record_key");
+            }
+        }
+        return sql;
+    }
+
     /**
-     * table moode
+     * table mode
      *
      * @return
      */
@@ -1932,5 +1968,12 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     @Override
     public String toString() {
         return name();
+    }
+
+
+    private Collection<ColumnId> asColumns(Collection<String> names, TableId tableId) {
+        return names.stream()
+                .map(name -> new ColumnId(tableId, name))
+                .collect(Collectors.toList());
     }
 }

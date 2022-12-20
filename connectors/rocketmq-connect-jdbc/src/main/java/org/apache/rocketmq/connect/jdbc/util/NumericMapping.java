@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.connect.jdbc.util;
 
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConfig;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceConfig;
 
 import java.util.HashMap;
 import java.util.Locale;

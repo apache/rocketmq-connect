@@ -18,21 +18,19 @@ package org.apache.rocketmq.connect.jdbc.connector.sink;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.internal.DefaultKeyValue;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkTask;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkTask;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -88,7 +86,7 @@ public class OpenMLDBJdbcSinkTest {
 
     private KeyValue buildConfig(String jdbcUrl) {
         KeyValue config = new DefaultKeyValue();
-        config.put("connector-class", "org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector");
+        config.put("connector-class", "org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConnector");
         config.put("max-task", "1");
         config.put("connection.url", jdbcUrl);
 //        config.put("pk.fields","c1");

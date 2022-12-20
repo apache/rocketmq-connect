@@ -24,8 +24,6 @@ import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
  * database dialect provider
  */
 public abstract class DatabaseDialectProvider {
-
-
     private final String name;
     private final String protocol;
 
@@ -55,6 +53,5 @@ public abstract class DatabaseDialectProvider {
     public String toString() {
         return dialectName();
     }
-
 
 }

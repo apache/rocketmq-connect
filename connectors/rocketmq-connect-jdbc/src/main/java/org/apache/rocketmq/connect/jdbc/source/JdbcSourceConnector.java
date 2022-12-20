@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.jdbc.connector;
+package org.apache.rocketmq.connect.jdbc.source;
 
 import java.util.List;
 

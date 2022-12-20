@@ -289,23 +289,6 @@ public class TimestampIncrementingCriteria {
     }
 
     protected void timestampIncrementingWhereClause(ExpressionBuilder builder) {
-        // This version combines two possible conditions. The first checks timestamp == last
-        // timestamp and incrementing > last incrementing. The timestamp alone would include
-        // duplicates, but adding the incrementing condition ensures no duplicates, e.g. you would
-        // get only the row with id = 23:
-        //  timestamp 1234, id 22 <- last
-        //  timestamp 1234, id 23
-        // The second check only uses the timestamp >= last timestamp. This covers everything new,
-        // even if it is an update of the existing row. If we previously had:
-        //  timestamp 1234, id 22 <- last
-        // and then these rows were written:
-        //  timestamp 1235, id 22
-        //  timestamp 1236, id 23
-        // We should capture both id = 22 (an update) and id = 23 (a new row)
-        // now
-        // where ts < ? AND (( ts = ? AND id > ? ) OR ts > ?) ORDER BY ts,id ASC
-        // change to
-        // where ts < ? AND (( ts = ? AND id > ? AND id <= ?) OR ts > ?) ORDER BY ts,id ASC
         builder.append(" WHERE ");
         coalesceTimestampColumns(builder);
         builder.append(" < ? AND ((");

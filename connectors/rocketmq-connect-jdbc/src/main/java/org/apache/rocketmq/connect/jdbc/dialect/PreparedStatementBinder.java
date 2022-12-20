@@ -21,20 +21,28 @@ import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Objects;
+import java.util.Optional;
+
+import static java.util.Objects.nonNull;
 
 /**
  * prepared statement binder
  */
 public class PreparedStatementBinder implements DatabaseDialect.StatementBinder {
+
+    private final static Logger log = LoggerFactory.getLogger(PreparedStatementBinder.class);
 
     private final JdbcSinkConfig.PrimaryKeyMode pkMode;
     private final PreparedStatement statement;
@@ -65,7 +73,6 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
     @Override
     public void bindRecord(ConnectRecord record) throws SQLException {
         final boolean isDelete = Objects.isNull(record.getData());
-
         int index = 1;
         if (isDelete) {
             bindKeyFields(record, index);
@@ -76,18 +83,57 @@ public class PreparedStatementBinder implements DatabaseDialect.StatementBinder 
                     index = bindKeyFields(record, index);
                     bindNonKeyFields(record, index);
                     break;
-
                 case UPDATE:
                     index = bindNonKeyFields(record, index);
                     bindKeyFields(record, index);
                     break;
                 default:
                     throw new AssertionError();
-
             }
         }
         statement.addBatch();
     }
+
+    public long executeDeletes(PreparedStatement deletePreparedStatement) throws SQLException {
+        long totalDeleteCount = 0;
+        if (nonNull(deletePreparedStatement)) {
+            try {
+                for (int updateCount : deletePreparedStatement.executeBatch()) {
+                    if (updateCount != Statement.SUCCESS_NO_INFO) {
+                        totalDeleteCount += updateCount;
+                    }
+                }
+            } catch (SQLException e) {
+                log.error("deletePreparedStatement.executeBatch failed, errCode={}, sqlState={}, error msg={}, cause={}, sql={}",
+                        e.getErrorCode(), e.getSQLState(), e.getMessage(), e.getCause(), deletePreparedStatement);
+                throw new SQLException(e);
+            }
+        }
+        return totalDeleteCount;
+    }
+
+    @Override
+    public Optional<Long> executeUpdates(PreparedStatement updatePreparedStatement) throws SQLException {
+        Optional<Long> count = Optional.empty();
+        if (nonNull(updatePreparedStatement)) {
+            try {
+                for (int updateCount : updatePreparedStatement.executeBatch()) {
+                    if (updateCount != Statement.SUCCESS_NO_INFO) {
+                        count = count.isPresent()
+                                ? count.map(total -> total + updateCount)
+                                : Optional.of((long) updateCount);
+                    }
+                }
+            } catch (SQLException e) {
+                log.error("updatePreparedStatement.executeBatch failed, errCode={}, sqlState={}, error msg={}, " +
+                                "cause={}, sql={}",
+                        e.getErrorCode(), e.getSQLState(), e.getMessage(), e.getCause(), updatePreparedStatement);
+                throw new SQLException(e);
+            }
+        }
+        return count;
+    }
+
 
     protected int bindKeyFields(ConnectRecord record, int index) throws SQLException {
         switch (pkMode) {

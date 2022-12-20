@@ -2,8 +2,8 @@ package org.apache.rocketmq.connect.jdbc.connector.source;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.internal.DefaultKeyValue;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSourceTask;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSourceTaskConfig;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceTask;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceTaskConfig;
 import org.junit.Test;
 
 /**

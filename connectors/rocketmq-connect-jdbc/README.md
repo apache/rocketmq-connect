@@ -17,7 +17,7 @@ mvn clean package -Dmaven.test.skip=true
 ```
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
 {
-    "connector.class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSourceConnector",
+    "connector.class":"org.apache.rocketmq.connect.jdbc.source.JdbcSourceConnector",
     "max.tasks":"2",
     "connection.url":"jdbc:mysql://XXXXXXXXX:3306",
     "connection.user":"*****",

@@ -19,7 +19,7 @@ package org.apache.rocketmq.connect.jdbc.dialect;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.ConnectionProvider;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
@@ -44,6 +44,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * database dialect
@@ -210,6 +211,19 @@ public interface DatabaseDialect extends ConnectionProvider {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Get insert sql
+     * @return
+     */
+    String getInsertSql(JdbcSinkConfig config, FieldsMetadata fieldsMetadata, TableId tableId);
+
+    /**
+     * Get insert sql
+     * @return
+     */
+    String getDeleteSql(JdbcSinkConfig config, FieldsMetadata fieldsMetadata, TableId tableId);
+
+
 
     /**
      * build select table
@@ -326,6 +340,17 @@ public interface DatabaseDialect extends ConnectionProvider {
          * @throws SQLException
          */
         void bindRecord(ConnectRecord record) throws SQLException;
+
+
+        default Optional<Long> executeUpdates(PreparedStatement preparedStatement) throws SQLException {
+            // no-op
+            return Optional.empty();
+        }
+
+        default long executeDeletes(PreparedStatement preparedStatement) throws SQLException {
+            // no-op
+            return 0;
+        }
     }
 
 

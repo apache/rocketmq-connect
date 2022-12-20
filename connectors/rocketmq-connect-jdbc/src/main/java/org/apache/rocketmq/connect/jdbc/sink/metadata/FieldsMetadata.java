@@ -21,7 +21,7 @@ import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -137,9 +137,7 @@ public class FieldsMetadata {
                     "No fields found using key and value schemas for table: " + tableName
             );
         }
-
         final Map<String, SinkRecordField> allFieldsOrdered = new LinkedHashMap<>();
-
         if (schema != null) {
             for (Field field : schema.getFields()) {
                 String fieldName = field.getName();
@@ -202,7 +200,6 @@ public class FieldsMetadata {
                 }
                 break;
             default:
-                // todo 基本数据类型，必须指定主键字段，因为基本类型不带schema
                 if (keySchemaType.isPrimitive()) {
                     if (configuredPkFields.size() != 1) {
                         throw new ConnectException(String.format(

@@ -15,20 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.jdbc.connector;
+package org.apache.rocketmq.connect.jdbc.sink;
 
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.task.sink.ErrorRecordReporter;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
-import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory;
 import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
-import org.apache.rocketmq.connect.jdbc.sink.Updater;
 import org.apache.rocketmq.connect.jdbc.exception.TableAlterOrCreateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,13 +39,11 @@ import java.util.List;
 public class JdbcSinkTask extends SinkTask {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcSinkTask.class);
-    private SinkTaskContext context;
-    private ErrorRecordReporter errorRecordReporter;
     private KeyValue originalConfig;
     private JdbcSinkConfig config;
     private DatabaseDialect dialect;
-    int remainingRetries;
-    private Updater updater;
+    private int remainingRetries;
+    private JdbcWriter jdbcWriter;
 
 
     /**
@@ -64,13 +59,13 @@ public class JdbcSinkTask extends SinkTask {
         final int recordsCount = records.size();
         log.debug("Received {} records.", recordsCount);
         try {
-            updater.write(records);
+            jdbcWriter.write(records);
         } catch (TableAlterOrCreateException tace) {
             throw tace;
         } catch (SQLException sqle) {
             SQLException sqlAllMessagesException = getAllMessagesException(sqle);
             if (remainingRetries > 0) {
-                updater.closeQuietly();
+                jdbcWriter.closeQuietly();
                 start(originalConfig);
                 remainingRetries--;
                 throw new RetriableException(sqlAllMessagesException);
@@ -107,14 +102,14 @@ public class JdbcSinkTask extends SinkTask {
         }
         final DbStructure dbStructure = new DbStructure(dialect);
         log.info("Initializing writer using SQL dialect: {}", dialect.getClass().getSimpleName());
-        this.updater = new Updater(config, dialect, dbStructure);
+        this.jdbcWriter = new JdbcWriter(config, dialect, dbStructure);
     }
 
     @Override
     public void stop() {
         log.info("Stopping task");
         try {
-            updater.closeQuietly();
+            jdbcWriter.closeQuietly();
         } finally {
             try {
                 if (dialect != null) {
@@ -127,6 +122,5 @@ public class JdbcSinkTask extends SinkTask {
             }
         }
     }
-
 
 }

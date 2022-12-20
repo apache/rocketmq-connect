@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.jdbc.connector;
+package org.apache.rocketmq.connect.jdbc.sink;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

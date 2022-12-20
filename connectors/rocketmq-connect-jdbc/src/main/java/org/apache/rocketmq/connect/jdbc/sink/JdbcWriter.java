@@ -18,7 +18,6 @@ package org.apache.rocketmq.connect.jdbc.sink;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.jdbc.common.HeaderField;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.CachedConnectionProvider;
 import org.apache.rocketmq.connect.jdbc.exception.TableAlterOrCreateException;
@@ -36,15 +35,15 @@ import java.util.Map;
 /**
  * jdbc db updater
  */
-public class Updater {
+public class JdbcWriter {
 
-    private static final Logger log = LoggerFactory.getLogger(Updater.class);
+    private static final Logger log = LoggerFactory.getLogger(JdbcWriter.class);
     private final JdbcSinkConfig config;
     private final DatabaseDialect dbDialect;
     private final DbStructure dbStructure;
     final CachedConnectionProvider cachedConnectionProvider;
 
-    public Updater(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
+    public JdbcWriter(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
         this.config = config;
         this.dbDialect = dbDialect;
         this.dbStructure = dbStructure;

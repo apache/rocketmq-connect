@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.jdbc.connector;
+package org.apache.rocketmq.connect.jdbc.source;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
@@ -52,7 +52,6 @@ public class JdbcSourceTask extends SourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcSourceTask.class);
     private static final int CONSECUTIVE_EMPTY_RESULTS_BEFORE_RETURN = 3;
-
     private JdbcSourceTaskConfig config;
     private DatabaseDialect dialect;
     private CachedConnectionProvider cachedConnectionProvider;

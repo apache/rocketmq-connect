@@ -20,7 +20,6 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
 
 @FunctionalInterface
 public interface RecordValidator {

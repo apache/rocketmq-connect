@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.connect.jdbc.schema.db;
 
-import org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
@@ -86,11 +86,6 @@ public class DbStructure {
             }
         }
         return amendIfNecessary(config, connection, tableId, fieldsMetadata, config.getMaxRetries());
-    }
-
-    public void applyDdl(String ddl) throws SQLException {
-        Connection connection = dbDialect.getConnection();
-        dbDialect.applyDdlStatements(connection, Collections.singletonList(ddl));
     }
 
     /**

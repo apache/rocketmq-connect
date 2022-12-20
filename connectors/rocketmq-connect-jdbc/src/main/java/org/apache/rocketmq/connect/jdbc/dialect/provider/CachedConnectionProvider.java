@@ -29,9 +29,7 @@ import java.sql.SQLException;
 public class CachedConnectionProvider implements ConnectionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(CachedConnectionProvider.class);
-
     private static final int VALIDITY_CHECK_TIMEOUT_S = 5;
-
     private final ConnectionProvider provider;
     private final int maxConnectionAttempts;
     private final long connectionRetryBackoff;
