@@ -44,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DbStructure {
     private static final Logger log = LoggerFactory.getLogger(DbStructure.class);
-
     private final DatabaseDialect dbDialect;
     private final TableDefinitions tableDefns;
 
