@@ -105,6 +105,12 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param connectConfig
      */
     private void prepare(WorkerConfig connectConfig) {
+        String consumerGroup = ConnectUtil.createGroupName(statusManagePrefix, connectConfig.getWorkerId());
+        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+        if (!consumerGroupSet.contains(consumerGroup)) {
+            log.info("try to create consumerGroup: {}!", consumerGroup);
+            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
+        }
         String connectStatusTopic = connectConfig.getConnectStatusTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, connectStatusTopic)) {
             log.info("try to create status topic: {}!", connectStatusTopic);
