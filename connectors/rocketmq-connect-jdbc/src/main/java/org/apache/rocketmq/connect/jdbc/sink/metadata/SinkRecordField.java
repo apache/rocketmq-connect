@@ -53,8 +53,7 @@ public class SinkRecordField {
     }
 
     public Object defaultValue() {
-//    return schema.defaultValue();
-        return null;
+        return schema.getDefaultValue();
     }
 
     public boolean isPrimaryKey() {
