@@ -16,11 +16,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-connect-jdbc</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <version>0.0.1-SNAPSHOT</version>
 
     <name>rocketmq-connect-jdbc</name>
     <url>https://github.com/apache/incubator-rocketmq-externals/tree/master/rocketmq-connect-jdbc</url>
+
 
     <licenses>
         <license>
@@ -63,28 +64,6 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.12.0</version>
         </dependency>
-
-<!--        <dependency>-->
-<!--            <groupId>org.apache.rocketmq</groupId>-->
-<!--            <artifactId>rocketmq-client</artifactId>-->
-<!--            <version>${rocketmq.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.rocketmq</groupId>-->
-<!--            <artifactId>rocketmq-tools</artifactId>-->
-<!--            <version>${rocketmq.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.rocketmq</groupId>-->
-<!--            <artifactId>rocketmq-remoting</artifactId>-->
-<!--            <version>${rocketmq.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.rocketmq</groupId>-->
-<!--            <artifactId>rocketmq-openmessaging</artifactId>-->
-<!--            <version>${rocketmq.version}</version>-->
-<!--        </dependency>-->
-
 
         <!--rocketmq connect api-->
         <dependency>
