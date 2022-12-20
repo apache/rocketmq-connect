@@ -147,9 +147,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         this(config, IdentifierRules.DEFAULT);
     }
 
-    protected GenericDatabaseDialect(
-            AbstractConfig config, IdentifierRules defaultIdentifierRules
-    ) {
+    protected GenericDatabaseDialect(AbstractConfig config, IdentifierRules defaultIdentifierRules) {
         this.config = config;
         this.defaultIdentifierRules = defaultIdentifierRules;
         this.jdbcUrl = config.getConnectionDbUrl();
@@ -173,7 +171,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             batchMaxRows = sourceConfig.getBatchMaxRows();
             timeZone = sourceConfig.getTimeZone();
         }
-
     }
 
     @Override
@@ -189,7 +186,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
      */
     @Override
     public Connection getConnection() throws SQLException {
-        // These config names are the same for both source and sink configs ...
         String username = config.getConnectionDbUser();
         String dbPassword = config.getConnectionDbPassword();
         Properties properties = new Properties();
@@ -222,10 +218,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
 
     @Override
-    public boolean isConnectionValid(
-            Connection connection,
-            int timeout
-    ) throws SQLException {
+    public boolean isConnectionValid(Connection connection, int timeout) throws SQLException {
         if (jdbcDriverInfo().jdbcMajorVersion() >= 4) {
             return connection.isValid(timeout);
         }
@@ -248,14 +241,17 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
 
     /**
-     * check connection query
-     *
-     * @return the check connection query; may be null if the connection should not be queried
+     * Check connection query
+     * @return
      */
     protected String checkConnectionQuery() {
         return "SELECT 1";
     }
 
+    /**
+     * Get jdbc driver info
+     * @return
+     */
     protected JdbcDriverInfo jdbcDriverInfo() {
         if (jdbcDriverInfo == null) {
             try (Connection connection = getConnection()) {
@@ -280,20 +276,15 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * add connect properties
-     *
      * @param properties
      * @return
      */
     protected Properties addConnectionProperties(Properties properties) {
-        // do nothiong
         return properties;
     }
 
     @Override
-    public PreparedStatement createPreparedStatement(
-            Connection db,
-            String query
-    ) throws SQLException {
+    public PreparedStatement createPreparedStatement(Connection db, String query) throws SQLException {
         log.trace("Creating a PreparedStatement '{}'", query);
         PreparedStatement stmt = db.prepareStatement(query);
         initializePreparedStatement(stmt);
@@ -339,6 +330,14 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return false;
     }
 
+    protected String catalogPattern() {
+        return catalogPattern;
+    }
+
+    protected String schemaPattern() {
+        return schemaPattern;
+    }
+
     @Override
     public List<TableId> tableIds(Connection conn) throws SQLException {
         DatabaseMetaData metadata = conn.getMetaData();
@@ -361,49 +360,33 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         }
     }
 
-    protected String catalogPattern() {
-        return catalogPattern;
-    }
-
-    protected String schemaPattern() {
-        return schemaPattern;
-    }
 
     /**
-     * Determine whether the table with the specific name is to be included in the tables.
-     *
-     * <p>This method can be overridden to exclude certain database tables.
-     *
-     * @param table the identifier of the table; may be null
-     * @return true if the table should be included; false otherwise
+     * Check include table
+     * @param table
+     * @return
      */
     protected boolean includeTable(TableId table) {
         return true;
     }
 
+
     /**
      * Find the available table types that are returned by the JDBC driver that case insensitively
      * match the specified types.
-     *
-     * @param metadata the database metadata; may not be null but may be empty if no table types
-     * @param types    the case-independent table types that are desired
-     * @return the array of table types take directly from the list of available types returned by the
-     * JDBC driver; never null
-     * @throws SQLException if there is an error with the database connection
+     * @param metadata
+     * @param types
+     * @return
+     * @throws SQLException
      */
-    protected String[] tableTypes(
-            DatabaseMetaData metadata,
-            Set<String> types
-    ) throws SQLException {
+    protected String[] tableTypes(DatabaseMetaData metadata, Set<String> types) throws SQLException {
         log.debug("Using {} dialect to check support for {}", this, types);
-        // Compute the uppercase form of the desired types ...
         Set<String> uppercaseTypes = new HashSet<>();
         for (String type : types) {
             if (type != null) {
                 uppercaseTypes.add(type.toUpperCase(Locale.ROOT));
             }
         }
-        // Now find out the available table types ...
         Set<String> matchingTableTypes = new HashSet<>();
         try (ResultSet rs = metadata.getTableTypes()) {
             while (rs.next()) {
