@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.jdbc.openmldb.source;
+package org.apache.rocketmq.connect.jdbc.openmldb.sink;
 
 import io.openmessaging.connector.api.component.task.Task;
 import org.apache.rocketmq.connect.jdbc.sink.BaseSinkConnector;

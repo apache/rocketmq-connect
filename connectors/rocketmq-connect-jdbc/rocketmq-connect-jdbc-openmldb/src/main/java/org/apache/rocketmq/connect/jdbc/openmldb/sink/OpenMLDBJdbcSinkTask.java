@@ -18,16 +18,15 @@ package org.apache.rocketmq.connect.jdbc.openmldb.sink;
 
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.openmldb.dialect.OpenMLDBDatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.sink.BaseSinkTask;
-import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
+import org.apache.rocketmq.connect.jdbc.source.BaseSourceTask;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceTaskConfig;
 
 /**
- * OpenMLDB jdbc sink task
+ * OpenMLDB jdbc source task
  */
-public class OpenMLDBJdbcSourceTask extends BaseSinkTask {
-
+public class OpenMLDBJdbcSinkTask extends BaseSourceTask {
     @Override
-    protected DatabaseDialect newDialect(JdbcSinkConfig config) {
+    protected DatabaseDialect newDialect(JdbcSourceTaskConfig config) {
         return new OpenMLDBDatabaseDialect(config);
     }
 }
