@@ -55,7 +55,7 @@ public class Converters {
         RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
         String sourceTopic = record.topic();
         Map<String, Object> partition = (Map<String, Object>) record.sourcePartition();
-        if (StringUtils.isBlank(sourceTopic) && partition != null) {
+        if (StringUtils.isNotBlank(sourceTopic) && partition != null) {
             // set topic
             partition.put(TOPIC, sourceTopic);
         }
