@@ -76,6 +76,7 @@ import org.apache.rocketmq.connect.runtime.store.PositionStorageWriter;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -408,25 +409,10 @@ public class WorkerSourceTask extends WorkerTask {
      * @return
      */
     private String maybeCreateAndGetTopic(ConnectRecord record) {
-        String topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
+        String topic = overwriteTopicFromRecord(record);
         if (StringUtils.isBlank(topic)) {
-            RecordPosition recordPosition = record.getPosition();
-            if (null == recordPosition) {
-                log.error("connect-topicname config is null and recordPosition is null , lack of topic config");
-            }
-            RecordPartition partition = recordPosition.getPartition();
-            if (null == partition) {
-                log.error("connect-topicname config is null and partition is null , lack of topic config");
-            }
-            Map<String, ?> partitionMap = partition.getPartition();
-            if (null == partitionMap) {
-                log.error("connect-topicname config is null and partitionMap is null , lack of topic config");
-            }
-            Object o = partitionMap.get(TOPIC);
-            if (null == o) {
-                log.error("connect-topicname config is null and partitionMap.get is null , lack of topic config");
-            }
-            topic = (String) o;
+            // topic from config
+            topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
         }
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
@@ -435,6 +421,28 @@ public class WorkerSourceTask extends WorkerTask {
             ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
         }
         return topic;
+    }
+
+    @Nullable
+    private static String overwriteTopicFromRecord(ConnectRecord record) {
+        RecordPosition recordPosition = record.getPosition();
+        if (null == recordPosition) {
+            log.error("Record position is null , lack of topic config");
+        }
+        RecordPartition partition = recordPosition.getPartition();
+        if (null == partition) {
+            log.error("Partition is null , lack of topic config");
+        }
+        Map<String, ?> partitionMap = partition.getPartition();
+        if (null == partitionMap) {
+            log.error("Partition map is null , lack of topic config");
+        }
+        Object o = partitionMap.get(TOPIC);
+        if (null == o) {
+            log.error("Partition map element topic is null , lack of topic config");
+            return null;
+        }
+        return (String) o;
     }
 
     private void putExtendMsgProperty(ConnectRecord sourceDataEntry, Message sourceMessage, String topic) {
