@@ -1,5 +1,5 @@
 {
-    "connector.class":"org.apache.rocketmq.connect.jdbc.mysql.source.BaseSourceConnector",
+    "connector.class":"org.apache.rocketmq.connect.jdbc.mysql.source.MysqlJdbcSourceConnector",
     "max.tasks":"1",
     "connect.topicname":"employee-test-topic-avro-0003",
     "connection.url":"jdbc:mysql://localhost:3306",
