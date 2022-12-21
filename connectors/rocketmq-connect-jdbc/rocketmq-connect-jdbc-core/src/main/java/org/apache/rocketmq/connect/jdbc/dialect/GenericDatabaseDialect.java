@@ -25,16 +25,16 @@ import io.openmessaging.connector.api.data.logical.Time;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.common.DebeziumTimeTypes;
 import org.apache.rocketmq.connect.jdbc.config.AbstractConfig;
-import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
-import org.apache.rocketmq.connect.jdbc.source.JdbcSourceConfig;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefAdjuster;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceConfig;
 import org.apache.rocketmq.connect.jdbc.source.TimestampIncrementingCriteria;
 import org.apache.rocketmq.connect.jdbc.source.metadata.ColumnMapping;
 import org.apache.rocketmq.connect.jdbc.util.DateTimeUtils;
@@ -88,6 +88,7 @@ import java.util.stream.Collectors;
  * generic database dialect
  */
 public class GenericDatabaseDialect implements DatabaseDialect {
+    private static final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
     protected static final int NUMERIC_TYPE_SCALE_LOW = -84;
     protected static final int NUMERIC_TYPE_SCALE_HIGH = 127;
@@ -103,8 +104,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             return clazz.getSimpleName().replace("DatabaseDialect", "");
         }
     }
-
-    private static final Logger log = LoggerFactory.getLogger(GenericDatabaseDialect.class);
 
     protected AbstractConfig config;
     /**
@@ -221,6 +220,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Check connection query
+     *
      * @return
      */
     protected String checkConnectionQuery() {
@@ -229,6 +229,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Get jdbc driver info
+     *
      * @return
      */
     protected JdbcDriverInfo jdbcDriverInfo() {
@@ -255,6 +256,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * add connect properties
+     *
      * @param properties
      * @return
      */
@@ -303,6 +305,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Return whether the database uses JDBC catalogs.
+     *
      * @return true if catalogs are used, or false otherwise
      */
     protected boolean useCatalog() {
@@ -342,6 +345,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Check include table
+     *
      * @param table
      * @return
      */
@@ -353,6 +357,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     /**
      * Find the available table types that are returned by the JDBC driver that case insensitively
      * match the specified types.
+     *
      * @param metadata
      * @param types
      * @return
@@ -782,6 +787,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * column definition
+     *
      * @return
      */
     protected ColumnDefinition columnDefinition(
@@ -1071,6 +1077,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * column converter
+     *
      * @param mapping
      * @param defn
      * @param col
@@ -1669,7 +1676,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
             Schema schema,
             Object value
     ) throws SQLException {
-       return DebeziumTimeTypes.maybeBindDebeziumLogical(statement, index, schema, value, timeZone);
+        return DebeziumTimeTypes.maybeBindDebeziumLogical(statement, index, schema, value, timeZone);
     }
 
     protected boolean maybeBindPrimitive(
@@ -1733,6 +1740,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * create table statement
+     *
      * @param table
      * @param fields
      * @return
@@ -1763,6 +1771,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Drop table statement
+     *
      * @param table
      * @param options
      * @return
@@ -1786,6 +1795,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * alter table statement
+     *
      * @param table
      * @param fields
      * @return

@@ -22,8 +22,8 @@ package org.apache.rocketmq.connect.jdbc.common;
  */
 public interface HeaderField {
 
-    String __source_table_key="__source_table";
-    String __source_db_key="__source_db";
-    String __sink_table_key="__sink_table";
-    String __sink_db_key="__sink_db";
+    String SOURCE_TABLE_KEY = "__source_table";
+    String SOURCE_DB_KEY = "__source_db";
+    String SINK_TABLE_KEY = "__sink_table";
+    String SINK_DB_KEY = "__sink_db";
 }

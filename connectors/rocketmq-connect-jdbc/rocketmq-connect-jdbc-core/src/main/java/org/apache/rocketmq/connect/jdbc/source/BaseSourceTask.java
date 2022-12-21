@@ -27,7 +27,6 @@ import org.apache.rocketmq.connect.jdbc.source.offset.SourceOffsetCompute;
 import org.apache.rocketmq.connect.jdbc.source.querier.BulkQuerier;
 import org.apache.rocketmq.connect.jdbc.source.querier.Querier;
 import org.apache.rocketmq.connect.jdbc.source.querier.TimestampIncrementingQuerier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

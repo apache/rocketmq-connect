@@ -140,11 +140,6 @@ public class JdbcSinkConfig extends AbstractConfig {
                     + " while this configuration is applicable for the other columns.";
     private static final String FIELDS_WHITELIST_DISPLAY = "Fields Whitelist";
 
-
-    public static final String DIALECT_NAME_CONFIG = "dialect.name";
-    public static final String DIALECT_NAME_DEFAULT = "";
-
-
     public static final String DB_TIMEZONE_CONFIG = "db.timezone";
     public static final String DB_TIMEZONE_DEFAULT = "UTC";
 
@@ -179,7 +174,7 @@ public class JdbcSinkConfig extends AbstractConfig {
     private List<String> pkFields;
     private Set<String> fieldsWhitelist;
     private Set<String> tableWhitelist;
-    private String dialectName;
+
     private TimeZone timeZone;
     private EnumSet<TableType> tableTypes;
 
@@ -203,7 +198,6 @@ public class JdbcSinkConfig extends AbstractConfig {
             throw new ConfigException(
                     "Primary key mode must be 'record_key' when delete support is enabled");
         }
-        dialectName = config.getString(DIALECT_NAME_CONFIG);
         fieldsWhitelist = new HashSet<>(getList(config, FIELDS_WHITELIST));
         // table white list
         tableWhitelist = new HashSet<>(getList(config, TABLE_WHITE_LIST_CONFIG));
@@ -264,10 +258,6 @@ public class JdbcSinkConfig extends AbstractConfig {
 
     public Set<String> getTableWhitelist() {
         return tableWhitelist;
-    }
-
-    public String getDialectName() {
-        return dialectName;
     }
 
     public TimeZone getTimeZone() {

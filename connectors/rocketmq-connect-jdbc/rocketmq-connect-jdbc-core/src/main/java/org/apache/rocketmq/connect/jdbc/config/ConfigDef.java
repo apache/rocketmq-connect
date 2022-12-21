@@ -61,6 +61,7 @@ public class ConfigDef {
 
     /**
      * no validate
+     *
      * @param name
      * @param type
      * @param defaultValue
@@ -74,6 +75,7 @@ public class ConfigDef {
 
     /**
      * validate config
+     *
      * @param name
      * @param type
      * @param defaultValue

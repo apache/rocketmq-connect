@@ -24,76 +24,77 @@ import io.openmessaging.connector.api.errors.ConnectException;
 @FunctionalInterface
 public interface RecordValidator {
 
-  RecordValidator NO_OP = (record) -> { };
-
-  void validate(ConnectRecord record);
-
-  default RecordValidator and(RecordValidator other) {
-    if (other == null || other == NO_OP || other == this) {
-      return this;
-    }
-    if (this == NO_OP) {
-      return other;
-    }
-    RecordValidator thisValidator = this;
-    return (record) -> {
-      thisValidator.validate(record);
-      other.validate(record);
+    RecordValidator NO_OP = (record) -> {
     };
-  }
 
-  static RecordValidator create(JdbcSinkConfig config) {
-    RecordValidator requiresKey = requiresKey(config);
-    RecordValidator requiresValue = requiresValue(config);
+    static RecordValidator create(JdbcSinkConfig config) {
+        RecordValidator requiresKey = requiresKey(config);
+        RecordValidator requiresValue = requiresValue(config);
 
-    RecordValidator keyValidator = NO_OP;
-    RecordValidator valueValidator = NO_OP;
-    switch (config.pkMode) {
-      case RECORD_KEY:
-        keyValidator = keyValidator.and(requiresKey);
-        break;
-      case RECORD_VALUE:
-      case NONE:
-        valueValidator = valueValidator.and(requiresValue);
-        break;
-      default:
-        // no primary key is required
-        break;
+        RecordValidator keyValidator = NO_OP;
+        RecordValidator valueValidator = NO_OP;
+        switch (config.pkMode) {
+            case RECORD_KEY:
+                keyValidator = keyValidator.and(requiresKey);
+                break;
+            case RECORD_VALUE:
+            case NONE:
+                valueValidator = valueValidator.and(requiresValue);
+                break;
+            default:
+                // no primary key is required
+                break;
+        }
+
+        if (config.isDeleteEnabled()) {
+            // When delete is enabled, we need a key
+            keyValidator = keyValidator.and(requiresKey);
+        } else {
+            // When delete is disabled, we need non-tombstone values
+            valueValidator = valueValidator.and(requiresValue);
+        }
+
+        // Compose the validator that may or may be NO_OP
+        return keyValidator.and(valueValidator);
     }
 
-    if (config.isDeleteEnabled()) {
-      // When delete is enabled, we need a key
-      keyValidator = keyValidator.and(requiresKey);
-    } else {
-      // When delete is disabled, we need non-tombstone values
-      valueValidator = valueValidator.and(requiresValue);
+    static RecordValidator requiresValue(JdbcSinkConfig config) {
+        return record -> {
+            Schema valueSchema = record.getSchema();
+            if (record.getData() != null
+                    && valueSchema != null
+                    && valueSchema.getFieldType() == FieldType.STRUCT) {
+                return;
+            }
+            throw new ConnectException(record.toString());
+        };
     }
 
-    // Compose the validator that may or may be NO_OP
-    return keyValidator.and(valueValidator);
-  }
+    static RecordValidator requiresKey(JdbcSinkConfig config) {
+        return record -> {
+            Schema keySchema = record.getKeySchema();
+            if (record.getKey() != null
+                    && keySchema != null
+                    && (keySchema.getFieldType() == FieldType.STRUCT || keySchema.getFieldType().isPrimitive())) {
+                return;
+            }
+            throw new ConnectException(record.toString());
+        };
+    }
 
-  static RecordValidator requiresValue(JdbcSinkConfig config) {
-    return record -> {
-      Schema valueSchema = record.getSchema();
-      if (record.getData() != null
-          && valueSchema != null
-          && valueSchema.getFieldType() == FieldType.STRUCT) {
-        return;
-      }
-      throw new ConnectException(record.toString());
-    };
-  }
+    void validate(ConnectRecord record);
 
-  static RecordValidator requiresKey(JdbcSinkConfig config) {
-    return record -> {
-      Schema keySchema = record.getKeySchema();
-      if (record.getKey() != null
-          && keySchema != null
-          && (keySchema.getFieldType() == FieldType.STRUCT || keySchema.getFieldType().isPrimitive())) {
-        return;
-      }
-      throw new ConnectException(record.toString());
-    };
-  }
+    default RecordValidator and(RecordValidator other) {
+        if (other == null || other == NO_OP || other == this) {
+            return this;
+        }
+        if (this == NO_OP) {
+            return other;
+        }
+        RecordValidator thisValidator = this;
+        return (record) -> {
+            thisValidator.validate(record);
+            other.validate(record);
+        };
+    }
 }

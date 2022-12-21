@@ -21,10 +21,10 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.GenericDatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
-import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
+import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +72,7 @@ public class BufferedRecords {
 
     /**
      * add record
+     *
      * @param record
      * @return
      * @throws SQLException
@@ -132,8 +133,8 @@ public class BufferedRecords {
         }
         Optional<Long> totalUpdateCount =
                 updateStatementBinder != null ? updateStatementBinder.executeUpdates(updatePreparedStatement) :
-                        Optional.empty() ;
-        long totalDeleteCount =deleteStatementBinder != null ?
+                        Optional.empty();
+        long totalDeleteCount = deleteStatementBinder != null ?
                 deleteStatementBinder.executeDeletes(deletePreparedStatement) : 0;
 
         final long expectedCount = updateRecordCount();
@@ -178,7 +179,7 @@ public class BufferedRecords {
             keySchema = record.getKeySchema();
             schemaChanged = true;
         }
-        if (!isNull(record.getSchema()) && !Objects.equals(valueSchema, record.getSchema())){
+        if (!isNull(record.getSchema()) && !Objects.equals(valueSchema, record.getSchema())) {
             // value schema is not null and has changed. This is a real schema change.
             valueSchema = record.getSchema();
             schemaChanged = true;

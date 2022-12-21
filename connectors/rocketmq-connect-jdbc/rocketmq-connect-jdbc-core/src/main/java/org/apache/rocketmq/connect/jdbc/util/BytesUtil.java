@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.jdbc.util;
 public class BytesUtil {
 
     private static final char[] HEX_CODE = "0123456789ABCDEF".toCharArray();
+
     public static String toHex(byte[] data) {
         StringBuilder r = new StringBuilder(data.length * 2);
         for (byte b : data) {

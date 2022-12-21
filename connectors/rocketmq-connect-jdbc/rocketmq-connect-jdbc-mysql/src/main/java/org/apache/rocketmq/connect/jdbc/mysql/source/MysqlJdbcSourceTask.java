@@ -24,7 +24,7 @@ import org.apache.rocketmq.connect.jdbc.source.JdbcSourceTaskConfig;
 /**
  * mysql jdbc source task
  */
-public class MysqlJdbcSourceTask extends BaseSourceTask {
+public class MysqlJdbcSourceTask extends BaseSourceTask{
     @Override
     protected DatabaseDialect newDialect(JdbcSourceTaskConfig config) {
         return new MySqlDatabaseDialect(config);

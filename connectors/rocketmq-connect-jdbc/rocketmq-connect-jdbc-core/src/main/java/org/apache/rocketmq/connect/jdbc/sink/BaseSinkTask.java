@@ -24,8 +24,8 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
-import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
 import org.apache.rocketmq.connect.jdbc.exception.TableAlterOrCreateException;
+import org.apache.rocketmq.connect.jdbc.schema.db.DbStructure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

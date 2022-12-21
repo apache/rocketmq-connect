@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.connect.jdbc.schema.column;
 
+import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.apache.rocketmq.connect.jdbc.util.QuoteMethod;
-import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
 
 import java.util.Objects;
 

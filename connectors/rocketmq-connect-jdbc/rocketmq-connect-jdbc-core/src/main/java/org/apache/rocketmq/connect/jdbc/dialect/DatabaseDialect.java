@@ -20,11 +20,11 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.ConnectionProvider;
-import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SchemaPair;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
@@ -213,16 +213,17 @@ public interface DatabaseDialect extends ConnectionProvider {
 
     /**
      * Get insert sql
+     *
      * @return
      */
     String getInsertSql(JdbcSinkConfig config, FieldsMetadata fieldsMetadata, TableId tableId);
 
     /**
      * Get insert sql
+     *
      * @return
      */
     String getDeleteSql(JdbcSinkConfig config, FieldsMetadata fieldsMetadata, TableId tableId);
-
 
 
     /**

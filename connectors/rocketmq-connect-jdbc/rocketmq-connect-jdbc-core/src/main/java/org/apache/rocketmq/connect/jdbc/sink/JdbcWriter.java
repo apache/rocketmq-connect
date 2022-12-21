@@ -101,8 +101,8 @@ public class JdbcWriter {
 
     TableId destinationTable(ConnectRecord record) {
         // todo table from header
-        if (config.isTableFromHeader()){
-            return dbDialect.parseToTableId(record.getExtensions().getString(HeaderField.__source_table_key));
+        if (config.isTableFromHeader()) {
+            return dbDialect.parseToTableId(record.getExtensions().getString(HeaderField.SOURCE_TABLE_KEY));
         }
         return dbDialect.parseToTableId(record.getSchema().getName());
     }

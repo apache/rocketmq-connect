@@ -17,9 +17,8 @@
 
 package org.apache.rocketmq.connect.jdbc.source;
 
-import java.util.List;
-
 import com.google.common.collect.Lists;
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +26,7 @@ import org.apache.rocketmq.connect.jdbc.util.ConnectorGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.openmessaging.KeyValue;
+import java.util.List;
 
 /**
  * jdbc source connector

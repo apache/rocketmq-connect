@@ -175,10 +175,10 @@ public class FieldsMetadata {
             ));
         }
         final FieldType keySchemaType = keySchema.getFieldType();
-        switch (keySchemaType){
+        switch (keySchemaType) {
             case STRUCT:
                 if (configuredPkFields.isEmpty()) {
-                    keySchema.getFields().forEach(keyField->{
+                    keySchema.getFields().forEach(keyField -> {
                         keyFieldNames.add(keyField.getName());
                     });
                 } else {

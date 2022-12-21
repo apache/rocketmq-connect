@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * jdbc sink connector
  */
-public  abstract class BaseSinkConnector extends SinkConnector{
+public abstract class BaseSinkConnector extends SinkConnector {
     private static final Logger log = LoggerFactory.getLogger(BaseSinkConnector.class);
     private KeyValue connectConfig;
 

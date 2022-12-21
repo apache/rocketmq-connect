@@ -26,11 +26,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.jdbc.common.JdbcSourceConfigConstants;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
 import org.apache.rocketmq.connect.jdbc.dialect.provider.CachedConnectionProvider;
-import org.apache.rocketmq.connect.jdbc.source.JdbcSourceConfig;
-import org.apache.rocketmq.connect.jdbc.source.JdbcSourceTaskConfig;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnId;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceConfig;
+import org.apache.rocketmq.connect.jdbc.source.JdbcSourceTaskConfig;
 import org.apache.rocketmq.connect.jdbc.source.querier.Querier;
 import org.apache.rocketmq.connect.jdbc.util.ExpressionBuilder;
 import org.apache.rocketmq.connect.jdbc.util.QuoteMethod;
@@ -92,7 +92,8 @@ public class SourceOffsetCompute {
 
 
     /**
-     *init and compute offset
+     * init and compute offset
+     *
      * @return
      */
     public static Map<String, Map<String, Object>> initOffset(

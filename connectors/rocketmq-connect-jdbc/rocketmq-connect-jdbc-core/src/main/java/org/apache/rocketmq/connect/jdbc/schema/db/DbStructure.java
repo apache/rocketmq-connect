@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.connect.jdbc.schema.db;
 
-import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect;
+import org.apache.rocketmq.connect.jdbc.exception.TableAlterOrCreateException;
 import org.apache.rocketmq.connect.jdbc.schema.column.ColumnDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinition;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableDefinitions;
 import org.apache.rocketmq.connect.jdbc.schema.table.TableId;
+import org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConfig;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.FieldsMetadata;
 import org.apache.rocketmq.connect.jdbc.sink.metadata.SinkRecordField;
-import org.apache.rocketmq.connect.jdbc.exception.TableAlterOrCreateException;
 import org.apache.rocketmq.connect.jdbc.util.TableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
