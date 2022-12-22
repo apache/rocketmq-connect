@@ -370,7 +370,6 @@ public interface DatabaseDialect extends ConnectionProvider {
     interface ColumnConverter {
         /**
          * convert
-         *
          * @param resultSet
          * @return
          * @throws SQLException

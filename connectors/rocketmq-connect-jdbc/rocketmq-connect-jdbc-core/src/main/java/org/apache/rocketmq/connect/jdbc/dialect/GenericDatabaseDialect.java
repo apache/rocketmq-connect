@@ -183,6 +183,16 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         return connection;
     }
 
+    /**
+     * add connect properties
+     *
+     * @param properties
+     * @return
+     */
+    protected Properties addConnectionProperties(Properties properties) {
+        return properties;
+    }
+
     @Override
     public void close() {
         Connection conn;
@@ -254,16 +264,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
         );
     }
 
-    /**
-     * add connect properties
-     *
-     * @param properties
-     * @return
-     */
-    protected Properties addConnectionProperties(Properties properties) {
-        return properties;
-    }
-
     @Override
     public PreparedStatement createPreparedStatement(Connection db, String query) throws SQLException {
         log.trace("Creating a PreparedStatement '{}'", query);
@@ -305,17 +305,24 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Return whether the database uses JDBC catalogs.
-     *
      * @return true if catalogs are used, or false otherwise
      */
     protected boolean useCatalog() {
         return false;
     }
 
+    /**
+     * catalog config
+     * @return
+     */
     protected String catalogPattern() {
         return catalogPattern;
     }
 
+    /**
+     * schema config
+     * @return
+     */
     protected String schemaPattern() {
         return schemaPattern;
     }
@@ -345,7 +352,6 @@ public class GenericDatabaseDialect implements DatabaseDialect {
 
     /**
      * Check include table
-     *
      * @param table
      * @return
      */
@@ -1064,9 +1070,7 @@ public class GenericDatabaseDialect implements DatabaseDialect {
     }
 
     @Override
-    public ColumnConverter createColumnConverter(
-            ColumnMapping mapping
-    ) {
+    public ColumnConverter createColumnConverter(ColumnMapping mapping) {
         return columnConverterFor(
                 mapping,
                 mapping.columnDefn(),
