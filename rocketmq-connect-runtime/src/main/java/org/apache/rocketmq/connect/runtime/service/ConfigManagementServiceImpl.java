@@ -199,6 +199,12 @@ public class ConfigManagementServiceImpl extends AbstractConfigManagementService
      * @param connectConfig
      */
     private void prepare(WorkerConfig connectConfig) {
+        String consumerGroup = ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId());
+        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+        if (!consumerGroupSet.contains(consumerGroup)) {
+            log.info("try to create consumerGroup: {}!", consumerGroup);
+            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
+        }
         String configStoreTopic = connectConfig.getConfigStoreTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, configStoreTopic)) {
             log.info("try to create config store topic: {}!", configStoreTopic);

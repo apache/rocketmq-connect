@@ -14,23 +14,15 @@ import java.util.List;
 
 public class HttpSinkConnector extends SinkConnector {
 
-    private String url;
-
-    @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
+    private KeyValue connectConfig;
 
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> keyValueList = new ArrayList<>(11);
         KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(HttpConstant.URL_CONSTANT, url);
+        for (String key : connectConfig.keySet()) {
+            keyValue.put(key, connectConfig.getString(key));
+        }
         keyValueList.add(keyValue);
         return keyValueList;
     }
@@ -56,8 +48,8 @@ public class HttpSinkConnector extends SinkConnector {
     }
 
     @Override
-    public void init(KeyValue config) {
-        url = config.getString(HttpConstant.URL_CONSTANT);
+    public void start(KeyValue config) {
+        this.connectConfig = config;
     }
 
     @Override

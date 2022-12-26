@@ -46,7 +46,7 @@ public class JsonConverterConfig {
     public JsonConverterConfig(Map<String, ?> props) {
         // schema.enabled
         if (props.containsKey(SCHEMAS_ENABLE_CONFIG)) {
-            this.schemasEnabled = (Boolean) props.get(SCHEMAS_ENABLE_CONFIG);
+            this.schemasEnabled = Boolean.parseBoolean(String.valueOf(props.get(SCHEMAS_ENABLE_CONFIG)));
         } else {
             this.schemasEnabled = SCHEMAS_ENABLE_DEFAULT;
         }
