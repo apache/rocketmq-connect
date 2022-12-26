@@ -302,7 +302,7 @@ public class RestHandler {
         try {
             ConcurrentMap<String, WorkerConnector> workerConnectors = connectController.getWorker().getConnectors();
             Map<String, Map<String, String>> connectors = new HashMap<>();
-            for (Map.Entry<String,WorkerConnector> entry : workerConnectors.entrySet()) {
+            for (Map.Entry<String, WorkerConnector> entry : workerConnectors.entrySet()) {
                 connectors.put(entry.getKey(), entry.getValue().getKeyValue().getProperties());
             }
             context.json(new HttpResponse<>(context.status(), connectors));
