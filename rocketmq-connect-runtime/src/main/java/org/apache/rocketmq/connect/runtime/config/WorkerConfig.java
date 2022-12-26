@@ -146,7 +146,7 @@ public class WorkerConfig {
     /**
      * Default topic to send/consume state change message.
      */
-    private String connectStatusTopic = "connect-status-topic";
+    private String connectStatusTopic = "connector-status-topic";
 
     /**
      * Connector state persistence interval.
