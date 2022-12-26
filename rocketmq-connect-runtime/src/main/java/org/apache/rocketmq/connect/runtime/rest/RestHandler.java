@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * A rest handler to process http request.
@@ -299,10 +300,10 @@ public class RestHandler {
 
     private void getAllocatedConnectors(Context context) {
         try {
-            Set<WorkerConnector> workerConnectors = connectController.getWorker().getWorkingConnectors();
+            ConcurrentMap<String, WorkerConnector> workerConnectors = connectController.getWorker().getConnectors();
             Map<String, Map<String, String>> connectors = new HashMap<>();
-            for (WorkerConnector workerConnector : workerConnectors) {
-                connectors.put(workerConnector.getConnectorName(), workerConnector.getKeyValue().getProperties());
+            for (Map.Entry<String,WorkerConnector> entry : workerConnectors.entrySet()) {
+                connectors.put(entry.getKey(), entry.getValue().getKeyValue().getProperties());
             }
             context.json(new HttpResponse<>(context.status(), connectors));
         } catch (Exception ex) {
