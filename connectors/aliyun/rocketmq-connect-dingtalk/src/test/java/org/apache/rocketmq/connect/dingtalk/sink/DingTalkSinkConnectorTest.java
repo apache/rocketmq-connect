@@ -1,5 +1,6 @@
 package org.apache.rocketmq.connect.dingtalk.sink;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
@@ -32,11 +33,11 @@ public class DingTalkSinkConnectorTest {
         Map<String, Object> map = new HashMap<>();
         map.put("msgtype", "text");
         Map<String, String> map1 = new HashMap<>();
-        map1.put("content", "1111");
+        map1.put("content", "小桥流水，哗啦啦");
         map.put("text", map1);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
-        connectRecord.setData(map);
+        connectRecord.setData(JSON.toJSONString(map));
         connectRecordList.add(connectRecord);
         dingTalkSinkTask.put(connectRecordList);
     }
