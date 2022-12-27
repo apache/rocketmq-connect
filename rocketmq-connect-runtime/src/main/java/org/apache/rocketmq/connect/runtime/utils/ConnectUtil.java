@@ -64,7 +64,7 @@ public class ConnectUtil {
 
     private final static AtomicLong GROUP_POSTFIX_ID = new AtomicLong(0);
 
-    private static final String SYS_TASK_CG_PREFIX = "connect-";
+    public static final String SYS_TASK_CG_PREFIX = "connect-";
 
     public static String createGroupName(String prefix) {
         StringBuilder sb = new StringBuilder();
@@ -312,17 +312,13 @@ public class ConnectUtil {
      * @return
      * @throws MQClientException
      */
-    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue, boolean autoCommit) throws MQClientException {
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, boolean autoCommit){
         DefaultLitePullConsumer consumer = null;
-        String groupId = keyValue.getString(SinkConnectorConfig.TASK_GROUP_ID);
-        if (StringUtils.isBlank(groupId)) {
-            groupId = SYS_TASK_CG_PREFIX + id.connector();
-        }
         if (Objects.isNull(consumer)) {
             if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
-                consumer = new DefaultLitePullConsumer(groupId);
+                consumer = new DefaultLitePullConsumer();
             } else {
-                consumer = new DefaultLitePullConsumer(groupId, getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+                consumer = new DefaultLitePullConsumer(getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
             }
         }
         consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());

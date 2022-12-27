@@ -217,6 +217,10 @@ public class WorkerConfig {
     private String metricsConfigPath;
     private Map<String, Map<String, String>> metricsConfig = new HashMap<>();
 
+    /**
+     * compaction topic enabled ， default false
+     */
+    private boolean compactionTopicEnabled = false;
 
     public String getWorkerId() {
         return workerId;
@@ -542,6 +546,14 @@ public class WorkerConfig {
         this.openLogMetricReporter = openLogMetricReporter;
     }
 
+    public boolean isCompactionTopicEnabled() {
+        return compactionTopicEnabled;
+    }
+
+    public void setCompactionTopicEnabled(boolean compactionTopicEnabled) {
+        this.compactionTopicEnabled = compactionTopicEnabled;
+    }
+
     @Override
     public String toString() {
         return "WorkerConfig{" +
@@ -585,6 +597,7 @@ public class WorkerConfig {
                 ", openLogMetricReporter=" + openLogMetricReporter +
                 ", metricsConfigPath='" + metricsConfigPath + '\'' +
                 ", metricsConfig=" + metricsConfig +
+                ", compactionTopicEnabled=" + compactionTopicEnabled +
                 '}';
     }
 }
