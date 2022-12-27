@@ -2,7 +2,6 @@ package org.apache.rocketmq.connect.http.sink;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
-import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.http.sink.common.OkHttpUtils;
@@ -31,27 +30,8 @@ public class HttpSinkTask extends SinkTask {
     }
 
     @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
-
-    @Override
-    public void validate(KeyValue config) {
-    }
-
-    @Override
-    public void init(KeyValue config) {
-        url = config.getString(HttpConstant.URL_CONSTANT);
-    }
-
-    @Override
-    public void start(SinkTaskContext sinkTaskContext) {
-        super.start(sinkTaskContext);
+    public void start(KeyValue keyValue) {
+        url = keyValue.getString(HttpConstant.URL_CONSTANT);
     }
 
     @Override

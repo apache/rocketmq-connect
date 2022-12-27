@@ -198,7 +198,7 @@ public class ConnectUtil {
         } catch (MQClientException e) {
             foundTopicRouteInfo = false;
         } catch (Exception e) {
-            throw new RuntimeException("get topic route info  failed", e);
+            throw new RuntimeException("Get topic route info  failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();

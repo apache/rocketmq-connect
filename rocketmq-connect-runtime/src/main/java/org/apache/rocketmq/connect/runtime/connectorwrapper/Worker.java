@@ -489,6 +489,10 @@ public class Worker {
         return new HashSet<>(connectors.keySet());
     }
 
+    public ConcurrentMap<String, WorkerConnector> getConnectors() {
+        return connectors;
+    }
+
     /**
      * get connectors
      *
