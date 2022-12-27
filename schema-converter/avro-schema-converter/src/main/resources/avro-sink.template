@@ -1,5 +1,5 @@
 {
-    "connector.class":"org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
+    "connector.class":"org.apache.rocketmq.connect.jdbc.mysql.sink.MysqlJdbcSinkConnector",
     "max.tasks":"2",
     "connect.topicnames":"employee-test-topic-avro-0003",
     "connection.url":"jdbc:mysql://localhost:3306/test_database_02",

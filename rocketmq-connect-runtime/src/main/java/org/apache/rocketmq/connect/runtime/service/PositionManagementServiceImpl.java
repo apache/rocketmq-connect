@@ -121,6 +121,12 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * @param connectConfig
      */
     private void prepare(WorkerConfig connectConfig) {
+        String consumerGroup = ConnectUtil.createGroupName(positionManagePrefix, connectConfig.getWorkerId());
+        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
+        if (!consumerGroupSet.contains(consumerGroup)) {
+            log.info("try to create consumerGroup: {}!", consumerGroup);
+            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
+        }
         String positionStoreTopic = connectConfig.getPositionStoreTopic();
         if (!ConnectUtil.isTopicExist(connectConfig, positionStoreTopic)) {
             log.info("try to create position store topic: {}!", positionStoreTopic);
