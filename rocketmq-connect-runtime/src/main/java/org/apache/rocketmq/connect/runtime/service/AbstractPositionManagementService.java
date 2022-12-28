@@ -20,6 +20,19 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.SchemaAndValue;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
+import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
+import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -30,53 +43,35 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.openmessaging.connector.api.data.SchemaAndValue;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.serialization.Serdes;
-import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
-import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
-import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
-import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
-import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static java.lang.Thread.sleep;
 
-public class PositionManagementServiceImpl implements PositionManagementService {
+/**
+ * Abstract position management service
+ */
+public abstract class AbstractPositionManagementService implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     /**
      * Current position info in store.
      */
-    private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
+    protected KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
 
-    private WorkerConfig config;
+    /**
+     * Synchronize data with other workers.
+     */
+    protected DataSynchronizer<ByteBuffer, ByteBuffer> dataSynchronizer;
 
-    private AtomicBoolean committing = new AtomicBoolean(false);
+    protected AtomicBoolean committing = new AtomicBoolean(false);
+
+    protected WorkerConfig config;
+
+
     private long commitStarted;
 
     /**
      * need sync position
      */
     private Set<ExtendRecordPartition> needSyncPartition;
-
-    /**
-     * Synchronize data with other workers.
-     */
-    private DataSynchronizer<ByteBuffer, ByteBuffer> dataSynchronizer;
-
-    /**
-     * Listeners.
-     */
-    private Set<PositionUpdateListener> positionUpdateListener;
 
     private final String positionManagePrefix = "PositionManage";
 
@@ -85,8 +80,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
 
     private String topic;
 
-    public PositionManagementServiceImpl() {
-    }
+    public AbstractPositionManagementService() {}
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
@@ -95,6 +89,10 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         this.topic = workerConfig.getPositionStoreTopic();
         this.keyConverter.configure(new HashMap<>());
         this.valueConverter.configure(new HashMap<>());
+        this.needSyncPartition = new ConcurrentSet<>();
+        this.commitStarted = -1;
+        this.config = workerConfig;
+
         this.dataSynchronizer = new BrokerBasedLog(
                 workerConfig,
                 this.topic,
@@ -104,14 +102,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                 Serdes.serdeFrom(ByteBuffer.class)
         );
 
-        this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(workerConfig.getStorePathRootDir()),
-                new RecordPartitionSerde(),
-                new RecordOffsetSerde());
-
-        this.positionUpdateListener = new HashSet<>();
-        this.needSyncPartition = new ConcurrentSet<>();
-        this.commitStarted = -1;
-        this.config = workerConfig;
         this.prepare(workerConfig);
     }
 
@@ -135,19 +125,6 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         }
     }
 
-    @Override
-    public void start() {
-        positionStore.load();
-        dataSynchronizer.start();
-        restorePosition();
-    }
-
-    @Override
-    public void stop() {
-        replicaOffsets();
-        positionStore.persist();
-        dataSynchronizer.stop();
-    }
 
     @Override
     public void persist() {
@@ -183,6 +160,17 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     }
 
     @Override
+    public void removePosition(List<ExtendRecordPartition> partitions) {
+        if (null == partitions) {
+            return;
+        }
+        for (ExtendRecordPartition partition : partitions) {
+            positionStore.remove(partition);
+        }
+    }
+
+
+    @Override
     public void synchronize(boolean increment) {
         // Check for timed out commits
         long now = System.currentTimeMillis();
@@ -201,7 +189,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         if (!increment) {
             Set<ExtendRecordPartition> allPartitions = new HashSet<>();
             allPartitions.addAll(positionStore.getKVMap().keySet());
-            allPartitions.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
+            allPartitions.forEach(partition -> set(PositionChange.POSITION_CHANG, partition, positionStore.get(partition)));
         }
         //Incremental send
         if (increment) {
@@ -210,7 +198,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                 return;
             }
             Set<ExtendRecordPartition> partitionsTmp = new HashSet<>(needSyncPartition);
-            partitionsTmp.forEach(partition -> set(PositionChange.POSITION_CHANG_KEY, partition, positionStore.get(partition)));
+            partitionsTmp.forEach(partition -> set(PositionChange.POSITION_CHANG, partition, positionStore.get(partition)));
         }
         // end send offset
         if (increment) {
@@ -220,49 +208,12 @@ public class PositionManagementServiceImpl implements PositionManagementService 
     }
 
     @Override
-    public void removePosition(List<ExtendRecordPartition> partitions) {
-        if (null == partitions) {
-            return;
-        }
-        for (ExtendRecordPartition partition : partitions) {
-            positionStore.remove(partition);
-        }
-    }
-
-    @Override
-    public void registerListener(PositionUpdateListener listener) {
-        this.positionUpdateListener.add(listener);
-    }
-
-    @Override
     public StagingMode getStagingMode() {
         return StagingMode.DISTRIBUTED;
     }
 
-    /**
-     * restore position
-     */
-    private void restorePosition() {
-        set(PositionChange.ONLINE_KEY, new ExtendRecordPartition(null, new HashMap<>()), new RecordOffset(new HashMap<>()));
-    }
 
-    /**
-     * send change position
-     */
-    private void replicaOffsets() {
-        while (true) {
-            // wait for the last send to complete
-            if (committing.get()) {
-                try {
-                    sleep(1000);
-                    continue;
-                } catch (InterruptedException e) {
-                }
-            }
-            synchronize(false);
-            break;
-        }
-    }
+
 
     /**
      * send position
@@ -270,7 +221,7 @@ public class PositionManagementServiceImpl implements PositionManagementService 
      * @param partition
      * @param position
      */
-    private synchronized void set(PositionChange change, ExtendRecordPartition partition, RecordOffset position) {
+    protected synchronized void set(PositionChange change, ExtendRecordPartition partition, RecordOffset position) {
         String namespace = partition.getNamespace();
         // When serializing the key, we add in the namespace information so the key is [namespace, real key]
         byte[] key = keyConverter.fromConnectData(namespace, null, Arrays.asList(change.name(), namespace, partition != null ? partition.getPartition() : new HashMap<>()));
@@ -299,36 +250,29 @@ public class PositionManagementServiceImpl implements PositionManagementService 
                 return;
             }
             String changeKey = (String) deKey.get(0);
-            boolean changed = false;
-            switch (PositionChange.valueOf(changeKey)) {
-                case ONLINE_KEY:
-                    changed = true;
-                    replicaOffsets();
-                    break;
-                case POSITION_CHANG_KEY:
-                    // partition
-                    String namespace = (String) deKey.get(1);
-                    Map<String, Object> partitions = (Map<String, Object>) deKey.get(2);
-                    ExtendRecordPartition partition = new ExtendRecordPartition(namespace, partitions);
-                    // offset
-                    SchemaAndValue schemaAndValueValue = valueConverter.toConnectData(topic, result.array());
-                    Map<String, Object> offset = (Map<String, Object>) schemaAndValueValue.value();
-                    changed = mergeOffset(partition, new RecordOffset(offset));
-                    break;
-                default:
-                    break;
-            }
-            if (changed) {
-                triggerListener();
-            }
-
+            process(result, deKey, PositionChange.valueOf(changeKey));
         }
     }
 
-    private void triggerListener() {
-        for (PositionUpdateListener positionUpdateListener : positionUpdateListener) {
-            positionUpdateListener.onPositionUpdate();
+    protected void process(ByteBuffer result, List<Object> deKey, PositionChange key) {
+        switch (key) {
+            case POSITION_CHANG:
+                processPositionChange(result, deKey);
+                break;
+            default:
+                break;
         }
+    }
+
+    protected void processPositionChange(ByteBuffer result, List<Object> deKey) {
+        // partition
+        String namespace = (String) deKey.get(1);
+        Map<String, Object> partitions = (Map<String, Object>) deKey.get(2);
+        ExtendRecordPartition partition = new ExtendRecordPartition(namespace, partitions);
+        // offset
+        SchemaAndValue schemaAndValueValue = valueConverter.toConnectData(topic, result.array());
+        Map<String, Object> offset = (Map<String, Object>) schemaAndValueValue.value();
+        mergeOffset(partition, new RecordOffset(offset));
     }
 
     /**
@@ -357,16 +301,16 @@ public class PositionManagementServiceImpl implements PositionManagementService 
         return false;
     }
 
-    private enum PositionChange {
+    public enum PositionChange {
 
         /**
          * Insert or update position info.
          */
-        POSITION_CHANG_KEY,
+        POSITION_CHANG,
 
         /**
          * A worker online.
          */
-        ONLINE_KEY
+        ONLINE
     }
 }

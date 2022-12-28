@@ -215,21 +215,22 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             }
             String encodeKey = Base64Util.base64Encode(encode.getKey());
             Message message = new Message(topicName,null, encodeKey, body);
-            producer.send(message, new SelectMessageQueueByHash(), encodeKey);
-//            producer.send(message, new SendCallback() {
-//
-//                @Override
-//                public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
-//                    log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
-//                }
-//
-//                @Override
-//                public void onException(Throwable throwable) {
-//                    if (null != throwable) {
-//                        log.error("Send async message Failed, error: {}", throwable);
-//                    }
-//                }
-//            });
+            producer.send(message, new SelectMessageQueueByHash(), encodeKey, new SendCallback() {
+
+                @Override
+                public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
+                    log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
+                }
+
+                @Override
+                public void onException(Throwable throwable) {
+                    if (null != throwable) {
+                        log.error("Send async message Failed, error: {}", throwable);
+                        // Keep sending until success
+                        send(key, value);
+                    }
+                }
+            });
         } catch (Exception e) {
             log.error("BrokerBaseLog send async message Failed.", e);
         }
@@ -264,6 +265,8 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
+                        // Keep sending until success
+                        send(key, value, callback);
                         callback.onCompletion(throwable, value);
                     }
                 }

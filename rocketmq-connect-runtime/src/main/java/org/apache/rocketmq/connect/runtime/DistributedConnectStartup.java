@@ -155,23 +155,27 @@ public class DistributedConnectStartup {
             Plugin plugin = new Plugin(pluginPaths);
 
             // Create controller and initialize.
-            ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.DISTRIBUTED);
+            ClusterManagementService clusterManagementService =
+                    ServiceProviderUtil.getClusterManagementService(config.getClusterManagementService());
             clusterManagementService.initialize(config);
             // config
-            ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.DISTRIBUTED);
+            ConfigManagementService configManagementService =
+                    ServiceProviderUtil.getConfigManagementService(config.getConfigManagementService());
             configManagementService.initialize(config, new JsonConverter(), plugin);
             // position
-            PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.DISTRIBUTED);
-            positionManagementServices.initialize(config, new JsonConverter(), new JsonConverter());
+            PositionManagementService positionManagementService =
+                    ServiceProviderUtil.getPositionManagementService(config.getPositionManagementService());
+            positionManagementService.initialize(config, new JsonConverter(), new JsonConverter());
             // state
-            StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.DISTRIBUTED);
+            StateManagementService stateManagementService =
+                    ServiceProviderUtil.getStateManagementService(config.getStateManagementService());
             stateManagementService.initialize(config, new JsonConverter());
             DistributedConnectController controller = new DistributedConnectController(
                     plugin,
                     config,
                     clusterManagementService,
                     configManagementService,
-                    positionManagementServices,
+                    positionManagementService,
                     stateManagementService);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

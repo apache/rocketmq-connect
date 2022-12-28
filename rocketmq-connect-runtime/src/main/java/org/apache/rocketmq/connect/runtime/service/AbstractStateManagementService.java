@@ -57,13 +57,11 @@ import java.util.Set;
 /**
  * State management service
  */
-public class StateManagementServiceImpl implements StateManagementService {
+public abstract class AbstractStateManagementService implements StateManagementService {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
 
     private final String statusManagePrefix = "StatusManage";
-
-    public static final String START_SIGNAL = "start-signal";
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
 
@@ -79,15 +77,9 @@ public class StateManagementServiceImpl implements StateManagementService {
             .build();
 
     /**
-     * start signal
-     */
-    public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-            .field(START_SIGNAL, SchemaBuilder.string().build())
-            .build();
-    /**
      * Synchronize config with other workers.
      */
-    private DataSynchronizer<String, byte[]> dataSynchronizer;
+    protected DataSynchronizer<String, byte[]> dataSynchronizer;
 
     /** Current connector status in the store. */
     protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
@@ -96,8 +88,8 @@ public class StateManagementServiceImpl implements StateManagementService {
 
     protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
 
-    private RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
-    private String statusTopic;
+    protected RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
+    protected String statusTopic;
 
     /**
      * Preparation before startup
@@ -138,109 +130,14 @@ public class StateManagementServiceImpl implements StateManagementService {
                 Serdes.serdeFrom(String.class),
                 Serdes.serdeFrom(byte[].class));
 
-        /**connector status store*/
-        this.connectorStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new JsonSerde(ConnectorStatus.class));
-
-        /**task status store*/
-        this.taskStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new ListSerde(TaskStatus.class));
         // create topic
         this.prepare(config);
     }
 
     /**
-     * Start dependent services (if needed)
-     */
-    @Override
-    public void start() {
-        connectorStatusStore.load();
-        taskStatusStore.load();
-        dataSynchronizer.start();
-        startSignal();
-    }
-
-    private void startSignal() {
-        Struct struct = new Struct(START_SIGNAL_V0);
-        struct.put(START_SIGNAL, START_SIGNAL);
-        dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(statusTopic, START_SIGNAL_V0, struct));
-    }
-
-    /**
-     * Stop dependent services (if needed)
-     */
-    @Override
-    public void stop() {
-        replicaTargetState();
-        prePersist();
-        connectorStatusStore.persist();
-        taskStatusStore.persist();
-        dataSynchronizer.stop();
-    }
-
-    /**
      * sync send online config
      */
-    private void replicaTargetState() {
-        /** connector status store*/
-        Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
-        connectorStatusMap.forEach((connectorName, connectorStatus) -> {
-            if (connectorStatus == null) {
-                return;
-            }
-            // send status
-            put(connectorStatus);
-        });
-
-        /** task status store */
-        Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
-        if (taskStatusMap.isEmpty()) {
-            return;
-        }
-        taskStatusMap.forEach((connectorName, taskStatusList) -> {
-            if (taskStatusList == null || taskStatusList.isEmpty()) {
-                return;
-            }
-            taskStatusList.forEach(taskStatus -> {
-                // send status
-                put(taskStatus);
-            });
-        });
-    }
-
-    /**
-     * pre persist
-     */
-    private void prePersist() {
-        Map<String, ConnAndTaskStatus.CacheEntry<ConnectorStatus>> connectors = connAndTaskStatus.getConnectors();
-        if (connectors.isEmpty()) {
-            return;
-        }
-        connectors.forEach((connectName, connectorStatus) -> {
-            connectorStatusStore.put(connectName, connectorStatus.get());
-            Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
-            if (cacheTaskStatus == null) {
-                return;
-            }
-            taskStatusStore.put(connectName, new ArrayList<>());
-            cacheTaskStatus.forEach((taskId, taskStatus) -> {
-                if (taskStatus != null) {
-                    taskStatusStore.get(connectName).add(taskStatus.get());
-                }
-            });
-        });
-    }
-
-    @Override
-    public void persist() {
-        prePersist();
-        connectorStatusStore.persist();
-        taskStatusStore.persist();
-    }
+    protected abstract void replicaTargetState();
 
     /**
      * Set the state of the connector to the given value.
@@ -397,24 +294,21 @@ public class StateManagementServiceImpl implements StateManagementService {
         return StagingMode.DISTRIBUTED;
     }
 
+
+
+
+
+
+    // ======= Start receives the status message and transforms the storage ======
+
     private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
-            if (StringUtils.isEmpty(key)) {
-                log.error("State change message is illegal, key is empty, the message will be skipped ");
-                return;
-            }
-            if (key.equals(START_SIGNAL)) {
-                replicaTargetState();
-            } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
-                readConnectorStatus(key, value);
-            } else if (key.startsWith(TASK_STATUS_PREFIX)) {
-                readTaskStatus(key, value);
-            } else {
-                log.warn("Discarding record with invalid key {}", key);
-            }
+            process(key, value);
         }
     }
+
+    protected abstract void process(String key, byte[] value);
 
     /**
      * read connector status
@@ -422,7 +316,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param key
      * @param value
      */
-    private void readConnectorStatus(String key, byte[] value) {
+    protected void readConnectorStatus(String key, byte[] value) {
         String connector = parseConnectorStatusKey(key);
         if (connector.isEmpty()) {
             log.warn("Discarding record with invalid connector status key {}", key);
@@ -476,7 +370,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param key
      * @param value
      */
-    private void readTaskStatus(String key, byte[] value) {
+    protected void readTaskStatus(String key, byte[] value) {
         ConnectorTaskId id = parseConnectorTaskId(key);
         if (id == null) {
             log.warn("Receive record with invalid task status key {}", key);

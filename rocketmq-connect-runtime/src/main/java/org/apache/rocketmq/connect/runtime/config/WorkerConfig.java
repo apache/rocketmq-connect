@@ -211,16 +211,20 @@ public class WorkerConfig {
      */
     private long offsetCommitIntervalMsConfig = 30000L;
 
-
+    /**
+     * metrics config
+     */
     private boolean openLogMetricReporter = false;
-
     private String metricsConfigPath;
     private Map<String, Map<String, String>> metricsConfig = new HashMap<>();
 
     /**
-     * compaction topic enabled ， default false
+     * Management service
      */
-    private boolean compactionTopicEnabled = false;
+    private String clusterManagementService;
+    private String configManagementService;
+    private String positionManagementService;
+    private String stateManagementService;
 
     public String getWorkerId() {
         return workerId;
@@ -546,12 +550,36 @@ public class WorkerConfig {
         this.openLogMetricReporter = openLogMetricReporter;
     }
 
-    public boolean isCompactionTopicEnabled() {
-        return compactionTopicEnabled;
+    public String getClusterManagementService() {
+        return clusterManagementService;
     }
 
-    public void setCompactionTopicEnabled(boolean compactionTopicEnabled) {
-        this.compactionTopicEnabled = compactionTopicEnabled;
+    public void setClusterManagementService(String clusterManagementService) {
+        this.clusterManagementService = clusterManagementService;
+    }
+
+    public String getConfigManagementService() {
+        return configManagementService;
+    }
+
+    public void setConfigManagementService(String configManagementService) {
+        this.configManagementService = configManagementService;
+    }
+
+    public String getPositionManagementService() {
+        return positionManagementService;
+    }
+
+    public void setPositionManagementService(String positionManagementService) {
+        this.positionManagementService = positionManagementService;
+    }
+
+    public String getStateManagementService() {
+        return stateManagementService;
+    }
+
+    public void setStateManagementService(String stateManagementService) {
+        this.stateManagementService = stateManagementService;
     }
 
     @Override
@@ -597,7 +625,10 @@ public class WorkerConfig {
                 ", openLogMetricReporter=" + openLogMetricReporter +
                 ", metricsConfigPath='" + metricsConfigPath + '\'' +
                 ", metricsConfig=" + metricsConfig +
-                ", compactionTopicEnabled=" + compactionTopicEnabled +
+                ", clusterManagementService='" + clusterManagementService + '\'' +
+                ", configManagementService='" + configManagementService + '\'' +
+                ", positionManagementService='" + positionManagementService + '\'' +
+                ", stateManagementService='" + stateManagementService + '\'' +
                 '}';
     }
 }

@@ -193,7 +193,7 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         this.connectorConfigUpdateListener = listener;
     }
 
-    private void triggerListener() {
+    protected void triggerListener() {
         if (null == this.connectorConfigUpdateListener) {
             return;
         }
