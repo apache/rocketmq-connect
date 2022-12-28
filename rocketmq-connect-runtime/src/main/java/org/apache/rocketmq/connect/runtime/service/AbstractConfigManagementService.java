@@ -171,6 +171,8 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
 
+    protected boolean enabledCompactTopic;
+
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
         // set config
@@ -179,16 +181,21 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         this.converter.configure(new HashMap<>());
         this.plugin = plugin;
         this.connectorConfigUpdateListener = new HashSet<>();
+        setEnabledCompactTopic();
         this.dataSynchronizer = new BrokerBasedLog<>(workerConfig,
                 this.topic,
                 ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
                 new ConfigChangeCallback(),
                 Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class)
+                Serdes.serdeFrom(byte[].class),
+                enabledCompactTopic
         );
         this.prepare(workerConfig);
     }
 
+    protected void setEnabledCompactTopic(){
+        this.enabledCompactTopic = false;
+    }
     /**
      * Preparation before startup
      *

@@ -42,6 +42,11 @@ public class RocketMQStateManagementServiceImpl extends AbstractStateManagementS
         this.taskStatusStore = new MemoryBasedKeyValueStore<>();
     }
 
+    @Override
+    protected void setEnabledCompactTopic(){
+        this.enabledCompactTopic = true;
+    }
+
     /**
      * Start dependent services (if needed)
      */

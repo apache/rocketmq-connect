@@ -91,12 +91,26 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     private boolean stopRequested;
 
     private Thread thread;
+
+    private boolean enabledCompactTopic = false;
     public BrokerBasedLog(WorkerConfig workerConfig,
-        String topicName,
-        String workId,
-        DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-        Serde keySerde,
-        Serde valueSerde) {
+                          String topicName,
+                          String groupName,
+                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+                          Serde keySerde,
+                          Serde valueSerde,
+                          boolean enabledCompactTopic) {
+        this(workerConfig, topicName, groupName, dataSynchronizerCallback, keySerde, valueSerde);
+        this.enabledCompactTopic = enabledCompactTopic;
+
+    }
+
+    public BrokerBasedLog(WorkerConfig workerConfig,
+                          String topicName,
+                          String groupName,
+                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+                          Serde keySerde,
+                          Serde valueSerde) {
 
         this.topicName = topicName;
         this.keySerde = keySerde;
@@ -107,10 +121,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         this.dataSynchronizerCallback = dataSynchronizerCallback;
         // Init producer
         this.producer = ConnectUtil.initDefaultMQProducer(workerConfig);
-        this.producer.setProducerGroup(workId);
+        this.producer.setProducerGroup(groupName);
         // Init consumer
-        this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
-        this.consumer.setConsumerGroup(workId);
+        if (enabledCompactTopic){
+            this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
+        } else {
+            this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, true);
+        }
+        this.consumer.setConsumerGroup(groupName);
         // prepare config
         this.prepare();
     }
@@ -131,14 +149,18 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             producer.start();
             // start consumer
             consumer.subscribe(topicName, "*");
-            Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
-            for (MessageQueue messageQueue : messageQueues)
-                consumer.seekToBegin(messageQueue);
+            if (enabledCompactTopic){
+                // consume from begin
+                Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
+                for (MessageQueue messageQueue : messageQueues)
+                    consumer.seekToBegin(messageQueue);
+            }
             consumer.start();
 
             // read to log end
-            readToLogEnd();
-
+            if (enabledCompactTopic){
+                readToLogEnd();
+            }
             // start worker thread
             this.thread = new WorkThread();
             this.thread.start();
@@ -216,12 +238,10 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             String encodeKey = Base64Util.base64Encode(encode.getKey());
             Message message = new Message(topicName,null, encodeKey, body);
             producer.send(message, new SelectMessageQueueByHash(), encodeKey, new SendCallback() {
-
                 @Override
                 public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                 }
-
                 @Override
                 public void onException(Throwable throwable) {
                     if (null != throwable) {
@@ -260,7 +280,6 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                     callback.onCompletion(null, value);
                 }
-
                 @Override
                 public void onException(Throwable throwable) {
                     if (null != throwable) {

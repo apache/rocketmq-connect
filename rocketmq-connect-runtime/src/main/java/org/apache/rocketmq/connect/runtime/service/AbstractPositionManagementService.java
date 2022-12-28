@@ -80,6 +80,8 @@ public abstract class AbstractPositionManagementService implements PositionManag
 
     private String topic;
 
+    protected boolean enabledCompactTopic;
+
     public AbstractPositionManagementService() {}
 
     @Override
@@ -92,17 +94,21 @@ public abstract class AbstractPositionManagementService implements PositionManag
         this.needSyncPartition = new ConcurrentSet<>();
         this.commitStarted = -1;
         this.config = workerConfig;
-
+        setEnabledCompactTopic();
         this.dataSynchronizer = new BrokerBasedLog(
                 workerConfig,
                 this.topic,
                 ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
                 new PositionChangeCallback(),
                 Serdes.serdeFrom(ByteBuffer.class),
-                Serdes.serdeFrom(ByteBuffer.class)
+                Serdes.serdeFrom(ByteBuffer.class),
+                enabledCompactTopic
         );
-
         this.prepare(workerConfig);
+    }
+
+    protected void setEnabledCompactTopic(){
+        this.enabledCompactTopic = false;
     }
 
     /**

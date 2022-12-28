@@ -90,6 +90,37 @@ public abstract class AbstractStateManagementService implements StateManagementS
 
     protected RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
     protected String statusTopic;
+    protected boolean enabledCompactTopic;
+
+
+    /**
+     * initialize cb config
+     *
+     * @param config
+     */
+    @Override
+    public void initialize(WorkerConfig config, RecordConverter converter) {
+        // set config
+        this.converter = converter;
+        this.converter.configure(new HashMap<>());
+        this.statusTopic = config.getConnectStatusTopic();
+        setEnabledCompactTopic();
+        this.dataSynchronizer = new BrokerBasedLog(config,
+                this.statusTopic,
+                ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+                new StatusChangeCallback(),
+                Serdes.serdeFrom(String.class),
+                Serdes.serdeFrom(byte[].class),
+                enabledCompactTopic
+        );
+        // create topic
+        this.prepare(config);
+    }
+
+
+    protected void setEnabledCompactTopic(){
+        this.enabledCompactTopic = false;
+    }
 
     /**
      * Preparation before startup
@@ -109,29 +140,6 @@ public abstract class AbstractStateManagementService implements StateManagementS
             TopicConfig topicConfig = new TopicConfig(connectStatusTopic, 1, 1, 6);
             ConnectUtil.createTopic(connectConfig, topicConfig);
         }
-    }
-
-    /**
-     * initialize cb config
-     *
-     * @param config
-     */
-    @Override
-    public void initialize(WorkerConfig config, RecordConverter converter) {
-        // set config
-        this.converter = converter;
-        this.converter.configure(new HashMap<>());
-        this.statusTopic = config.getConnectStatusTopic();
-
-        this.dataSynchronizer = new BrokerBasedLog(config,
-                this.statusTopic,
-                ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
-                new StatusChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class));
-
-        // create topic
-        this.prepare(config);
     }
 
     /**

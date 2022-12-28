@@ -20,13 +20,7 @@ package org.apache.rocketmq.connect.runtime.service;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
-
-import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * Rocketmq config management service impl
@@ -37,25 +31,15 @@ public class RocketMQConfigManagementServiceImpl extends AbstractConfigManagemen
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
-        // set config
-        this.topic = workerConfig.getConfigStoreTopic();
-        this.converter = converter;
-        this.converter.configure(new HashMap<>());
-        this.plugin = plugin;
-
-        this.connectorConfigUpdateListener = new HashSet<>();
-        this.dataSynchronizer = new BrokerBasedLog<>(workerConfig,
-                this.topic,
-                ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
-                new ConfigChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class)
-        );
+        super.initialize(workerConfig, converter, plugin);
         // store connector config
         this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
         // store task config
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
+    }
 
+    protected void setEnabledCompactTopic(){
+        this.enabledCompactTopic = true;
     }
 
     @Override

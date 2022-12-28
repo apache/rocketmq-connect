@@ -35,6 +35,11 @@ public class RocketMQPositionManagementServiceImpl extends AbstractPositionManag
     }
 
     @Override
+    protected void setEnabledCompactTopic(){
+        this.enabledCompactTopic = true;
+    }
+
+    @Override
     public void start() {
         dataSynchronizer.start();
     }
