@@ -1,3 +1,2 @@
-org.apache.rocketmq.connect.runtime.service.memory.MemoryStateManagementServiceImpl
 org.apache.rocketmq.connect.runtime.service.LocalStateManagementServiceImpl
 org.apache.rocketmq.connect.runtime.service.RocketMQStateManagementServiceImpl

@@ -1,3 +1,2 @@
-org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl
 org.apache.rocketmq.connect.runtime.service.LocalPositionManagementServiceImpl
 org.apache.rocketmq.connect.runtime.service.RocketMQPositionManagementServiceImpl
