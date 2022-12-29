@@ -39,6 +39,7 @@ import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.CountDownLatch2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,9 +134,31 @@ public abstract class AbstractConnectController implements ConnectController {
     @Override
     public void start() {
         clusterManagementService.start();
-        positionManagementService.start();
-        stateManagementService.start();
-        configManagementService.start();
+        CountDownLatch2 countDownLatch2 = new CountDownLatch2(3);
+        new Thread(()->{
+            positionManagementService.start();
+            countDownLatch2.countDown();
+        }, "Position data loading").start();
+
+        new Thread(()->{
+            stateManagementService.start();
+            countDownLatch2.countDown();
+        }, "State data loading").start();
+
+        new Thread(()->{
+            configManagementService.start();
+            countDownLatch2.countDown();
+        }, "Config data loading").start();
+
+
+        long startTime = System.currentTimeMillis();
+        try {
+            countDownLatch2.await(); // wait for finished
+        } catch (InterruptedException e) {
+            throw new ConnectException(e);
+        }
+        long endTime = System.currentTimeMillis();
+        log.info("Load config/position/state data finished, cost {}ms. ", (endTime - startTime));
         connectStatsService.start();
         worker.start();
     }
