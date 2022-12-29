@@ -1,12 +1,11 @@
 package org.apache.rocketmq.connect.dingtalk.sink;
 
-import org.apache.rocketmq.connect.dingtalk.sink.common.OkHttpUtils;
-import org.apache.rocketmq.connect.dingtalk.sink.constant.DingTalkConstant;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
-import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
+import org.apache.rocketmq.connect.dingtalk.sink.common.OkHttpUtils;
+import org.apache.rocketmq.connect.dingtalk.sink.constant.DingTalkConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,28 +44,13 @@ public class DingTalkSinkTask extends SinkTask {
     }
 
     @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
-
-    @Override
     public void validate(KeyValue config) {
     }
 
     @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
         webHook = config.getString(DingTalkConstant.WEB_HOOK);
         secretKey = config.getString(DingTalkConstant.SECRET_KEY);
-    }
-
-    @Override
-    public void start(SinkTaskContext sinkTaskContext) {
-        super.start(sinkTaskContext);
     }
 
     @Override

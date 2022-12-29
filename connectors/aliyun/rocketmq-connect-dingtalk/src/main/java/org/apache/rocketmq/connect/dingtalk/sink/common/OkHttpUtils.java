@@ -143,7 +143,7 @@ public class OkHttpUtils {
     }
 
     public OkHttpUtils postForStringBody(Object data) {
-        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), data.toString());
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), JSON.toJSONString(data));
         request = new Request.Builder().post(requestBody).url(url);
         return this;
     }
