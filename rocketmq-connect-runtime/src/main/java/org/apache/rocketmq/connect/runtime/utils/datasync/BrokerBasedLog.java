@@ -127,7 +127,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         this.producer = ConnectUtil.initDefaultMQProducer(workerConfig);
         this.producer.setProducerGroup(groupName);
         // Init consumer
-        this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
+        this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, true);
         this.consumer.setConsumerGroup(groupName);
         // prepare config
         this.prepare();
@@ -191,14 +191,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 Map.Entry<MessageQueue, TopicOffset> offsetEntry = it.next();
                 long lastConsumedOffset = this.consumer.getOffsetStore().readOffset(offsetEntry.getKey(),
                         ReadOffsetType.READ_FROM_MEMORY);
-                if (lastConsumedOffset >= offsetEntry.getValue().getMaxOffset()) {
+                if ((lastConsumedOffset + 1) >= offsetEntry.getValue().getMaxOffset()) {
                     log.trace("Read to end offset {} for {}", offsetEntry.getValue().getMaxOffset(),
                             offsetEntry.getKey().getQueueId());
                     it.remove();
                 } else {
                     log.trace("Behind end offset {} for {}; last-read offset is {}",
                             offsetEntry.getValue().getMaxOffset(), offsetEntry.getKey().getQueueId(), lastConsumedOffset);
-                    poll(Integer.MAX_VALUE);
+                    poll(5000);
                     break;
                 }
             }
@@ -207,17 +207,18 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
 
     private void poll(long timeoutMs) {
         List<MessageExt> records = consumer.poll(timeoutMs);
-        for (MessageExt messageExt : records) {
-            log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
+        for (MessageExt message : records) {
+            log.info("Received one message: {}, topic is {}", message.getMsgId() + "\n", topicName);
             try {
-                String key = messageExt.getKeys();
-                Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
+                String key = message.getKeys();
+                Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), message.getBody());
                 dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
+                MessageQueue messageQueue = new MessageQueue(message.getTopic(), message.getBrokerName(),message.getQueueId());
+                this.consumer.getOffsetStore().updateOffset(messageQueue, message.getQueueOffset(), false);
             } catch (Exception e) {
-                log.error("Decode message data error. message: {}, error info: {}", messageExt, e);
+                log.error("Decode message data error. message: {}, error info: {}", message, e);
             }
         }
-        this.consumer.commitSync();
     }
 
     @Override
