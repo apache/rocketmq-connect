@@ -94,6 +94,8 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
 
     private boolean enabledCompactTopic = false;
 
+    private String groupName;
+
     public BrokerBasedLog(WorkerConfig workerConfig,
                           String topicName,
                           String groupName,
@@ -118,6 +120,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         this.valueSerde = valueSerde;
         this.workerConfig = workerConfig;
         this.stopRequested = false;
+        this.groupName = groupName;
 
         this.dataSynchronizerCallback = dataSynchronizerCallback;
         // Init producer
@@ -153,9 +156,13 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             // Fetch message queues
             Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
             this.consumer.assign(messageQueues);
-            if (enabledCompactTopic) {
-                for (MessageQueue messageQueue : messageQueues)
+
+            for (MessageQueue messageQueue : messageQueues){
+                if (enabledCompactTopic){
                     consumer.seekToBegin(messageQueue);
+                } else {
+                    consumer.seekToEnd(messageQueue);
+                }
             }
 
             // read to log end
@@ -289,7 +296,6 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                         log.error("Send async message Failed, error: {}", throwable);
                         // Keep sending until success
                         send(key, value, callback);
-                        callback.onCompletion(throwable, value);
                     }
                 }
             });

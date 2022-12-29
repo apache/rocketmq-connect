@@ -140,7 +140,7 @@ public class ServiceProviderUtil {
         Iterator<StateManagementService> stateManagementServiceIterator = stateManagementServices.iterator();
         while (stateManagementServiceIterator.hasNext()) {
             StateManagementService currentStateManagementService = stateManagementServiceIterator.next();
-            if (currentStateManagementService.getClass().getName() == stateManagementServiceClazz) {
+            if (currentStateManagementService.getClass().getName().equals(stateManagementServiceClazz)) {
                 stateManagementService = currentStateManagementService;
                 break;
             }
