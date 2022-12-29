@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>rocketmq-connect-reporter</artifactId>
+    <artifactId>metric-exporter</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
