@@ -21,7 +21,6 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
@@ -29,15 +28,11 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
-import org.apache.rocketmq.connect.runtime.serialization.JsonSerde;
-import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
-import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
@@ -59,31 +54,32 @@ import java.util.Set;
  */
 public abstract class AbstractStateManagementService implements StateManagementService {
 
-    protected static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private final String statusManagePrefix = "StatusManage";
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
-
     public static final String STATE_KEY_NAME = "state";
     public static final String TRACE_KEY_NAME = "trace";
     public static final String WORKER_ID_KEY_NAME = "worker_id";
     public static final String GENERATION_KEY_NAME = "generation";
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
             .field(STATE_KEY_NAME, SchemaBuilder.string().build())
             .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
             .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
             .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
             .build();
-
+    private final String statusManagePrefix = "StatusManage";
     /**
      * Synchronize config with other workers.
      */
     protected DataSynchronizer<String, byte[]> dataSynchronizer;
 
-    /** Current connector status in the store. */
+    /**
+     * Current connector status in the store.
+     */
     protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
-    /** Current task status in the store. */
+    /**
+     * Current task status in the store.
+     */
     protected KeyValueStore<String, List<TaskStatus>> taskStatusStore;
 
     protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
@@ -118,7 +114,7 @@ public abstract class AbstractStateManagementService implements StateManagementS
     }
 
 
-    protected void setEnabledCompactTopic(){
+    protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = false;
     }
 
@@ -303,18 +299,7 @@ public abstract class AbstractStateManagementService implements StateManagementS
     }
 
 
-
-
-
-
     // ======= Start receives the status message and transforms the storage ======
-
-    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
-        @Override
-        public void onCompletion(Throwable error, String key, byte[] value) {
-            process(key, value);
-        }
-    }
 
     protected abstract void process(String key, byte[] value);
 
@@ -454,6 +439,13 @@ public abstract class AbstractStateManagementService implements StateManagementS
             for (ConnAndTaskStatus.CacheEntry<TaskStatus> taskEntry : tasks.values()) {
                 taskEntry.delete();
             }
+        }
+    }
+
+    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
+        @Override
+        public void onCompletion(Throwable error, String key, byte[] value) {
+            process(key, value);
         }
     }
 

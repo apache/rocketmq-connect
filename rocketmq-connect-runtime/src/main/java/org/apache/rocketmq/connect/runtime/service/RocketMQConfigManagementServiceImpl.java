@@ -27,7 +27,8 @@ import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
  */
 public class RocketMQConfigManagementServiceImpl extends AbstractConfigManagementService {
 
-    public RocketMQConfigManagementServiceImpl() {}
+    public RocketMQConfigManagementServiceImpl() {
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
@@ -38,7 +39,7 @@ public class RocketMQConfigManagementServiceImpl extends AbstractConfigManagemen
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
     }
 
-    protected void setEnabledCompactTopic(){
+    protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = true;
     }
 

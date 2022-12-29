@@ -36,12 +36,13 @@ public class ServiceProviderUtil {
 
     /**
      * Get custer management service by class name
+     *
      * @param clusterManagementServiceClazz
      * @return
      */
     @NotNull
     public static ClusterManagementService getClusterManagementService(String clusterManagementServiceClazz) {
-        if (StringUtils.isEmpty(clusterManagementServiceClazz)){
+        if (StringUtils.isEmpty(clusterManagementServiceClazz)) {
             clusterManagementServiceClazz = ClusterManagementServiceImpl.class.getName();
         }
 
@@ -66,6 +67,7 @@ public class ServiceProviderUtil {
 
     /**
      * Get config management service by class name
+     *
      * @param configManagementServiceClazz
      * @return
      */
@@ -94,12 +96,13 @@ public class ServiceProviderUtil {
 
     /**
      * Get position management service by class name
+     *
      * @param positionManagementServiceClazz
      * @return
      */
     @NotNull
     public static PositionManagementService getPositionManagementService(String positionManagementServiceClazz) {
-        if (StringUtils.isEmpty(positionManagementServiceClazz)){
+        if (StringUtils.isEmpty(positionManagementServiceClazz)) {
             positionManagementServiceClazz = LocalPositionManagementServiceImpl.class.getName();
         }
 
@@ -123,12 +126,13 @@ public class ServiceProviderUtil {
 
     /**
      * Get state management service by class name
+     *
      * @param stateManagementServiceClazz
      * @return
      */
     @NotNull
     public static StateManagementService getStateManagementService(String stateManagementServiceClazz) {
-        if (StringUtils.isEmpty(stateManagementServiceClazz)){
+        if (StringUtils.isEmpty(stateManagementServiceClazz)) {
             stateManagementServiceClazz = LocalStateManagementServiceImpl.class.getName();
         }
         StateManagementService stateManagementService = null;

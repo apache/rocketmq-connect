@@ -39,7 +39,6 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
-import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -62,9 +61,8 @@ import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTas
 
 public class ConnectUtil {
 
-    private final static AtomicLong GROUP_POSTFIX_ID = new AtomicLong(0);
-
     public static final String SYS_TASK_CG_PREFIX = "connect-";
+    private final static AtomicLong GROUP_POSTFIX_ID = new AtomicLong(0);
 
     public static String createGroupName(String prefix) {
         StringBuilder sb = new StringBuilder();
@@ -312,7 +310,7 @@ public class ConnectUtil {
      * @return
      * @throws MQClientException
      */
-    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, boolean autoCommit){
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, boolean autoCommit) {
         DefaultLitePullConsumer consumer = null;
         if (Objects.isNull(consumer)) {
             if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {

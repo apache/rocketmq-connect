@@ -70,36 +70,26 @@ import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECT
  */
 public abstract class AbstractConfigManagementService implements ConfigManagementService {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
     public static final String TARGET_STATE_PREFIX = "target-state-";
-
-    public static String TARGET_STATE_KEY(String connectorName) {
-        return TARGET_STATE_PREFIX + connectorName;
-    }
-
     public static final String CONNECTOR_PREFIX = "connector-";
-
-    public static String CONNECTOR_KEY(String connectorName) {
-        return CONNECTOR_PREFIX + connectorName;
-    }
-
     public static final String TASK_PREFIX = "task-";
-
-    public static String TASK_KEY(ConnectorTaskId taskId) {
-        return TASK_PREFIX + taskId.connector() + "-" + taskId.task();
-    }
-
     public static final String DELETE_CONNECTOR_PREFIX = "delete-";
-
-    public static String DELETE_CONNECTOR_KEY(String connectorName) {
-        return DELETE_CONNECTOR_PREFIX + connectorName;
-    }
-
     protected static final String FIELD_STATE = "state";
     protected static final String FIELD_EPOCH = "epoch";
+    /**
+     * delete connector
+     */
+    public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .build();
+    /**
+     * connector state
+     */
+    public static final Schema TARGET_STATE_V0 = SchemaBuilder.struct()
+            .field(FIELD_STATE, SchemaBuilder.string().build())
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .build();
     protected static final String FIELD_PROPS = "properties";
-
     /**
      * connector configuration
      */
@@ -112,14 +102,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
                             SchemaBuilder.string().optional().build()
                     ).build())
             .build();
-
-    /**
-     * delete connector
-     */
-    public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .build();
-
     /**
      * task configuration
      */
@@ -131,47 +113,48 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
                             SchemaBuilder.string().optional().build()
                     ).build())
             .build();
-
-    /**
-     * connector state
-     */
-    public static final Schema TARGET_STATE_V0 = SchemaBuilder.struct()
-            .field(FIELD_STATE, SchemaBuilder.string().build())
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .build();
-
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    protected final String configManagePrefix = "ConfigManage";
     /**
      * All listeners to trigger while config change.
      */
     protected Set<ConnectorConfigUpdateListener> connectorConfigUpdateListener;
-
     /**
      * Synchronize config with other workers.
      */
     protected DataSynchronizer<String, byte[]> dataSynchronizer;
-
-    protected final String configManagePrefix = "ConfigManage";
-
     // config store topic
     protected String topic;
     // converter
     protected RecordConverter converter;
     // worker config
     protected WorkerConfig workerConfig;
-
     protected Plugin plugin;
-
     /**
      * Current task configs in the store.
      */
     protected KeyValueStore<String, List<ConnectKeyValue>> taskKeyValueStore;
-
     /**
      * Current connector configs in the store.
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
-
     protected boolean enabledCompactTopic;
+
+    public static String TARGET_STATE_KEY(String connectorName) {
+        return TARGET_STATE_PREFIX + connectorName;
+    }
+
+    public static String CONNECTOR_KEY(String connectorName) {
+        return CONNECTOR_PREFIX + connectorName;
+    }
+
+    public static String TASK_KEY(ConnectorTaskId taskId) {
+        return TASK_PREFIX + taskId.connector() + "-" + taskId.task();
+    }
+
+    public static String DELETE_CONNECTOR_KEY(String connectorName) {
+        return DELETE_CONNECTOR_PREFIX + connectorName;
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
@@ -193,9 +176,10 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         this.prepare(workerConfig);
     }
 
-    protected void setEnabledCompactTopic(){
+    protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = false;
     }
+
     /**
      * Preparation before startup
      *
@@ -446,22 +430,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     }
 
 
-
-
-
     // ======= Start receives the config message and transforms the storage ======
-
-    protected class ConfigChangeCallback implements DataSynchronizerCallback<String, byte[]> {
-        @Override
-        public void onCompletion(Throwable error, String key, byte[] value) {
-            if (StringUtils.isEmpty(key)) {
-                log.error("Config change message is illegal, key is empty, the message will be skipped");
-                return;
-            }
-            SchemaAndValue schemaAndValue = converter.toConnectData(topic, value);
-            process(key, schemaAndValue);
-        }
-    }
 
     protected void process(String key, SchemaAndValue schemaAndValue) {
         if (key.startsWith(TARGET_STATE_PREFIX)) {
@@ -630,6 +599,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         }
         return false;
     }
+
     private ConnectorTaskId parseTaskId(String key) {
         String[] parts = key.split("-");
         if (parts.length < 3) {
@@ -647,6 +617,18 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
 
     private String className(Object o) {
         return o != null ? o.getClass().getName() : "null";
+    }
+
+    protected class ConfigChangeCallback implements DataSynchronizerCallback<String, byte[]> {
+        @Override
+        public void onCompletion(Throwable error, String key, byte[] value) {
+            if (StringUtils.isEmpty(key)) {
+                log.error("Config change message is illegal, key is empty, the message will be skipped");
+                return;
+            }
+            SchemaAndValue schemaAndValue = converter.toConnectData(topic, value);
+            process(key, schemaAndValue);
+        }
     }
 
 }

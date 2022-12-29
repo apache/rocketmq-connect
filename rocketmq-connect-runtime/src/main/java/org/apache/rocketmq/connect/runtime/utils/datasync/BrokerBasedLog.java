@@ -93,6 +93,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     private Thread thread;
 
     private boolean enabledCompactTopic = false;
+
     public BrokerBasedLog(WorkerConfig workerConfig,
                           String topicName,
                           String groupName,
@@ -123,7 +124,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         this.producer = ConnectUtil.initDefaultMQProducer(workerConfig);
         this.producer.setProducerGroup(groupName);
         // Init consumer
-        if (enabledCompactTopic){
+        if (enabledCompactTopic) {
             this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
         } else {
             this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, true);
@@ -152,19 +153,19 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             // Fetch message queues
             Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
             this.consumer.assign(messageQueues);
-            if (enabledCompactTopic){
+            if (enabledCompactTopic) {
                 for (MessageQueue messageQueue : messageQueues)
                     consumer.seekToBegin(messageQueue);
             }
 
             // read to log end
-            if (enabledCompactTopic){
+            if (enabledCompactTopic) {
                 readToLogEnd();
             }
             // start worker thread
             this.thread = new WorkThread();
             this.thread.start();
-        } catch (MQClientException | MQBrokerException | RemotingException | InterruptedException  e) {
+        } catch (MQClientException | MQBrokerException | RemotingException | InterruptedException e) {
             log.error("Start error.", e);
         }
     }
@@ -176,13 +177,13 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         DefaultMQAdminExt adminClient = ConnectUtil.startMQAdminTool(workerConfig);
         TopicStatsTable topicStatsTable = adminClient.examineTopicStats(topicName);
         HashMap<MessageQueue, TopicOffset> minAndMaxOffsets = topicStatsTable.getOffsetTable();
-        while (!minAndMaxOffsets.isEmpty()){
+        while (!minAndMaxOffsets.isEmpty()) {
             Iterator<Map.Entry<MessageQueue, TopicOffset>> it = minAndMaxOffsets.entrySet().iterator();
-            while (it.hasNext()){
+            while (it.hasNext()) {
                 Map.Entry<MessageQueue, TopicOffset> offsetEntry = it.next();
                 long lastConsumedOffset = this.consumer.getOffsetStore().readOffset(offsetEntry.getKey(),
                         ReadOffsetType.READ_FROM_MEMORY);
-                if (lastConsumedOffset >= offsetEntry.getValue().getMaxOffset() ){
+                if (lastConsumedOffset >= offsetEntry.getValue().getMaxOffset()) {
                     log.trace("Read to end offset {} for {}", offsetEntry.getValue().getMaxOffset(),
                             offsetEntry.getKey().getQueueId());
                     it.remove();
@@ -198,7 +199,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
 
     private void poll(long timeoutMs) {
         List<MessageExt> records = consumer.poll(timeoutMs);
-        for (MessageExt messageExt : records){
+        for (MessageExt messageExt : records) {
             log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
             try {
                 String key = messageExt.getKeys();
@@ -236,12 +237,13 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 return;
             }
             String encodeKey = Base64Util.base64Encode(encode.getKey());
-            Message message = new Message(topicName,null, encodeKey, body);
+            Message message = new Message(topicName, null, encodeKey, body);
             producer.send(message, new SelectMessageQueueByHash(), encodeKey, new SendCallback() {
                 @Override
                 public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                 }
+
                 @Override
                 public void onException(Throwable throwable) {
                     if (null != throwable) {
@@ -273,13 +275,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 return;
             }
             String encodeKey = Base64Util.base64Encode(encode.getKey());
-            Message message = new Message(topicName, null, encodeKey,  body);
+            Message message = new Message(topicName, null, encodeKey, body);
             producer.send(message, new SelectMessageQueueByHash(), encodeKey, new SendCallback() {
                 @Override
                 public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
                     callback.onCompletion(null, value);
                 }
+
                 @Override
                 public void onException(Throwable throwable) {
                     if (null != throwable) {
@@ -341,6 +344,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         public WorkThread() {
             super("BrokerBasedLog Work Thread - " + topicName);
         }
+
         @Override
         public void run() {
             try {

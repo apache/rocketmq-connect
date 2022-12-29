@@ -43,46 +43,34 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.lang.Thread.sleep;
-
 /**
  * Abstract position management service
  */
 public abstract class AbstractPositionManagementService implements PositionManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
+    private final String positionManagePrefix = "PositionManage";
     /**
      * Current position info in store.
      */
     protected KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
-
     /**
      * Synchronize data with other workers.
      */
     protected DataSynchronizer<ByteBuffer, ByteBuffer> dataSynchronizer;
-
     protected AtomicBoolean committing = new AtomicBoolean(false);
-
     protected WorkerConfig config;
-
-
+    protected boolean enabledCompactTopic;
     private long commitStarted;
-
     /**
      * need sync position
      */
     private Set<ExtendRecordPartition> needSyncPartition;
-
-    private final String positionManagePrefix = "PositionManage";
-
     private RecordConverter keyConverter;
     private RecordConverter valueConverter;
-
     private String topic;
 
-    protected boolean enabledCompactTopic;
-
-    public AbstractPositionManagementService() {}
+    public AbstractPositionManagementService() {
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
@@ -107,7 +95,7 @@ public abstract class AbstractPositionManagementService implements PositionManag
         this.prepare(workerConfig);
     }
 
-    protected void setEnabledCompactTopic(){
+    protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = false;
     }
 
@@ -219,8 +207,6 @@ public abstract class AbstractPositionManagementService implements PositionManag
     }
 
 
-
-
     /**
      * send position
      *
@@ -235,29 +221,6 @@ public abstract class AbstractPositionManagementService implements PositionManag
         byte[] value = valueConverter.fromConnectData(namespace, null, position != null ? position.getOffset() : new HashMap<>());
         ByteBuffer valueBuffer = (value != null) ? ByteBuffer.wrap(value) : null;
         dataSynchronizer.send(keyBuffer, valueBuffer);
-    }
-
-    private class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
-
-        @Override
-        public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {
-            if (key == null) {
-                log.warn("The received position information key is empty and cannot be parsed. the message will be skipped");
-                return;
-            }
-            SchemaAndValue schemaAndValueKey = keyConverter.toConnectData(topic, key.array());
-            if (schemaAndValueKey.value() == null || schemaAndValueKey.value() == null) {
-                log.error("The format of the monitored offset change data is wrong and will be discarded , schema and value {}", schemaAndValueKey.toString());
-                return;
-            }
-            List<Object> deKey = (List<Object>) schemaAndValueKey.value();
-            if (deKey.isEmpty() || deKey.size() != 3) {
-                log.error("The format of the monitored offset change data is wrong and will be discarded , message {}", deKey);
-                return;
-            }
-            String changeKey = (String) deKey.get(0);
-            process(result, deKey, PositionChange.valueOf(changeKey));
-        }
     }
 
     protected void process(ByteBuffer result, List<Object> deKey, PositionChange key) {
@@ -318,5 +281,28 @@ public abstract class AbstractPositionManagementService implements PositionManag
          * A worker online.
          */
         ONLINE
+    }
+
+    private class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
+
+        @Override
+        public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {
+            if (key == null) {
+                log.warn("The received position information key is empty and cannot be parsed. the message will be skipped");
+                return;
+            }
+            SchemaAndValue schemaAndValueKey = keyConverter.toConnectData(topic, key.array());
+            if (schemaAndValueKey.value() == null || schemaAndValueKey.value() == null) {
+                log.error("The format of the monitored offset change data is wrong and will be discarded , schema and value {}", schemaAndValueKey.toString());
+                return;
+            }
+            List<Object> deKey = (List<Object>) schemaAndValueKey.value();
+            if (deKey.isEmpty() || deKey.size() != 3) {
+                log.error("The format of the monitored offset change data is wrong and will be discarded , message {}", deKey);
+                return;
+            }
+            String changeKey = (String) deKey.get(0);
+            process(result, deKey, PositionChange.valueOf(changeKey));
+        }
     }
 }

@@ -26,7 +26,8 @@ import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
  */
 public class RocketMQPositionManagementServiceImpl extends AbstractPositionManagementService {
 
-    public RocketMQPositionManagementServiceImpl() {}
+    public RocketMQPositionManagementServiceImpl() {
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
@@ -35,7 +36,7 @@ public class RocketMQPositionManagementServiceImpl extends AbstractPositionManag
     }
 
     @Override
-    protected void setEnabledCompactTopic(){
+    protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = true;
     }
 

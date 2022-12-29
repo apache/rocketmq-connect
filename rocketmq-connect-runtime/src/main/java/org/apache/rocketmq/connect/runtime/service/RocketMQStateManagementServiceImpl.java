@@ -43,7 +43,7 @@ public class RocketMQStateManagementServiceImpl extends AbstractStateManagementS
     }
 
     @Override
-    protected void setEnabledCompactTopic(){
+    protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = true;
     }
 
