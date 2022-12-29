@@ -50,7 +50,9 @@ public class RocketMQConfigManagementServiceImpl extends AbstractConfigManagemen
 
     @Override
     public void stop() {
-        dataSynchronizer.stop();
+        if (dataSynchronizer != null) {
+            dataSynchronizer.stop();
+        }
     }
 
     @Override

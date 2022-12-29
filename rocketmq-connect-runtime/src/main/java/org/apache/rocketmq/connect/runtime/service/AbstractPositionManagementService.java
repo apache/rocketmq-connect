@@ -229,6 +229,7 @@ public abstract class AbstractPositionManagementService implements PositionManag
                 processPositionChange(result, deKey);
                 break;
             default:
+                log.warn("Discarding position update record with invalid key: {}", key);
                 break;
         }
     }

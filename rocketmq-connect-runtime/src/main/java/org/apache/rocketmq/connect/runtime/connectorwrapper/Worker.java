@@ -457,7 +457,9 @@ public class Worker {
         executor.shutdown();
 
         // stop connectors
-        workerState.set(WorkerState.TERMINATED);
+        if (workerState != null) {
+            workerState.set(WorkerState.TERMINATED);
+        }
         Set<Runnable> runningTasks = this.runningTasks;
         for (Runnable task : runningTasks) {
             awaitStopTask((WorkerTask) task, 5000);

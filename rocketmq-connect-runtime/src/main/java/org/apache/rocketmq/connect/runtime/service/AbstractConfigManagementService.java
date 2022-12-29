@@ -454,7 +454,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             String connectorName = key.substring(DELETE_CONNECTOR_PREFIX.length());
             processDeleteConnectorRecord(connectorName, schemaAndValue);
         } else {
-            log.error("Discarding config update record with invalid key: {}", key);
+            log.warn("Discarding config update record with invalid key: {}", key);
         }
     }
 

@@ -133,10 +133,10 @@ public abstract class AbstractConnectController implements ConnectController {
     @Override
     public void start() {
         clusterManagementService.start();
-        configManagementService.start();
         positionManagementService.start();
-        connectStatsService.start();
         stateManagementService.start();
+        configManagementService.start();
+        connectStatsService.start();
         worker.start();
     }
 

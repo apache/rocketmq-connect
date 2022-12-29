@@ -127,11 +127,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         this.producer = ConnectUtil.initDefaultMQProducer(workerConfig);
         this.producer.setProducerGroup(groupName);
         // Init consumer
-        if (enabledCompactTopic) {
-            this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
-        } else {
-            this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, true);
-        }
+        this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
         this.consumer.setConsumerGroup(groupName);
         // prepare config
         this.prepare();
@@ -157,14 +153,19 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
             this.consumer.assign(messageQueues);
 
+            DefaultMQAdminExt adminClient = ConnectUtil.startMQAdminTool(workerConfig);
+            TopicStatsTable topicStatsTable = adminClient.examineTopicStats(topicName);
+            HashMap<MessageQueue, TopicOffset> minAndMaxOffsets = topicStatsTable.getOffsetTable();
             for (MessageQueue messageQueue : messageQueues){
                 if (enabledCompactTopic){
                     consumer.seekToBegin(messageQueue);
+                    // update message queue first
+                    consumer.getOffsetStore().updateOffset(messageQueue,
+                            minAndMaxOffsets.get(messageQueue).getMinOffset(), false);
                 } else {
                     consumer.seekToEnd(messageQueue);
                 }
             }
-
             // read to log end
             if (enabledCompactTopic) {
                 readToLogEnd();
@@ -216,6 +217,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 log.error("Decode message data error. message: {}, error info: {}", messageExt, e);
             }
         }
+        this.consumer.commitSync();
     }
 
     @Override
@@ -224,14 +226,20 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             stopRequested = true;
         }
         try {
-            thread.join();
+            if (thread != null) {
+                thread.join();
+            }
         } catch (InterruptedException e) {
             throw new ConnectException("Failed to stop BrokerBasedLog. Exiting without cleanly shutting " +
                     "down it's producer and consumer.", e);
         }
         // shut down
-        producer.shutdown();
-        consumer.shutdown();
+        if (producer != null) {
+            producer.shutdown();
+        }
+        if (consumer != null) {
+            consumer.shutdown();
+        }
     }
 
     @Override
