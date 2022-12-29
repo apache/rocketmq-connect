@@ -148,14 +148,14 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             // start producer
             producer.start();
             // start consumer
-            consumer.subscribe(topicName, "*");
+            consumer.start();
+            // Fetch message queues
+            Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
+            this.consumer.assign(messageQueues);
             if (enabledCompactTopic){
-                // consume from begin
-                Collection<MessageQueue> messageQueues = consumer.fetchMessageQueues(topicName);
                 for (MessageQueue messageQueue : messageQueues)
                     consumer.seekToBegin(messageQueue);
             }
-            consumer.start();
 
             // read to log end
             if (enabledCompactTopic){
