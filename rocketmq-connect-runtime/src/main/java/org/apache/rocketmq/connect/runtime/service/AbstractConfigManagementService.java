@@ -503,7 +503,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
      * @param schemaAndValue
      */
     private void processTaskConfigRecord(ConnectorTaskId taskId, SchemaAndValue schemaAndValue) {
-        // No-op
+        // No-op [Wait for implementation]
     }
 
     /**
