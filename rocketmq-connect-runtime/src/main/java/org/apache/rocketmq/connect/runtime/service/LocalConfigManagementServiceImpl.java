@@ -137,8 +137,6 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
                 dataSynchronizer.send(TASK_KEY(taskId), body);
             });
         });
-        // reblance
-        triggerListener();
     }
 
 }
