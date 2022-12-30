@@ -141,5 +141,4 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
         triggerListener();
     }
 
-
 }

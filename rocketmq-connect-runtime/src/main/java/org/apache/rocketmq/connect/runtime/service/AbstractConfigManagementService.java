@@ -79,14 +79,15 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     protected static final String FIELD_PROPS = "properties";
     protected static final String FIELD_DELETED = "deleted";
     /**
-     * delete connector
+     * delete connector V0
      */
+    @Deprecated
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
             .field(FIELD_EPOCH, SchemaBuilder.int64().build())
             .build();
 
     /**
-     * delete connector
+     * delete connector V1
      */
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V1 = SchemaBuilder.struct()
             .field(FIELD_EPOCH, SchemaBuilder.int64().build())
@@ -445,7 +446,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         if (key.startsWith(TARGET_STATE_PREFIX)) {
             // target state listener
             String connectorName = key.substring(TARGET_STATE_PREFIX.length());
-            if (schemaAndValue.schema().getFieldsByName().containsKey(FIELD_DELETED)) {
+            if (schemaAndValue.schema().equals(CONNECTOR_DELETE_CONFIGURATION_V1)) {
                 processDeleteConnectorRecord(connectorName, schemaAndValue);
             } else {
                 processTargetStateRecord(connectorName, schemaAndValue);
