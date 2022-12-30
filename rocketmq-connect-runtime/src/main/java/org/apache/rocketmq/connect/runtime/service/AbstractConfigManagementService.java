@@ -76,11 +76,21 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     public static final String DELETE_CONNECTOR_PREFIX = "delete-";
     protected static final String FIELD_STATE = "state";
     protected static final String FIELD_EPOCH = "epoch";
+    protected static final String FIELD_PROPS = "properties";
+    protected static final String FIELD_DELETED = "deleted";
     /**
      * delete connector
      */
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
             .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .build();
+
+    /**
+     * delete connector
+     */
+    public static final Schema CONNECTOR_DELETE_CONFIGURATION_V1 = SchemaBuilder.struct()
+            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+            .field(FIELD_DELETED, SchemaBuilder.bool().build())
             .build();
     /**
      * connector state
@@ -89,7 +99,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             .field(FIELD_STATE, SchemaBuilder.string().build())
             .field(FIELD_EPOCH, SchemaBuilder.int64().build())
             .build();
-    protected static final String FIELD_PROPS = "properties";
     /**
      * connector configuration
      */
@@ -255,11 +264,11 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             throw new ConnectException("Connector [" + connectorName + "] does not exist");
         }
         // new struct
-        Struct struct = new Struct(CONNECTOR_DELETE_CONFIGURATION_V0);
+        Struct struct = new Struct(CONNECTOR_DELETE_CONFIGURATION_V1);
         struct.put(FIELD_EPOCH, System.currentTimeMillis());
-
-        byte[] config = converter.fromConnectData(topic, CONNECTOR_DELETE_CONFIGURATION_V0, struct);
-        dataSynchronizer.send(DELETE_CONNECTOR_KEY(connectorName), config);
+        struct.put(FIELD_DELETED, true);
+        byte[] config = converter.fromConnectData(topic, CONNECTOR_DELETE_CONFIGURATION_V1, struct);
+        dataSynchronizer.send(CONNECTOR_KEY(connectorName), config);
     }
 
     /**
@@ -436,7 +445,11 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         if (key.startsWith(TARGET_STATE_PREFIX)) {
             // target state listener
             String connectorName = key.substring(TARGET_STATE_PREFIX.length());
-            processTargetStateRecord(connectorName, schemaAndValue);
+            if (schemaAndValue.schema().getFieldsByName().containsKey(FIELD_DELETED)) {
+                processDeleteConnectorRecord(connectorName, schemaAndValue);
+            } else {
+                processTargetStateRecord(connectorName, schemaAndValue);
+            }
         } else if (key.startsWith(CONNECTOR_PREFIX)) {
             // connector config update
             String connectorName = key.substring(CONNECTOR_PREFIX.length());
@@ -450,7 +463,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             }
             processTaskConfigRecord(taskId, schemaAndValue);
         } else if (key.startsWith(DELETE_CONNECTOR_PREFIX)) {
-            // delete connector
+            // delete connector[ Compatible with V0 ]
             String connectorName = key.substring(DELETE_CONNECTOR_PREFIX.length());
             processDeleteConnectorRecord(connectorName, schemaAndValue);
         } else {
