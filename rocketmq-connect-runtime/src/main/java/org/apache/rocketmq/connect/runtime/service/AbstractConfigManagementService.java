@@ -19,6 +19,8 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.rocketmq.connect.runtime.common.ConfigException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
@@ -67,6 +69,9 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         // load connector
         Connector connector = loadConnector(configs);
         List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
+        if (CollectionUtils.isEmpty(taskConfigs)) {
+            throw new ConfigException("The connector  " + connectorName + " taskConfigs is empty, Please check configuration");
+        }
         List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
         int taskId = 0;
         for (KeyValue keyValue : taskConfigs) {
