@@ -34,8 +34,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.connect.debezium.RocketMQConnectUtil;
-import org.apache.rocketmq.connect.debezium.RocketMqConnectConfig;
+import org.apache.rocketmq.connect.debezium.RocketMqAdminUtil;
+import org.apache.rocketmq.connect.debezium.RocketMqConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +100,7 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
     private final String accessKey;
     private final String secretKey;
     private final String connectorName;
-    private final RocketMqConnectConfig rocketMqConnectConfig;
+    private final RocketMqConfig rocketMqConfig;
     private final MySqlReadOnlyIncrementalSnapshotChangeEventSource<T> eventSource;
     private final DefaultLitePullConsumer signalsConsumer;
 
@@ -119,8 +119,8 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
         this.accessKey = signalConfig.getString(ROCKETMQ_ACCESS_KEY);
         this.secretKey = signalConfig.getString(ROCKETMQ_SECRET_KEY);
         this.nameSrvAddrs = signalConfig.getString(NAME_SRV_ADDR);
-        this.rocketMqConnectConfig = RocketMqConnectConfig.newBuilder()
-                .rmqConsumerGroup(connectorName.concat("-signal-group"))
+        this.rocketMqConfig = RocketMqConfig.newBuilder()
+                .groupId(connectorName.concat("-signal-group"))
                 .namesrvAddr(this.nameSrvAddrs)
                 .aclEnable(this.aclEnabled)
                 .accessKey(this.accessKey)
@@ -145,18 +145,18 @@ public class RocketMqSignalThread<T extends DataCollectionId> {
 
     private DefaultLitePullConsumer initDefaultLitePullConsumer() throws MQClientException {
         // create topic
-        if (!RocketMQConnectUtil.topicExist(this.rocketMqConnectConfig, this.topicName)) {
+        if (!RocketMqAdminUtil.topicExist(this.rocketMqConfig, this.topicName)) {
             // read queue 1, write queue 1, prem 1
-            RocketMQConnectUtil.createTopic(this.rocketMqConnectConfig, new TopicConfig(this.topicName, 1, 1, 6));
+            RocketMqAdminUtil.createTopic(this.rocketMqConfig, new TopicConfig(this.topicName, 1, 1, 6));
             LOGGER.info("Create rocketmq signal topic {}", this.topicName);
         }
         String groupName = connectorName.concat("-signal-group");
-        Set<String> groupSet = RocketMQConnectUtil.fetchAllConsumerGroup(this.rocketMqConnectConfig);
+        Set<String> groupSet = RocketMqAdminUtil.fetchAllConsumerGroup(this.rocketMqConfig);
         if (!groupSet.contains(groupName)) {
             // create consumer group
-            RocketMQConnectUtil.createSubGroup(this.rocketMqConnectConfig, rocketMqConnectConfig.getRmqConsumerGroup());
+            RocketMqAdminUtil.createSubGroup(this.rocketMqConfig, rocketMqConfig.getGroupId());
         }
-        return RocketMQConnectUtil.initDefaultLitePullConsumer(rocketMqConnectConfig, false);
+        return RocketMqAdminUtil.initDefaultLitePullConsumer(rocketMqConfig, false);
 
     }
 
