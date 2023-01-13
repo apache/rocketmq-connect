@@ -23,14 +23,12 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
-import io.openmessaging.connector.api.data.RecordPartition;
-import io.openmessaging.connector.api.data.RecordPosition;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
+
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -40,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -167,6 +166,17 @@ public class WorkerSourceTask extends WorkerTask {
         this.sourceTaskMetricsGroup = new SourceTaskMetricsGroup(id, connectMetrics);
     }
 
+    @Nullable
+    private static String overwriteTopicFromRecord(ConnectRecord record) {
+        KeyValue extensions = record.getExtensions();
+        String o = extensions.getString(TOPIC, null);
+        if (null == o) {
+            log.error("Partition map element topic is null , lack of topic config");
+            return null;
+        }
+        return o;
+    }
+
     private List<ConnectRecord> poll() throws InterruptedException {
         try {
             List<ConnectRecord> connectRecords = sourceTask.poll();
@@ -184,6 +194,7 @@ public class WorkerSourceTask extends WorkerTask {
         super.removeMetrics();
         Utils.closeQuietly(sourceTaskMetricsGroup, "Remove source " + id.toString() + " metrics");
     }
+
     @Override
     public void close() {
         sourceTask.stop();
@@ -421,28 +432,6 @@ public class WorkerSourceTask extends WorkerTask {
             ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
         }
         return topic;
-    }
-
-    @Nullable
-    private static String overwriteTopicFromRecord(ConnectRecord record) {
-        RecordPosition recordPosition = record.getPosition();
-        if (null == recordPosition) {
-            log.error("Record position is null , lack of topic config");
-        }
-        RecordPartition partition = recordPosition.getPartition();
-        if (null == partition) {
-            log.error("Partition is null , lack of topic config");
-        }
-        Map<String, ?> partitionMap = partition.getPartition();
-        if (null == partitionMap) {
-            log.error("Partition map is null , lack of topic config");
-        }
-        Object o = partitionMap.get(TOPIC);
-        if (null == o) {
-            log.error("Partition map element topic is null , lack of topic config");
-            return null;
-        }
-        return (String) o;
     }
 
     private void putExtendMsgProperty(ConnectRecord sourceDataEntry, Message sourceMessage, String topic) {

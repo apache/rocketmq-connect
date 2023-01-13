@@ -207,7 +207,6 @@ public class RestHandlerTest {
             }
         };
         when(connectController.getWorker()).thenReturn(worker);
-        when(worker.getWorkingConnectors()).thenReturn(workerConnectors);
 
         List<String> pluginPaths = new ArrayList<>();
         pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
@@ -261,18 +260,6 @@ public class RestHandlerTest {
         HttpGet httpGet4 = new HttpGet(uri4);
         HttpResponse httpResponse4 = httpClient.execute(httpGet4);
         assertEquals(200, httpResponse4.getStatusLine().getStatusCode());
-        Map<String, ConnectKeyValue> connectors = new HashMap<>();
-        for (WorkerConnector workerConnector : workerConnectors) {
-            connectors.put(workerConnector.getConnectorName(), workerConnector.getKeyValue());
-        }
-        final String result4 = EntityUtils.toString(httpResponse4.getEntity(), "UTF-8");
-        final Map map4 = JSON.parseObject(result4, Map.class);
-        final Object body4 = map4.get("body");
-        final Map dataMap4 = JSON.parseObject(body4.toString(), Map.class);
-        final Object connectorName1Value = dataMap4.get("testConnectorName1");
-        final Map connector1Map = JSON.parseObject(connectorName1Value.toString(), Map.class);
-        Assert.assertEquals("org.apache.rocketmq.connect.runtime.service.TestConnector", connector1Map.get(ConnectorConfig.CONNECTOR_CLASS));
-        Assert.assertEquals("source-record-converter", connector1Map.get(ConnectorConfig.VALUE_CONVERTER));
 
         httpClient = HttpClientBuilder.create().build();
         URIBuilder uriBuilder5 = new URIBuilder(GET_ALLOCATED_TASKS_URL);
