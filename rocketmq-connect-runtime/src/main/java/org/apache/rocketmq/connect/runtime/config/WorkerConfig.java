@@ -31,7 +31,7 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
  * Configurations for runtime.
  */
 public class WorkerConfig {
-    public static final String METRIC_CLASS = "metrics.reporter";
+    public static final String METRIC_CLASS = "metrics.class";
     public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
     public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
     private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);

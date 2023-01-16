@@ -357,6 +357,15 @@ public class WorkerConnector implements Runnable {
         return connector;
     }
 
+    /**
+     * connector state
+     *
+     * @return
+     */
+    public State getConnectorState() {
+        return state;
+    }
+
     public synchronized void cancel() {
         statusListener.onShutdown(connectorName);
     }
@@ -369,7 +378,7 @@ public class WorkerConnector implements Runnable {
         return sb.toString();
     }
 
-    private enum State {
+    protected enum State {
         INIT,
         STOPPED,
         STARTED,

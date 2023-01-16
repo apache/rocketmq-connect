@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.connect.runtime.utils;
 
+import org.apache.rocketmq.connect.metrics.MetricsGroupTaskId;
+
 import java.util.Objects;
 
 /**
@@ -32,6 +34,10 @@ public class ConnectorTaskId implements Comparable<ConnectorTaskId> {
     public ConnectorTaskId(String connector, int task) {
         this.connector = connector;
         this.task = task;
+    }
+
+    public MetricsGroupTaskId getMetricsGroupTaskId() {
+        return new MetricsGroupTaskId(String.valueOf(this.task), this.connector);
     }
 
     public String connector() {

@@ -16,27 +16,22 @@
  */
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
-import com.codahale.metrics.MetricRegistry;
 import io.openmessaging.connector.api.data.ConnectRecord;
-import org.apache.rocketmq.connect.metrics.stats.Avg;
-import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
-import org.apache.rocketmq.connect.metrics.stats.Max;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
-import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
-import org.apache.rocketmq.connect.runtime.metrics.Sensor;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.TaskMetricsGroup;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Should we use callable here ?
@@ -61,6 +56,7 @@ public abstract class WorkerTask implements Runnable {
     private final TaskStatus.Listener statusListener;
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
     private final TaskMetricsGroup taskMetricsGroup;
+    private final ConnectMetrics connectMetrics;
     /**
      * Atomic state variable
      */
@@ -79,7 +75,8 @@ public abstract class WorkerTask implements Runnable {
         this.transformChain.retryWithToleranceOperator(this.retryWithToleranceOperator);
         this.targetState = TargetState.STARTED;
         this.statusListener = taskListener;
-        this.taskMetricsGroup = new TaskMetricsGroup(id, connectMetrics);
+        this.connectMetrics = connectMetrics;
+        this.taskMetricsGroup = this.connectMetrics.getTaskMetricsGroup(id.getMetricsGroupTaskId());
     }
 
     public ConnectorTaskId id() {
@@ -119,10 +116,6 @@ public abstract class WorkerTask implements Runnable {
         execute();
     }
 
-    public void removeMetrics() {
-        taskMetricsGroup.close();
-    }
-
     /**
      * get state
      *
@@ -155,6 +148,8 @@ public abstract class WorkerTask implements Runnable {
             state.compareAndSet(WorkerTaskState.STOPPING, WorkerTaskState.STOPPED);
             // UNASSIGNED state
             statusListener.onShutdown(id);
+            // close task metrics
+            connectMetrics.close(id.getMetricsGroupTaskId());
         } catch (Throwable t) {
             log.error("{} Task threw an uncaught and unrecoverable exception during shutdown", this, t);
             throw t;
@@ -355,62 +350,6 @@ public abstract class WorkerTask implements Runnable {
     public void timeout() {
         log.error("Worker task stop is timeout !!!");
         onFailure(new Throwable("Worker task stop is timeout"));
-    }
-
-
-    static class TaskMetricsGroup {
-        private final MetricGroup metricGroup;
-        private final Sensor commitTime;
-        private final Sensor batchSize;
-
-        private final Sensor taskCommitFailures;
-
-        private final Sensor taskCommitSuccess;
-
-        public TaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
-            ConnectMetricsTemplates templates = connectMetrics.templates();
-            metricGroup = connectMetrics.group(
-                    templates.connectorTagName(),
-                    id.connector(),
-                    templates.taskTagName(),
-                    Integer.toString(id.task())
-            );
-
-            MetricRegistry registry = connectMetrics.registry();
-
-            commitTime = metricGroup.sensor();
-            commitTime.addStat(new Max(registry, metricGroup.name(templates.taskCommitTimeMax)));
-            commitTime.addStat(new Avg(registry, metricGroup.name(templates.taskCommitTimeAvg)));
-
-            batchSize = metricGroup.sensor();
-            batchSize.addStat(new Max(registry, metricGroup.name(templates.taskBatchSizeMax)));
-            batchSize.addStat(new Avg(registry, metricGroup.name(templates.taskBatchSizeAvg)));
-
-            taskCommitFailures = metricGroup.sensor();
-            taskCommitFailures.addStat(new CumulativeCount(registry, metricGroup.name(templates.taskCommitFailureCount)));
-
-            taskCommitSuccess = metricGroup.sensor();
-            taskCommitSuccess.addStat(new CumulativeCount(registry, metricGroup.name(templates.taskCommitSuccessCount)));
-
-        }
-
-
-        void close() {
-            metricGroup.close();
-        }
-
-        void recordCommit(long duration, boolean success) {
-            if (success) {
-                commitTime.record(duration);
-                taskCommitSuccess.record(1);
-            } else {
-                taskCommitFailures.record(1);
-            }
-        }
-
-        void recordMultiple(int size) {
-            batchSize.record(size);
-        }
     }
 
 }

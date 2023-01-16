@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.metrics.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -226,11 +227,6 @@ public class DeadLetterQueueReporter implements ErrorReporter {
     public void close() {
         if (producer != null) {
             producer.shutdown();
-        }
-        try {
-            this.errorMetricsGroup.close();
-        } catch (Exception e) {
-            log.error("Error metrics group close failure", e);
         }
     }
 }

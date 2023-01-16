@@ -21,7 +21,7 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.assertj.core.api.Assertions;
 import org.junit.Assert;
@@ -33,8 +33,7 @@ import java.util.Map;
 
 public class RetryWithToleranceOperatorTest {
 
-    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("test-connect",1), new ConnectMetrics(new
-            WorkerConfig())));
+    private RetryWithToleranceOperator retryWithToleranceOperator;
 
     private RecordPartition recordPartition;
 
@@ -52,6 +51,9 @@ public class RetryWithToleranceOperatorTest {
         recordPartition = new RecordPartition(partition);
         Map<String, ?> offset = new HashMap<>();
         recordOffset = new RecordOffset(offset);
+        WorkerConfig workerConfig = new WorkerConfig();
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(workerConfig.getWorkerId(), workerConfig.getMetricsConfig());
+        retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("test-connect",1).getMetricsGroupTaskId()));
     }
 
     @Test

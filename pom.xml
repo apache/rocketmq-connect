@@ -28,7 +28,7 @@
         <module>rocketmq-connect-cli</module>
         <module>distribution</module>
         <module>transforms</module>
-        <module>reporter-api</module>
+        <module>rocketmq-connect-metrics</module>
         <module>schema-converter</module>
     </modules>
     <name>RocketMQ Connect</name>
@@ -162,8 +162,8 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-connect-reporter</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <artifactId>rocketmq-connect-metrics</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
@@ -175,16 +175,6 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
                 <version>${commons-collections4.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-tools</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-client</artifactId>
-                <version>${rocketmq.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.maven</groupId>

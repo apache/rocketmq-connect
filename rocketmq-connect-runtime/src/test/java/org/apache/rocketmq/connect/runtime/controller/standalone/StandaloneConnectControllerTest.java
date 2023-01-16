@@ -27,12 +27,12 @@ import org.apache.rocketmq.connect.runtime.controller.distributed.TestConfigMana
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -79,8 +79,9 @@ public class StandaloneConnectControllerTest {
         standaloneConfig.setNamesrvAddr("127.0.0.1:9876");
         standaloneConfig.setHttpPort(10001);
         clusterManagementService.initialize(standaloneConfig);
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(standaloneConfig.getWorkerId(), standaloneConfig.getMetricsConfig());
         standaloneConnectController = new StandaloneConnectController(plugin, standaloneConfig, clusterManagementService,
-            configManagementService, positionManagementService, stateManagementService);
+            configManagementService, positionManagementService, stateManagementService, connectMetrics);
     }
 
     @After

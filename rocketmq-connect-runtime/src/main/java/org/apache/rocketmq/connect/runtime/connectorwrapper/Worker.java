@@ -30,6 +30,9 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ErrorMetricsGroup;
+import org.apache.rocketmq.connect.metrics.WorkerMetricsGroup;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -37,10 +40,8 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -123,6 +124,7 @@ public class Worker {
      */
     private AtomicReference<WorkerState> workerState;
     private final StateMachineService stateMachineService = new StateMachineService();
+    private final WorkerMetricsGroup workerMetricsGroup;
 
     public Worker(WorkerConfig workerConfig,
                   PositionManagementService positionManagementService,
@@ -140,12 +142,19 @@ public class Worker {
         this.sourceTaskOffsetCommitter = Optional.of(new SourceTaskOffsetCommitter(workerConfig));
         this.statusListener = new WrapperStatusListener(stateManagementService, workerConfig.getWorkerId());
         this.executor = Executors.newCachedThreadPool();
-        this.connectMetrics = new ConnectMetrics(workerConfig);
+        this.connectMetrics = connectController.getConnectMetrics();
+        this.workerMetricsGroup = connectMetrics.getWorkerMetricsGroup();
     }
 
     public void start() {
         workerState = new AtomicReference<>(WorkerState.STARTED);
         stateMachineService.start();
+        registerWorkerMetrics();
+    }
+
+    public void registerWorkerMetrics() {
+        workerMetricsGroup.registerExecutorServiceMetrics("connector-executor", executor);
+        workerMetricsGroup.registerExecutorServiceMetrics("task-executor", taskExecutor);
     }
 
 
@@ -387,6 +396,14 @@ public class Worker {
                         }
                     }
                 });
+                // register connect state metrics
+                this.workerMetricsGroup.registerConnectorStateMetrics(workerConnector.getConnectorName(), () -> workerConnector.getConnectorState().ordinal(),
+                        ConnectorConfig.CONNECTOR_CLASS, keyValue.getString(ConnectorConfig.CONNECTOR_CLASS, "-"),
+                        ConnectorConfig.TRANSFORMS, keyValue.getString(ConnectorConfig.TRANSFORMS, "-"),
+                        ConnectorConfig.KEY_CONVERTER, keyValue.getString(ConnectorConfig.KEY_CONVERTER, "-"),
+                        ConnectorConfig.VALUE_CONVERTER, keyValue.getString(ConnectorConfig.VALUE_CONVERTER, "-"),
+                        "start.time", String.valueOf(System.currentTimeMillis())
+                );
                 log.info("Connector {} start", workerConnector.getConnectorName());
                 Plugin.compareAndSwapLoaders(savedLoader);
                 this.connectors.put(connectorName, workerConnector);
@@ -459,12 +476,6 @@ public class Worker {
 
         stateMachineService.shutdown();
 
-        try {
-            // close metrics
-            connectMetrics.close();
-        } catch (Exception e) {
-
-        }
     }
 
     private void awaitStopTask(WorkerTask task, long timeout) {
@@ -549,6 +560,10 @@ public class Worker {
 
     public Set<Runnable> getCleanedStoppedTasks() {
         return cleanedStoppedTasks;
+    }
+
+    public ConnectMetrics getConnectMetrics() {
+        return connectMetrics;
     }
 
     public void maintainConnectorState() {
@@ -819,7 +834,7 @@ public class Worker {
                 int taskId = keyValue.getInt(ConnectorConfig.TASK_ID);
                 ConnectorTaskId id = new ConnectorTaskId(connectorName, taskId);
 
-                ErrorMetricsGroup errorMetricsGroup = new ErrorMetricsGroup(id, this.connectMetrics);
+                ErrorMetricsGroup errorMetricsGroup = this.connectMetrics.getErrorMetricsGroup(id.getMetricsGroupTaskId());
 
                 String taskType = keyValue.getString(ConnectorConfig.TASK_TYPE);
                 if (TaskType.DIRECT.name().equalsIgnoreCase(taskType)) {
@@ -926,8 +941,8 @@ public class Worker {
 
         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, new ErrorMetricsGroup(id, this.connectMetrics));
-        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id, keyValue, new ErrorMetricsGroup(id, this.connectMetrics)));
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, this.connectMetrics.getErrorMetricsGroup(id.getMetricsGroupTaskId()));
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(id, keyValue, this.connectMetrics.getErrorMetricsGroup(id.getMetricsGroupTaskId())));
 
         WorkerDirectTask workerDirectTask = new WorkerDirectTask(
                 workerConfig,

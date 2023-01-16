@@ -25,7 +25,7 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.StringConverter;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +51,9 @@ public class WorkerErrorRecordReporterTest {
     public void before() {
         Map<String, Object> offset = new HashMap<>();
         recordOffset = new RecordOffset(offset);
-        retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 2000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("test-connect",1), new ConnectMetrics(new
-                WorkerConfig())));
+        WorkerConfig workerConfig = new WorkerConfig();
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(workerConfig.getWorkerId(), workerConfig.getMetricsConfig());
+        retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 2000, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("test-connect",1).getMetricsGroupTaskId()));
         recordConverter = new StringConverter();
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
         Map<String, Object> partition = new HashMap<>();

@@ -32,10 +32,9 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConvert
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -75,7 +74,8 @@ public class WorkerSourceTaskTest {
     private KeyValue keyValue = new DefaultKeyValue();
     @Mock
     private Plugin plugin;
-    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(new WorkerConfig())));
+    private ConnectMetrics connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
+    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
@@ -91,7 +91,7 @@ public class WorkerSourceTaskTest {
         transformChain = new TransformChain<>(keyValue, plugin);
         workerSourceTask = new WorkerSourceTask(connectConfig, connectorTaskId, sourceTask, this.getClass().getClassLoader(),
                 connectKeyValue, positionManagementService, recordConverter, recordConverter, defaultMQProducer, workerState,
-                connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, null, new ConnectMetrics(new WorkerConfig()));
+                connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, null, connectMetrics);
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
         brokerMocker = ServerResponseMocker.startServer(10911, "Hello World".getBytes(StandardCharsets.UTF_8));
     }

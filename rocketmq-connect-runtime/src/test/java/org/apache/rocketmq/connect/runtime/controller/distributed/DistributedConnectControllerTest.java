@@ -30,6 +30,7 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
@@ -43,8 +44,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DistributedConnectControllerTest {
@@ -86,13 +85,15 @@ public class DistributedConnectControllerTest {
         URL[] urls = new URL[]{};
         pluginClassLoader = new PluginClassLoader(url, urls);
         Thread.currentThread().setContextClassLoader(pluginClassLoader);
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(workerConfig.getWorkerId(), workerConfig.getMetricsConfig());
         distributedConnectController = new DistributedConnectController(
                 plugin,
                 distributedConfig,
                 clusterManagementService,
                 configManagementService,
                 positionManagementService,
-                stateManagementService );
+                stateManagementService,
+                connectMetrics);
     }
 
     @After

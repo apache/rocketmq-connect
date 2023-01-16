@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.runtime.controller.standalone;
 
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -41,8 +42,9 @@ public class StandaloneConnectController extends AbstractConnectController {
                                        ClusterManagementService clusterManagementService,
                                        ConfigManagementService configManagementService,
                                        PositionManagementService positionManagementService,
-                                       StateManagementService stateManagementService) {
-        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService, stateManagementService);
+                                       StateManagementService stateManagementService,
+                                       ConnectMetrics connectMetrics) {
+        super(plugin, connectConfig, clusterManagementService, configManagementService, positionManagementService, stateManagementService, connectMetrics);
         AllocateConnAndTaskStrategy strategy = ConnectUtil.initAllocateConnAndTaskStrategy(connectConfig);
         this.rebalanceImpl = new RebalanceImpl(worker, configManagementService, clusterManagementService, strategy, this);
         this.rebalanceService = new StandaloneRebalanceService(rebalanceImpl, configManagementService, clusterManagementService);

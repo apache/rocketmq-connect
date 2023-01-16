@@ -51,10 +51,6 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.connect.metrics.stats.Avg;
-import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
-import org.apache.rocketmq.connect.metrics.stats.Max;
-import org.apache.rocketmq.connect.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -64,10 +60,8 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatus
 import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
-import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
-import org.apache.rocketmq.connect.runtime.metrics.Sensor;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.SourceTaskMetricsGroup;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
@@ -164,7 +158,16 @@ public class WorkerSourceTask extends WorkerTask {
         this.producerSendException = new AtomicReference<>();
         this.offsetManagement = new RecordOffsetManagement();
         this.committableOffsets = RecordOffsetManagement.CommittableOffsets.EMPTY;
-        this.sourceTaskMetricsGroup = new SourceTaskMetricsGroup(id, connectMetrics);
+        this.sourceTaskMetricsGroup = connectMetrics.getSourceTaskMetricsGroup(id.getMetricsGroupTaskId());
+        // register task state metrics
+        this.sourceTaskMetricsGroup.registerTaskStateMetrics(() -> state.get().ordinal(),
+                ConnectorConfig.CONNECTOR_CLASS, taskConfig.getString(ConnectorConfig.CONNECTOR_CLASS, "-"),
+                SourceConnectorConfig.CONNECT_TOPICNAME, taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME, "-"),
+                ConnectorConfig.TRANSFORMS, taskConfig.getString(ConnectorConfig.TRANSFORMS, "-"),
+                ConnectorConfig.KEY_CONVERTER, taskConfig.getString(ConnectorConfig.KEY_CONVERTER, "-"),
+                ConnectorConfig.VALUE_CONVERTER, taskConfig.getString(ConnectorConfig.VALUE_CONVERTER, "-"),
+                "start.time", String.valueOf(System.currentTimeMillis())
+        );
     }
 
     private List<ConnectRecord> poll() throws InterruptedException {
@@ -180,16 +183,11 @@ public class WorkerSourceTask extends WorkerTask {
         }
     }
 
-    public void removeMetrics() {
-        super.removeMetrics();
-        Utils.closeQuietly(sourceTaskMetricsGroup, "Remove source " + id.toString() + " metrics");
-    }
     @Override
     public void close() {
         sourceTask.stop();
         producer.shutdown();
         stopRequestedLatch.countDown();
-        removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
         Utils.closeQuietly(positionStorageWriter, "position storage writer");
@@ -655,57 +653,6 @@ public class WorkerSourceTask extends WorkerTask {
         sourceTaskMetricsGroup.recordPoll(numRecordsInBatch, millTime);
     }
 
-    static class SourceTaskMetricsGroup implements AutoCloseable {
-        private final Sensor sourceRecordPoll;
-        private final Sensor sourceRecordWrite;
-        private final Sensor sourceRecordActiveCount;
-        private final Sensor pollTime;
-        private int activeRecordCount;
-
-        private MetricGroup metricGroup;
-
-        public SourceTaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
-            ConnectMetricsTemplates templates = connectMetrics.templates();
-            metricGroup = connectMetrics.group(
-                    templates.connectorTagName(), id.connector(),
-                    templates.taskTagName(), Integer.toString(id.task()));
-
-            sourceRecordPoll = metricGroup.sensor();
-            sourceRecordPoll.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollRate)));
-            sourceRecordPoll.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollTotal)));
-
-            sourceRecordWrite = metricGroup.sensor();
-            sourceRecordWrite.addStat(new Rate(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteRate)));
-            sourceRecordWrite.addStat(new CumulativeCount(connectMetrics.registry(), metricGroup.name(templates.sourceRecordWriteTotal)));
-
-            pollTime = metricGroup.sensor();
-            pollTime.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeMax)));
-            pollTime.addStat(new Avg(connectMetrics.registry(), metricGroup.name(templates.sourceRecordPollBatchTimeAvg)));
-
-            sourceRecordActiveCount = metricGroup.sensor();
-            sourceRecordActiveCount.addStat(new Max(connectMetrics.registry(), metricGroup.name(templates.sourceRecordActiveCountMax)));
-            sourceRecordActiveCount.addStat(new Avg(connectMetrics.registry(), metricGroup.name(templates.sourceRecordActiveCountAvg)));
-        }
-
-        @Override
-        public void close() {
-            metricGroup.close();
-        }
-
-        void recordPoll(int batchSize, long duration) {
-            sourceRecordPoll.record(batchSize);
-            pollTime.record(duration);
-            activeRecordCount += batchSize;
-            sourceRecordActiveCount.record(activeRecordCount);
-        }
-
-        void recordWrite(int recordCount) {
-            sourceRecordWrite.record(recordCount);
-            activeRecordCount -= recordCount;
-            activeRecordCount = Math.max(0, activeRecordCount);
-            sourceRecordActiveCount.record(activeRecordCount);
-        }
-    }
 
     static class CalcSourceRecordWrite {
         private final SourceTaskMetricsGroup metricsGroup;

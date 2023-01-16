@@ -30,6 +30,7 @@ import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedCon
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -166,13 +167,16 @@ public class DistributedConnectStartup {
             // state
             StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.DISTRIBUTED);
             stateManagementService.initialize(config, new JsonConverter());
+            // metrics
+            ConnectMetrics connectMetrics = ConnectMetrics.newInstance(config.getWorkerId(), config.getMetricsConfig());
             DistributedConnectController controller = new DistributedConnectController(
                     plugin,
                     config,
                     clusterManagementService,
                     configManagementService,
                     positionManagementServices,
-                    stateManagementService);
+                    stateManagementService,
+                    connectMetrics);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;

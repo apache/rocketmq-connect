@@ -22,10 +22,6 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -35,11 +31,10 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatus
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
@@ -78,7 +73,8 @@ public class WorkerSinkTaskTest {
     @Mock
     private Plugin plugin;
     private TransformChain<ConnectRecord> transformChain;
-    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("connect", 1), new ConnectMetrics(new WorkerConfig())));
+    private ConnectMetrics connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
+    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("connect", 1).getMetricsGroupTaskId()));
     private WorkerErrorRecordReporter workerErrorRecordReporter;
     private WrapperStatusListener wrapperStatusListener;
 
@@ -107,7 +103,7 @@ public class WorkerSinkTaskTest {
                 retryWithToleranceOperator,
                 workerErrorRecordReporter,
                 new WrapperStatusListener(new StateManagementServiceImpl(), "workId"),
-                new ConnectMetrics(new WorkerConfig())
+                connectMetrics
         );
     }
 

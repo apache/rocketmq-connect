@@ -21,7 +21,7 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.StringConverter;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.junit.Assert;
 import org.junit.Test;
@@ -31,11 +31,12 @@ import java.util.List;
 public class ReporterManagerUtilTest {
 
     private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
+    private ConnectMetrics connectMetrics;
 
     @Test
     public void createRetryWithToleranceOperatorTest() {
         WorkerConfig config = new WorkerConfig();
-        final RetryWithToleranceOperator operator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(config)));
+        final RetryWithToleranceOperator operator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         Assert.assertNotNull(operator);
 
     }
@@ -43,7 +44,8 @@ public class ReporterManagerUtilTest {
     @Test
     public void createWorkerErrorRecordReporterTest() {
         WorkerConfig config = new WorkerConfig();
-        RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(100, 100, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(config)));
+        connectMetrics = ConnectMetrics.newInstance(config.getWorkerId(), config.getMetricsConfig());
+        RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(100, 100, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         RecordConverter converter = new StringConverter();
         connectKeyValue.put("errors.log.enable", "true");
         connectKeyValue.put("errors.deadletterqueue.topic.name", "TEST_TOPIC");
@@ -54,14 +56,14 @@ public class ReporterManagerUtilTest {
     @Test
     public void sinkTaskReportersTest() {
         WorkerConfig workerConfig = new WorkerConfig();
-        final List<ErrorReporter> connector = ReporterManagerUtil.sinkTaskReporters(new ConnectorTaskId(), connectKeyValue, workerConfig, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(workerConfig)));
+        final List<ErrorReporter> connector = ReporterManagerUtil.sinkTaskReporters(new ConnectorTaskId(), connectKeyValue, workerConfig, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         Assert.assertEquals(1, connector.size());
     }
 
     @Test
     public void sourceTaskReportersTest() {
         WorkerConfig workerConfig = new WorkerConfig();
-        final List<ErrorReporter> connector = ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId(), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId(), new ConnectMetrics(workerConfig)));
+        final List<ErrorReporter> connector = ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId(), connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         Assert.assertEquals(1, connector.size());
     }
 }

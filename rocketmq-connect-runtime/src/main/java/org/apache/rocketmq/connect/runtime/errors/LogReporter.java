@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.errors;
 
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.metrics.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

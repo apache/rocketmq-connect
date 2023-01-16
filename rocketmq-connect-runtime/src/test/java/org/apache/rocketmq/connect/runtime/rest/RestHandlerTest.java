@@ -34,18 +34,13 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.TransformChain;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.*;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
-import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.rest.entities.PluginInfo;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
@@ -62,12 +57,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -189,17 +179,18 @@ public class RestHandlerTest {
             }
         };
         TransformChain<ConnectRecord> transformChain = new TransformChain<ConnectRecord>(new DefaultKeyValue(), new Plugin(new ArrayList<>()));
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1), new ConnectMetrics(new WorkerConfig())));
-        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 1), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1), new ConnectMetrics(new WorkerConfig()))));
+        RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1).getMetricsGroupTaskId()));
+        retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 1), connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 1).getMetricsGroupTaskId())));
 
-        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName1", 1), sourceTask, null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, null, new ConnectMetrics(new WorkerConfig()));
+        WorkerSourceTask workerSourceTask1 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName1", 1), sourceTask, null, connectKeyValue, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator, null, connectMetrics);
 
         // create retry operator
-        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 2), new ConnectMetrics(new WorkerConfig())));
-        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 2), connectKeyValue, new ErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 2), new ConnectMetrics(new WorkerConfig()))));
+        RetryWithToleranceOperator retryWithToleranceOperator02 = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 2).getMetricsGroupTaskId()));
+        retryWithToleranceOperator02.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("testConnectorName", 2), connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("testConnectorName", 2).getMetricsGroupTaskId())));
 
-        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName", 2), sourceTask, null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator02, null, new ConnectMetrics(new WorkerConfig()));
+        WorkerSourceTask workerSourceTask2 = new WorkerSourceTask(new WorkerConfig(), new ConnectorTaskId("testConnectorName", 2), sourceTask, null, connectKeyValue1, positionManagementServiceImpl, converter, converter, producer, workerState, connectStatsManager, connectStatsService, transformChain, retryWithToleranceOperator02, null, connectMetrics);
         workerTasks = new HashSet<Runnable>() {
             {
                 add(workerSourceTask1);

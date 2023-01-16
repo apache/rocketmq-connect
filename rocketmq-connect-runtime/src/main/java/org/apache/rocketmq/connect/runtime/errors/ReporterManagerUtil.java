@@ -20,6 +20,7 @@ package org.apache.rocketmq.connect.runtime.errors;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.metrics.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 
 import java.util.ArrayList;

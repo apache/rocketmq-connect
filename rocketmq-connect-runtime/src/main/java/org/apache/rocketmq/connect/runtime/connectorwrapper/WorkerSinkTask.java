@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import com.alibaba.fastjson.JSON;
-import com.codahale.metrics.MetricRegistry;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -29,6 +28,34 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.internal.DefaultKeyValue;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.SinkTaskMetricsGroup;
+import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
+import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
+import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
+import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
+import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,39 +70,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
-import org.apache.rocketmq.client.consumer.MessageQueueListener;
-import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.connect.metrics.stats.Avg;
-import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
-import org.apache.rocketmq.connect.metrics.stats.Max;
-import org.apache.rocketmq.connect.metrics.stats.Rate;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
-import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
-import org.apache.rocketmq.connect.runtime.errors.ErrorReporter;
-import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetricsTemplates;
-import org.apache.rocketmq.connect.runtime.metrics.MetricGroup;
-import org.apache.rocketmq.connect.runtime.metrics.Sensor;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
-import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.singleton;
 
@@ -185,7 +179,17 @@ public class WorkerSinkTask extends WorkerTask {
         this.commitStarted = -1;
         // pause for retry
         this.pausedForRetry = false;
-        this.sinkTaskMetricsGroup = new SinkTaskMetricsGroup(id, connectMetrics);
+        this.sinkTaskMetricsGroup = connectMetrics.getSinkTaskMetricsGroup(id.getMetricsGroupTaskId());
+        // register task state metrics
+        this.sinkTaskMetricsGroup.registerTaskStateMetrics(() -> state.get().ordinal(),
+                ConnectorConfig.CONNECTOR_CLASS, taskConfig.getString(ConnectorConfig.CONNECTOR_CLASS, "-"),
+                SinkConnectorConfig.CONNECT_TOPICNAMES, taskConfig.getString(SinkConnectorConfig.CONNECT_TOPICNAMES, "-"),
+                SinkConnectorConfig.TASK_GROUP_ID, taskConfig.getString(SinkConnectorConfig.TASK_GROUP_ID, "-"),
+                ConnectorConfig.TRANSFORMS, taskConfig.getString(ConnectorConfig.TRANSFORMS, "-"),
+                ConnectorConfig.KEY_CONVERTER, taskConfig.getString(ConnectorConfig.KEY_CONVERTER, "-"),
+                ConnectorConfig.VALUE_CONVERTER, taskConfig.getString(ConnectorConfig.VALUE_CONVERTER, "-"),
+                "start.time", String.valueOf(System.currentTimeMillis())
+        );
     }
 
 
@@ -392,7 +396,7 @@ public class WorkerSinkTask extends WorkerTask {
     private void onCommitCompleted(Throwable error, long seqno, Map<MessageQueue, Long> committedOffsets) {
         if (commitSeqno != seqno) {
             // skip this commit
-            sinkTaskMetricsGroup.recordOffsetCommitSkip();
+            sinkTaskMetricsGroup.recordOffsetCommitSkipped();
             return;
         }
         if (error != null) {
@@ -449,17 +453,11 @@ public class WorkerSinkTask extends WorkerTask {
         return msgs;
     }
 
-    public void removeMetrics() {
-        super.removeMetrics();
-        Utils.closeQuietly(this.sinkTaskMetricsGroup, "Remove sink " + id.toString() + " metrics");
-    }
-
     @Override
     public void close() {
         sinkTask.stop();
         consumer.shutdown();
         stopPullMsgLatch.countDown();
-        removeMetrics();
         Utils.closeQuietly(transformChain, "transform chain");
         Utils.closeQuietly(retryWithToleranceOperator, "retry operator");
     }
@@ -859,75 +857,6 @@ public class WorkerSinkTask extends WorkerTask {
 
     private void recordReadSuccess(int recordSize) {
         sinkTaskMetricsGroup.recordRead(recordSize);
-    }
-
-
-    static class SinkTaskMetricsGroup implements AutoCloseable {
-        private final MetricGroup metricGroup;
-
-        private final Sensor sinkRecordRead;
-        private final Sensor sinkRecordSend;
-
-        private final Sensor offsetCompletion;
-        private final Sensor offsetCompletionSkip;
-        private final Sensor putBatchTime;
-
-
-        public SinkTaskMetricsGroup(ConnectorTaskId id, ConnectMetrics connectMetrics) {
-            ConnectMetricsTemplates templates = connectMetrics.templates();
-            metricGroup = connectMetrics
-                    .group(templates.connectorTagName(), id.connector(), templates.taskTagName(),
-                            Integer.toString(id.task()));
-
-            MetricRegistry registry = connectMetrics.registry();
-
-            sinkRecordRead = metricGroup.sensor();
-            sinkRecordRead.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordReadRate)));
-            sinkRecordRead.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordReadTotal)));
-
-            sinkRecordSend = metricGroup.sensor();
-            sinkRecordSend.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordSendRate)));
-            sinkRecordSend.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordSendTotal)));
-
-            putBatchTime = metricGroup.sensor();
-            putBatchTime.addStat(new Max(registry, metricGroup.name(templates.sinkRecordPutBatchTimeMax)));
-            putBatchTime.addStat(new Avg(registry, metricGroup.name(templates.sinkRecordPutBatchTimeAvg)));
-
-            offsetCompletion = metricGroup.sensor();
-            offsetCompletion.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordOffsetCommitCompletionRate)));
-            offsetCompletion.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordOffsetCommitCompletionTotal)));
-
-            offsetCompletionSkip = metricGroup.sensor();
-            offsetCompletionSkip.addStat(new Rate(registry, metricGroup.name(templates.sinkRecordOffsetCommitSkipRate)));
-            offsetCompletionSkip.addStat(new CumulativeCount(registry, metricGroup.name(templates.sinkRecordOffsetCommitSkipTotal)));
-
-
-        }
-
-        public void close() {
-            metricGroup.close();
-        }
-
-        void recordRead(int batchSize) {
-            sinkRecordRead.record(batchSize);
-        }
-
-        void recordSend(int batchSize) {
-            sinkRecordSend.record(batchSize);
-        }
-
-        void recordPut(long duration) {
-            putBatchTime.record(duration);
-        }
-
-        void recordOffsetCommitSuccess() {
-            offsetCompletion.record();
-        }
-
-        void recordOffsetCommitSkip() {
-            offsetCompletionSkip.record();
-        }
-
     }
 
 }

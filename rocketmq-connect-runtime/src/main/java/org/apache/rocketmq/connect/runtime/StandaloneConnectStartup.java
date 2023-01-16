@@ -29,6 +29,7 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
@@ -158,13 +159,16 @@ public class StandaloneConnectStartup {
             positionManagementServices.initialize(config, null, null);
             StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.STANDALONE);
             stateManagementService.initialize(config, null);
+            // metrics
+            ConnectMetrics connectMetrics = ConnectMetrics.newInstance(config.getWorkerId(), config.getMetricsConfig());
             StandaloneConnectController controller = new StandaloneConnectController(
                     plugin,
                     config,
                     clusterManagementService,
                     configManagementService,
                     positionManagementServices,
-                    stateManagementService);
+                    stateManagementService,
+                    connectMetrics);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;

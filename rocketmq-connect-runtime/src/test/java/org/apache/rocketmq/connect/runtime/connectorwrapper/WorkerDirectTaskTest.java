@@ -23,19 +23,16 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.errors.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
-import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.metrics.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
@@ -47,6 +44,10 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class WorkerDirectTaskTest {
 
@@ -82,8 +83,6 @@ public class WorkerDirectTaskTest {
 
     private ErrorMetricsGroup errorMetricsGroup;
 
-    private ConnectMetrics connectMetrics;
-
     private WrapperStatusListener wrapperStatusListener;
 
     private StateManagementService stateManagementService;
@@ -105,8 +104,8 @@ public class WorkerDirectTaskTest {
         keyValue = new DefaultKeyValue();
         plugin = new Plugin(Lists.newArrayList());
         transformChain = new TransformChain<>(keyValue, plugin);
-        connectMetrics = new ConnectMetrics(workerConfig);
-        errorMetricsGroup = new ErrorMetricsGroup(connectorTaskId, connectMetrics);
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(workerConfig.getWorkerId(), workerConfig.getMetricsConfig());
+        errorMetricsGroup = connectMetrics.getErrorMetricsGroup(connectorTaskId.getMetricsGroupTaskId());
         stateManagementService = new StateManagementServiceImpl();
         wrapperStatusListener = new WrapperStatusListener(stateManagementService, "defaultWorker1");
         retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, errorMetricsGroup);

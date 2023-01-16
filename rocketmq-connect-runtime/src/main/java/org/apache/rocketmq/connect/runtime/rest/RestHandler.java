@@ -60,7 +60,9 @@ public class RestHandler {
         this.connectController = connectController;
         pluginsResource = new ConnectorPluginsResource(connectController);
 
-        Javalin app = Javalin.create();
+        Javalin app = Javalin.create(config -> {
+            connectController.getConnectMetrics().registerJavaLinMetricsPlugin(config);
+        });
         app = app.start(connectController.getConnectConfig().getHttpPort());
 
         // cluster
@@ -95,6 +97,8 @@ public class RestHandler {
         app.get("/plugin/list/connectors", context -> pluginsResource.listConnectorPlugins(context));
         app.get("/plugin/config", context -> pluginsResource.getConnectorConfigDef(context));
         app.get("/plugin/config/validate", context -> pluginsResource.validateConfigs(context));
+
+        connectController.getConnectMetrics().registerHttpReporter(app);
     }
 
 

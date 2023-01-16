@@ -254,15 +254,10 @@
             <artifactId>maven-artifact</artifactId>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-            <version>4.2.0</version>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-connect-reporter</artifactId>
+            <artifactId>rocketmq-connect-metrics</artifactId>
         </dependency>
 
     </dependencies>

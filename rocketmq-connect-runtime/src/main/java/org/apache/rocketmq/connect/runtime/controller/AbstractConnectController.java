@@ -26,6 +26,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.rest.RestHandler;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.rocketmq.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -100,6 +101,8 @@ public abstract class AbstractConnectController implements ConnectController {
 
     protected final ConnectStatsService connectStatsService;
 
+    private ConnectMetrics connectMetrics;
+
     /**
      * init connect controller
      *
@@ -111,7 +114,8 @@ public abstract class AbstractConnectController implements ConnectController {
             ClusterManagementService clusterManagementService,
             ConfigManagementService configManagementService,
             PositionManagementService positionManagementService,
-            StateManagementService stateManagementService
+            StateManagementService stateManagementService,
+            ConnectMetrics connectMetrics
     ) {
         // set config
         this.connectConfig = connectConfig;
@@ -125,6 +129,7 @@ public abstract class AbstractConnectController implements ConnectController {
         this.configManagementService = configManagementService;
         this.positionManagementService = positionManagementService;
         this.stateManagementService = stateManagementService;
+        this.connectMetrics = connectMetrics;
         this.worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, this, stateManagementService);
         this.restHandler = new RestHandler(this);
     }
@@ -137,6 +142,7 @@ public abstract class AbstractConnectController implements ConnectController {
         positionManagementService.start();
         connectStatsService.start();
         stateManagementService.start();
+        connectMetrics.start();
         worker.start();
     }
 
@@ -160,6 +166,10 @@ public abstract class AbstractConnectController implements ConnectController {
         }
         if (stateManagementService != null) {
             stateManagementService.stop();
+        }
+
+        if (connectMetrics != null) {
+            connectMetrics.close();
         }
 
     }
@@ -190,6 +200,10 @@ public abstract class AbstractConnectController implements ConnectController {
 
     public ConnectStatsService getConnectStatsService() {
         return connectStatsService;
+    }
+
+    public ConnectMetrics getConnectMetrics() {
+        return connectMetrics;
     }
 
     /**

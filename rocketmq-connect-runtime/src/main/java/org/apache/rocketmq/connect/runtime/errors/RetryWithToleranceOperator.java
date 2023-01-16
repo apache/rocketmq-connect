@@ -20,6 +20,7 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.connect.metrics.ErrorMetricsGroup;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -263,11 +264,6 @@ public class RetryWithToleranceOperator implements AutoCloseable {
 
     @Override
     public void close() {
-        try {
-            this.errorMetricsGroup.close();
-        } catch (Exception e) {
-            log.error("Error metrics group close failure", e);
-        }
         this.context.close();
     }
 
