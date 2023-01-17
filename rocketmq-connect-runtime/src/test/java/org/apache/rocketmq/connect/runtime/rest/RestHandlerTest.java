@@ -31,16 +31,20 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.*;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.TransformChain;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSourceTask;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerState;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoader;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.rest.entities.PluginInfo;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
@@ -57,7 +61,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -107,7 +117,7 @@ public class RestHandlerTest {
 
     private Map<String, List<ConnectKeyValue>> taskConfigs;
 
-    private Set<WorkerConnector> workerConnectors;
+    private ConcurrentHashMap<String, WorkerConnector> connectors;
 
     private Set<Runnable> workerTasks;
 
@@ -172,10 +182,10 @@ public class RestHandlerTest {
 
         WorkerConnector workerConnector1 = new WorkerConnector("testConnectorName1", connector, connectKeyValue, new DefaultConnectorContext("testConnectorName1", connectController), null, null);
         WorkerConnector workerConnector2 = new WorkerConnector("testConnectorName2", connector, connectKeyValue1, new DefaultConnectorContext("testConnectorName2", connectController), null, null);
-        workerConnectors = new HashSet<WorkerConnector>() {
+        connectors = new ConcurrentHashMap<String, WorkerConnector>() {
             {
-                add(workerConnector1);
-                add(workerConnector2);
+                put("testConnectorName1", workerConnector1);
+                put("testConnectorName2", workerConnector2);
             }
         };
         TransformChain<ConnectRecord> transformChain = new TransformChain<ConnectRecord>(new DefaultKeyValue(), new Plugin(new ArrayList<>()));
@@ -198,7 +208,8 @@ public class RestHandlerTest {
             }
         };
         when(connectController.getWorker()).thenReturn(worker);
-        when(worker.getWorkingConnectors()).thenReturn(workerConnectors);
+        when(worker.getConnectors()).thenReturn(connectors);
+        when(connectController.getConnectMetrics()).thenReturn(connectMetrics);
 
         List<String> pluginPaths = new ArrayList<>();
         pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
@@ -252,10 +263,6 @@ public class RestHandlerTest {
         HttpGet httpGet4 = new HttpGet(uri4);
         HttpResponse httpResponse4 = httpClient.execute(httpGet4);
         assertEquals(200, httpResponse4.getStatusLine().getStatusCode());
-        Map<String, ConnectKeyValue> connectors = new HashMap<>();
-        for (WorkerConnector workerConnector : workerConnectors) {
-            connectors.put(workerConnector.getConnectorName(), workerConnector.getKeyValue());
-        }
         final String result4 = EntityUtils.toString(httpResponse4.getEntity(), "UTF-8");
         final Map map4 = JSON.parseObject(result4, Map.class);
         final Object body4 = map4.get("body");

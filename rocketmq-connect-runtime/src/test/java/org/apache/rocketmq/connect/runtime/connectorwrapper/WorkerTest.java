@@ -21,11 +21,16 @@ import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.*;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConnector;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestConverter;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestPositionManageServiceImpl;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSinkTask;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl.TestSourceTask;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -33,7 +38,6 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.PluginClassLoade
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.errors.ReporterManagerUtil;
 import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
-import org.apache.rocketmq.connect.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
@@ -51,7 +55,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -123,6 +132,8 @@ public class WorkerTest {
         connectConfig.setNamesrvAddr("localhost:9876");
         stateManagementService = new StateManagementServiceImpl();
         stateManagementService.initialize(connectConfig, new TestConverter());
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
+        when(connectController.getConnectMetrics()).thenReturn(connectMetrics);
         worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, stateManagementService);
 
         Set<WorkerConnector> workingConnectors = new HashSet<>();
@@ -144,7 +155,6 @@ public class WorkerTest {
             connectKeyValue.getProperties().put("key2", "TEST-TASK-" + i + "2");
 
             // create retry operator
-            ConnectMetrics connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
             RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
             retryWithToleranceOperator.reporters(ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId("TEST-CONN", 1), connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId("TEST-CONN", 1).getMetricsGroupTaskId())));
             final WorkerSourceTask task = new WorkerSourceTask(new WorkerConfig(),

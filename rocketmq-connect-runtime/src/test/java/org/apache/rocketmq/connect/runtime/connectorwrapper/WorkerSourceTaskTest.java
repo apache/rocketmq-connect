@@ -74,8 +74,8 @@ public class WorkerSourceTaskTest {
     private KeyValue keyValue = new DefaultKeyValue();
     @Mock
     private Plugin plugin;
-    private ConnectMetrics connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
-    private RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
+    private ConnectMetrics connectMetrics;
+    private RetryWithToleranceOperator retryWithToleranceOperator;
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
@@ -84,6 +84,8 @@ public class WorkerSourceTaskTest {
     public void before() throws MQClientException, InterruptedException {
         connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("127.0.0.1:9876");
+        connectMetrics = ConnectMetrics.newInstance(connectConfig.getWorkerId(), connectConfig.getMetricsConfig());
+        retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         connectStatsManager = new ConnectStatsManager(connectConfig);
         connectKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, "TEST_TOPIC");
         keyValue.put(ConnectorConfig.TRANSFORMS, "testTransform");

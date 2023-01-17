@@ -31,11 +31,11 @@ import java.util.List;
 public class ReporterManagerUtilTest {
 
     private ConnectKeyValue connectKeyValue = new ConnectKeyValue();
-    private ConnectMetrics connectMetrics;
 
     @Test
     public void createRetryWithToleranceOperatorTest() {
         WorkerConfig config = new WorkerConfig();
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(config.getWorkerId(), config.getMetricsConfig());
         final RetryWithToleranceOperator operator = ReporterManagerUtil.createRetryWithToleranceOperator(connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         Assert.assertNotNull(operator);
 
@@ -44,7 +44,7 @@ public class ReporterManagerUtilTest {
     @Test
     public void createWorkerErrorRecordReporterTest() {
         WorkerConfig config = new WorkerConfig();
-        connectMetrics = ConnectMetrics.newInstance(config.getWorkerId(), config.getMetricsConfig());
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(config.getWorkerId(), config.getMetricsConfig());
         RetryWithToleranceOperator retryWithToleranceOperator = new RetryWithToleranceOperator(100, 100, ToleranceType.ALL, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         RecordConverter converter = new StringConverter();
         connectKeyValue.put("errors.log.enable", "true");
@@ -56,6 +56,7 @@ public class ReporterManagerUtilTest {
     @Test
     public void sinkTaskReportersTest() {
         WorkerConfig workerConfig = new WorkerConfig();
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(workerConfig.getWorkerId(), workerConfig.getMetricsConfig());
         final List<ErrorReporter> connector = ReporterManagerUtil.sinkTaskReporters(new ConnectorTaskId(), connectKeyValue, workerConfig, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         Assert.assertEquals(1, connector.size());
     }
@@ -63,6 +64,7 @@ public class ReporterManagerUtilTest {
     @Test
     public void sourceTaskReportersTest() {
         WorkerConfig workerConfig = new WorkerConfig();
+        ConnectMetrics connectMetrics = ConnectMetrics.newInstance(workerConfig.getWorkerId(), workerConfig.getMetricsConfig());
         final List<ErrorReporter> connector = ReporterManagerUtil.sourceTaskReporters(new ConnectorTaskId(), connectKeyValue, connectMetrics.getErrorMetricsGroup(new ConnectorTaskId().getMetricsGroupTaskId()));
         Assert.assertEquals(1, connector.size());
     }
