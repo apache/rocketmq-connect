@@ -32,7 +32,6 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;

@@ -30,13 +30,11 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
-import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
-import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
 import org.junit.After;
 import org.junit.Before;
@@ -76,7 +74,7 @@ public class PositionManagementServiceImplTest {
     private DefaultMQPushConsumer consumer;
     @Mock
     private Future<SendResult> future;
-    private PositionManagementServiceImpl positionManagementService;
+    private LocalPositionManagementServiceImpl positionManagementService;
     private Set<ExtendRecordPartition> needSyncPartition;
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
     private ExtendRecordPartition sourcePartition;
@@ -101,7 +99,7 @@ public class PositionManagementServiceImplTest {
                 final Message message = invocation.getArgument(0);
                 byte[] bytes = message.getBody();
 
-                final Field dataSynchronizerField = PositionManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
+                final Field dataSynchronizerField = LocalPositionManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
                 dataSynchronizerField.setAccessible(true);
                 BrokerBasedLog<String, Map> dataSynchronizer = (BrokerBasedLog<String, Map>) dataSynchronizerField.get(positionManagementService);
 
@@ -119,10 +117,10 @@ public class PositionManagementServiceImplTest {
             }
         }).when(producer).send(any(Message.class), any(SendCallback.class));
 
-        positionManagementService = new PositionManagementServiceImpl();
+        positionManagementService = new LocalPositionManagementServiceImpl();
         positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
-        final Field dataSynchronizerField = PositionManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
+        final Field dataSynchronizerField = LocalPositionManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);
 
         final Field producerField = BrokerBasedLog.class.getDeclaredField("producer");
@@ -135,12 +133,12 @@ public class PositionManagementServiceImplTest {
 
         positionManagementService.start();
 
-        Field positionStoreField = PositionManagementServiceImpl.class.getDeclaredField("positionStore");
+        Field positionStoreField = LocalPositionManagementServiceImpl.class.getDeclaredField("positionStore");
         positionStoreField.setAccessible(true);
         positionStore = (KeyValueStore<ExtendRecordPartition, RecordOffset>) positionStoreField.get(positionManagementService);
 
 
-        Field needSyncPartitionField = PositionManagementServiceImpl.class.getDeclaredField("needSyncPartition");
+        Field needSyncPartitionField = LocalPositionManagementServiceImpl.class.getDeclaredField("needSyncPartition");
         needSyncPartitionField.setAccessible(true);
         needSyncPartition = (ConcurrentSet<ExtendRecordPartition>) needSyncPartitionField.get(positionManagementService);
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.13306");

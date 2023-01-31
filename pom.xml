@@ -28,7 +28,7 @@
         <module>rocketmq-connect-cli</module>
         <module>distribution</module>
         <module>transforms</module>
-        <module>reporter-api</module>
+        <module>metric-exporter</module>
         <module>schema-converter</module>
     </modules>
     <name>RocketMQ Connect</name>
@@ -162,8 +162,8 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-connect-reporter</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <artifactId>metric-exporter</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>

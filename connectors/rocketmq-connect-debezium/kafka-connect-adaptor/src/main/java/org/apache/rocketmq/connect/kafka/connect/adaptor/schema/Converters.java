@@ -53,20 +53,19 @@ public class Converters {
 
 
         RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
-        String sourceTopic = record.topic();
-        Map<String, Object> partition = (Map<String, Object>) record.sourcePartition();
-        if (StringUtils.isNotBlank(sourceTopic) && partition != null) {
-            // set topic
-            partition.put(TOPIC, sourceTopic);
-        }
+
         ConnectRecord connectRecord = new ConnectRecord(
-                new RecordPartition(partition),
+                new RecordPartition(record.sourcePartition()),
                 new RecordOffset(record.sourceOffset()),
                 record.timestamp(),
                 keySchema,
                 record.key() == null ? null : rocketMQSourceValueConverter.value(keySchema, record.key()),
                 valueSchema,
                 record.value() == null ? null : rocketMQSourceValueConverter.value(valueSchema, record.value()));
+        String sourceTopic = record.topic();
+        if (StringUtils.isNotBlank(sourceTopic) ) {
+            connectRecord.addExtension(TOPIC, sourceTopic);
+        }
         Iterator<Header> headers = record.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();

@@ -75,7 +75,7 @@ public class ConfigManagementServiceImplTest {
     @Mock
     private DefaultMQPushConsumer consumer;
 
-    private ConfigManagementServiceImpl configManagementService;
+    private LocalConfigManagementServiceImpl configManagementService;
 
     private String connectorName;
 
@@ -121,7 +121,7 @@ public class ConfigManagementServiceImplTest {
                 final Message message = invocation.getArgument(0);
                 byte[] bytes = message.getBody();
 
-                final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
+                final Field dataSynchronizerField = LocalConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
                 dataSynchronizerField.setAccessible(true);
                 BrokerBasedLog<String, ConnAndTaskConfigs> dataSynchronizer = (BrokerBasedLog<String, ConnAndTaskConfigs>) dataSynchronizerField.get(configManagementService);
 
@@ -139,12 +139,12 @@ public class ConfigManagementServiceImplTest {
             }
         }).when(producer).send(any(Message.class), any(SendCallback.class));
 
-        configManagementService = new ConfigManagementServiceImpl();
+        configManagementService = new LocalConfigManagementServiceImpl();
         configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
-        final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
+        final Field connectorKeyValueStoreField = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
         connectorKeyValueStoreField.setAccessible(true);
         connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
-        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
+        final Field taskKeyValueStoreField = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
         taskKeyValueStoreField.setAccessible(true);
         taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
         List<String> pluginPaths = new ArrayList<>();
@@ -153,14 +153,14 @@ public class ConfigManagementServiceImplTest {
         configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
         configManagementService.start();
 
-        final Field connectorKeyValueStoreField2 = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
+        final Field connectorKeyValueStoreField2 = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
         connectorKeyValueStoreField2.setAccessible(true);
         connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField2.get(configManagementService);
-        final Field taskKeyValueStoreField2 = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
+        final Field taskKeyValueStoreField2 = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
         taskKeyValueStoreField2.setAccessible(true);
         taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField2.get(configManagementService);
 
-        final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
+        final Field dataSynchronizerField = LocalConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);
 
         final Field producerField = BrokerBasedLog.class.getDeclaredField("producer");

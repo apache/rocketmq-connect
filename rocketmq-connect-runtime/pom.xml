@@ -262,7 +262,7 @@
 
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-connect-reporter</artifactId>
+            <artifactId>metric-exporter</artifactId>
         </dependency>
 
     </dependencies>

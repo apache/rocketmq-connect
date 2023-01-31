@@ -44,8 +44,7 @@ class RecordOffsetManagement {
     private AtomicInteger numUnackedMessages = new AtomicInteger(0);
     private CountDownLatch messageDrainLatch;
 
-    public RecordOffsetManagement() {
-    }
+    public RecordOffsetManagement() {}
 
     /**
      * submit record

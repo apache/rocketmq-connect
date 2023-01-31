@@ -211,12 +211,20 @@ public class WorkerConfig {
      */
     private long offsetCommitIntervalMsConfig = 30000L;
 
-
+    /**
+     * metrics config
+     */
     private boolean openLogMetricReporter = false;
-
     private String metricsConfigPath;
     private Map<String, Map<String, String>> metricsConfig = new HashMap<>();
 
+    /**
+     * Management service
+     */
+    private String clusterManagementService;
+    private String configManagementService;
+    private String positionManagementService;
+    private String stateManagementService;
 
     public String getWorkerId() {
         return workerId;
@@ -542,6 +550,38 @@ public class WorkerConfig {
         this.openLogMetricReporter = openLogMetricReporter;
     }
 
+    public String getClusterManagementService() {
+        return clusterManagementService;
+    }
+
+    public void setClusterManagementService(String clusterManagementService) {
+        this.clusterManagementService = clusterManagementService;
+    }
+
+    public String getConfigManagementService() {
+        return configManagementService;
+    }
+
+    public void setConfigManagementService(String configManagementService) {
+        this.configManagementService = configManagementService;
+    }
+
+    public String getPositionManagementService() {
+        return positionManagementService;
+    }
+
+    public void setPositionManagementService(String positionManagementService) {
+        this.positionManagementService = positionManagementService;
+    }
+
+    public String getStateManagementService() {
+        return stateManagementService;
+    }
+
+    public void setStateManagementService(String stateManagementService) {
+        this.stateManagementService = stateManagementService;
+    }
+
     @Override
     public String toString() {
         return "WorkerConfig{" +
@@ -585,6 +625,10 @@ public class WorkerConfig {
                 ", openLogMetricReporter=" + openLogMetricReporter +
                 ", metricsConfigPath='" + metricsConfigPath + '\'' +
                 ", metricsConfig=" + metricsConfig +
+                ", clusterManagementService='" + clusterManagementService + '\'' +
+                ", configManagementService='" + configManagementService + '\'' +
+                ", positionManagementService='" + positionManagementService + '\'' +
+                ", stateManagementService='" + stateManagementService + '\'' +
                 '}';
     }
 }

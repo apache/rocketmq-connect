@@ -24,7 +24,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.LocalPositionManagementServiceImpl;
 import org.assertj.core.util.Maps;
 import org.junit.After;
 import org.junit.Assert;
@@ -65,7 +65,7 @@ public class PositionStorageReaderImplTest {
         connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
-        positionManagementService = new PositionManagementServiceImpl();
+        positionManagementService = new LocalPositionManagementServiceImpl();
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.13306");
         extendRecordPartition = new ExtendRecordPartition(NAMESPACE, map);
         Map<String, Object> partition = new HashMap<>();

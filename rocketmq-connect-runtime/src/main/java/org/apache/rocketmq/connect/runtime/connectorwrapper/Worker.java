@@ -27,13 +27,36 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.errors.ConnectException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
@@ -55,25 +78,8 @@ import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.PAUSED;
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.RUNNING;
 
 /**
  * A worker to schedule all connectors and tasks in a process.
@@ -124,6 +130,9 @@ public class Worker {
     private AtomicReference<WorkerState> workerState;
     private final StateMachineService stateMachineService = new StateMachineService();
 
+    private final StateManagementService stateManagementService;
+
+
     public Worker(WorkerConfig workerConfig,
                   PositionManagementService positionManagementService,
                   ConfigManagementService configManagementService,
@@ -141,6 +150,7 @@ public class Worker {
         this.statusListener = new WrapperStatusListener(stateManagementService, workerConfig.getWorkerId());
         this.executor = Executors.newCachedThreadPool();
         this.connectMetrics = new ConnectMetrics(workerConfig);
+        this.stateManagementService = stateManagementService;
     }
 
     public void start() {
@@ -640,6 +650,8 @@ public class Worker {
                         runningTasks.remove(runnable);
                         stoppingTasks.put(runnable, System.currentTimeMillis());
                     } else {
+                        //status redress
+                        redressRunningStatus(workerTask);
                         // set target state
                         TargetState targetState = configManagementService.snapshot().targetState(connectorName);
                         if (targetState != null) {
@@ -874,7 +886,13 @@ public class Worker {
 
                     } else if (task instanceof SinkTask) {
                         log.info("sink task config keyValue is {}", keyValue.getProperties());
-                        DefaultLitePullConsumer consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, id, keyValue, false);
+                        DefaultLitePullConsumer consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
+                        // set consumer groupId
+                        String groupId = keyValue.getString(SinkConnectorConfig.TASK_GROUP_ID);
+                        if (StringUtils.isBlank(groupId)) {
+                            groupId = ConnectUtil.SYS_TASK_CG_PREFIX + id.connector();
+                        }
+                        consumer.setConsumerGroup(groupId);
                         Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(workerConfig);
                         if (!consumerGroupSet.contains(consumer.getConsumerGroup())) {
                             ConnectUtil.createSubGroup(workerConfig, consumer.getConsumerGroup());
@@ -897,6 +915,21 @@ public class Worker {
                     Plugin.compareAndSwapLoaders(savedLoader);
                 }
             }
+        }
+    }
+
+    private void redressRunningStatus(WorkerTask workerTask) {
+        TaskStatus taskStatus = stateManagementService.get(workerTask.id);
+        if (taskStatus != null && taskStatus.getState() != RUNNING && taskStatus.getState() != PAUSED) {
+            ConnectorStatus connectorStatus = stateManagementService.get(workerTask.id.connector());
+            TaskStatus newTaskStatus;
+            if (null != connectorStatus && connectorStatus.getState() == PAUSED) {
+                newTaskStatus = new TaskStatus(workerTask.id, PAUSED, workerConfig.getWorkerId(), System.currentTimeMillis());
+            } else {
+                newTaskStatus = new TaskStatus(workerTask.id, RUNNING, workerConfig.getWorkerId(), System.currentTimeMillis());
+            }
+            log.warn("Task {}, Old task status is {}, new task status {}", workerTask.id, taskStatus, newTaskStatus);
+            stateManagementService.put(newTaskStatus);
         }
     }
 

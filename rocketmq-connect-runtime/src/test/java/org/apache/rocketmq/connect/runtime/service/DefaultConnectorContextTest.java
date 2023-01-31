@@ -18,7 +18,7 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
-import java.io.IOException;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,7 +28,6 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.WrapperStatusListener;
@@ -37,7 +36,6 @@ import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConfig;
 import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConnectController;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
-import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +53,7 @@ public class DefaultConnectorContextTest {
 
     private ConfigManagementService configManagementService;
 
-    private PositionManagementService positionManagementService = new PositionManagementServiceImpl();
+    private PositionManagementService positionManagementService = new LocalPositionManagementServiceImpl();
 
     private WorkerConfig workerConfig;
 
@@ -77,14 +75,14 @@ public class DefaultConnectorContextTest {
         workerConfig = new WorkerConfig();
         workerConfig.setNamesrvAddr("localhost:9876");
 
-        configManagementService = new ConfigManagementServiceImpl();
+        configManagementService = new LocalConfigManagementServiceImpl();
         configManagementService.initialize(workerConfig, new JsonConverter(), plugin);
         configManagementService.start();
 
         clusterManagementService.initialize(workerConfig);
         positionManagementService.initialize(workerConfig,new JsonConverter(),new JsonConverter());
         positionManagementService.start();
-        stateManagementService = new StateManagementServiceImpl();
+        stateManagementService = new LocalStateManagementServiceImpl();
         stateManagementService.initialize(workerConfig,new JsonConverter());
 
         standaloneConfig.setHttpPort(8092);
