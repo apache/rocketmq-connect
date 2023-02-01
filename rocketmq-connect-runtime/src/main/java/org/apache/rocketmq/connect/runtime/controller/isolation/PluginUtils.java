@@ -119,7 +119,7 @@ public class PluginUtils {
             + "|org\\.xml\\.sax"
             + "|io\\.openmessaging\\.connector\\.api"
             + "|org\\.slf4j"
-            + "|org\\.apache\\.rocketmq\\.client"
+            + "|org\\.apache\\.rocketmq"
             + ")\\..*$"
             + "|io\\.openmessaging\\.KeyValue");
 
