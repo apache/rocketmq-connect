@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.connect.metrics;
 
+import java.util.Objects;
+
 public class MetricsGroupTaskId {
     private String connector;
     private String task;
@@ -39,5 +41,18 @@ public class MetricsGroupTaskId {
 
     public void setTask(String task) {
         this.task = task;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MetricsGroupTaskId that = (MetricsGroupTaskId) o;
+        return Objects.equals(connector, that.connector) && Objects.equals(task, that.task);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(connector, task);
     }
 }
