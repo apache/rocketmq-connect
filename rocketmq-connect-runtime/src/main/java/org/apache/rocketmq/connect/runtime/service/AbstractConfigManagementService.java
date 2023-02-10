@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Interface for config manager. Contains connector configs and task configs. All worker in a cluster should keep the
@@ -59,6 +60,8 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
 
+    private final Map<String, AtomicInteger> connectorTaskId = new ConcurrentHashMap<>();
+
     @Override
     public void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs) {
         int maxTask = configs.getInt(ConnectorConfig.MAX_TASK, ConnectorConfig.TASKS_MAX_DEFAULT);
@@ -68,8 +71,8 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         Connector connector = loadConnector(configs);
         List<KeyValue> taskConfigs = connector.taskConfigs(maxTask);
         List<ConnectKeyValue> converterdConfigs = new ArrayList<>();
-        int taskId = 0;
         for (KeyValue keyValue : taskConfigs) {
+            int taskId = connectorTaskId.computeIfAbsent(connectorName, key -> new AtomicInteger(0)).getAndIncrement();
             ConnectKeyValue newKeyValue = new ConnectKeyValue();
             newKeyValue.setEpoch(configs.getEpoch());
             for (String key : keyValue.keySet()) {
@@ -100,7 +103,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
                 }
             }
             converterdConfigs.add(newKeyValue);
-            taskId++;
         }
         putTaskConfigs(connectorName, converterdConfigs);
     }
