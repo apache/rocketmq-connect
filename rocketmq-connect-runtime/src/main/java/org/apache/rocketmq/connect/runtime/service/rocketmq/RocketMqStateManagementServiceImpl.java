@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.service;
+package org.apache.rocketmq.connect.runtime.service.rocketmq;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.service.AbstractStateManagementService;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
 
 /**
  * RocketMQ state management service
  */
-public class RocketMQStateManagementServiceImpl extends AbstractStateManagementService {
+public class RocketMqStateManagementServiceImpl extends AbstractStateManagementService {
 
 
     /**

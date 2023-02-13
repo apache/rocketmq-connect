@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.service;
+package org.apache.rocketmq.connect.runtime.service.local;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
+import org.apache.rocketmq.connect.runtime.service.AbstractPositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;

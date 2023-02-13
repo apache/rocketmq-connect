@@ -1,2 +1,2 @@
-org.apache.rocketmq.connect.runtime.service.LocalPositionManagementServiceImpl
-org.apache.rocketmq.connect.runtime.service.RocketMQPositionManagementServiceImpl
+org.apache.rocketmq.connect.runtime.service.local.LocalPositionManagementServiceImpl
+org.apache.rocketmq.connect.runtime.service.rocketmq.RocketMqPositionManagementServiceImpl

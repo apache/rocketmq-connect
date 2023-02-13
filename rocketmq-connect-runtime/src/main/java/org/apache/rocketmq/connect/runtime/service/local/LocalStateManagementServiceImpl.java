@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.connect.runtime.service;
+package org.apache.rocketmq.connect.runtime.service.local;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.Schema;
@@ -28,6 +28,7 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
 import org.apache.rocketmq.connect.runtime.serialization.JsonSerde;
 import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
+import org.apache.rocketmq.connect.runtime.service.AbstractStateManagementService;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import java.util.ArrayList;

@@ -15,30 +15,28 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.service;
+package org.apache.rocketmq.connect.runtime.service.rocketmq;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.service.AbstractPositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
 
 /**
- * Rocketmq config management service impl
+ * Rocketmq position management service impl
  */
-public class RocketMQConfigManagementServiceImpl extends AbstractConfigManagementService {
+public class RocketMqPositionManagementServiceImpl extends AbstractPositionManagementService {
 
-    public RocketMQConfigManagementServiceImpl() {
+    public RocketMqPositionManagementServiceImpl() {
     }
 
     @Override
-    public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
-        super.initialize(workerConfig, converter, plugin);
-        // store connector config
-        this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
-        // store task config
-        this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
+    public void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
+        super.initialize(workerConfig, keyConverter, valueConverter);
+        this.positionStore = new MemoryBasedKeyValueStore<>();
     }
 
+    @Override
     protected void setEnabledCompactTopic() {
         this.enabledCompactTopic = true;
     }
@@ -50,13 +48,16 @@ public class RocketMQConfigManagementServiceImpl extends AbstractConfigManagemen
 
     @Override
     public void stop() {
-        if (dataSynchronizer != null) {
-            dataSynchronizer.stop();
-        }
+        dataSynchronizer.stop();
     }
 
     @Override
     public void persist() {
+        // No-op
+    }
+
+    @Override
+    public void load() {
         // No-op
     }
 }
