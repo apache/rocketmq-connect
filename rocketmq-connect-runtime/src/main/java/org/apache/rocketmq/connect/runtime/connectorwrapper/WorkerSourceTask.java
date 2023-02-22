@@ -420,11 +420,10 @@ public class WorkerSourceTask extends WorkerTask {
      * @return
      */
     private String maybeCreateAndGetTopic(ConnectRecord record) {
-        // topic from config
-        String topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
+        String topic = overwriteTopicFromRecord(record);
         if (StringUtils.isBlank(topic)) {
-            // try topic from config
-            topic = overwriteTopicFromRecord(record);
+            // topic from config
+            topic = taskConfig.getString(SourceConnectorConfig.CONNECT_TOPICNAME);
         }
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
