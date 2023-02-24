@@ -21,7 +21,6 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
@@ -52,7 +51,7 @@ import java.util.Set;
 /**
  * State management service
  */
-public abstract class AbstractStateManagementService implements StateManagementService {
+public abstract class AbstractStateManagementService implements StateManagementService, IChangeNotifier<String, byte[]>, ICommonConfiguration {
 
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
@@ -62,12 +61,12 @@ public abstract class AbstractStateManagementService implements StateManagementS
     public static final String GENERATION_KEY_NAME = "generation";
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
-            .field(STATE_KEY_NAME, SchemaBuilder.string().build())
-            .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
-            .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
-            .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
-            .build();
-    private final String statusManagePrefix = "StatusManage";
+        .field(STATE_KEY_NAME, SchemaBuilder.string().build())
+        .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
+        .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
+        .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
+        .build();
+    protected final String statusManagePrefix = "StatusManage";
     /**
      * Synchronize config with other workers.
      */
@@ -86,7 +85,7 @@ public abstract class AbstractStateManagementService implements StateManagementS
 
     protected RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
     protected String statusTopic;
-    protected boolean enabledCompactTopic;
+    protected boolean enabledCompactTopic = false;
 
 
     /**
@@ -100,42 +99,21 @@ public abstract class AbstractStateManagementService implements StateManagementS
         this.converter = converter;
         this.converter.configure(new HashMap<>());
         this.statusTopic = config.getConnectStatusTopic();
-        setEnabledCompactTopic();
-        this.dataSynchronizer = new BrokerBasedLog(config,
-                this.statusTopic,
-                ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
-                new StatusChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class),
-                enabledCompactTopic
+        this.dataSynchronizer = initializationDataSynchronizer(config);
+
+        new BrokerBasedLog(config,
+            this.statusTopic,
+            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+            new StatusChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class),
+            enabledCompactTopic()
         );
-        // create topic
-        this.prepare(config);
     }
 
-
-    protected void setEnabledCompactTopic() {
-        this.enabledCompactTopic = false;
-    }
-
-    /**
-     * Preparation before startup
-     *
-     * @param connectConfig
-     */
-    private void prepare(WorkerConfig connectConfig) {
-        String consumerGroup = ConnectUtil.createGroupName(statusManagePrefix, connectConfig.getWorkerId());
-        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
-        if (!consumerGroupSet.contains(consumerGroup)) {
-            log.info("try to create consumerGroup: {}!", consumerGroup);
-            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
-        }
-        String connectStatusTopic = connectConfig.getConnectStatusTopic();
-        if (!ConnectUtil.isTopicExist(connectConfig, connectStatusTopic)) {
-            log.info("try to create status topic: {}!", connectStatusTopic);
-            TopicConfig topicConfig = new TopicConfig(connectStatusTopic, 1, 1, 6);
-            ConnectUtil.createTopic(connectConfig, topicConfig);
-        }
+    @Override
+    public boolean enabledCompactTopic() {
+        return false;
     }
 
     /**
@@ -289,15 +267,15 @@ public abstract class AbstractStateManagementService implements StateManagementS
     }
 
     /**
-     * get staging mode
+     * notify other connect node
      *
-     * @return
+     * @param key
+     * @param bytes
      */
     @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.DISTRIBUTED;
+    public void notify(String key, byte[] bytes) {
+        dataSynchronizer.send(key, bytes);
     }
-
 
     // ======= Start receives the status message and transforms the storage ======
 
@@ -442,7 +420,7 @@ public abstract class AbstractStateManagementService implements StateManagementS
         }
     }
 
-    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
+    public class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
             process(key, value);

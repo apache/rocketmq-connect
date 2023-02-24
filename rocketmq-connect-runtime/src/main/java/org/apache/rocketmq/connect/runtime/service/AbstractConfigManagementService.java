@@ -30,7 +30,6 @@ import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -40,13 +39,10 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +64,7 @@ import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECT
  * Interface for config manager. Contains connector configs and task configs. All worker in a cluster should keep the
  * same configs.
  */
-public abstract class AbstractConfigManagementService implements ConfigManagementService {
+public abstract class AbstractConfigManagementService implements ConfigManagementService, IChangeNotifier<String, byte[]>, ICommonConfiguration {
 
     public static final String TARGET_STATE_PREFIX = "target-state-";
     public static final String CONNECTOR_PREFIX = "connector-";
@@ -148,7 +144,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
      * Current connector configs in the store.
      */
     protected KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
-    protected boolean enabledCompactTopic;
 
     public static String TARGET_STATE_KEY(String connectorName) {
         return TARGET_STATE_PREFIX + connectorName;
@@ -174,42 +169,26 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         this.converter.configure(new HashMap<>());
         this.plugin = plugin;
         this.connectorConfigUpdateListener = new HashSet<>();
-        setEnabledCompactTopic();
-        this.dataSynchronizer = new BrokerBasedLog<>(workerConfig,
-                this.topic,
-                ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
-                new ConfigChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class),
-                enabledCompactTopic
-        );
-        this.prepare(workerConfig);
+        this.dataSynchronizer = initializationDataSynchronizer(workerConfig);
     }
 
-    protected void setEnabledCompactTopic() {
-        this.enabledCompactTopic = false;
+
+    @Override
+    public boolean enabledCompactTopic() {
+        return false;
     }
 
-    /**
-     * Preparation before startup
-     *
-     * @param connectConfig
-     */
-    private void prepare(WorkerConfig connectConfig) {
-        String consumerGroup = ConnectUtil.createGroupName(configManagePrefix, connectConfig.getWorkerId());
-        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
-        if (!consumerGroupSet.contains(consumerGroup)) {
-            log.info("try to create consumerGroup: {}!", consumerGroup);
-            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
-        }
-        String configStoreTopic = connectConfig.getConfigStoreTopic();
-        if (!ConnectUtil.isTopicExist(connectConfig, configStoreTopic)) {
-            log.info("try to create config store topic: {}!", configStoreTopic);
-            TopicConfig topicConfig = new TopicConfig(configStoreTopic, 1, 1, 6);
-            ConnectUtil.createTopic(connectConfig, topicConfig);
+    @Override
+    public void start() {
+        dataSynchronizer.start();
+    }
+
+    @Override
+    public void stop() {
+        if (dataSynchronizer != null) {
+            dataSynchronizer.stop();
         }
     }
-
 
     @Override
     public Map<String, ConnectKeyValue> getConnectorConfigs() {
@@ -250,7 +229,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         connectConfig.put(FIELD_EPOCH, configs.getEpoch());
         connectConfig.put(FIELD_PROPS, configs.getProperties());
         byte[] config = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, connectConfig);
-        dataSynchronizer.send(CONNECTOR_KEY(connectorName), config);
+        notify(CONNECTOR_KEY(connectorName), config);
         return connectorName;
     }
 
@@ -269,7 +248,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         struct.put(FIELD_EPOCH, System.currentTimeMillis());
         struct.put(FIELD_DELETED, true);
         byte[] config = converter.fromConnectData(topic, CONNECTOR_DELETE_CONFIGURATION_V1, struct);
-        dataSynchronizer.send(CONNECTOR_KEY(connectorName), config);
+        notify(CONNECTOR_KEY(connectorName), config);
     }
 
     /**
@@ -287,7 +266,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         connectTargetState.put(FIELD_EPOCH, System.currentTimeMillis());
         byte[] serializedTargetState = converter.fromConnectData(topic, TARGET_STATE_V0, connectTargetState);
         log.debug("Writing target state {} for connector {}", TargetState.PAUSED.name(), connectorName);
-        dataSynchronizer.send(TARGET_STATE_KEY(connectorName), serializedTargetState);
+        notify(TARGET_STATE_KEY(connectorName), serializedTargetState);
     }
 
     /**
@@ -305,7 +284,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         connectTargetState.put(FIELD_EPOCH, System.currentTimeMillis());
         byte[] serializedTargetState = converter.fromConnectData(topic, TARGET_STATE_V0, connectTargetState);
         log.debug("Writing target state {} for connector {}", TargetState.STARTED.name(), connectorName);
-        dataSynchronizer.send(TARGET_STATE_KEY(connectorName), serializedTargetState);
+        notify(TARGET_STATE_KEY(connectorName), serializedTargetState);
     }
 
     @Override
@@ -422,15 +401,15 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     }
 
     @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.DISTRIBUTED;
+    public void notify(String key, byte[] value) {
+        dataSynchronizer.send(key, value);
     }
-
 
     /**
      * trigger listener
      */
-    protected void triggerListener() {
+    @Override
+    public void triggerListener() {
         if (null == this.connectorConfigUpdateListener) {
             return;
         }
@@ -633,7 +612,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         return o != null ? o.getClass().getName() : "null";
     }
 
-    protected class ConfigChangeCallback implements DataSynchronizerCallback<String, byte[]> {
+    public class ConfigChangeCallback implements DataSynchronizerCallback<String, byte[]> {
         @Override
         public void onCompletion(Throwable error, String key, byte[] value) {
             if (StringUtils.isEmpty(key)) {

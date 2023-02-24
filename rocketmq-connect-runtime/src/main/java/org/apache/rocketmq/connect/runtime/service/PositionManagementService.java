@@ -99,9 +99,6 @@ public interface PositionManagementService {
 
     void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter);
 
-    StagingMode getStagingMode();
-
-
     interface PositionUpdateListener {
 
         /**

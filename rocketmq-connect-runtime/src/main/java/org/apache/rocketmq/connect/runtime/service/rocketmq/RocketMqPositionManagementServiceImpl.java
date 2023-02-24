@@ -19,8 +19,14 @@ package org.apache.rocketmq.connect.runtime.service.rocketmq;
 
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.service.AbstractPositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
+
+import java.nio.ByteBuffer;
 
 /**
  * Rocketmq position management service impl
@@ -37,8 +43,21 @@ public class RocketMqPositionManagementServiceImpl extends AbstractPositionManag
     }
 
     @Override
-    protected void setEnabledCompactTopic() {
-        this.enabledCompactTopic = true;
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig workerConfig) {
+        return new BrokerBasedLog(
+            workerConfig,
+            this.topic,
+            ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
+            new PositionChangeCallback(),
+            Serdes.serdeFrom(ByteBuffer.class),
+            Serdes.serdeFrom(ByteBuffer.class),
+            enabledCompactTopic()
+        );
+    }
+
+    @Override
+    public boolean enabledCompactTopic() {
+        return Boolean.TRUE;
     }
 
     @Override
@@ -48,7 +67,9 @@ public class RocketMqPositionManagementServiceImpl extends AbstractPositionManag
 
     @Override
     public void stop() {
-        dataSynchronizer.stop();
+        if (dataSynchronizer != null) {
+            dataSynchronizer.stop();
+        }
     }
 
     @Override

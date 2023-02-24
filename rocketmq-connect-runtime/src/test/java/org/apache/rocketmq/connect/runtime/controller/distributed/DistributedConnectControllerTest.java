@@ -60,7 +60,7 @@ public class DistributedConnectControllerTest {
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
 
-    private StateManagementService stateManagementService = new LocalStateManagementServiceImpl();
+    private final StateManagementService stateManagementService = new TestStateManagementService();
 
     private WorkerConfig workerConfig = new WorkerConfig();
 
@@ -84,6 +84,7 @@ public class DistributedConnectControllerTest {
         URL[] urls = new URL[]{};
         pluginClassLoader = new PluginClassLoader(url, urls);
         Thread.currentThread().setContextClassLoader(pluginClassLoader);
+
         distributedConnectController = new DistributedConnectController(
                 plugin,
                 distributedConfig,

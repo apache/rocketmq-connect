@@ -25,12 +25,16 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.service.AbstractPositionManagementService;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 
 import static java.lang.Thread.sleep;
 
@@ -39,15 +43,29 @@ import static java.lang.Thread.sleep;
  */
 public class LocalPositionManagementServiceImpl extends AbstractPositionManagementService {
 
-    public LocalPositionManagementServiceImpl() {}
+    public LocalPositionManagementServiceImpl() {
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
 
         super.initialize(workerConfig, keyConverter, valueConverter);
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(workerConfig.getStorePathRootDir()),
-                new RecordPartitionSerde(),
-                new RecordOffsetSerde());
+            new RecordPartitionSerde(),
+            new RecordOffsetSerde());
+    }
+
+    @Override
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig workerConfig) {
+        return new BrokerBasedLog(
+            workerConfig,
+            super.topic,
+            ConnectUtil.createGroupName(super.positionManagePrefix, workerConfig.getWorkerId()),
+            new PositionChangeCallback(),
+            Serdes.serdeFrom(ByteBuffer.class),
+            Serdes.serdeFrom(ByteBuffer.class),
+            enabledCompactTopic()
+        );
     }
 
     @Override
@@ -101,5 +119,4 @@ public class LocalPositionManagementServiceImpl extends AbstractPositionManageme
             break;
         }
     }
-
 }

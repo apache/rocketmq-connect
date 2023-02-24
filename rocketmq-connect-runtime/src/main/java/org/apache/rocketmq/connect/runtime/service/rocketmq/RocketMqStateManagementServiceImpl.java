@@ -19,8 +19,12 @@ package org.apache.rocketmq.connect.runtime.service.rocketmq;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.service.AbstractStateManagementService;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 
 /**
  * RocketMQ state management service
@@ -44,8 +48,20 @@ public class RocketMqStateManagementServiceImpl extends AbstractStateManagementS
     }
 
     @Override
-    protected void setEnabledCompactTopic() {
-        this.enabledCompactTopic = true;
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig config) {
+        return new BrokerBasedLog(config,
+            statusTopic,
+            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+            new StatusChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class),
+            enabledCompactTopic()
+        );
+    }
+
+    @Override
+    public boolean enabledCompactTopic() {
+        return Boolean.TRUE;
     }
 
     /**
@@ -61,7 +77,9 @@ public class RocketMqStateManagementServiceImpl extends AbstractStateManagementS
      */
     @Override
     public void stop() {
-        dataSynchronizer.stop();
+        if (dataSynchronizer != null) {
+            dataSynchronizer.stop();
+        }
     }
 
     /**
@@ -91,4 +109,5 @@ public class RocketMqStateManagementServiceImpl extends AbstractStateManagementS
             log.warn("Discarding record with invalid key {}", key);
         }
     }
+
 }

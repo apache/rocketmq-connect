@@ -21,14 +21,10 @@ import io.netty.util.internal.ConcurrentSet;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.SchemaAndValue;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.slf4j.Logger;
@@ -46,9 +42,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Abstract position management service
  */
-public abstract class AbstractPositionManagementService implements PositionManagementService {
+public abstract class AbstractPositionManagementService implements PositionManagementService, IChangeNotifier<ByteBuffer, ByteBuffer>, ICommonConfiguration {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-    private final String positionManagePrefix = "PositionManage";
+    protected final String positionManagePrefix = "PositionManage";
     /**
      * Current position info in store.
      */
@@ -67,7 +63,7 @@ public abstract class AbstractPositionManagementService implements PositionManag
     private Set<ExtendRecordPartition> needSyncPartition;
     private RecordConverter keyConverter;
     private RecordConverter valueConverter;
-    private String topic;
+    protected String topic;
 
     public AbstractPositionManagementService() {
     }
@@ -82,43 +78,13 @@ public abstract class AbstractPositionManagementService implements PositionManag
         this.needSyncPartition = new ConcurrentSet<>();
         this.commitStarted = -1;
         this.config = workerConfig;
-        setEnabledCompactTopic();
-        this.dataSynchronizer = new BrokerBasedLog(
-                workerConfig,
-                this.topic,
-                ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
-                new PositionChangeCallback(),
-                Serdes.serdeFrom(ByteBuffer.class),
-                Serdes.serdeFrom(ByteBuffer.class),
-                enabledCompactTopic
-        );
-        this.prepare(workerConfig);
+        this.dataSynchronizer = initializationDataSynchronizer(workerConfig);
     }
 
-    protected void setEnabledCompactTopic() {
-        this.enabledCompactTopic = false;
+    @Override
+    public boolean enabledCompactTopic() {
+        return false;
     }
-
-    /**
-     * Preparation before startup
-     *
-     * @param connectConfig
-     */
-    private void prepare(WorkerConfig connectConfig) {
-        String consumerGroup = ConnectUtil.createGroupName(positionManagePrefix, connectConfig.getWorkerId());
-        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
-        if (!consumerGroupSet.contains(consumerGroup)) {
-            log.info("try to create consumerGroup: {}!", consumerGroup);
-            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
-        }
-        String positionStoreTopic = connectConfig.getPositionStoreTopic();
-        if (!ConnectUtil.isTopicExist(connectConfig, positionStoreTopic)) {
-            log.info("try to create position store topic: {}!", positionStoreTopic);
-            TopicConfig topicConfig = new TopicConfig(positionStoreTopic, 1, 1, 6);
-            ConnectUtil.createTopic(connectConfig, topicConfig);
-        }
-    }
-
 
     @Override
     public void persist() {
@@ -201,12 +167,6 @@ public abstract class AbstractPositionManagementService implements PositionManag
         committing.compareAndSet(true, false);
     }
 
-    @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.DISTRIBUTED;
-    }
-
-
     /**
      * send position
      *
@@ -220,7 +180,12 @@ public abstract class AbstractPositionManagementService implements PositionManag
         ByteBuffer keyBuffer = (key != null) ? ByteBuffer.wrap(key) : null;
         byte[] value = valueConverter.fromConnectData(namespace, null, position != null ? position.getOffset() : new HashMap<>());
         ByteBuffer valueBuffer = (value != null) ? ByteBuffer.wrap(value) : null;
-        dataSynchronizer.send(keyBuffer, valueBuffer);
+        notify(keyBuffer, valueBuffer);
+    }
+
+    @Override
+    public void notify(ByteBuffer key, ByteBuffer values) {
+        dataSynchronizer.send(key, values);
     }
 
     protected void process(ByteBuffer result, List<Object> deKey, PositionChange key) {
@@ -284,7 +249,7 @@ public abstract class AbstractPositionManagementService implements PositionManag
         ONLINE
     }
 
-    private class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
+    public class PositionChangeCallback implements DataSynchronizerCallback<ByteBuffer, ByteBuffer> {
 
         @Override
         public void onCompletion(Throwable error, ByteBuffer key, ByteBuffer result) {

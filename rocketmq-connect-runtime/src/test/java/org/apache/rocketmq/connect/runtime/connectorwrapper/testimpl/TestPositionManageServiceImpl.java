@@ -21,7 +21,6 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 
 import java.util.List;
@@ -87,10 +86,5 @@ public class TestPositionManageServiceImpl implements PositionManagementService 
 
     @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
 
-    }
-
-    @Override
-    public StagingMode getStagingMode() {
-        return null;
     }
 }

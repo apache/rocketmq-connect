@@ -25,7 +25,6 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
@@ -60,10 +59,6 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionSerde(),
                 new RecordOffsetSerde());
-    }
-
-    @Override public StagingMode getStagingMode() {
-        return StagingMode.STANDALONE;
     }
 
     @Override

@@ -30,7 +30,11 @@ import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.service.AbstractStateManagementService;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,14 +63,26 @@ public class LocalStateManagementServiceImpl extends AbstractStateManagementServ
         /**connector status store*/
         this.connectorStatusStore = new FileBaseKeyValueStore<>(
                 FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new JsonSerde(ConnectorStatus.class));
+            new Serdes.StringSerde(),
+            new JsonSerde(ConnectorStatus.class));
 
         /**task status store*/
         this.taskStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new ListSerde(TaskStatus.class));
+            FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
+            new Serdes.StringSerde(),
+            new ListSerde(TaskStatus.class));
+    }
+
+    @Override
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig config) {
+        return new BrokerBasedLog(config,
+            statusTopic,
+            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+            new StatusChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class),
+            enabledCompactTopic()
+        );
     }
 
     /**
@@ -173,4 +189,5 @@ public class LocalStateManagementServiceImpl extends AbstractStateManagementServ
             });
         });
     }
+
 }

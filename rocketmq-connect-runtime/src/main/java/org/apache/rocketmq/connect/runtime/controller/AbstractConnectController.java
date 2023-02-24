@@ -18,6 +18,11 @@
 package org.apache.rocketmq.connect.runtime.controller;
 
 import io.openmessaging.connector.api.errors.ConnectException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -42,13 +47,6 @@ import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CountDownLatch2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 
 /**
  * connect controller
@@ -77,12 +75,10 @@ public abstract class AbstractConnectController implements ConnectController {
      */
     protected final ClusterManagementService clusterManagementService;
 
-
     /**
      * Manage the online task status of the cluster
      */
     protected final StateManagementService stateManagementService;
-
 
     /**
      * A worker to schedule all connectors and tasks assigned to current process.
@@ -93,7 +89,6 @@ public abstract class AbstractConnectController implements ConnectController {
      * A REST handler, interacting with user.
      */
     protected final RestHandler restHandler;
-
 
     protected final Plugin plugin;
 
@@ -107,12 +102,12 @@ public abstract class AbstractConnectController implements ConnectController {
      * @param connectConfig
      */
     public AbstractConnectController(
-            Plugin plugin,
-            WorkerConfig connectConfig,
-            ClusterManagementService clusterManagementService,
-            ConfigManagementService configManagementService,
-            PositionManagementService positionManagementService,
-            StateManagementService stateManagementService
+        Plugin plugin,
+        WorkerConfig connectConfig,
+        ClusterManagementService clusterManagementService,
+        ConfigManagementService configManagementService,
+        PositionManagementService positionManagementService,
+        StateManagementService stateManagementService
     ) {
         // set config
         this.connectConfig = connectConfig;
@@ -130,26 +125,24 @@ public abstract class AbstractConnectController implements ConnectController {
         this.restHandler = new RestHandler(this);
     }
 
-
     @Override
     public void start() {
         clusterManagementService.start();
         CountDownLatch2 countDownLatch2 = new CountDownLatch2(3);
-        new Thread(()->{
+        new Thread(() -> {
             positionManagementService.start();
             countDownLatch2.countDown();
         }, "Position data loading").start();
 
-        new Thread(()->{
+        new Thread(() -> {
             stateManagementService.start();
             countDownLatch2.countDown();
         }, "State data loading").start();
 
-        new Thread(()->{
+        new Thread(() -> {
             configManagementService.start();
             countDownLatch2.countDown();
         }, "Config data loading").start();
-
 
         long startTime = System.currentTimeMillis();
         try {
@@ -158,7 +151,7 @@ public abstract class AbstractConnectController implements ConnectController {
             throw new ConnectException(e);
         }
         long endTime = System.currentTimeMillis();
-        log.info("Load config/position/state data finished, cost {}ms. ", (endTime - startTime));
+        log.info("Load config/position/state data finished, cost {}ms. ", endTime - startTime);
         connectStatsService.start();
         worker.start();
     }
@@ -226,7 +219,6 @@ public abstract class AbstractConnectController implements ConnectController {
         return clusterManagementService.getAllAliveWorkers();
     }
 
-
     /**
      * add connector
      *
@@ -293,25 +285,24 @@ public abstract class AbstractConnectController implements ConnectController {
         Collection<TaskStatus> tasks = stateManagementService.getAll(connName);
 
         ConnectorStateInfo.ConnectorState connectorState = new ConnectorStateInfo.ConnectorState(
-                connector.getState().toString(), connector.getWorkerId(), connector.getTrace());
+            connector.getState().toString(), connector.getWorkerId(), connector.getTrace());
         List<ConnectorStateInfo.TaskState> taskStates = new ArrayList<>();
 
         for (TaskStatus status : tasks) {
             taskStates.add(
-                    new ConnectorStateInfo.TaskState(
-                            status.getId().task(),
-                            status.getState().toString(),
-                            status.getWorkerId(),
-                            status.getTrace()
-                    )
+                new ConnectorStateInfo.TaskState(
+                    status.getId().task(),
+                    status.getState().toString(),
+                    status.getWorkerId(),
+                    status.getTrace()
+                )
             );
         }
         Collections.sort(taskStates);
         Map<String, String> conf = rawConfig(connName);
         return new ConnectorStateInfo(connName, connectorState, taskStates,
-                conf == null ? ConnectorType.UNKNOWN : connectorTypeForClass(conf.get(ConnectorConfig.CONNECTOR_CLASS)));
+            conf == null ? ConnectorType.UNKNOWN : connectorTypeForClass(conf.get(ConnectorConfig.CONNECTOR_CLASS)));
     }
-
 
     protected synchronized Map<String, String> rawConfig(String connName) {
         return configManagementService.snapshot().rawConnectorConfig(connName);
@@ -329,10 +320,10 @@ public abstract class AbstractConnectController implements ConnectController {
         }
         Map<String, String> config = configState.rawConnectorConfig(connector);
         return new ConnectorInfo(
-                connector,
-                config,
-                configState.tasks(connector),
-                connectorTypeForClass(config.get(ConnectorConfig.CONNECTOR_CLASS))
+            connector,
+            config,
+            configState.tasks(connector),
+            connectorTypeForClass(config.get(ConnectorConfig.CONNECTOR_CLASS))
         );
     }
 
@@ -359,9 +350,8 @@ public abstract class AbstractConnectController implements ConnectController {
             throw new ConnectException("No status found for task " + id);
         }
         return new ConnectorStateInfo.TaskState(id.task(), status.getState().toString(),
-                status.getWorkerId(), status.getTrace());
+            status.getWorkerId(), status.getTrace());
     }
-
 
     /**
      * Retrieves ConnectorType for the corresponding connector class

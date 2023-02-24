@@ -122,8 +122,6 @@ public interface ConfigManagementService {
 
     Plugin getPlugin();
 
-    StagingMode getStagingMode();
-
     interface ConnectorConfigUpdateListener {
         /**
          * Invoke while connector config changed.

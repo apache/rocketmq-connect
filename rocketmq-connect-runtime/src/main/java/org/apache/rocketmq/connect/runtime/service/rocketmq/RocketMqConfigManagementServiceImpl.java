@@ -20,8 +20,12 @@ package org.apache.rocketmq.connect.runtime.service.rocketmq;
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 
 /**
  * Rocketmq config management service impl
@@ -40,20 +44,21 @@ public class RocketMqConfigManagementServiceImpl extends AbstractConfigManagemen
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
     }
 
-    protected void setEnabledCompactTopic() {
-        this.enabledCompactTopic = true;
+    @Override
+    public boolean enabledCompactTopic() {
+        return true;
     }
 
     @Override
-    public void start() {
-        dataSynchronizer.start();
-    }
-
-    @Override
-    public void stop() {
-        if (dataSynchronizer != null) {
-            dataSynchronizer.stop();
-        }
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig workerConfig) {
+        return new BrokerBasedLog<>(workerConfig,
+            this.topic,
+            ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
+            new ConfigChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class),
+            enabledCompactTopic()
+        );
     }
 
     @Override

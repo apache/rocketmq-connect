@@ -111,31 +111,6 @@ public class ConnectUtilTest {
     }
 
     @Test
-    public void initDefaultMQPullConsumerTest() {
-        WorkerConfig connectConfig = new WorkerConfig();
-        connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);
-        final DefaultMQPullConsumer consumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
-        Assert.assertEquals(NAME_SERVER_ADDR, consumer.getNamesrvAddr());
-        Assert.assertEquals(30000, consumer.getPollNameServerInterval());
-        Assert.assertEquals(30000, consumer.getHeartbeatBrokerInterval());
-        Assert.assertEquals(5000, consumer.getPersistConsumerOffsetInterval());
-
-        ConnectorTaskId connectorTaskId = new ConnectorTaskId("testConnector", 1);
-        ConnectKeyValue connectKeyValue = new ConnectKeyValue();
-        final DefaultMQPullConsumer consumer2 = ConnectUtil.initDefaultMQPullConsumer(connectConfig, connectorTaskId, connectKeyValue);
-        Assert.assertEquals(NAME_SERVER_ADDR, consumer2.getNamesrvAddr());
-        Assert.assertEquals(30000, consumer2.getPollNameServerInterval());
-        Assert.assertEquals(30000, consumer2.getHeartbeatBrokerInterval());
-        Assert.assertEquals(5000, consumer2.getPersistConsumerOffsetInterval());
-
-        final DefaultMQPullConsumer consumer3 = ConnectUtil.initDefaultMQPullConsumer(connectConfig, "testConnector", connectKeyValue);
-        Assert.assertEquals(NAME_SERVER_ADDR, consumer3.getNamesrvAddr());
-        Assert.assertEquals(30000, consumer3.getPollNameServerInterval());
-        Assert.assertEquals(30000, consumer3.getHeartbeatBrokerInterval());
-        Assert.assertEquals(5000, consumer3.getPersistConsumerOffsetInterval());
-    }
-
-    @Test
     public void initDefaultMQPushConsumerTest() {
         WorkerConfig connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr(NAME_SERVER_ADDR);

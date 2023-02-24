@@ -33,8 +33,11 @@ import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
+import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 
 /**
  * Local config management service impl
@@ -43,6 +46,7 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
 
 
     public static final String START_SIGNAL = "start-signal";
+    public static final String START_SIGNAL_VALUE = "start";
 
     /**
      * start signal
@@ -61,14 +65,26 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
         this.connectorKeyValueStore = new FileBaseKeyValueStore<>(
                 FilePathConfigUtil.getConnectorConfigPath(workerConfig.getStorePathRootDir()),
                 new Serdes.StringSerde(),
-                new JsonSerde(ConnectKeyValue.class));
+            new JsonSerde(ConnectKeyValue.class));
 
         // store task config
         this.taskKeyValueStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new ListSerde(ConnectKeyValue.class));
+            FilePathConfigUtil.getTaskConfigPath(workerConfig.getStorePathRootDir()),
+            new Serdes.StringSerde(),
+            new ListSerde(ConnectKeyValue.class));
 
+    }
+
+    @Override
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig workerConfig) {
+        return new BrokerBasedLog<>(workerConfig,
+            this.topic,
+            ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
+            new ConfigChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class),
+            enabledCompactTopic()
+        );
     }
 
 
@@ -76,22 +92,26 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
     public void start() {
         connectorKeyValueStore.load();
         taskKeyValueStore.load();
-        dataSynchronizer.start();
+        super.start();
         sendStartSignal();
     }
 
     private void sendStartSignal() {
         Struct struct = new Struct(START_SIGNAL_V0);
-        struct.put(START_SIGNAL, "start");
-        dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(topic, START_SIGNAL_V0, struct));
+        struct.put(START_SIGNAL, START_SIGNAL_VALUE);
+        notify(START_SIGNAL, converter.fromConnectData(topic, START_SIGNAL_V0, struct));
     }
 
     @Override
     public void stop() {
         triggerSendMessage();
-        connectorKeyValueStore.persist();
-        taskKeyValueStore.persist();
-        dataSynchronizer.stop();
+        if (connectorKeyValueStore != null) {
+            connectorKeyValueStore.persist();
+        }
+        if (taskKeyValueStore != null) {
+            taskKeyValueStore.persist();
+        }
+        super.stop();
     }
 
     @Override
@@ -122,7 +142,7 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
                     .put(FIELD_STATE, connectKeyValue.getTargetState().name())
                     .put(FIELD_PROPS, connectKeyValue.getProperties());
             byte[] body = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, struct);
-            dataSynchronizer.send(CONNECTOR_KEY(connectName), body);
+            notify(CONNECTOR_KEY(connectName), body);
         });
 
         taskKeyValueStore.getKVMap().forEach((connectName, taskConfigs) -> {
@@ -135,7 +155,7 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
                         .put(FIELD_EPOCH, System.currentTimeMillis())
                         .put(FIELD_PROPS, taskConfig.getProperties());
                 byte[] body = converter.fromConnectData(topic, TASK_CONFIGURATION_V0, struct);
-                dataSynchronizer.send(TASK_KEY(taskId), body);
+                notify(TASK_KEY(taskId), body);
             });
         });
     }
