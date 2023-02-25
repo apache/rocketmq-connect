@@ -83,6 +83,10 @@ public class RestHandler {
         app.get("/connectors/{connectorName}/stop", this::handleStopConnector);
         app.get("/connectors/stop/all", this::handleStopAllConnector);
 
+        // restart connector
+        app.get("/connectors/{connectorName}/restart", this::handleRestartConnector);
+        app.get("/connectors/{connectorName}/tasks/{task}/restart", this::handleRestartTask);
+
         // pause & resume
         app.get("/connectors/{connectorName}/pause", this::handlePauseConnector);
         app.get("/connectors/{connectorName}/resume", this::handleResumeConnector);
@@ -237,6 +241,28 @@ public class RestHandler {
         }
     }
 
+    private void handleRestartConnector(Context context) {
+        try {
+            String connectorName = context.pathParam(CONNECTOR_NAME);
+            connectController.restartConnector(connectorName);
+            context.json(new HttpResponse<>(context.status(), "Connector [" + connectorName + "] restarted successfully"));
+        } catch (Exception e) {
+            log.error("Restart connector failed .", e);
+            context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, e.getMessage()));
+        }
+    }
+
+    public void handleRestartTask(Context context) {
+        try {
+            String connectorName = context.pathParam(CONNECTOR_NAME);
+            Integer task = Integer.valueOf(context.pathParam(TASK_NAME));
+            connectController.restartTask(connectorName, task);
+            context.json(new HttpResponse<>(context.status(), "Task [" + connectorName + "/ " + task + "] restarted successfully"));
+        } catch (Exception ex) {
+            log.error("Restart task failed .", ex);
+            context.json(new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR_500, ex.getMessage()));
+        }
+    }
 
     private void handlePauseConnector(Context context) {
         String connectorName = context.pathParam(CONNECTOR_NAME);

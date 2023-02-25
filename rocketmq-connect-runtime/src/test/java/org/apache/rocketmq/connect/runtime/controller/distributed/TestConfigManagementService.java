@@ -59,6 +59,16 @@ public class TestConfigManagementService implements ConfigManagementService {
     }
 
     @Override
+    public void restartConnector(String connectorName) {
+
+    }
+
+    @Override
+    public void restartTask(String connectorName, Integer task) {
+
+    }
+
+    @Override
     public void pauseConnector(String connectorName) {
     }
 
