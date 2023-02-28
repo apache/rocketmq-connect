@@ -23,14 +23,20 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import com.google.common.collect.Maps;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -39,8 +45,10 @@ import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.controller.isolation.DelegatingClassLoader;
+import org.apache.rocketmq.connect.runtime.service.local.LocalConfigManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
@@ -51,6 +59,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
@@ -58,9 +67,11 @@ import org.mockito.stubbing.Answer;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class ConfigManagementServiceImplTest {
 
     private KeyValueStore<String, ConnectKeyValue> connectorKeyValueStore;
@@ -73,9 +84,9 @@ public class ConfigManagementServiceImplTest {
     private DefaultMQProducer producer;
 
     @Mock
-    private DefaultMQPushConsumer consumer;
+    private DefaultLitePullConsumer consumer;
 
-    private ConfigManagementServiceImpl configManagementService;
+    private LocalConfigManagementServiceImpl configManagementService;
 
     private String connectorName;
 
@@ -83,12 +94,11 @@ public class ConfigManagementServiceImplTest {
 
     private Plugin plugin;
 
-    @Mock
-    private DelegatingClassLoader delegatingClassLoader;
-
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
+
+    private final MockedStatic<ConnectUtil> connectUtil = mockStatic(ConnectUtil.class);
 
     @Before
     public void init() throws Exception {
@@ -121,7 +131,7 @@ public class ConfigManagementServiceImplTest {
                 final Message message = invocation.getArgument(0);
                 byte[] bytes = message.getBody();
 
-                final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
+                final Field dataSynchronizerField = LocalConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
                 dataSynchronizerField.setAccessible(true);
                 BrokerBasedLog<String, ConnAndTaskConfigs> dataSynchronizer = (BrokerBasedLog<String, ConnAndTaskConfigs>) dataSynchronizerField.get(configManagementService);
 
@@ -139,28 +149,35 @@ public class ConfigManagementServiceImplTest {
             }
         }).when(producer).send(any(Message.class), any(SendCallback.class));
 
-        configManagementService = new ConfigManagementServiceImpl();
+        configManagementService = new LocalConfigManagementServiceImpl();
         configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
-        final Field connectorKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
+        final Field connectorKeyValueStoreField = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
         connectorKeyValueStoreField.setAccessible(true);
         connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField.get(configManagementService);
-        final Field taskKeyValueStoreField = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
+        final Field taskKeyValueStoreField = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
         taskKeyValueStoreField.setAccessible(true);
         taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField.get(configManagementService);
         List<String> pluginPaths = new ArrayList<>();
         pluginPaths.add("src/test/java/org/apache/rocketmq/connect/runtime");
         plugin = new Plugin(pluginPaths);
+
+        connectUtil.when(() -> ConnectUtil.initDefaultMQProducer(connectConfig)).thenReturn(producer);
+        connectUtil.when(() -> ConnectUtil.initDefaultLitePullConsumer(connectConfig, false)).thenReturn(consumer);
+        Map<String, Map<MessageQueue, TopicOffset>> returnOffsets = new HashMap<>();
+        returnOffsets.put(connectConfig.getConfigStoreTopic(), new HashMap<>(0));
+        connectUtil.when(() -> ConnectUtil.offsetTopics(connectConfig, Lists.newArrayList(connectConfig.getConfigStoreTopic()))).thenReturn(returnOffsets);
+
         configManagementService.initialize(connectConfig, new JsonConverter(), plugin);
         configManagementService.start();
 
-        final Field connectorKeyValueStoreField2 = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
+        final Field connectorKeyValueStoreField2 = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("connectorKeyValueStore");
         connectorKeyValueStoreField2.setAccessible(true);
         connectorKeyValueStore = (KeyValueStore<String, ConnectKeyValue>) connectorKeyValueStoreField2.get(configManagementService);
-        final Field taskKeyValueStoreField2 = ConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
+        final Field taskKeyValueStoreField2 = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("taskKeyValueStore");
         taskKeyValueStoreField2.setAccessible(true);
         taskKeyValueStore = (KeyValueStore<String, List<ConnectKeyValue>>) taskKeyValueStoreField2.get(configManagementService);
 
-        final Field dataSynchronizerField = ConfigManagementServiceImpl.class.getDeclaredField("dataSynchronizer");
+        final Field dataSynchronizerField = LocalConfigManagementServiceImpl.class.getSuperclass().getDeclaredField("dataSynchronizer");
         dataSynchronizerField.setAccessible(true);
 
         final Field producerField = BrokerBasedLog.class.getDeclaredField("producer");
@@ -174,7 +191,8 @@ public class ConfigManagementServiceImplTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
+        connectUtil.close();
         configManagementService.stop();
         TestUtils.deleteFile(new File(System.getProperty("user.home") + File.separator + "testConnectorStore"));
         brokerMocker.shutdown();

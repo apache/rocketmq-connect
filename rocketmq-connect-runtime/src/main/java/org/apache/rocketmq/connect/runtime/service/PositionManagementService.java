@@ -93,12 +93,11 @@ public interface PositionManagementService {
      *
      * @param listener
      */
-    void registerListener(PositionUpdateListener listener);
+    default void registerListener(PositionUpdateListener listener){
+        // No-op
+    }
 
     void initialize(WorkerConfig workerConfig, RecordConverter keyConverter, RecordConverter valueConverter);
-
-    StagingMode getStagingMode();
-
 
     interface PositionUpdateListener {
 

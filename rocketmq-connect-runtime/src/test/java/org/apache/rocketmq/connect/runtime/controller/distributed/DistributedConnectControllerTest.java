@@ -35,7 +35,7 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalStateManagementServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -43,8 +43,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.nio.charset.StandardCharsets;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DistributedConnectControllerTest {
@@ -62,7 +60,7 @@ public class DistributedConnectControllerTest {
 
     private PositionManagementService positionManagementService = new TestPositionManageServiceImpl();
 
-    private StateManagementService stateManagementService = new StateManagementServiceImpl();
+    private final StateManagementService stateManagementService = new TestStateManagementService();
 
     private WorkerConfig workerConfig = new WorkerConfig();
 
@@ -86,6 +84,7 @@ public class DistributedConnectControllerTest {
         URL[] urls = new URL[]{};
         pluginClassLoader = new PluginClassLoader(url, urls);
         Thread.currentThread().setContextClassLoader(pluginClassLoader);
+
         distributedConnectController = new DistributedConnectController(
                 plugin,
                 distributedConfig,

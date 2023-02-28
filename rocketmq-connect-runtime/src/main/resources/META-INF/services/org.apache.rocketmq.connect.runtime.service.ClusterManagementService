@@ -1,2 +1,2 @@
-org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl
 org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl
+org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl

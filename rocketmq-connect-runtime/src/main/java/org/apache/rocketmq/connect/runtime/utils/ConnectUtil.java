@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.utils;
 
 import com.beust.jcommander.internal.Sets;
+import com.google.common.collect.Maps;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.commons.lang3.StringUtils;
@@ -26,12 +27,18 @@ import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.admin.OffsetWrapper;
+import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
@@ -39,16 +46,17 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
-import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,14 +65,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
 public class ConnectUtil {
 
+    public static final String SYS_TASK_CG_PREFIX = "connect-";
     private final static AtomicLong GROUP_POSTFIX_ID = new AtomicLong(0);
-
-    private static final String SYS_TASK_CG_PREFIX = "connect-";
 
     public static String createGroupName(String prefix) {
         StringBuilder sb = new StringBuilder();
@@ -178,7 +186,7 @@ public class ConnectUtil {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("create topic: " + topicConfig.getTopicName() + " failed", e);
+            throw new RuntimeException("Create topic [" + topicConfig.getTopicName() + "] failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
@@ -195,10 +203,16 @@ public class ConnectUtil {
             if (topicRouteData != null) {
                 foundTopicRouteInfo = true;
             }
-        } catch (MQClientException e) {
-            foundTopicRouteInfo = false;
         } catch (Exception e) {
-            throw new RuntimeException("Get topic route info  failed", e);
+            if (e instanceof MQClientException) {
+                if (((MQClientException) e).getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
+                    foundTopicRouteInfo = false;
+                } else {
+                    throw new RuntimeException("Get topic route info  failed", e);
+                }
+            } else {
+                throw new RuntimeException("Get topic route info  failed", e);
+            }
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
@@ -218,7 +232,7 @@ public class ConnectUtil {
                 consumerGroupSet.addAll(subscriptionGroupWrapper.getSubscriptionGroupTable().keySet());
             }
         } catch (Exception e) {
-            throw new RuntimeException("fetch all topic  failed", e);
+            throw new RuntimeException("Fetch all topic failed", e);
         } finally {
             if (defaultMQAdminExt != null) {
                 defaultMQAdminExt.shutdown();
@@ -312,17 +326,13 @@ public class ConnectUtil {
      * @return
      * @throws MQClientException
      */
-    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue, boolean autoCommit) throws MQClientException {
+    public static DefaultLitePullConsumer initDefaultLitePullConsumer(WorkerConfig connectConfig, boolean autoCommit) {
         DefaultLitePullConsumer consumer = null;
-        String groupId = keyValue.getString(SinkConnectorConfig.TASK_GROUP_ID);
-        if (StringUtils.isBlank(groupId)) {
-            groupId = SYS_TASK_CG_PREFIX + id.connector();
-        }
         if (Objects.isNull(consumer)) {
             if (StringUtils.isBlank(connectConfig.getAccessKey()) && StringUtils.isBlank(connectConfig.getSecretKey())) {
-                consumer = new DefaultLitePullConsumer(groupId);
+                consumer = new DefaultLitePullConsumer();
             } else {
-                consumer = new DefaultLitePullConsumer(groupId, getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+                consumer = new DefaultLitePullConsumer(getAclRPCHook(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
             }
         }
         consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
@@ -356,23 +366,104 @@ public class ConnectUtil {
         return consumer;
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(WorkerConfig connectConfig, String connectorName, ConnectKeyValue keyValue) {
-        RPCHook rpcHook = null;
-        if (connectConfig.getAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+
+    /**
+     * Get topic offsets
+     */
+    public static Map<String, Map<MessageQueue, TopicOffset>> offsetTopics(
+        WorkerConfig config, List<String> topics) {
+        Map<String, Map<MessageQueue, TopicOffset>> offsets = Maps.newConcurrentMap();
+        DefaultMQAdminExt adminClient = null;
+        try {
+            adminClient = startMQAdminTool(config);
+            for (String topic : topics) {
+                TopicStatsTable topicStatsTable = adminClient.examineTopicStats(topic);
+                offsets.put(topic, topicStatsTable.getOffsetTable());
+            }
+            return offsets;
+        } catch (MQClientException
+                 | MQBrokerException
+                 | RemotingException
+                 | InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (adminClient != null) {
+                adminClient.shutdown();
+            }
         }
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(rpcHook);
-        consumer.setInstanceName(createInstance(connectorName));
-        String taskGroupId = keyValue.getString("task-group-id");
-        if (StringUtils.isNotBlank(taskGroupId)) {
-            consumer.setConsumerGroup(taskGroupId);
-        } else {
-            consumer.setConsumerGroup(SYS_TASK_CG_PREFIX + connectorName);
+    }
+
+    /** Flat topics offsets */
+    public static Map<MessageQueue, TopicOffset> flatOffsetTopics(
+        WorkerConfig config, List<String> topics) {
+        Map<MessageQueue, TopicOffset> messageQueueTopicOffsets = Maps.newConcurrentMap();
+        offsetTopics(config, topics).values()
+            .forEach(
+                offsetTopic -> {
+                    messageQueueTopicOffsets.putAll(offsetTopic);
+                });
+        return messageQueueTopicOffsets;
+    }
+
+    /** Search offsets by timestamp */
+    public static Map<MessageQueue, Long> searchOffsetsByTimestamp(
+        WorkerConfig config,
+        Collection<MessageQueue> messageQueues,
+        Long timestamp) {
+        Map<MessageQueue, Long> offsets = Maps.newConcurrentMap();
+        DefaultMQAdminExt adminClient = null;
+        try {
+            adminClient = startMQAdminTool(config);
+            for (MessageQueue messageQueue : messageQueues) {
+                long offset = adminClient.searchOffset(messageQueue, timestamp);
+                offsets.put(messageQueue, offset);
+            }
+            return offsets;
+        } catch (MQClientException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (adminClient != null) {
+                adminClient.shutdown();
+            }
         }
-        if (StringUtils.isNotBlank(connectConfig.getNamesrvAddr())) {
-            consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
+    }
+
+    /** Get consumer group offset */
+    public static Map<MessageQueue, Long> currentOffsets(WorkerConfig config, String groupName, List<String> topics, Set<MessageQueue> messageQueues) {
+        // Get consumer group offset
+        DefaultMQAdminExt adminClient = null;
+        try {
+            adminClient = startMQAdminTool(config);
+            Map<MessageQueue, OffsetWrapper> consumerOffsets = Maps.newConcurrentMap();
+            for (String topic : topics) {
+                ConsumeStats consumeStats = adminClient.examineConsumeStats(groupName, topic);
+                consumerOffsets.putAll(consumeStats.getOffsetTable());
+            }
+            return consumerOffsets.keySet().stream()
+                .filter(messageQueue -> messageQueues.contains(messageQueue))
+                .collect(
+                    Collectors.toMap(
+                        messageQueue -> messageQueue,
+                        messageQueue ->
+                            consumerOffsets.get(messageQueue).getConsumerOffset()));
+        } catch (MQClientException
+                 | MQBrokerException
+                 | RemotingException
+                 | InterruptedException e) {
+            if (e instanceof MQClientException) {
+                if (((MQClientException) e).getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
+                    return Collections.emptyMap();
+                } else {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                throw new RuntimeException(e);
+            }
+        } finally {
+            if (adminClient != null) {
+                adminClient.shutdown();
+            }
         }
-        return consumer;
     }
 
 }

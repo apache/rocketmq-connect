@@ -17,17 +17,23 @@
 
 package org.apache.rocketmq.connect.runtime.controller.distributed;
 
-import java.util.List;
-import java.util.Map;
-
 import io.openmessaging.connector.api.data.RecordConverter;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
-import org.apache.rocketmq.connect.runtime.store.ClusterConfigState;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
+import org.apache.rocketmq.connect.runtime.service.StateManagementService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 
-public class TestConfigManagementService implements ConfigManagementService {
+import java.util.Collection;
+import java.util.Set;
+
+public class TestStateManagementService implements StateManagementService {
+    @Override
+    public void initialize(WorkerConfig workerConfig, RecordConverter converter) {
+
+    }
+
     @Override
     public void start() {
 
@@ -39,64 +45,42 @@ public class TestConfigManagementService implements ConfigManagementService {
     }
 
     @Override
-    public Map<String, ConnectKeyValue> getConnectorConfigs() {
-        return null;
-    }
-
-
-    @Override
-    public String putConnectorConfig(String connectorName, ConnectKeyValue configs) {
-        return null;
-    }
-
-    @Override
-    public void deleteConnectorConfig(String connectorName) {
+    public void put(ConnectorStatus status) {
 
     }
 
     @Override
-    public void pauseConnector(String connectorName) {
-    }
-
-    @Override
-    public void resumeConnector(String connectorName) {
-
-    }
-
-
-    @Override
-    public void recomputeTaskConfigs(String connectorName,
-                                     ConnectKeyValue configs) {
+    public void putSafe(ConnectorStatus status) {
 
     }
 
     @Override
-    public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
+    public void put(TaskStatus status) {
+
+    }
+
+    @Override
+    public void putSafe(TaskStatus status) {
+
+    }
+
+    @Override
+    public TaskStatus get(ConnectorTaskId id) {
         return null;
     }
 
     @Override
-    public void persist() {
-
-    }
-
-    @Override
-    public void registerListener(ConnectorConfigUpdateListener listener) {
-
-    }
-
-
-    @Override public void initialize(WorkerConfig connectConfig, RecordConverter converter, Plugin plugin) {
-
-    }
-
-    @Override
-    public ClusterConfigState snapshot() {
+    public ConnectorStatus get(String connector) {
         return null;
     }
 
     @Override
-    public Plugin getPlugin() {
+    public Collection<TaskStatus> getAll(String connector) {
+        return null;
+    }
+
+    @Override
+    public Set<String> connectors() {
         return null;
     }
 

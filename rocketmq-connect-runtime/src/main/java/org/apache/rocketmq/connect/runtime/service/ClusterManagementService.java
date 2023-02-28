@@ -75,13 +75,6 @@ public interface ClusterManagementService {
      */
     String getCurrentWorker();
 
-    /**
-     * staging mode
-     *
-     * @return
-     */
-    StagingMode getStagingMode();
-
     interface WorkerStatusListener {
 
         /**

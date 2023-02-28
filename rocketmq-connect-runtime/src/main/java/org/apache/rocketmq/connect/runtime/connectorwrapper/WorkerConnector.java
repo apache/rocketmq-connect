@@ -24,16 +24,15 @@ import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.errors.ConnectException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A wrapper of {@link Connector} for runtime.
@@ -50,11 +49,11 @@ public class WorkerConnector implements Runnable {
     /**
      * Name of the worker connector.
      */
-    private String connectorName;
+    private final String connectorName;
     /**
      * Instance of a connector implements.
      */
-    private Connector connector;
+    private final Connector connector;
     /**
      * The configs for the current connector.
      */
@@ -64,11 +63,11 @@ public class WorkerConnector implements Runnable {
     private State state;
 
     public WorkerConnector(String connectorName,
-                           Connector connector,
-                           ConnectKeyValue keyValue,
-                           ConnectorContext context,
-                           ConnectorStatus.Listener statusListener,
-                           ClassLoader classloader) {
+        Connector connector,
+        ConnectKeyValue keyValue,
+        ConnectorContext context,
+        ConnectorStatus.Listener statusListener,
+        ClassLoader classloader) {
         this.connectorName = connectorName;
         this.connector = connector;
         this.keyValue = keyValue;
@@ -227,16 +226,18 @@ public class WorkerConnector implements Runnable {
             Callback<TargetState> stateChangeCallback = this.targetStateChangeCallback.getAndSet(null);
             if (stateChangeCallback != null) {
                 stateChangeCallback.onCompletion(
-                        new ConnectException(
-                                "Could not begin changing connector state to " + preEmptedState.name()
-                                        + " as the connector has been scheduled for shutdown"),
-                        null);
+                    new ConnectException(
+                        "Could not begin changing connector state to " + preEmptedState.name()
+                            + " as the connector has been scheduled for shutdown"),
+                    null);
             }
             if (state == State.STARTED) {
                 connector.stop();
             }
             this.state = State.STOPPED;
-            statusListener.onShutdown(connectorName);
+            if (statusListener != null) {
+                statusListener.onShutdown(connectorName);
+            }
             log.info("Completed shutdown for {}", this);
         } catch (Throwable t) {
             log.error("{} Error while shutting down connector", this, t);
@@ -269,12 +270,12 @@ public class WorkerConnector implements Runnable {
         }
         if (preEmptedStateChangeCallback != null) {
             preEmptedStateChangeCallback.onCompletion(
-                    new ConnectException(
-                            "Could not begin changing connector state to " + preEmptedState.name()
-                                    + " before another request to change state was made;"
-                                    + " the new request (which is to change the state to " + targetState.name()
-                                    + ") has pre-empted this one"),
-                    null
+                new ConnectException(
+                    "Could not begin changing connector state to " + preEmptedState.name()
+                        + " before another request to change state was made;"
+                        + " the new request (which is to change the state to " + targetState.name()
+                        + ") has pre-empted this one"),
+                null
             );
         }
     }
@@ -282,8 +283,8 @@ public class WorkerConnector implements Runnable {
     void doTransitionTo(TargetState targetState, Callback<TargetState> stateChangeCallback) {
         if (state == State.FAILED) {
             stateChangeCallback.onCompletion(
-                    new ConnectException(this + " Cannot transition connector to " + targetState + " since it has failed"),
-                    null);
+                new ConnectException(this + " Cannot transition connector to " + targetState + " since it has failed"),
+                null);
             return;
         }
 
@@ -292,10 +293,10 @@ public class WorkerConnector implements Runnable {
             stateChangeCallback.onCompletion(null, targetState);
         } catch (Throwable t) {
             stateChangeCallback.onCompletion(
-                    new ConnectException(
-                            "Failed to transition connector " + connectorName + " to state " + targetState,
-                            t),
-                    null);
+                new ConnectException(
+                    "Failed to transition connector " + connectorName + " to state " + targetState,
+                    t),
+                null);
         }
     }
 
@@ -363,10 +364,9 @@ public class WorkerConnector implements Runnable {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("connectorName:" + connectorName)
-                .append("\nConfigs:" + JSON.toJSONString(keyValue));
-        return sb.toString();
+        String sb = "connectorName:" + connectorName +
+            "\nConfigs:" + JSON.toJSONString(keyValue);
+        return sb;
     }
 
     private enum State {

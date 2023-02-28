@@ -37,9 +37,9 @@ import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalPositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalStateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -98,7 +98,7 @@ public class WorkerDirectTaskTest {
         classLoader = this.getClass().getClassLoader();
         sinkTask = new TestSinkTask();
         connectKeyValue = new ConnectKeyValue();
-        positionManagementService = new PositionManagementServiceImpl();
+        positionManagementService = new LocalPositionManagementServiceImpl();
         workerState.set(WorkerState.STARTED);
         connectStatsManager = new ConnectStatsManager(workerConfig);
         connectStatsService = new ConnectStatsService();
@@ -107,7 +107,7 @@ public class WorkerDirectTaskTest {
         transformChain = new TransformChain<>(keyValue, plugin);
         connectMetrics = new ConnectMetrics(workerConfig);
         errorMetricsGroup = new ErrorMetricsGroup(connectorTaskId, connectMetrics);
-        stateManagementService = new StateManagementServiceImpl();
+        stateManagementService = new LocalStateManagementServiceImpl();
         wrapperStatusListener = new WrapperStatusListener(stateManagementService, "defaultWorker1");
         retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 1000, ToleranceType.ALL, errorMetricsGroup);
 

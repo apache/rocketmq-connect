@@ -41,7 +41,7 @@ import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.connect.runtime.errors.WorkerErrorRecordReporter;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalStateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -52,11 +52,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -106,7 +101,7 @@ public class WorkerSinkTaskTest {
                 transformChain,
                 retryWithToleranceOperator,
                 workerErrorRecordReporter,
-                new WrapperStatusListener(new StateManagementServiceImpl(), "workId"),
+                new WrapperStatusListener(new LocalStateManagementServiceImpl(), "workId"),
                 new ConnectMetrics(new WorkerConfig())
         );
     }

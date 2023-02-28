@@ -21,7 +21,6 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.Table;
@@ -169,13 +168,4 @@ public class MemoryStateManagementServiceImpl implements StateManagementService 
         return new HashSet<>(connectors.keySet());
     }
 
-    /**
-     * get staging mode
-     *
-     * @return
-     */
-    @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.STANDALONE;
-    }
 }

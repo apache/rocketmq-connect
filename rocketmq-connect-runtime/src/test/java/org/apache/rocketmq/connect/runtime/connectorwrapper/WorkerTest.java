@@ -42,7 +42,7 @@ import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
-import org.apache.rocketmq.connect.runtime.service.StateManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalStateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -131,7 +131,7 @@ public class WorkerTest {
         connectConfig.setHttpPort(8081);
         connectConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "testConnectorStore");
         connectConfig.setNamesrvAddr("localhost:9876");
-        stateManagementService = new StateManagementServiceImpl();
+        stateManagementService = new LocalStateManagementServiceImpl();
         stateManagementService.initialize(connectConfig, new TestConverter());
         worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, stateManagementService);
 
