@@ -80,6 +80,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.PAUSED;
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.RUNNING;
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.UNASSIGNED;
 
 /**
  * A worker to schedule all connectors and tasks in a process.
@@ -564,7 +565,8 @@ public class Worker {
     }
 
     public void maintainConnectorState() {
-
+        // STEP 1: redress running connectors status
+        redressRunningConnectors();
     }
 
     /**
@@ -932,6 +934,18 @@ public class Worker {
             }
             log.warn("Task {}, Old task status is {}, new task status {}", workerTask.id, taskStatus, newTaskStatus);
             stateManagementService.put(newTaskStatus);
+        }
+    }
+
+    private void redressRunningConnectors() {
+        for (WorkerConnector connector : connectors.values()) {
+            ConnectorStatus connectorStatus = stateManagementService.get(connector.getConnectorName());
+            if (connectorStatus != null && connectorStatus.getState() == UNASSIGNED && connector.getKeyValue().getTargetState() == TargetState.STARTED &&
+                connector.getState() == WorkerConnector.State.STARTED) {
+                ConnectorStatus redressStatus = new ConnectorStatus(connector.getConnectorName(), RUNNING, workerConfig.getWorkerId(), System.currentTimeMillis());
+                log.warn("Connector {}, Old connector status is {}, new connector status {}", connector.getConnectorName(), connectorStatus, redressStatus);
+                stateManagementService.put(redressStatus);
+            }
         }
     }
 
