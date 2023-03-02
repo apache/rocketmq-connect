@@ -25,7 +25,6 @@ import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordOffsetSerde;
 import org.apache.rocketmq.connect.runtime.serialization.store.RecordPartitionSerde;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.ExtendRecordPartition;
 import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
@@ -53,23 +52,13 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
      * Current position info in store.
      */
     private KeyValueStore<ExtendRecordPartition, RecordOffset> positionStore;
-    /**
-     * Listeners.
-     */
-    private PositionUpdateListener positionUpdateListener;
 
-    public FilePositionManagementServiceImpl() {
-
-    }
+    public FilePositionManagementServiceImpl() {}
 
     @Override public void initialize(WorkerConfig connectConfig, RecordConverter keyConverter, RecordConverter valueConverter) {
         this.positionStore = new FileBaseKeyValueStore<>(FilePathConfigUtil.getPositionPath(connectConfig.getStorePathRootDir()),
                 new RecordPartitionSerde(),
                 new RecordOffsetSerde());
-    }
-
-    @Override public StagingMode getStagingMode() {
-        return StagingMode.STANDALONE;
     }
 
     @Override
@@ -172,15 +161,7 @@ public class FilePositionManagementServiceImpl implements PositionManagementServ
         });
     }
 
-    @Override
-    public void registerListener(PositionUpdateListener listener) {
-        this.positionUpdateListener = listener;
-    }
-
     private Future<Void> triggerListener(DataSynchronizerCallback<Void, Void> callback) {
-        if (this.positionUpdateListener != null) {
-            positionUpdateListener.onPositionUpdate();
-        }
 
         return executor.submit(new Callable<Void>() {
             /**

@@ -21,23 +21,17 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
-import org.apache.rocketmq.connect.runtime.serialization.JsonSerde;
-import org.apache.rocketmq.connect.runtime.serialization.ListSerde;
 import org.apache.rocketmq.connect.runtime.serialization.Serdes;
-import org.apache.rocketmq.connect.runtime.store.FileBaseKeyValueStore;
 import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.FilePathConfigUtil;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
@@ -57,67 +51,42 @@ import java.util.Set;
 /**
  * State management service
  */
-public class StateManagementServiceImpl implements StateManagementService {
+public abstract class AbstractStateManagementService implements StateManagementService, IChangeNotifier<String, byte[]>, ICommonConfiguration {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private final String statusManagePrefix = "StatusManage";
-
-    public static final String START_SIGNAL = "start-signal";
     public static final String TASK_STATUS_PREFIX = "status-task-";
     public static final String CONNECTOR_STATUS_PREFIX = "status-connector-";
-
     public static final String STATE_KEY_NAME = "state";
     public static final String TRACE_KEY_NAME = "trace";
     public static final String WORKER_ID_KEY_NAME = "worker_id";
     public static final String GENERATION_KEY_NAME = "generation";
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     private static final Schema STATUS_SCHEMA_V0 = SchemaBuilder.struct()
-            .field(STATE_KEY_NAME, SchemaBuilder.string().build())
-            .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
-            .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
-            .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
-            .build();
-
-    /**
-     * start signal
-     */
-    public static final Schema START_SIGNAL_V0 = SchemaBuilder.struct()
-            .field(START_SIGNAL, SchemaBuilder.string().build())
-            .build();
+        .field(STATE_KEY_NAME, SchemaBuilder.string().build())
+        .field(TRACE_KEY_NAME, SchemaBuilder.string().optional().build())
+        .field(WORKER_ID_KEY_NAME, SchemaBuilder.string().build())
+        .field(GENERATION_KEY_NAME, SchemaBuilder.int64().build())
+        .build();
+    protected final String statusManagePrefix = "StatusManage";
     /**
      * Synchronize config with other workers.
      */
-    private DataSynchronizer<String, byte[]> dataSynchronizer;
+    protected DataSynchronizer<String, byte[]> dataSynchronizer;
 
-    /** Current connector status in the store. */
+    /**
+     * Current connector status in the store.
+     */
     protected KeyValueStore<String, ConnectorStatus> connectorStatusStore;
-    /** Current task status in the store. */
+    /**
+     * Current task status in the store.
+     */
     protected KeyValueStore<String, List<TaskStatus>> taskStatusStore;
 
     protected ConnAndTaskStatus connAndTaskStatus = new ConnAndTaskStatus();
 
-    private RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
-    private String statusTopic;
+    protected RecordConverter converter = new org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter();
+    protected String statusTopic;
+    protected boolean enabledCompactTopic = false;
 
-    /**
-     * Preparation before startup
-     *
-     * @param connectConfig
-     */
-    private void prepare(WorkerConfig connectConfig) {
-        String consumerGroup = ConnectUtil.createGroupName(statusManagePrefix, connectConfig.getWorkerId());
-        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(connectConfig);
-        if (!consumerGroupSet.contains(consumerGroup)) {
-            log.info("try to create consumerGroup: {}!", consumerGroup);
-            ConnectUtil.createSubGroup(connectConfig, consumerGroup);
-        }
-        String connectStatusTopic = connectConfig.getConnectStatusTopic();
-        if (!ConnectUtil.isTopicExist(connectConfig, connectStatusTopic)) {
-            log.info("try to create status topic: {}!", connectStatusTopic);
-            TopicConfig topicConfig = new TopicConfig(connectStatusTopic, 1, 1, 6);
-            ConnectUtil.createTopic(connectConfig, topicConfig);
-        }
-    }
 
     /**
      * initialize cb config
@@ -130,117 +99,27 @@ public class StateManagementServiceImpl implements StateManagementService {
         this.converter = converter;
         this.converter.configure(new HashMap<>());
         this.statusTopic = config.getConnectStatusTopic();
+        this.dataSynchronizer = initializationDataSynchronizer(config);
 
-        this.dataSynchronizer = new BrokerBasedLog(config,
-                this.statusTopic,
-                ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
-                new StatusChangeCallback(),
-                Serdes.serdeFrom(String.class),
-                Serdes.serdeFrom(byte[].class));
-
-        /**connector status store*/
-        this.connectorStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getConnectorStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new JsonSerde(ConnectorStatus.class));
-
-        /**task status store*/
-        this.taskStatusStore = new FileBaseKeyValueStore<>(
-                FilePathConfigUtil.getTaskStatusConfigPath(config.getStorePathRootDir()),
-                new Serdes.StringSerde(),
-                new ListSerde(TaskStatus.class));
-        // create topic
-        this.prepare(config);
+        new BrokerBasedLog(config,
+            this.statusTopic,
+            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+            new StatusChangeCallback(),
+            Serdes.serdeFrom(String.class),
+            Serdes.serdeFrom(byte[].class),
+            enabledCompactTopic()
+        );
     }
 
-    /**
-     * Start dependent services (if needed)
-     */
     @Override
-    public void start() {
-        connectorStatusStore.load();
-        taskStatusStore.load();
-        dataSynchronizer.start();
-        startSignal();
-    }
-
-    private void startSignal() {
-        Struct struct = new Struct(START_SIGNAL_V0);
-        struct.put(START_SIGNAL, START_SIGNAL);
-        dataSynchronizer.send(START_SIGNAL, converter.fromConnectData(statusTopic, START_SIGNAL_V0, struct));
-    }
-
-    /**
-     * Stop dependent services (if needed)
-     */
-    @Override
-    public void stop() {
-        replicaTargetState();
-        prePersist();
-        connectorStatusStore.persist();
-        taskStatusStore.persist();
-        dataSynchronizer.stop();
+    public boolean enabledCompactTopic() {
+        return false;
     }
 
     /**
      * sync send online config
      */
-    private void replicaTargetState() {
-        /** connector status store*/
-        Map<String, ConnectorStatus> connectorStatusMap = connectorStatusStore.getKVMap();
-        connectorStatusMap.forEach((connectorName, connectorStatus) -> {
-            if (connectorStatus == null) {
-                return;
-            }
-            // send status
-            put(connectorStatus);
-        });
-
-        /** task status store */
-        Map<String, List<TaskStatus>> taskStatusMap = taskStatusStore.getKVMap();
-        if (taskStatusMap.isEmpty()) {
-            return;
-        }
-        taskStatusMap.forEach((connectorName, taskStatusList) -> {
-            if (taskStatusList == null || taskStatusList.isEmpty()) {
-                return;
-            }
-            taskStatusList.forEach(taskStatus -> {
-                // send status
-                put(taskStatus);
-            });
-        });
-    }
-
-    /**
-     * pre persist
-     */
-    private void prePersist() {
-        Map<String, ConnAndTaskStatus.CacheEntry<ConnectorStatus>> connectors = connAndTaskStatus.getConnectors();
-        if (connectors.isEmpty()) {
-            return;
-        }
-        connectors.forEach((connectName, connectorStatus) -> {
-            connectorStatusStore.put(connectName, connectorStatus.get());
-            Map<Integer, ConnAndTaskStatus.CacheEntry<TaskStatus>> cacheTaskStatus = connAndTaskStatus.getTasks().row(connectName);
-            if (cacheTaskStatus == null) {
-                return;
-            }
-            taskStatusStore.put(connectName, new ArrayList<>());
-            cacheTaskStatus.forEach((taskId, taskStatus) -> {
-                if (taskStatus != null) {
-                    taskStatusStore.get(connectName).add(taskStatus.get());
-                }
-            });
-        });
-    }
-
-    @Override
-    public void persist() {
-        prePersist();
-        connectorStatusStore.persist();
-        taskStatusStore.persist();
-    }
+    protected abstract void replicaTargetState();
 
     /**
      * Set the state of the connector to the given value.
@@ -388,33 +267,19 @@ public class StateManagementServiceImpl implements StateManagementService {
     }
 
     /**
-     * get staging mode
+     * notify other connect node
      *
-     * @return
+     * @param key
+     * @param bytes
      */
     @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.DISTRIBUTED;
+    public void notify(String key, byte[] bytes) {
+        dataSynchronizer.send(key, bytes);
     }
 
-    private class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
-        @Override
-        public void onCompletion(Throwable error, String key, byte[] value) {
-            if (StringUtils.isEmpty(key)) {
-                log.error("State change message is illegal, key is empty, the message will be skipped ");
-                return;
-            }
-            if (key.equals(START_SIGNAL)) {
-                replicaTargetState();
-            } else if (key.startsWith(CONNECTOR_STATUS_PREFIX)) {
-                readConnectorStatus(key, value);
-            } else if (key.startsWith(TASK_STATUS_PREFIX)) {
-                readTaskStatus(key, value);
-            } else {
-                log.warn("Discarding record with invalid key {}", key);
-            }
-        }
-    }
+    // ======= Start receives the status message and transforms the storage ======
+
+    protected abstract void process(String key, byte[] value);
 
     /**
      * read connector status
@@ -422,7 +287,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param key
      * @param value
      */
-    private void readConnectorStatus(String key, byte[] value) {
+    protected void readConnectorStatus(String key, byte[] value) {
         String connector = parseConnectorStatusKey(key);
         if (connector.isEmpty()) {
             log.warn("Discarding record with invalid connector status key {}", key);
@@ -476,7 +341,7 @@ public class StateManagementServiceImpl implements StateManagementService {
      * @param key
      * @param value
      */
-    private void readTaskStatus(String key, byte[] value) {
+    protected void readTaskStatus(String key, byte[] value) {
         ConnectorTaskId id = parseConnectorTaskId(key);
         if (id == null) {
             log.warn("Receive record with invalid task status key {}", key);
@@ -552,6 +417,13 @@ public class StateManagementServiceImpl implements StateManagementService {
             for (ConnAndTaskStatus.CacheEntry<TaskStatus> taskEntry : tasks.values()) {
                 taskEntry.delete();
             }
+        }
+    }
+
+    public class StatusChangeCallback implements DataSynchronizerCallback<String, byte[]> {
+        @Override
+        public void onCompletion(Throwable error, String key, byte[] value) {
+            process(key, value);
         }
     }
 

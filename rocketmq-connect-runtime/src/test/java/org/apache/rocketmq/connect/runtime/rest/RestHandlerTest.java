@@ -48,7 +48,7 @@ import org.apache.rocketmq.connect.runtime.errors.RetryWithToleranceOperator;
 import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
 import org.apache.rocketmq.connect.runtime.rest.entities.PluginInfo;
 import org.apache.rocketmq.connect.runtime.service.DefaultConnectorContext;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalPositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
@@ -103,7 +103,7 @@ public class RestHandlerTest {
     @Mock
     private RecordConverter converter;
     @Mock
-    private PositionManagementServiceImpl positionManagementServiceImpl;
+    private LocalPositionManagementServiceImpl positionManagementServiceImpl;
     @Mock
     private Connector connector;
     private byte[] sourcePartition;

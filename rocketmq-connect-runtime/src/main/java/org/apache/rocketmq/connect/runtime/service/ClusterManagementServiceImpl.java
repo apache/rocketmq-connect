@@ -132,11 +132,6 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
     }
 
     @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.DISTRIBUTED;
-    }
-
-    @Override
     public void registerListener(WorkerStatusListener listener) {
         this.workerStatusListeners.add(listener);
     }

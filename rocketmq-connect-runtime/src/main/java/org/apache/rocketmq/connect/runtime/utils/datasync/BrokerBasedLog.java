@@ -17,24 +17,35 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.Lists;
+import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.serialization.Serde;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +75,7 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     /**
      * Consumer to receive synchronize data from broker.
      */
-    private DefaultMQPushConsumer consumer;
+    private DefaultLitePullConsumer consumer;
 
     /**
      * A queue to send or consume message.
@@ -76,52 +87,177 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
     private Serde keySerde;
     private Serde valueSerde;
 
-    public BrokerBasedLog(WorkerConfig connectConfig,
-        String topicName,
-        String workId,
-        DataSynchronizerCallback<K, V> dataSynchronizerCallback,
-        Serde keySerde,
-        Serde valueSerde) {
+    private WorkerConfig workerConfig;
 
+    private boolean stopRequested;
+
+    private Thread thread;
+
+    private boolean enabledCompactTopic = false;
+
+    private String groupName;
+
+    public BrokerBasedLog(WorkerConfig workerConfig,
+                          String topicName,
+                          String groupName,
+                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+                          Serde keySerde,
+                          Serde valueSerde,
+                          boolean enabledCompactTopic) {
         this.topicName = topicName;
         this.keySerde = keySerde;
         this.valueSerde = valueSerde;
-
+        this.workerConfig = workerConfig;
+        this.stopRequested = false;
+        this.groupName = groupName;
         this.dataSynchronizerCallback = dataSynchronizerCallback;
-        this.producer = ConnectUtil.initDefaultMQProducer(connectConfig);
-        this.producer.setProducerGroup(workId);
-        this.consumer = ConnectUtil.initDefaultMQPushConsumer(connectConfig);
-        this.consumer.setConsumerGroup(workId);
-        this.prepare(connectConfig);
+        this.enabledCompactTopic = enabledCompactTopic;
+        // prepare config
+        this.prepare();
+    }
+
+    public BrokerBasedLog(WorkerConfig workerConfig,
+                          String topicName,
+                          String groupName,
+                          DataSynchronizerCallback<K, V> dataSynchronizerCallback,
+                          Serde keySerde,
+                          Serde valueSerde) {
+        this(workerConfig, topicName, groupName, dataSynchronizerCallback, keySerde, valueSerde, false);
     }
 
     /**
      * Preparation before startup
-     *
-     * @param connectConfig
      */
-    private void prepare(WorkerConfig connectConfig) {
-        if (connectConfig.isAutoCreateGroupEnable()) {
-            ConnectUtil.createSubGroup(connectConfig, consumer.getConsumerGroup());
+    private void prepare() {
+        Set<String> consumerGroupSet = ConnectUtil.fetchAllConsumerGroupList(workerConfig);
+        if (!consumerGroupSet.contains(groupName)) {
+            log.info("Try to create group: {}!", groupName);
+            ConnectUtil.createSubGroup(workerConfig, groupName);
+        }
+        if (!ConnectUtil.isTopicExist(workerConfig, topicName)) {
+            log.info("Try to create store topic: {}!", topicName);
+            TopicConfig topicConfig = new TopicConfig(topicName, 1, 1, PermName.PERM_READ | PermName.PERM_WRITE);
+            ConnectUtil.createTopic(workerConfig, topicConfig);
+        }
+    }
+
+    private void initializationAndStartConsumer(WorkerConfig workerConfig, String groupName) {
+        try {
+            this.consumer = ConnectUtil.initDefaultLitePullConsumer(workerConfig, false);
+            this.consumer.setConsumerGroup(groupName);
+            this.consumer.start();
+            // Get message queue min and max offset
+            Map<MessageQueue, TopicOffset> queuesOffsets = ConnectUtil.offsetTopics(workerConfig, Lists.newArrayList(topicName)).get(topicName);
+            this.consumer.assign(queuesOffsets.keySet());
+
+            // Set current offsets
+            Map<MessageQueue, Long> seekOffsets = queuesOffsets.entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue().getMinOffset()));
+            if (!enabledCompactTopic) {
+                Map<MessageQueue, Long> currentOffsets = ConnectUtil.currentOffsets(workerConfig, groupName, Lists.newArrayList(topicName), queuesOffsets.keySet());
+                if (!currentOffsets.isEmpty()) {
+                    seekOffsets = currentOffsets;
+                }
+            }
+
+            for (MessageQueue messageQueue : queuesOffsets.keySet()) {
+                consumer.seek(messageQueue, seekOffsets.get(messageQueue));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("BrokerBasedLog start consumer failed.", e);
+        }
+    }
+
+    private void initializationAndStartProducer(WorkerConfig workerConfig, String groupName) {
+        this.producer = ConnectUtil.initDefaultMQProducer(workerConfig);
+        this.producer.setProducerGroup(groupName);
+        try {
+            this.producer.start();
+        } catch (MQClientException e) {
+            throw new RuntimeException("BrokerBasedLog start producer failed.", e);
         }
     }
 
     @Override
     public void start() {
         try {
-            producer.start();
-            consumer.subscribe(topicName, "*");
-            consumer.registerMessageListener(new MessageListenerImpl());
-            consumer.start();
-        } catch (MQClientException e) {
+            // init and start producer
+            initializationAndStartProducer(workerConfig, groupName);
+            // init and start consumer
+            initializationAndStartConsumer(workerConfig, groupName);
+            // read to log end
+            readToLogEnd();
+            // start worker thread
+            this.thread = new WorkThread();
+            this.thread.start();
+        } catch (MQClientException | MQBrokerException | RemotingException | InterruptedException e) {
             log.error("Start error.", e);
+        }
+    }
+
+    /**
+     * read to log end
+     */
+    private void readToLogEnd() throws MQClientException, MQBrokerException, RemotingException, InterruptedException {
+        if (!enabledCompactTopic) {
+            return;
+        }
+        Map<MessageQueue, TopicOffset> minAndMaxOffsets = ConnectUtil.offsetTopics(workerConfig, Lists.newArrayList(topicName)).get(topicName);
+        while (!minAndMaxOffsets.isEmpty()) {
+            Iterator<Map.Entry<MessageQueue, TopicOffset>> it = minAndMaxOffsets.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<MessageQueue, TopicOffset> offsetEntry = it.next();
+                long lastConsumedOffset = this.consumer.getOffsetStore().readOffset(offsetEntry.getKey(), ReadOffsetType.READ_FROM_MEMORY);
+                if ((lastConsumedOffset + 1) >= offsetEntry.getValue().getMaxOffset()) {
+                    log.trace("Read to end offset {} for {}", offsetEntry.getValue().getMaxOffset(), offsetEntry.getKey().getQueueId());
+                    it.remove();
+                } else {
+                    log.trace("Behind end offset {} for {}; last-read offset is {}", offsetEntry.getValue().getMaxOffset(), offsetEntry.getKey().getQueueId(), lastConsumedOffset);
+                    poll(5000);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void poll(long timeoutMs) {
+        List<MessageExt> records = consumer.poll(timeoutMs);
+        deliverRecords(records);
+        consumer.commitSync();
+    }
+
+    private void deliverRecords(List<MessageExt> records) {
+        for (MessageExt message : records) {
+            log.info("Received one message: {}, topic is {}", message.getMsgId() + "\n", topicName);
+            try {
+                String key = message.getKeys();
+                Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), message.getBody());
+                dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
+            } catch (Exception e) {
+                log.error("Decode message data error. message: {}, error info: {}", message, e);
+            }
         }
     }
 
     @Override
     public void stop() {
-        producer.shutdown();
-        consumer.shutdown();
+        synchronized (this) {
+            stopRequested = true;
+        }
+        try {
+            if (thread != null) {
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            throw new ConnectException("Failed to stop BrokerBasedLog. Exiting without cleanly shutting " +
+                    "down it's producer and consumer.", e);
+        }
+        // shut down
+        if (producer != null) {
+            producer.shutdown();
+        }
+        if (consumer != null) {
+            consumer.shutdown();
+        }
     }
 
     @Override
@@ -133,10 +269,9 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
                 return;
             }
-            Message message = new Message(topicName, body);
-            message.setKeys(Base64Util.base64Encode(encode.getKey()));
-            producer.send(message, new SendCallback() {
-
+            String encodeKey = Base64Util.base64Encode(encode.getKey());
+            Message message = new Message(topicName, null, encodeKey, body);
+            producer.send(message, new SelectMessageQueueByHash(), encodeKey, new SendCallback() {
                 @Override
                 public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
@@ -146,6 +281,8 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
+                        // Keep sending until success
+                        send(key, value);
                     }
                 }
             });
@@ -170,9 +307,9 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 log.error("Message size is greater than {} bytes, key: {}, value {}", MAX_MESSAGE_SIZE, key, value);
                 return;
             }
-            Message message = new Message(topicName, body);
-            message.setKeys(Base64Util.base64Encode(encode.getKey()));
-            producer.send(message, new SendCallback() {
+            String encodeKey = Base64Util.base64Encode(encode.getKey());
+            Message message = new Message(topicName, null, encodeKey, body);
+            producer.send(message, new SelectMessageQueueByHash(), encodeKey, new SendCallback() {
                 @Override
                 public void onSuccess(org.apache.rocketmq.client.producer.SendResult result) {
                     log.info("Send async message OK, msgId: {},topic:{}", result.getMsgId(), topicName);
@@ -183,7 +320,8 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
                 public void onException(Throwable throwable) {
                     if (null != throwable) {
                         log.error("Send async message Failed, error: {}", throwable);
-                        callback.onCompletion(throwable, value);
+                        // Keep sending until success
+                        send(key, value, callback);
                     }
                 }
             });
@@ -234,23 +372,25 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         };
     }
 
+    private class WorkThread extends Thread {
+        public WorkThread() {
+            super("BrokerBasedLog Work Thread - " + topicName);
+        }
 
-    class MessageListenerImpl implements MessageListenerConcurrently {
         @Override
-        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> rmqMsgList, ConsumeConcurrentlyContext context) {
-            for (MessageExt messageExt : rmqMsgList) {
-                log.info("Received one message: {}, topic is {}", messageExt.getMsgId() + "\n", topicName);
-                try {
-                    String key = messageExt.getKeys();
-                    Map.Entry<K, V> entry = decode(StringUtils.isEmpty(key) ? null : Base64Util.base64Decode(key), messageExt.getBody());
-                    dataSynchronizerCallback.onCompletion(null, entry.getKey(), entry.getValue());
-                } catch (Exception e) {
-                    log.error("Decode message data error. message: {}, error info: {}", messageExt, e);
-                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+        public void run() {
+            try {
+                log.trace("{} started execution", this);
+                while (true) {
+                    synchronized (BrokerBasedLog.this) {
+                        if (stopRequested)
+                            break;
+                    }
+                    poll(5000);
                 }
+            } catch (Throwable t) {
+                log.error("Unexpected exception in {}", this, t);
             }
-            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         }
     }
-
 }

@@ -111,13 +111,6 @@ public interface StateManagementService {
     Set<String> connectors();
 
     /**
-     * get staging mode
-     *
-     * @return
-     */
-    StagingMode getStagingMode();
-
-    /**
      * Persist all the configs in a store.
      */
     default void persist() {

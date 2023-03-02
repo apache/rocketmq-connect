@@ -17,19 +17,31 @@
 
 package org.apache.rocketmq.connect.runtime.store;
 
+import static org.mockito.Mockito.mockStatic;
+
+import com.google.common.collect.Lists;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.admin.TopicOffset;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalPositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.assertj.core.util.Maps;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -37,7 +49,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PositionStorageReaderImplTest {
+
+    @Mock
+    private DefaultMQProducer producer;
+
+    @Mock
+    private DefaultLitePullConsumer consumer;
 
     private PositionStorageReaderImpl positionStorageReader;
 
@@ -57,6 +76,8 @@ public class PositionStorageReaderImplTest {
 
     private ServerResponseMocker brokerMocker;
 
+    private final MockedStatic<ConnectUtil> connectUtil = mockStatic(ConnectUtil.class);
+
     @Before
     public void before() {
         nameServerMocker = NameServerMocker.startByDefaultConf(9876, 10911);
@@ -65,7 +86,7 @@ public class PositionStorageReaderImplTest {
         connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
-        positionManagementService = new PositionManagementServiceImpl();
+        positionManagementService = new LocalPositionManagementServiceImpl();
         Map<String, String> map = Maps.newHashMap("ip_port", "127.0.0.13306");
         extendRecordPartition = new ExtendRecordPartition(NAMESPACE, map);
         Map<String, Object> partition = new HashMap<>();
@@ -77,8 +98,15 @@ public class PositionStorageReaderImplTest {
         Map<String, Long> offset = new HashMap<>();
         offset.put("queueOffset", 0L);
         recordOffset = new RecordOffset(offset);
-        positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
+        connectUtil.when(() -> ConnectUtil.initDefaultMQProducer(connectConfig)).thenReturn(producer);
+        connectUtil.when(() -> ConnectUtil.initDefaultLitePullConsumer(connectConfig, false)).thenReturn(consumer);
+
+        Map<String, Map<MessageQueue, TopicOffset>> returnOffsets = new HashMap<>();
+        returnOffsets.put(connectConfig.getPositionStoreTopic(), new HashMap<>(0));
+        connectUtil.when(() -> ConnectUtil.offsetTopics(connectConfig, Lists.newArrayList(connectConfig.getPositionStoreTopic()))).thenReturn(returnOffsets);
+
+        positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
         positionManagementService.start();
         positionManagementService.putPosition(extendRecordPartition, recordOffset);
         positionStorageReader = new PositionStorageReaderImpl(NAMESPACE, positionManagementService);
@@ -86,6 +114,7 @@ public class PositionStorageReaderImplTest {
 
     @After
     public void after() {
+        connectUtil.close();
         positionManagementService.stop();
         brokerMocker.shutdown();
         nameServerMocker.shutdown();
