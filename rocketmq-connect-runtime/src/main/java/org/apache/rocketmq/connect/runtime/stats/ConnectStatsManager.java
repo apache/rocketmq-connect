@@ -18,17 +18,16 @@
 package org.apache.rocketmq.connect.runtime.stats;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_CONNECT_STATS;
 
@@ -76,11 +75,8 @@ public class ConnectStatsManager {
     /**
      * read disk follow stats
      */
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(ROCKETMQ_CONNECT_STATS);
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_CONNECT_STATS);
 
-
-    private static final InternalLogger COMMERCIAL_LOG = InternalLoggerFactory.getLogger(
-            LoggerName.COMMERCIAL_LOGGER_NAME);
     private final ScheduledExecutorService scheduledExecutorService =
             ThreadUtils.newSingleThreadScheduledExecutor("ConnectStatsThread", true);
     private final ScheduledExecutorService commercialExecutor =

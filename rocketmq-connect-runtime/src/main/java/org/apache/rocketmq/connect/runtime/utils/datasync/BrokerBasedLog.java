@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.utils.datasync;
 
+import com.google.common.collect.Maps;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.admin.TopicOffset;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -46,6 +46,7 @@ import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.Callback;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,6 +138,11 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
         if (!ConnectUtil.isTopicExist(workerConfig, topicName)) {
             log.info("Try to create store topic: {}!", topicName);
             TopicConfig topicConfig = new TopicConfig(topicName, 1, 1, PermName.PERM_READ | PermName.PERM_WRITE);
+            if (enabledCompactTopic) {
+                Map<String, String> attributes = Maps.newConcurrentMap();
+                attributes.put("+cleanup.policy", "COMPACTION");
+                topicConfig.setAttributes(attributes);
+            }
             ConnectUtil.createTopic(workerConfig, topicConfig);
         }
     }

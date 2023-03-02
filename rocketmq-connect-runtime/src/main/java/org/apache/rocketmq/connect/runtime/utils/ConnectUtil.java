@@ -17,10 +17,19 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
-import com.beust.jcommander.internal.Sets;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -30,54 +39,45 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.admin.OffsetWrapper;
-import org.apache.rocketmq.common.admin.TopicOffset;
-import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
+import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
 public class ConnectUtil {
-
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     public static final String SYS_TASK_CG_PREFIX = "connect-";
-    private final static AtomicLong GROUP_POSTFIX_ID = new AtomicLong(0);
 
     public static String createGroupName(String prefix) {
         StringBuilder sb = new StringBuilder();
         sb.append(prefix).append("-");
-        sb.append(RemotingUtil.getLocalAddress()).append("-");
+        sb.append(NetworkUtil.getLocalAddress()).append("-");
         sb.append(UtilAll.getPid()).append("-");
         sb.append(System.nanoTime());
         return sb.toString().replace(".", "-");
@@ -177,7 +177,7 @@ public class ConnectUtil {
         try {
             defaultMQAdminExt = startMQAdminTool(connectConfig);
             ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Map<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
             Set<String> clusterNameSet = clusterAddrTable.keySet();
             for (String clusterName : clusterNameSet) {
                 Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
@@ -248,7 +248,7 @@ public class ConnectUtil {
             SubscriptionGroupConfig initConfig = new SubscriptionGroupConfig();
             initConfig.setGroupName(subGroup);
             ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Map<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
             Set<String> clusterNameSet = clusterAddrTable.keySet();
             for (String clusterName : clusterNameSet) {
                 Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
@@ -347,26 +347,6 @@ public class ConnectUtil {
         return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
     }
 
-    public static DefaultMQPullConsumer initDefaultMQPullConsumer(WorkerConfig connectConfig, ConnectorTaskId id, ConnectKeyValue keyValue) {
-        RPCHook rpcHook = null;
-        if (connectConfig.getAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
-        }
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(rpcHook);
-        consumer.setInstanceName(id.toString());
-        String taskGroupId = keyValue.getString("task-group-id");
-        if (StringUtils.isNotBlank(taskGroupId)) {
-            consumer.setConsumerGroup(taskGroupId);
-        } else {
-            consumer.setConsumerGroup(SYS_TASK_CG_PREFIX + id.connector());
-        }
-        if (StringUtils.isNotBlank(connectConfig.getNamesrvAddr())) {
-            consumer.setNamesrvAddr(connectConfig.getNamesrvAddr());
-        }
-        return consumer;
-    }
-
-
     /**
      * Get topic offsets
      */
@@ -377,14 +357,11 @@ public class ConnectUtil {
         try {
             adminClient = startMQAdminTool(config);
             for (String topic : topics) {
-                TopicStatsTable topicStatsTable = adminClient.examineTopicStats(topic);
+                TopicStatsTable topicStatsTable = examineTopicStats(adminClient, topic);
                 offsets.put(topic, topicStatsTable.getOffsetTable());
             }
             return offsets;
-        } catch (MQClientException
-                 | MQBrokerException
-                 | RemotingException
-                 | InterruptedException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             if (adminClient != null) {
@@ -393,40 +370,6 @@ public class ConnectUtil {
         }
     }
 
-    /** Flat topics offsets */
-    public static Map<MessageQueue, TopicOffset> flatOffsetTopics(
-        WorkerConfig config, List<String> topics) {
-        Map<MessageQueue, TopicOffset> messageQueueTopicOffsets = Maps.newConcurrentMap();
-        offsetTopics(config, topics).values()
-            .forEach(
-                offsetTopic -> {
-                    messageQueueTopicOffsets.putAll(offsetTopic);
-                });
-        return messageQueueTopicOffsets;
-    }
-
-    /** Search offsets by timestamp */
-    public static Map<MessageQueue, Long> searchOffsetsByTimestamp(
-        WorkerConfig config,
-        Collection<MessageQueue> messageQueues,
-        Long timestamp) {
-        Map<MessageQueue, Long> offsets = Maps.newConcurrentMap();
-        DefaultMQAdminExt adminClient = null;
-        try {
-            adminClient = startMQAdminTool(config);
-            for (MessageQueue messageQueue : messageQueues) {
-                long offset = adminClient.searchOffset(messageQueue, timestamp);
-                offsets.put(messageQueue, offset);
-            }
-            return offsets;
-        } catch (MQClientException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (adminClient != null) {
-                adminClient.shutdown();
-            }
-        }
-    }
 
     /** Get consumer group offset */
     public static Map<MessageQueue, Long> currentOffsets(WorkerConfig config, String groupName, List<String> topics, Set<MessageQueue> messageQueues) {
@@ -436,7 +379,7 @@ public class ConnectUtil {
             adminClient = startMQAdminTool(config);
             Map<MessageQueue, OffsetWrapper> consumerOffsets = Maps.newConcurrentMap();
             for (String topic : topics) {
-                ConsumeStats consumeStats = adminClient.examineConsumeStats(groupName, topic);
+                ConsumeStats consumeStats = examineConsumeStats(adminClient, groupName, topic);
                 consumerOffsets.putAll(consumeStats.getOffsetTable());
             }
             return consumerOffsets.keySet().stream()
@@ -446,12 +389,9 @@ public class ConnectUtil {
                         messageQueue -> messageQueue,
                         messageQueue ->
                             consumerOffsets.get(messageQueue).getConsumerOffset()));
-        } catch (MQClientException
-                 | MQBrokerException
-                 | RemotingException
-                 | InterruptedException e) {
+        } catch (MQClientException e) {
             if (e instanceof MQClientException) {
-                if (((MQClientException) e).getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
+                if (e.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
                     return Collections.emptyMap();
                 } else {
                     throw new RuntimeException(e);
@@ -464,6 +404,163 @@ public class ConnectUtil {
                 adminClient.shutdown();
             }
         }
+    }
+
+    /**
+     * Compatible with 4.9.4 and earlier
+     *
+     * @param adminClient
+     * @param topic
+     * @return
+     */
+    private static TopicStatsTable examineTopicStats(DefaultMQAdminExt adminClient, String topic) {
+        try {
+            return adminClient.examineTopicStats(topic);
+        } catch (MQBrokerException e) {
+            // Compatible with 4.9.4 and earlier
+            if (e.getResponseCode() == ResponseCode.REQUEST_CODE_NOT_SUPPORTED) {
+                try {
+                    log.warn("Examine topic stats failure , the server version is less than 5.1.0, and downward compatibility begins, {}", e.getErrorMessage());
+                    return overrideExamineTopicStats(adminClient, topic);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            } else {
+                throw new RuntimeException(e);
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * examineConsumeStats
+     * Compatible with 4.9.4 and earlier
+     *
+     * @param adminClient
+     * @param topic
+     * @return
+     */
+    private static ConsumeStats examineConsumeStats(DefaultMQAdminExt adminClient, String groupName, String topic) {
+        try {
+            return adminClient.examineConsumeStats(groupName, topic);
+        } catch (MQBrokerException e) {
+            // Compatible with 4.9.4 and earlier
+            if (e.getResponseCode() == ResponseCode.REQUEST_CODE_NOT_SUPPORTED) {
+                try {
+                    log.warn("Examine consume stats failure, the server version is less than 5.1.0, and downward compatibility begins {}", e.getErrorMessage());
+                    return overrideExamineConsumeStats(adminClient, groupName, topic);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            } else {
+                throw new RuntimeException(e);
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * Compatible with version 4.9.4
+     *
+     * @param adminClient
+     * @param topic
+     * @return
+     * @throws RemotingException
+     * @throws InterruptedException
+     * @throws MQClientException
+     * @throws MQBrokerException
+     */
+    private static TopicStatsTable overrideExamineTopicStats(DefaultMQAdminExt adminClient,
+        String topic) throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
+        TopicRouteData topicRouteData = adminClient.examineTopicRouteInfo(topic);
+        TopicStatsTable topicStatsTable = new TopicStatsTable();
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                TopicStatsTable tst = adminClient
+                    .getDefaultMQAdminExtImpl()
+                    .getMqClientInstance()
+                    .getMQClientAPIImpl()
+                    .getTopicStatsInfo(addr, topic, 5000);
+                topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+            }
+        }
+        return topicStatsTable;
+    }
+
+    /**
+     * Compatible with version 4.9.4
+     *
+     * @param adminExt
+     * @param groupName
+     * @param topic
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     * @throws MQBrokerException
+     */
+    private static ConsumeStats overrideExamineConsumeStats(DefaultMQAdminExt adminExt, String groupName,
+        String topic) throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
+        TopicRouteData topicRouteData = null;
+        List<String> routeTopics = new ArrayList<>();
+        routeTopics.add(MixAll.getRetryTopic(groupName));
+        if (topic != null) {
+            routeTopics.add(topic);
+            routeTopics.add(KeyBuilder.buildPopRetryTopic(topic, groupName));
+        }
+        for (int i = 0; i < routeTopics.size(); i++) {
+            try {
+                topicRouteData = adminExt.getDefaultMQAdminExtImpl().examineTopicRouteInfo(routeTopics.get(i));
+                if (topicRouteData != null) {
+                    break;
+                }
+            } catch (Throwable e) {
+                if (i == routeTopics.size() - 1) {
+                    throw e;
+                }
+            }
+        }
+        ConsumeStats result = new ConsumeStats();
+
+        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+            String addr = bd.selectBrokerAddr();
+            if (addr != null) {
+                ConsumeStats consumeStats = adminExt.getDefaultMQAdminExtImpl().getMqClientInstance().getMQClientAPIImpl().getConsumeStats(addr, groupName, topic, 5000 * 3);
+                result.getOffsetTable().putAll(consumeStats.getOffsetTable());
+                double value = result.getConsumeTps() + consumeStats.getConsumeTps();
+                result.setConsumeTps(value);
+            }
+        }
+
+        Set<String> topics = Sets.newHashSet();
+        for (MessageQueue messageQueue : result.getOffsetTable().keySet()) {
+            topics.add(messageQueue.getTopic());
+        }
+
+        ConsumeStats staticResult = new ConsumeStats();
+        staticResult.setConsumeTps(result.getConsumeTps());
+
+        for (String currentTopic : topics) {
+            TopicRouteData currentRoute = adminExt.getDefaultMQAdminExtImpl().examineTopicRouteInfo(currentTopic);
+            if (currentRoute.getTopicQueueMappingByBroker() == null
+                || currentRoute.getTopicQueueMappingByBroker().isEmpty()) {
+                //normal topic
+                for (Map.Entry<MessageQueue, OffsetWrapper> entry : result.getOffsetTable().entrySet()) {
+                    if (entry.getKey().getTopic().equals(currentTopic)) {
+                        staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
+
+        if (staticResult.getOffsetTable().isEmpty()) {
+            throw new MQClientException(ResponseCode.CONSUMER_NOT_ONLINE, "Not found the consumer group consume stats, because return offset table is empty, maybe the consumer not consume any message");
+        }
+
+        return staticResult;
     }
 
 }

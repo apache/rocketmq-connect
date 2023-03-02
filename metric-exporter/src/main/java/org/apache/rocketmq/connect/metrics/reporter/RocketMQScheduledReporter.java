@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.connect.metrics.reporter;
 
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
@@ -27,11 +30,6 @@ import org.apache.rocketmq.connect.metrics.ScheduledMetricsReporter;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * rocketmq exporter
@@ -160,7 +158,9 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
             message.setTopic(this.topic);
             message.setKeys(name.getStr());
             message.setBody(value.toString().getBytes(StandardCharsets.UTF_8));
-            producer.send(message);
+            if (producer != null) {
+                producer.send(message);
+            }
         } catch (Exception e) {
             log.error("Send metrics error", e);
         }
@@ -169,6 +169,8 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
     @Override
     public void close() {
         super.close();
-        producer.shutdown();
+        if (producer != null) {
+            producer.shutdown();
+        }
     }
 }

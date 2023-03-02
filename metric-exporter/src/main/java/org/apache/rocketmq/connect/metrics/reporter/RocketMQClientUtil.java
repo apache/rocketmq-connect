@@ -17,25 +17,24 @@
 
 package org.apache.rocketmq.connect.metrics.reporter;
 
-import com.beust.jcommander.internal.Sets;
+import com.google.common.collect.Sets;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.SubscriptionGroupWrapper;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
-
-import java.util.HashMap;
-import java.util.Set;
-import java.util.UUID;
 
 
 /**
@@ -59,7 +58,7 @@ public class RocketMQClientUtil {
                                                           String namesrvAddr) {
         RPCHook rpcHook = null;
         if (aclEnabled) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
+            rpcHook = getAclRPCHook(accessKey, secretKey);
         }
         DefaultMQProducer producer = new DefaultMQProducer(rpcHook);
         producer.setNamesrvAddr(namesrvAddr);
@@ -94,7 +93,7 @@ public class RocketMQClientUtil {
                                    TopicConfig topicConfig) {
         try {
             ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Map<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
             Set<String> clusterNameSet = clusterAddrTable.keySet();
             for (String clusterName : clusterNameSet) {
                 Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
@@ -140,7 +139,7 @@ public class RocketMQClientUtil {
             SubscriptionGroupConfig initConfig = new SubscriptionGroupConfig();
             initConfig.setGroupName(subGroup);
             ClusterInfo clusterInfo = defaultMQAdminExt.examineBrokerClusterInfo();
-            HashMap<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
+            Map<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
             Set<String> clusterNameSet = clusterAddrTable.keySet();
             for (String clusterName : clusterNameSet) {
                 Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
