@@ -1098,7 +1098,7 @@ public class AvroData {
                             .enumeration(schema.getParameters().get(AVRO_TYPE_ENUM))
                             .doc(enumDoc)
                             .defaultSymbol(enumDefault)
-                            .symbols(symbols.toArray(new String[symbols.size()]));
+                            .symbols(symbols.toArray(new String[0]));
                 } else {
                     // common string
                     baseSchema = org.apache.avro.SchemaBuilder.builder().stringType();
