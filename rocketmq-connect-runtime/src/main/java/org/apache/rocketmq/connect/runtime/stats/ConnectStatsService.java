@@ -20,8 +20,6 @@ package org.apache.rocketmq.connect.runtime.stats;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.text.MessageFormat;
 import java.util.HashMap;
