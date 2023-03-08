@@ -146,7 +146,9 @@ public class FileSourceTask extends SourceTask {
                             fields.add(field);
                             schema.setFields(fields);
                             ConnectRecord connectRecord = new ConnectRecord(offsetKey(fileConfig.getFilename()), offsetValue(streamOffset), System.currentTimeMillis(), schema, line);
-                            if (fileConfig.getTopic() != null && !"".equals(fileConfig.getTopic())) {
+                            if (fileConfig.getTopic() == null) {
+                                connectRecord.addExtension("topic", "");
+                            } else {
                                 connectRecord.addExtension("topic", fileConfig.getTopic());
                             }
                             records.add(connectRecord);
