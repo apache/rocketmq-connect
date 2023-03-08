@@ -51,7 +51,7 @@ public class RocketMqStateManagementServiceImpl extends AbstractStateManagementS
     public DataSynchronizer initializationDataSynchronizer(WorkerConfig config) {
         return new BrokerBasedLog(config,
             statusTopic,
-            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
+            ConnectUtil.generateGroupName(statusManagePrefix, config.getWorkerId()),
             new StatusChangeCallback(),
             Serdes.serdeFrom(String.class),
             Serdes.serdeFrom(byte[].class),

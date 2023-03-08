@@ -39,7 +39,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.serialization.Serde;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
@@ -135,16 +135,13 @@ public class BrokerBasedLog<K, V> implements DataSynchronizer<K, V> {
             log.info("Try to create group: {}!", groupName);
             ConnectUtil.createSubGroup(workerConfig, groupName);
         }
-        if (!ConnectUtil.isTopicExist(workerConfig, topicName)) {
-            log.info("Try to create store topic: {}!", topicName);
-            TopicConfig topicConfig = new TopicConfig(topicName, 1, 1, PermName.PERM_READ | PermName.PERM_WRITE);
-            if (enabledCompactTopic) {
-                Map<String, String> attributes = Maps.newConcurrentMap();
-                attributes.put("+cleanup.policy", "COMPACTION");
-                topicConfig.setAttributes(attributes);
-            }
-            ConnectUtil.createTopic(workerConfig, topicConfig);
+        TopicConfig topicConfig = new TopicConfig(topicName, 1, 1, PermName.PERM_READ | PermName.PERM_WRITE);
+        if (enabledCompactTopic) {
+            Map<String, String> attributes = Maps.newConcurrentMap();
+            attributes.put("+cleanup.policy", "COMPACTION");
+            topicConfig.setAttributes(attributes);
         }
+        ConnectUtil.maybeCreateTopic(workerConfig, topicConfig);
     }
 
     private void initializationAndStartConsumer(WorkerConfig workerConfig, String groupName) {

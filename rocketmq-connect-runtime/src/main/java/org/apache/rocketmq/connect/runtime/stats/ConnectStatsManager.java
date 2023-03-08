@@ -29,7 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_CONNECT_STATS;
+import static org.apache.rocketmq.connect.common.constant.LoggerName.ROCKETMQ_CONNECT_STATS;
 
 public class ConnectStatsManager {
 

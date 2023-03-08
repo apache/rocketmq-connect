@@ -15,35 +15,43 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.serialization;
-
-import com.alibaba.fastjson.JSON;
-import org.apache.rocketmq.connect.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
+package org.apache.rocketmq.connect.common.cache;
 
 /**
- * Convert between a list and byte[].
+ * cache
+ *
+ * @param <K>
+ * @param <V>
  */
-public class ListSerializer implements Serializer<List> {
+public interface Cache<K, V> {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
+    /**
+     * @param key
+     * @return
+     */
+    V get(K key);
 
-    private Class clazz;
+    /**
+     * put a data to cache
+     *
+     * @param key
+     * @param value
+     */
+    void put(K key, V value);
 
-    public ListSerializer(Class clazz) {
-        this.clazz = clazz;
-    }
 
-    @Override
-    public byte[] serialize(String topic, List data) {
-        try {
-            return JSON.toJSONString(data).getBytes("UTF-8");
-        } catch (Exception e) {
-            log.error("ListSerializer serialize failed", e);
-        }
-        return null;
-    }
+    /**
+     * remove a data to cache
+     *
+     * @param key
+     * @return
+     */
+    boolean remove(K key);
+
+
+    /**
+     * @return
+     */
+    long size();
+
 }

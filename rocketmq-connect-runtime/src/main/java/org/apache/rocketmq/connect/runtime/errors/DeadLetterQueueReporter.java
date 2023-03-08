@@ -117,12 +117,12 @@ public class DeadLetterQueueReporter implements ErrorReporter {
         if (dlqTopic.isEmpty()) {
             return null;
         }
-        if (!ConnectUtil.isTopicExist(workerConfig, dlqTopic)) {
-            TopicConfig topicConfig = new TopicConfig(dlqTopic);
-            topicConfig.setReadQueueNums(deadLetterQueueConfig.dlqTopicReadQueueNums());
-            topicConfig.setWriteQueueNums(deadLetterQueueConfig.dlqTopicWriteQueueNums());
-            ConnectUtil.createTopic(workerConfig, topicConfig);
-        }
+
+        TopicConfig topicConfig = new TopicConfig(dlqTopic);
+        topicConfig.setReadQueueNums(deadLetterQueueConfig.dlqTopicReadQueueNums());
+        topicConfig.setWriteQueueNums(deadLetterQueueConfig.dlqTopicWriteQueueNums());
+        ConnectUtil.maybeCreateTopic(workerConfig, topicConfig);
+
         DefaultMQProducer dlqProducer = ConnectUtil.initDefaultMQProducer(workerConfig);
         return new DeadLetterQueueReporter(dlqProducer, sinkConfig, connectorTaskId, errorMetricsGroup);
     }

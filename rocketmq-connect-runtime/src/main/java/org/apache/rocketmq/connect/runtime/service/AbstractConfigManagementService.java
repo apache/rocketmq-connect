@@ -19,8 +19,6 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.connector.Connector;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.rocketmq.connect.runtime.common.ConfigException;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.data.RecordConverter;
@@ -29,9 +27,19 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
+import org.apache.rocketmq.connect.runtime.common.ConfigException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
@@ -49,15 +57,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_CLASS;
 
 /**
@@ -72,53 +71,52 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
     public static final String DELETE_CONNECTOR_PREFIX = "delete-";
     protected static final String FIELD_STATE = "state";
     protected static final String FIELD_EPOCH = "epoch";
-    protected static final String FIELD_PROPS = "properties";
-    protected static final String FIELD_DELETED = "deleted";
     /**
      * delete connector V0
      */
     @Deprecated
     public static final Schema CONNECTOR_DELETE_CONFIGURATION_V0 = SchemaBuilder.struct()
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .build();
-
-    /**
-     * delete connector V1
-     */
-    public static final Schema CONNECTOR_DELETE_CONFIGURATION_V1 = SchemaBuilder.struct()
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .field(FIELD_DELETED, SchemaBuilder.bool().build())
-            .build();
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
     /**
      * connector state
      */
     public static final Schema TARGET_STATE_V0 = SchemaBuilder.struct()
-            .field(FIELD_STATE, SchemaBuilder.string().build())
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .build();
+        .field(FIELD_STATE, SchemaBuilder.string().build())
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .build();
+    protected static final String FIELD_PROPS = "properties";
     /**
      * connector configuration
      */
     public static final Schema CONNECTOR_CONFIGURATION_V0 = SchemaBuilder.struct()
-            .field(FIELD_STATE, SchemaBuilder.string().build())
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .field(FIELD_PROPS,
-                    SchemaBuilder.map(
-                            SchemaBuilder.string().optional().build(),
-                            SchemaBuilder.string().optional().build()
-                    ).build())
-            .build();
+        .field(FIELD_STATE, SchemaBuilder.string().build())
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .field(FIELD_PROPS,
+            SchemaBuilder.map(
+                SchemaBuilder.string().optional().build(),
+                SchemaBuilder.string().optional().build()
+            ).build())
+        .build();
     /**
      * task configuration
      */
     public static final Schema TASK_CONFIGURATION_V0 = SchemaBuilder.struct()
-            .field(FIELD_EPOCH, SchemaBuilder.int64().build())
-            .field(FIELD_PROPS,
-                    SchemaBuilder.map(
-                            SchemaBuilder.string().build(),
-                            SchemaBuilder.string().optional().build()
-                    ).build())
-            .build();
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .field(FIELD_PROPS,
+            SchemaBuilder.map(
+                SchemaBuilder.string().build(),
+                SchemaBuilder.string().optional().build()
+            ).build())
+        .build();
+    protected static final String FIELD_DELETED = "deleted";
+    /**
+     * delete connector V1
+     */
+    public static final Schema CONNECTOR_DELETE_CONFIGURATION_V1 = SchemaBuilder.struct()
+        .field(FIELD_EPOCH, SchemaBuilder.int64().build())
+        .field(FIELD_DELETED, SchemaBuilder.bool().build())
+        .build();
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
     protected final String configManagePrefix = "ConfigManage";
     /**
@@ -171,7 +169,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         this.connectorConfigUpdateListener = new HashSet<>();
         this.dataSynchronizer = initializationDataSynchronizer(workerConfig);
     }
-
 
     @Override
     public boolean enabledCompactTopic() {
@@ -306,7 +303,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         taskKeyValueStore.put(connectorName, configs);
     }
 
-
     @Override
     public void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs) {
         int maxTask = configs.getInt(ConnectorConfig.MAX_TASK, ConnectorConfig.TASKS_MAX_DEFAULT);
@@ -394,7 +390,6 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         return new ClusterConfigState(connectorTaskCounts, connectorConfigs, connectorTargetStates, connectorTaskConfigs);
     }
 
-
     @Override
     public Plugin getPlugin() {
         return this.plugin;
@@ -418,22 +413,22 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         }
     }
 
-
     // ======= Start receives the config message and transforms the storage ======
 
     protected void process(String key, SchemaAndValue schemaAndValue) {
         if (key.startsWith(TARGET_STATE_PREFIX)) {
             // target state listener
             String connectorName = key.substring(TARGET_STATE_PREFIX.length());
-            if (schemaAndValue.schema().equals(CONNECTOR_DELETE_CONFIGURATION_V1)) {
-                processDeleteConnectorRecord(connectorName, schemaAndValue);
-            } else {
-                processTargetStateRecord(connectorName, schemaAndValue);
-            }
+            processTargetStateRecord(connectorName, schemaAndValue);
+
         } else if (key.startsWith(CONNECTOR_PREFIX)) {
             // connector config update
             String connectorName = key.substring(CONNECTOR_PREFIX.length());
-            processConnectorConfigRecord(connectorName, schemaAndValue);
+            if (schemaAndValue.schema().equals(CONNECTOR_DELETE_CONFIGURATION_V1)) {
+                processDeleteConnectorRecord(connectorName, schemaAndValue);
+            } else {
+                processConnectorConfigRecord(connectorName, schemaAndValue);
+            }
         } else if (key.startsWith(TASK_PREFIX)) {
             // task config update
             ConnectorTaskId taskId = parseTaskId(key);
@@ -468,8 +463,12 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         // config update
         if ((Long) epoch > oldConfig.getEpoch()) {
             // remove
-            connectorKeyValueStore.remove(connectorName);
-            taskKeyValueStore.remove(connectorName);
+            if (connectorKeyValueStore.containsKey(connectorName)) {
+                connectorKeyValueStore.remove(connectorName);
+            }
+            if (taskKeyValueStore.containsKey(connectorName)) {
+                taskKeyValueStore.remove(connectorName);
+            }
             // reblance
             triggerListener();
         }
@@ -515,14 +514,14 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         if (!(targetState instanceof String)) {
             // target state
             log.error("Invalid data for target state for connector '{}': 'state' field should be a String but is {}",
-                    connectorName, className(targetState));
+                connectorName, className(targetState));
             return;
         }
         Object epoch = struct.get(FIELD_EPOCH);
         if (!(epoch instanceof Long)) {
             // epoch
             log.error("Invalid data for epoch for connector '{}': 'epoch' field should be a Long but is {}",
-                    connectorName, className(epoch));
+                connectorName, className(epoch));
             return;
         }
 
@@ -550,21 +549,21 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         if (!(targetState instanceof String)) {
             // target state
             log.error("Invalid data for target state for connector '{}': 'state' field should be a String but is {}",
-                    connectName, className(targetState));
+                connectName, className(targetState));
             return false;
         }
         Object epoch = value.get(FIELD_EPOCH);
         if (!(epoch instanceof Long)) {
             // epoch
             log.error("Invalid data for epoch for connector '{}': 'state' field should be a long but is {}",
-                    connectName, className(epoch));
+                connectName, className(epoch));
             return false;
         }
         Object props = value.get(FIELD_PROPS);
         if (!(props instanceof Map)) {
             // properties
             log.error("Invalid data for properties for connector '{}': 'state' field should be a Map but is {}",
-                    connectName, className(props));
+                connectName, className(props));
             return false;
         }
         // new configs

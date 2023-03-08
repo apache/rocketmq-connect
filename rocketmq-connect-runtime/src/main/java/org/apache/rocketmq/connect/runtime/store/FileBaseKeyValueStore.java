@@ -21,7 +21,7 @@ import com.alibaba.fastjson.JSON;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.serialization.Serde;
 import org.apache.rocketmq.connect.runtime.utils.Base64Util;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;

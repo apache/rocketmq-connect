@@ -19,7 +19,7 @@ package org.apache.rocketmq.connect.runtime.rest;
 import io.javalin.http.Context;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginType;
 import org.apache.rocketmq.connect.runtime.controller.isolation.PluginWrapper;

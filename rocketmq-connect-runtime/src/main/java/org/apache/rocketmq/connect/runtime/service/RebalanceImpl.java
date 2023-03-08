@@ -18,9 +18,9 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
@@ -79,7 +79,7 @@ public class RebalanceImpl {
             String clusterStoreTopic = this.connectController.getConnectConfig().getClusterStoreTopic();
             log.info("cluster store topic not exist, try to create it!");
             TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
-            ConnectUtil.createTopic(connectConfig, topicConfig);
+            ConnectUtil.maybeCreateTopic(connectConfig, topicConfig);
         }
     }
 

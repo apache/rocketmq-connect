@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.common.cache;
+package org.apache.rocketmq.connect.common.cache;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

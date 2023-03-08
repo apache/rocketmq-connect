@@ -15,14 +15,25 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.common;
+package org.apache.rocketmq.connect.common;
 
-/**
- * Define all the logger name of the runtime.
- */
-public class LoggerName {
-    public static final String ROCKETMQ_RUNTIME = "RocketMQRuntime";
-    public static final String BROKER_BASE_LOG = "BrokerBaseLog";
-    public static final String COMMON_LOGGER_NAME = "ConnectCommon";
-    public static final String ROCKETMQ_CONNECT_STATS = "RocketmqConnectStats";
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ProducerConfiguration extends RocketMqBaseConfiguration {
+    // producer
+    private Integer maxMessageSize;
+    private Integer sendMsgTimeout;
+
+    @Builder(builderMethodName = "producerBuilder")
+    public ProducerConfiguration(String namesrvAddr, String groupId, boolean aclEnable, String accessKey,
+        String secretKey,
+        Integer maxMessageSize, Integer sendMsgTimeout) {
+        super(namesrvAddr, groupId, aclEnable, accessKey, secretKey);
+        this.maxMessageSize = maxMessageSize;
+        this.sendMsgTimeout = sendMsgTimeout;
+    }
 }

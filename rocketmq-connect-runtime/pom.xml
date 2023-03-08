@@ -267,5 +267,10 @@
             <artifactId>metric-exporter</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-connect-common</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

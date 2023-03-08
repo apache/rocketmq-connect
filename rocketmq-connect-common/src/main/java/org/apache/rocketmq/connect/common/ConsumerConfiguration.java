@@ -15,35 +15,26 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.serialization;
+package org.apache.rocketmq.connect.common;
 
-import com.alibaba.fastjson.JSON;
-import org.apache.rocketmq.connect.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.List;
+@Getter
+@Setter
+public class ConsumerConfiguration extends RocketMqBaseConfiguration {
+    // consumer
+    private Integer batchSize;
+    private Long pollTimeoutMillis;
 
-/**
- * Convert between a list and byte[].
- */
-public class ListSerializer implements Serializer<List> {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private Class clazz;
-
-    public ListSerializer(Class clazz) {
-        this.clazz = clazz;
-    }
-
-    @Override
-    public byte[] serialize(String topic, List data) {
-        try {
-            return JSON.toJSONString(data).getBytes("UTF-8");
-        } catch (Exception e) {
-            log.error("ListSerializer serialize failed", e);
-        }
-        return null;
+    @Builder(builderMethodName = "consumerBuilder")
+    public ConsumerConfiguration(String namesrvAddr, String groupId, boolean aclEnable, String accessKey,
+        String secretKey,
+        Integer batchSize, Long pollTimeoutMillis) {
+        super(namesrvAddr, groupId, aclEnable, accessKey, secretKey);
+        this.batchSize = batchSize;
+        this.pollTimeoutMillis = pollTimeoutMillis;
     }
 }

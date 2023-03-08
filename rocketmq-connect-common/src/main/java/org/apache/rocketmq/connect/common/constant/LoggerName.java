@@ -15,43 +15,14 @@
  *  limitations under the License.
  */
 
-package org.apache.rocketmq.connect.runtime.common.cache;
+package org.apache.rocketmq.connect.common.constant;
 
 /**
- * cache
- *
- * @param <K>
- * @param <V>
+ * Define all the logger name of the runtime.
  */
-public interface Cache<K, V> {
-
-    /**
-     * @param key
-     * @return
-     */
-    V get(K key);
-
-    /**
-     * put a data to cache
-     *
-     * @param key
-     * @param value
-     */
-    void put(K key, V value);
-
-
-    /**
-     * remove a data to cache
-     *
-     * @param key
-     * @return
-     */
-    boolean remove(K key);
-
-
-    /**
-     * @return
-     */
-    long size();
-
+public class LoggerName {
+    public static final String ROCKETMQ_RUNTIME = "RocketMQRuntime";
+    public static final String BROKER_BASE_LOG = "BrokerBaseLog";
+    public static final String COMMON_LOGGER_NAME = "ConnectCommon";
+    public static final String ROCKETMQ_CONNECT_STATS = "RocketmqConnectStats";
 }

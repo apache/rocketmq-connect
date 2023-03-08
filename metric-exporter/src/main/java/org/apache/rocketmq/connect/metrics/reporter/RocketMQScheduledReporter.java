@@ -25,9 +25,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.connect.common.ProducerConfiguration;
+import org.apache.rocketmq.connect.common.RocketMqBaseConfiguration;
+import org.apache.rocketmq.connect.common.RocketMqUtils;
 import org.apache.rocketmq.connect.metrics.MetricName;
 import org.apache.rocketmq.connect.metrics.ScheduledMetricsReporter;
-import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,26 +128,34 @@ public class RocketMQScheduledReporter extends ScheduledMetricsReporter {
         }
         this.topic = configs.get(METRICS_TOPIC);
         String groupId = configs.get(GROUP_ID);
-        DefaultMQAdminExt defaultMQAdminExt = null;
         try {
-            defaultMQAdminExt = RocketMQClientUtil.startMQAdminTool(Boolean.valueOf(configs.get(ACL_ENABLED)), configs.get(ACCESS_KEY), configs.get(SECRET_KEY), groupId, configs.get(NAMESRV_ADDR));
-            if (!RocketMQClientUtil.topicExist(defaultMQAdminExt, topic)) {
-                RocketMQClientUtil.createTopic(defaultMQAdminExt, new TopicConfig(topic));
+            RocketMqBaseConfiguration baseConfiguration = RocketMqBaseConfiguration
+                .builder()
+                .namesrvAddr(configs.get(NAMESRV_ADDR))
+                .aclEnable(Boolean.valueOf(configs.get(ACL_ENABLED)))
+                .accessKey(configs.get(ACCESS_KEY))
+                .secretKey(configs.get(SECRET_KEY))
+                .groupId(groupId)
+                .build();
+
+            RocketMqUtils.maybeCreateTopic(baseConfiguration, new TopicConfig(topic));
+            if (!RocketMqUtils.fetchAllConsumerGroup(baseConfiguration).contains(groupId)) {
+                RocketMqUtils.createGroup(baseConfiguration, groupId);
             }
-            if (!RocketMQClientUtil.fetchAllConsumerGroup(defaultMQAdminExt).contains(groupId)) {
-                RocketMQClientUtil.createSubGroup(defaultMQAdminExt, groupId);
-            }
-            this.producer = RocketMQClientUtil.initDefaultMQProducer(Boolean.valueOf(configs.get(ACL_ENABLED)), configs.get(ACCESS_KEY), configs.get(SECRET_KEY), groupId, configs.get(NAMESRV_ADDR));
+            ProducerConfiguration producerConfiguration = ProducerConfiguration
+                .producerBuilder()
+                .namesrvAddr(configs.get(NAMESRV_ADDR))
+                .aclEnable(Boolean.valueOf(configs.get(ACL_ENABLED)))
+                .accessKey(configs.get(ACCESS_KEY))
+                .secretKey(configs.get(SECRET_KEY))
+                .groupId(groupId)
+                .build();
+            this.producer = RocketMqUtils.initDefaultMQProducer(producerConfiguration);
             this.producer.start();
         } catch (Exception e) {
             log.error("Init config failed ", e);
-        } finally {
-            if (defaultMQAdminExt != null) {
-                defaultMQAdminExt.shutdown();
-            }
         }
     }
-
 
     @Override
     public void start() {

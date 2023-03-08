@@ -22,7 +22,7 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -69,11 +69,9 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
             ConnectUtil.createSubGroup(connectConfig, consumerGroup);
         }
         String clusterStoreTopic = connectConfig.getClusterStoreTopic();
-        if (!ConnectUtil.isTopicExist(connectConfig, clusterStoreTopic)) {
-            log.info("try to create cluster store topic: {}!", clusterStoreTopic);
-            TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
-            ConnectUtil.createTopic(connectConfig, topicConfig);
-        }
+        TopicConfig topicConfig = new TopicConfig(clusterStoreTopic, 1, 1, 6);
+        log.info("try to create cluster store topic: {}!", clusterStoreTopic);
+        ConnectUtil.maybeCreateTopic(connectConfig, topicConfig);
 
     }
 
