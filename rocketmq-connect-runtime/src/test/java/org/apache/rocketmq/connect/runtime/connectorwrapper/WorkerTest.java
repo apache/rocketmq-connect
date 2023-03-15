@@ -17,9 +17,20 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
+import com.google.common.collect.Sets;
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -45,28 +56,21 @@ import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.service.local.LocalStateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsManager;
 import org.apache.rocketmq.connect.runtime.stats.ConnectStatsService;
+import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.TestUtils;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -74,9 +78,6 @@ public class WorkerTest {
 
     @Mock
     private PositionManagementService positionManagementService;
-
-    @Mock
-    private PositionManagementService offsetManagementService;
 
     @Mock
     private ConfigManagementService configManagementService;
@@ -111,11 +112,17 @@ public class WorkerTest {
 
     private WrapperStatusListener wrapperStatusListener;
 
+    @Mock
     private StateManagementService stateManagementService;
 
     private ServerResponseMocker nameServerMocker;
 
     private ServerResponseMocker brokerMocker;
+
+    @Mock
+    protected DataSynchronizer dataSynchronizer;
+
+    private final MockedStatic<ConnectUtil> connectUtil = mockStatic(ConnectUtil.class);
 
     @Before
     public void init() {
@@ -125,6 +132,7 @@ public class WorkerTest {
         when(plugin.newConnector(any())).thenReturn(new TestConnector());
         when(plugin.delegatingLoader()).thenReturn(delegatingClassLoader);
         when(delegatingClassLoader.pluginClassLoader(any())).thenReturn(pluginClassLoader);
+        connectUtil.when(() -> ConnectUtil.fetchAllConsumerGroupList(connectConfig)).thenReturn(Sets.newHashSet());
         Thread.currentThread().setContextClassLoader(pluginClassLoader);
 
         connectConfig = new WorkerConfig();
@@ -179,6 +187,7 @@ public class WorkerTest {
 
     @After
     public void destroy() throws InterruptedException {
+        connectUtil.close();
         TimeUnit.SECONDS.sleep(2);
         worker.stop();
         TestUtils.deleteFile(new File(System.getProperty("user.home") + File.separator + "testConnectorStore"));

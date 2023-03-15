@@ -79,7 +79,7 @@ public class LocalConfigManagementServiceImpl extends AbstractConfigManagementSe
     public DataSynchronizer initializationDataSynchronizer(WorkerConfig workerConfig) {
         return new BrokerBasedLog<>(workerConfig,
             this.topic,
-            ConnectUtil.createGroupName(configManagePrefix, workerConfig.getWorkerId()),
+            ConnectUtil.generateGroupName(configManagePrefix, workerConfig.getWorkerId()),
             new ConfigChangeCallback(),
             Serdes.serdeFrom(String.class),
             Serdes.serdeFrom(byte[].class),

@@ -17,15 +17,10 @@
 
 package org.apache.rocketmq.connect.runtime.config;
 
-import org.apache.rocketmq.common.MixAll;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUNTIME;
+import org.apache.rocketmq.common.MixAll;
 
 /**
  * Configurations for runtime.
@@ -34,7 +29,6 @@ public class WorkerConfig {
     public static final String METRIC_CLASS = "metrics.reporter";
     public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
     public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
-    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
     private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
 
     /**

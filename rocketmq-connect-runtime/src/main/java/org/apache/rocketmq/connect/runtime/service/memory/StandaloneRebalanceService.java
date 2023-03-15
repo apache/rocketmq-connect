@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.runtime.service.memory;
 
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.RebalanceImpl;

@@ -18,8 +18,8 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
 import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.slf4j.Logger;

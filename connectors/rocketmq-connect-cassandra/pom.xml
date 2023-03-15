@@ -38,7 +38,7 @@
         <!-- Compiler settings properties -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <rocketmq.version>4.5.2</rocketmq.version>
+        <rocketmq.version>4.9.4</rocketmq.version>
     </properties>
 
     <build>
@@ -245,7 +245,7 @@
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-openmessaging</artifactId>
-            <version>4.3.2</version>
+            <version>4.9.4</version>
         </dependency>
         <dependency>
             <groupId>commons-cli</groupId>

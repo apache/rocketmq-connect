@@ -17,12 +17,12 @@
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 /**
  * tools class

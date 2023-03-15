@@ -23,7 +23,7 @@ import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.storage.OffsetStorageWriter;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.slf4j.Logger;

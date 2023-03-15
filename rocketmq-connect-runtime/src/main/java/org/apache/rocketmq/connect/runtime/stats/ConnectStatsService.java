@@ -19,9 +19,7 @@ package org.apache.rocketmq.connect.runtime.stats;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -31,9 +29,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ConnectStatsService extends ServiceThread {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_CONNECT_STATS);
 
     private static final int FREQUENCY_OF_SAMPLING = 1000;
 

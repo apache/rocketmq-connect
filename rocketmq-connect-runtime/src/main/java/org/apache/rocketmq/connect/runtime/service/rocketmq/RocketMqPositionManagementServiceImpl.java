@@ -47,7 +47,7 @@ public class RocketMqPositionManagementServiceImpl extends AbstractPositionManag
         return new BrokerBasedLog(
             workerConfig,
             this.topic,
-            ConnectUtil.createGroupName(positionManagePrefix, workerConfig.getWorkerId()),
+            ConnectUtil.generateGroupName(positionManagePrefix, workerConfig.getWorkerId()),
             new PositionChangeCallback(),
             Serdes.serdeFrom(ByteBuffer.class),
             Serdes.serdeFrom(ByteBuffer.class),

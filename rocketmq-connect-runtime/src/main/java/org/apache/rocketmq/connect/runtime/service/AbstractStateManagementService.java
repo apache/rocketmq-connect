@@ -21,24 +21,6 @@ import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.SchemaAndValue;
 import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
-import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
-import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
-import org.apache.rocketmq.connect.runtime.serialization.Serdes;
-import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
-import org.apache.rocketmq.connect.runtime.utils.Callback;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
-import org.apache.rocketmq.connect.runtime.utils.Utils;
-import org.apache.rocketmq.connect.runtime.utils.datasync.BrokerBasedLog;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
-import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,6 +29,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
+import org.apache.rocketmq.connect.runtime.common.ConnAndTaskStatus;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.ConnectorStatus;
+import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
+import org.apache.rocketmq.connect.runtime.store.KeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.Callback;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
+import org.apache.rocketmq.connect.runtime.utils.Utils;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * State management service
@@ -100,15 +96,7 @@ public abstract class AbstractStateManagementService implements StateManagementS
         this.converter.configure(new HashMap<>());
         this.statusTopic = config.getConnectStatusTopic();
         this.dataSynchronizer = initializationDataSynchronizer(config);
-
-        new BrokerBasedLog(config,
-            this.statusTopic,
-            ConnectUtil.createGroupName(statusManagePrefix, config.getWorkerId()),
-            new StatusChangeCallback(),
-            Serdes.serdeFrom(String.class),
-            Serdes.serdeFrom(byte[].class),
-            enabledCompactTopic()
-        );
+        
     }
 
     @Override

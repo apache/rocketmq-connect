@@ -23,6 +23,7 @@
     <packaging>pom</packaging>
     <version>0.0.1-SNAPSHOT</version>
     <modules>
+        <module>rocketmq-connect-common</module>
         <module>rocketmq-connect-sample</module>
         <module>rocketmq-connect-runtime</module>
         <module>rocketmq-connect-cli</module>
@@ -41,7 +42,6 @@
         </license>
     </licenses>
     <properties>
-        <rocketmq.version>4.7.1</rocketmq.version>
         <junit.version>4.13.1</junit.version>
         <assertj.version>3.22.0</assertj.version>
         <mockito.version>4.7.0</mockito.version>
@@ -57,7 +57,10 @@
         <jackson.version>2.13.4.1</jackson.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <!-- RocketMQ Version-->
-        <rocketmq.version>4.7.1</rocketmq.version>
+        <rocketmq.version>5.1.0</rocketmq.version>
+
+        <lombok.version>1.18.0</lombok.version>
+
         <maven-artifact.version>3.8.1</maven-artifact.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--maven properties -->
@@ -153,6 +156,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-connect-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-connect-cli</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -183,19 +191,14 @@
                 <version>${commons-collections4.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-tools</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-client</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-artifact</artifactId>
                 <version>${maven-artifact.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

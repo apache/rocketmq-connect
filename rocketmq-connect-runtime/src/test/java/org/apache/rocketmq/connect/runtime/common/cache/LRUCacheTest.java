@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.common.cache;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.connect.common.cache.LRUCache;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;

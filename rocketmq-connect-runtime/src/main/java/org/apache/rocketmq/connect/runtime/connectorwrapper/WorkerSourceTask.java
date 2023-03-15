@@ -50,12 +50,12 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.connect.common.constant.LoggerName;
 import org.apache.rocketmq.connect.metrics.stats.Avg;
 import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
 import org.apache.rocketmq.connect.metrics.stats.Max;
 import org.apache.rocketmq.connect.metrics.stats.Rate;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
@@ -428,9 +428,7 @@ public class WorkerSourceTask extends WorkerTask {
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
         }
-        if (!ConnectUtil.isTopicExist(workerConfig, topic)) {
-            ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
-        }
+        ConnectUtil.maybeCreateTopic(workerConfig, new TopicConfig(topic));
         return topic;
     }
 

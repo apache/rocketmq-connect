@@ -15,7 +15,7 @@
         <!-- Compiler settings properties -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <rocketmq.version>4.5.2</rocketmq.version>
+        <rocketmq.version>4.9.4</rocketmq.version>
         <avro.version>1.10.2</avro.version>
         <parquet.version>1.10.1</parquet.version>
         <scala.version>2.12</scala.version>
@@ -231,7 +231,7 @@
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-openmessaging</artifactId>
-            <version>4.3.2</version>
+            <version>4.9.4</version>
         </dependency>
 
         <dependency>

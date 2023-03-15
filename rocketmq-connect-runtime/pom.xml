@@ -42,9 +42,6 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <!-- RocketMQ Version-->
-        <rocketmq.version>4.7.1</rocketmq.version>
-
     </properties>
 
     <build>
@@ -268,6 +265,11 @@
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>metric-exporter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-connect-common</artifactId>
         </dependency>
 
     </dependencies>

@@ -60,7 +60,7 @@ public class LocalPositionManagementServiceImpl extends AbstractPositionManageme
         return new BrokerBasedLog(
             workerConfig,
             super.topic,
-            ConnectUtil.createGroupName(super.positionManagePrefix, workerConfig.getWorkerId()),
+            ConnectUtil.generateGroupName(super.positionManagePrefix, workerConfig.getWorkerId()),
             new PositionChangeCallback(),
             Serdes.serdeFrom(ByteBuffer.class),
             Serdes.serdeFrom(ByteBuffer.class),
