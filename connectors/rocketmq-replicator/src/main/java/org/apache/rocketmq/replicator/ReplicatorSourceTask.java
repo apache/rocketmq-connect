@@ -25,41 +25,46 @@ import io.openmessaging.internal.DefaultKeyValue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
-import org.apache.rocketmq.replicator.config.ConsumeFromWhere;
-import org.apache.rocketmq.replicator.config.FailoverStrategy;
-import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
-import org.apache.rocketmq.replicator.exception.StartTaskException;
-import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
-import org.apache.rocketmq.replicator.stats.ReplicatorTaskStats;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.replicator.config.ConsumeFromWhere;
+import org.apache.rocketmq.replicator.config.FailoverStrategy;
+import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
+import org.apache.rocketmq.replicator.exception.StartTaskException;
+import org.apache.rocketmq.replicator.stats.ReplicatorTaskStats;
+import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.command.CommandUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
 
 
 /**
@@ -166,7 +171,13 @@ public class ReplicatorSourceTask extends SourceTask {
         // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         if (connectorConfig.isSrcAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials());
+            if (StringUtils.isNotEmpty(connectorConfig.getSrcAccessKey()) && StringUtils.isNotEmpty(connectorConfig.getSrcSecretKey())) {
+                String srcAccessKey = connectorConfig.getSrcAccessKey();
+                String srcSecretKey = connectorConfig.getSrcSecretKey();
+                rpcHook = new AclClientRPCHook(new SessionCredentials(srcAccessKey, srcSecretKey));
+            } else {
+                rpcHook = new AclClientRPCHook(new SessionCredentials());
+            }
         }
         srcMQAdminExt = new DefaultMQAdminExt(rpcHook);
         srcMQAdminExt.setNamesrvAddr(connectorConfig.getSrcEndpoint());
@@ -180,8 +191,20 @@ public class ReplicatorSourceTask extends SourceTask {
     private void createAndUpdatePullConsumerGroup(String clusterName, String subscriptionGroupName) throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName(subscriptionGroupName);
-        Set<String> masterSet =
-                CommandUtil.fetchMasterAddrByClusterName(srcMQAdminExt, clusterName);
+        ClusterInfo clusterInfo = srcMQAdminExt.examineBrokerClusterInfo();
+        Collection<BrokerData> brokerDatas = clusterInfo.getBrokerAddrTable().values();
+        Set<String> brokerNames = null;
+        if (StringUtils.isNotEmpty(clusterName)) {
+            brokerNames = clusterInfo.getClusterAddrTable().get(clusterName);
+        }
+        Set<String> masterSet = new HashSet<>();
+        for(BrokerData brokerData: brokerDatas){
+            for (Map.Entry<Long, String> entry : brokerData.getBrokerAddrs().entrySet()){
+                if (null != brokerNames && brokerNames.contains(brokerData.getBrokerName()) && entry.getKey().equals(0L)) {
+                    masterSet.add(entry.getValue());
+                }
+            }
+        }
         for (String addr : masterSet) {
             try {
                 srcMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
@@ -216,9 +239,14 @@ public class ReplicatorSourceTask extends SourceTask {
         // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         if (connectorConfig.isSrcAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials());
+            if (StringUtils.isNotEmpty(connectorConfig.getSrcAccessKey()) && StringUtils.isNotEmpty(connectorConfig.getSrcSecretKey())) {
+                String srcAccessKey = connectorConfig.getSrcAccessKey();
+                String srcSecretKey = connectorConfig.getSrcSecretKey();
+                rpcHook = new AclClientRPCHook(new SessionCredentials(srcAccessKey, srcSecretKey));
+            } else {
+                rpcHook = new AclClientRPCHook(new SessionCredentials());
+            }
         }
-//        pullConsumer = new DefaultMQPullConsumer(consumerGroup, rpcHook);
         pullConsumer = new DefaultLitePullConsumer(consumerGroup, rpcHook);
         String namesrvAddr = connectorConfig.getSrcEndpoint();
         pullConsumer.setNamesrvAddr(namesrvAddr);
@@ -395,12 +423,13 @@ public class ReplicatorSourceTask extends SourceTask {
                     log.error("swap topic got null, topic : " + topic);
                 }
             }
-            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(destTopic, message.getBrokerName(), message.getQueueId());
+            RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(topic, message.getBrokerName(), message.getQueueId());
 
             RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
 
             String bodyStr = new String(body, StandardCharsets.UTF_8);
             sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schema, bodyStr);
+            sinkDataEntry.addExtension(TOPIC, destTopic);
             KeyValue keyValue = new DefaultKeyValue();
             if (org.apache.commons.collections.MapUtils.isNotEmpty(properties)) {
                 for (Map.Entry<String, String> entry : properties.entrySet()) {
@@ -483,7 +512,7 @@ public class ReplicatorSourceTask extends SourceTask {
         log.info("ReplicatorSourceTask init " + config);
         log.info(" sourceTaskContextConfigs : " + sourceTaskContext.configs());
         // build connectConfig
-        connectorConfig.setTaskId(sourceTaskContext.getTaskName().substring(sourceTaskContext.getConnectorName().length()));
+        connectorConfig.setTaskId(sourceTaskContext.getTaskName().substring(sourceTaskContext.getConnectorName().length()) + 1);
         connectorConfig.setConnectorId(sourceTaskContext.getConnectorName());
         connectorConfig.setSrcCloud(config.getString(ReplicatorConnectorConfig.SRC_CLOUD));
         connectorConfig.setSrcRegion(config.getString(ReplicatorConnectorConfig.SRC_REGION));
@@ -499,9 +528,12 @@ public class ReplicatorSourceTask extends SourceTask {
         connectorConfig.setDestTopic(config.getString(ReplicatorConnectorConfig.DEST_TOPIC));
         connectorConfig.setDestAclEnable(Boolean.valueOf(config.getString(ReplicatorConnectorConfig.DEST_ACL_ENABLE, "true")));
         connectorConfig.setSrcAclEnable(Boolean.valueOf(config.getString(ReplicatorConnectorConfig.SRC_ACL_ENABLE, "true")));
+        connectorConfig.setAutoCreateInnerConsumergroup(Boolean.valueOf(config.getString(ReplicatorConnectorConfig.AUTO_CREATE_INNER_CONSUMERGROUP, "false")));
 
         connectorConfig.setSyncTps(config.getInt(ReplicatorConnectorConfig.SYNC_TPS));
         connectorConfig.setDividedNormalQueues(config.getString(ReplicatorConnectorConfig.DIVIDED_NORMAL_QUEUES));
+        connectorConfig.setSrcAccessKey(config.getString(ReplicatorConnectorConfig.SRC_ACCESS_KEY));
+        connectorConfig.setSrcSecretKey(config.getString(ReplicatorConnectorConfig.SRC_SECRET_KEY));
 
         connectorConfig.setConsumeFromWhere(config.getString(ReplicatorConnectorConfig.CONSUME_FROM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name()));
         if (connectorConfig.getConsumeFromWhere() == ConsumeFromWhere.CONSUME_FROM_TIMESTAMP) {
@@ -515,7 +547,9 @@ public class ReplicatorSourceTask extends SourceTask {
             String srcClusterName = connectorConfig.getSrcCluster();
             String pullConsumerGroup = connectorConfig.generateTaskIdWithIndexAsConsumerGroup();
             buildMqAdminClient();
-            createAndUpdatePullConsumerGroup(srcClusterName, pullConsumerGroup);
+            if (connectorConfig.isAutoCreateInnerConsumergroup()) {
+                createAndUpdatePullConsumerGroup(srcClusterName, pullConsumerGroup);
+            }
             log.info("createAndUpdatePullConsumerGroup " + pullConsumerGroup + " finished.");
             ReplicatorTaskStats.init();
             log.info("TaskStats inited.");

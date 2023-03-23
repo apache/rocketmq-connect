@@ -44,6 +44,7 @@ public class ReplicatorConnectorConfig {
     private String srcTopicTags; // format topic-1,tag-a;topic-2,tag-b;topic-3,tag-c
     private String srcEndpoint;
     private boolean srcAclEnable;
+    private boolean autoCreateInnerConsumergroup;
     private String srcAccessKey;
     private String srcSecretKey;
     private String destCloud;
@@ -102,6 +103,7 @@ public class ReplicatorConnectorConfig {
     public final static String DEST_TOPIC = "dest.topic";
     public final static String DEST_ENDPOINT = "dest.endpoint";
     public final static String DEST_ACL_ENABLE = "dest.acl.enable";
+    public final static String AUTO_CREATE_INNER_CONSUMERGROUP = "auto.create.inner.consumergroup";
     public final static String DEST_ACCESS_KEY = "dest.access.key";
     public final static String DEST_SECRET_KEY = "dest.secret.key";
     public final static String FAILOVER_STRATEGY = "failover.strategy";
@@ -411,6 +413,18 @@ public class ReplicatorConnectorConfig {
 
     public void setDestSecretKey(String destSecretKey) {
         this.destSecretKey = destSecretKey;
+    }
+
+    public boolean isAutoCreateInnerConsumergroup() {
+        return autoCreateInnerConsumergroup;
+    }
+
+    public void setAutoCreateInnerConsumergroup(boolean autoCreateInnerConsumergroup) {
+        this.autoCreateInnerConsumergroup = autoCreateInnerConsumergroup;
+    }
+
+    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
+        this.consumeFromWhere = consumeFromWhere;
     }
 
     @Override
