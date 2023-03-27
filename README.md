@@ -1,13 +1,14 @@
 # rocketmq-connect
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-文档中心：[RocketMQ Connect](https://rocketmq-1.gitbook.io/rocketmq-connector/)
+文档中心
 
-架构简介：[RocketMQ Connect 平台搭建与实践](https://developer.aliyun.com/search?q=rocketmq+connect&bizCategory=ucc-file) 
+[RocketMQ Connect 文档](https://rocketmq.apache.org/zh/docs/connect/01RocketMQ%20Connect%20Overview/)
+
 
 # 快速开始
 
-单机模式下[rocketmq-connect-sample](https://rocketmq-1.gitbook.io/rocketmq-connector/quick-start/file-connector)作为 demo
+单机模式下rocketmq-connect-sample作为 demo
 
 rocketmq-connect-sample的主要作用是从源文件中读取数据发送到RocketMQ集群 然后从Topic中读取消息，写入到目标文件 
 
