@@ -169,6 +169,10 @@ public class WorkerSourceTask extends WorkerTask {
     @Nullable
     private static String overwriteTopicFromRecord(ConnectRecord record) {
         KeyValue extensions = record.getExtensions();
+        if (extensions == null) {
+            log.error("record extensions null , lack of topic config");
+            return null;
+        }
         String o = extensions.getString(TOPIC, null);
         if (null == o) {
             log.error("Partition map element topic is null , lack of topic config");
