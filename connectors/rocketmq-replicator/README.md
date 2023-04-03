@@ -32,36 +32,45 @@ mvn clean install -Prelease-all -DskipTest -U
 ````
 curl -X POST -H "Content-Type: application/json" http://${runtime-port}:${runtime-ip}/connectors/${replicator-name} -d '{
     "connector.class": "org.apache.rocketmq.replicator.ReplicatorSourceConnector",
-    "src.endpoint": “${source-rocketmq-namesrv-endpoint}”,
+    "src.cluster": "${srcDefaultCluster}",
+    "src.endpoint": "${namesrvEndpoint}",
     "dest.acl.enable": "false",
-    "src.secret.key": “${sk}”,
-    "dest.topic": "${target-cluster-topic}",
-    "dest.access.key": “${ak}”,
+    "src.secret.key": "${sk}",
+    "dest.topic": "${targetClusterTopic}",
+    "dest.access.key": "${ak}",
     "max.task": "2",
     "src.topictags": "test1,*",
     "src.acl.enable": "false",
     "errors.tolerance": "all",
-    "dest.secret.key": “${sk}”,
-    "dest.endpoint": "${target-rocketmq-namesrv-endpoint}",
-    "src.access.key": “${ak}”,
+    "dest.secret.key": "${sk}",
+    "dest.endpoint": "${namesrvEndpoint}",
+    "src.access.key": "${ak}",
     "dest.cluster": "${targetDefaultCluster}",
     "source.cluster": "${sourceDefaultCluster}",
     "dest.region": "${regionA}",
-    "source.region": "${regionB}",
+    "src.region": "${regionB}",
     "dest.cloud": "${cloud1}",
     "source.cloud": "${cloud2}"
 }'
 ````
 例如
 ````
-curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/test_replicator -d '{
+curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/test_replicator4 -d '{
     "connector.class": "org.apache.rocketmq.replicator.ReplicatorSourceConnector",
-    "src.endpoint": “127.0.0.1:9876”,
-    "dest.topic": "test2",
+    "src.endpoint": "127.0.0.2:9876",
+    "src.cluster": "DefaultCluster",
+    "src.region": "regionA",
+    "src.cloud": "src-cloud",
+    "dest.acl.enable": "false",
+    "dest.topic": "TopicTest",
     "max.task": "2",
-    "src.topictags": "test1,*",
+    "src.topictags": "TopicTest,*",
     "src.acl.enable": "false",
-    "dest.endpoint": "127.0.0.1:9877"
+    "dest.endpoint": "127.0.0.1:9876",
+    "dest.region": "regionB",
+    "dest.cluster": "DefaultCluster",
+    "errors.tolerance": "all",
+    "dest.cloud": "dest-cloud"
 }'
 ````
 
