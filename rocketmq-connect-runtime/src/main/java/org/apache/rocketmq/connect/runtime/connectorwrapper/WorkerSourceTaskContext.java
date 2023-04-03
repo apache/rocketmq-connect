@@ -55,6 +55,6 @@ public class WorkerSourceTaskContext implements SourceTaskContext {
 
     @Override
     public String getTaskName() {
-        return task.id().task() + "";
+        return task.id().toString();
     }
 }

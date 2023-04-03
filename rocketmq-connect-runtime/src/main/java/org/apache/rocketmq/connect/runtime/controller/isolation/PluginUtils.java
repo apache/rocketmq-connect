@@ -130,6 +130,7 @@ public class PluginUtils {
     // regular expression pattern
     private static final Pattern INCLUDE = Pattern.compile("^(?:"
             + "|org\\.apache\\.rocketmq\\.connect"
+            + "|org\\.apache\\.rocketmq\\.replicator"
             + ")\\..*$");
 
 
