@@ -79,9 +79,9 @@ public class PluginInfo {
     @Override
     public String toString() {
         return "PluginInfo{" +
-            "className='" + className + '\'' +
-            ", type=" + type +
-            ", version='" + version + '\'' +
-            '}';
+                "className='" + className + '\'' +
+                ", type=" + type +
+                ", version='" + version + '\'' +
+                '}';
     }
 }

@@ -56,6 +56,7 @@ public class ClusterConfigState {
 
     /**
      * Check whether this snapshot contains configuration for a connector.
+     *
      * @param connector name of the connector
      * @return true if this state contains configuration for the connector, false otherwise
      */
@@ -81,6 +82,7 @@ public class ClusterConfigState {
 
     /**
      * Get the target state of the connector
+     *
      * @param connector
      * @return
      */
@@ -90,6 +92,7 @@ public class ClusterConfigState {
 
     /**
      * task config
+     *
      * @param task
      * @return
      */
@@ -104,6 +107,7 @@ public class ClusterConfigState {
 
     /**
      * get all task configs
+     *
      * @param connector
      * @return
      */
@@ -120,6 +124,7 @@ public class ClusterConfigState {
 
     /**
      * Get the number of tasks assigned for the given connector.
+     *
      * @param connectorName name of the connector to look up tasks for
      * @return the number of tasks
      */
@@ -131,6 +136,7 @@ public class ClusterConfigState {
 
     /**
      * Get the current set of task IDs for the specified connector.
+     *
      * @param connectorName the name of the connector to look up task configs for
      * @return the current set of connector task IDs
      */

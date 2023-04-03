@@ -23,7 +23,7 @@ import java.util.Map;
 
 
 /**
- *  converter type
+ * converter type
  */
 public enum ConverterType {
     KEY,
@@ -40,18 +40,17 @@ public enum ConverterType {
         NAME_TO_TYPE = Collections.unmodifiableMap(nameToType);
     }
 
+    private String name;
+
+    ConverterType() {
+        this.name = this.name().toLowerCase(Locale.ROOT);
+    }
 
     public static ConverterType withName(String name) {
         if (name == null) {
             return null;
         }
         return NAME_TO_TYPE.get(name.toLowerCase(Locale.getDefault()));
-    }
-
-    private String name;
-
-    ConverterType() {
-        this.name = this.name().toLowerCase(Locale.ROOT);
     }
 
     public String getName() {

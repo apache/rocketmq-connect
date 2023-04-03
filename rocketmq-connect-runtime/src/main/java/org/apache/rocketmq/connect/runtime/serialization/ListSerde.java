@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 import java.util.List;
+
 /**
  * list serde
  */

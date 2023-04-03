@@ -36,7 +36,7 @@ public class DelParser extends AbstractCommandParser {
     @Override
     public KVEntry handleValue(KVEntry builder, String[] args) {
         List<String> delList = new ArrayList<>(args.length + 1);
-                delList.add(builder.getKey());
+        delList.add(builder.getKey());
         for (int i = 0; i < args.length; i++) {
             delList.add(args[i]);
         }

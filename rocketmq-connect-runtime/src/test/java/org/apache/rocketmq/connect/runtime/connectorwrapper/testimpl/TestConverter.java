@@ -23,11 +23,13 @@ import io.openmessaging.connector.api.data.SchemaAndValue;
 
 public class TestConverter implements RecordConverter {
 
-    @Override public byte[] fromConnectData(String topic, Schema schema, Object value) {
+    @Override
+    public byte[] fromConnectData(String topic, Schema schema, Object value) {
         return new byte[0];
     }
 
-    @Override public SchemaAndValue toConnectData(String topic, byte[] value) {
+    @Override
+    public SchemaAndValue toConnectData(String topic, byte[] value) {
         return null;
     }
 }

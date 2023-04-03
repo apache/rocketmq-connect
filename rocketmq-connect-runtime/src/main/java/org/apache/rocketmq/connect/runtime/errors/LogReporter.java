@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.errors;
 
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,15 +31,18 @@ public class LogReporter implements ErrorReporter {
 
     private static final Logger log = LoggerFactory.getLogger(LogReporter.class);
 
-    private final String connectName;
+    private final ConnectorTaskId id;
     private final DeadLetterQueueConfig deadLetterQueueConfig;
+    private final ErrorMetricsGroup errorMetricsGroup;
 
-    public LogReporter(String connectorName,
-                       ConnectKeyValue sinkConfig) {
-        Objects.requireNonNull(connectorName);
+    public LogReporter(ConnectorTaskId id,
+                       ConnectKeyValue sinkConfig,
+                       ErrorMetricsGroup errorMetricsGroup) {
+        Objects.requireNonNull(id);
         Objects.requireNonNull(sinkConfig);
-
-        this.connectName = connectorName;
+        Objects.requireNonNull(errorMetricsGroup);
+        this.errorMetricsGroup = errorMetricsGroup;
+        this.id = id;
         this.deadLetterQueueConfig = new DeadLetterQueueConfig(sinkConfig);
     }
 
@@ -49,6 +53,7 @@ public class LogReporter implements ErrorReporter {
      */
     @Override
     public void report(ProcessingContext context) {
+        errorMetricsGroup.recordErrorLogged();
         log.error(message(context), context.error());
     }
 
@@ -59,7 +64,7 @@ public class LogReporter implements ErrorReporter {
      * @return
      */
     String message(ProcessingContext context) {
-        return String.format("Error encountered in task %s. %s", String.valueOf(connectName),
+        return String.format("Error encountered in task %s. %s", id.toString(),
                 context.toString(deadLetterQueueConfig.includeRecordDetailsInErrorLog()));
     }
 

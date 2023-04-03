@@ -29,14 +29,14 @@ import org.slf4j.LoggerFactory;
 public class RedisPositionConverter {
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisPositionConverter.class);
 
-    public static Long jsonToLong(ByteBuffer byteBuffer){
-        if(byteBuffer == null){
+    public static Long jsonToLong(ByteBuffer byteBuffer) {
+        if (byteBuffer == null) {
             return null;
         }
         try {
             String positionJson = new String(byteBuffer.array(), "UTF-8");
             JSONObject jsonObject = JSONObject.parseObject(positionJson);
-            if(jsonObject != null){
+            if (jsonObject != null) {
                 Long position = jsonObject.getLong(RedisConstants.POSITION);
                 return position;
             }

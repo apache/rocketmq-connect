@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -20,8 +19,14 @@ package org.apache.rocketmq.connect.cassandra.connector;
 
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.sink.SinkConnector;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -32,21 +37,24 @@ import org.apache.rocketmq.connect.cassandra.common.CloneUtils;
 import org.apache.rocketmq.connect.cassandra.common.ConstDefine;
 import org.apache.rocketmq.connect.cassandra.common.DataType;
 import org.apache.rocketmq.connect.cassandra.common.Utils;
-import org.apache.rocketmq.connect.cassandra.config.*;
+import org.apache.rocketmq.connect.cassandra.config.Config;
+import org.apache.rocketmq.connect.cassandra.config.ConfigUtil;
+import org.apache.rocketmq.connect.cassandra.config.SinkDbConnectorConfig;
+import org.apache.rocketmq.connect.cassandra.config.TaskDivideConfig;
+import org.apache.rocketmq.connect.cassandra.config.TaskTopicInfo;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-public class CassandraSinkConnector extends SinkConnector{
+public class CassandraSinkConnector extends SinkConnector {
     private static final Logger log = LoggerFactory.getLogger(CassandraSinkConnector.class);
-    private DbConnectorConfig dbConnectorConfig;
+    private SinkDbConnectorConfig dbConnectorConfig;
     private volatile boolean configValid = false;
     private ScheduledExecutorService executor;
     private HashMap<String, Set<TaskTopicInfo>> topicRouteMap;
@@ -56,6 +64,8 @@ public class CassandraSinkConnector extends SinkConnector{
     private volatile boolean adminStarted;
 
     private ScheduledFuture<?> listenerHandle;
+
+    private KeyValue keyValue;
 
     public CassandraSinkConnector() {
         topicRouteMap = new HashMap<>();
@@ -69,9 +79,9 @@ public class CassandraSinkConnector extends SinkConnector{
         }
         RPCHook rpcHook = null;
         this.srcMQAdminExt = new DefaultMQAdminExt(rpcHook);
-        this.srcMQAdminExt.setNamesrvAddr(((SinkDbConnectorConfig) this.dbConnectorConfig).getSrcNamesrvs());
+        this.srcMQAdminExt.setNamesrvAddr((this.dbConnectorConfig).getSrcNamesrvs());
         this.srcMQAdminExt.setAdminExtGroup(Utils.createGroupName(ConstDefine.CASSANDRA_CONNECTOR_ADMIN_PREFIX));
-        this.srcMQAdminExt.setInstanceName(Utils.createInstanceName(((SinkDbConnectorConfig) this.dbConnectorConfig).getSrcNamesrvs()));
+        this.srcMQAdminExt.setInstanceName(Utils.createInstanceName((this.dbConnectorConfig).getSrcNamesrvs()));
 
         try {
             log.info("Trying to start srcMQAdminExt");
@@ -86,24 +96,21 @@ public class CassandraSinkConnector extends SinkConnector{
     }
 
     @Override
-    public String verifyAndSetConfig(KeyValue config) {
+    public void validate(KeyValue config) {
         for (String requestKey : Config.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
-                return "Request config key: " + requestKey;
+                throw new IllegalArgumentException("Request config key: " + requestKey);
             }
         }
-        try {
-            this.dbConnectorConfig.validate(config);
-        } catch (IllegalArgumentException e) {
-            return e.getMessage();
-        }
+        ConfigUtil.load(config, this.dbConnectorConfig);
+        this.dbConnectorConfig.validate(config);
         this.configValid = true;
 
-        return "";
     }
 
     @Override
-    public void start() {
+    public void start(KeyValue config) {
+        this.keyValue = config;
         startMQAdminTools();
         startListener();
     }
@@ -121,7 +128,6 @@ public class CassandraSinkConnector extends SinkConnector{
                     first = false;
                 }
                 if (!compare(origin, topicRouteMap)) {
-                    context.requestTaskReconfiguration();
                     origin = CloneUtils.clone(topicRouteMap);
                 }
             }
@@ -179,10 +185,9 @@ public class CassandraSinkConnector extends SinkConnector{
             }
         } catch (Exception e) {
             log.error("Fetch topic list error.", e);
-        } finally {
-            // srcMQAdminExt.shutdown();
         }
     }
+
 
 
     /**
@@ -192,18 +197,9 @@ public class CassandraSinkConnector extends SinkConnector{
     @Override
     public void stop() {
         listenerHandle.cancel(true);
-        // srcMQAdminExt.shutdown();
     }
 
-    @Override
-    public void pause() {
 
-    }
-
-    @Override
-    public void resume() {
-
-    }
 
     @Override
     public Class<? extends Task> taskClass() {
@@ -211,16 +207,14 @@ public class CassandraSinkConnector extends SinkConnector{
     }
 
     @Override
-    public List<KeyValue> taskConfigs() {
-        log.info("List.start");
+    public List<KeyValue> taskConfigs(int maxTasks) {
         if (!configValid) {
-            return new ArrayList<KeyValue>();
+            return new ArrayList<>();
         }
+        this.startMQAdminTools();
+        this.buildRoute();
 
-        startMQAdminTools();
-
-        buildRoute();
-
+        this.dbConnectorConfig.setTaskParallelism(maxTasks);
         TaskDivideConfig tdc = new TaskDivideConfig(
             this.dbConnectorConfig.getDbUrl(),
             this.dbConnectorConfig.getDbPort(),
@@ -235,6 +229,9 @@ public class CassandraSinkConnector extends SinkConnector{
 
         ((SinkDbConnectorConfig) this.dbConnectorConfig).setTopicRouteMap(topicRouteMap);
 
-        return this.dbConnectorConfig.getTaskDivideStrategy().divide(this.dbConnectorConfig, tdc);
+        final List<KeyValue> configList = this.dbConnectorConfig.getTaskDivideStrategy().divide(this.dbConnectorConfig, tdc, keyValue);
+        configList.add(keyValue);
+        return configList;
     }
+
 }

@@ -23,6 +23,7 @@ import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.RecordConverter;
+import org.apache.commons.lang3.StringUtils;
 import org.reflections.Configuration;
 import org.reflections.Reflections;
 import org.reflections.ReflectionsException;
@@ -94,6 +95,26 @@ public class DelegatingClassLoader extends URLClassLoader {
         this(pluginPaths, DelegatingClassLoader.class.getClassLoader());
     }
 
+    private static PluginClassLoader newPluginClassLoader(
+            final URL pluginLocation,
+            final URL[] urls,
+            final ClassLoader parent
+    ) {
+        return AccessController.doPrivileged(
+                (PrivilegedAction<PluginClassLoader>) () -> new PluginClassLoader(pluginLocation, urls, parent)
+        );
+    }
+
+    private static <T> String versionFor(T pluginImpl) {
+//        return pluginImpl instanceof Versioned ? ((Versioned) pluginImpl).version() : UNDEFINED_VERSION;
+        return UNDEFINED_VERSION;
+    }
+
+    private static <T> String versionFor(Class<? extends T> pluginKlass) throws IllegalAccessException, InstantiationException {
+        // Temporary workaround until all the plugins are versioned.
+        return Connector.class.isAssignableFrom(pluginKlass) ? versionFor(pluginKlass.newInstance()) : UNDEFINED_VERSION;
+    }
+
     public Set<PluginWrapper<Connector>> connectors() {
         Set<PluginWrapper<Connector>> connectors = new TreeSet<>((Set) sinkConnectors);
         connectors.addAll((Set) sourceConnectors);
@@ -123,9 +144,12 @@ public class DelegatingClassLoader extends URLClassLoader {
      * @return
      */
     public PluginClassLoader pluginClassLoader(String name) {
-//        if (!PluginUtils.shouldLoadInIsolation(name)) {
-//            return null;
-//        }
+        if (StringUtils.isEmpty(name) || StringUtils.isBlank(name)) {
+            return null;
+        }
+        if (!PluginUtils.shouldLoadInIsolation(name)) {
+            return null;
+        }
         SortedMap<PluginWrapper<?>, ClassLoader> inner = pluginLoaders.get(name);
         if (inner == null) {
             return null;
@@ -154,16 +178,6 @@ public class DelegatingClassLoader extends URLClassLoader {
                 connectorClassOrAlias
         );
         return classLoader;
-    }
-
-    private static PluginClassLoader newPluginClassLoader(
-            final URL pluginLocation,
-            final URL[] urls,
-            final ClassLoader parent
-    ) {
-        return AccessController.doPrivileged(
-                (PrivilegedAction<PluginClassLoader>) () -> new PluginClassLoader(pluginLocation, urls, parent)
-        );
     }
 
     private <T> void addPlugins(Collection<PluginWrapper<T>> plugins, ClassLoader loader) {
@@ -354,16 +368,6 @@ public class DelegatingClassLoader extends URLClassLoader {
             Plugin.compareAndSwapLoaders(savedLoader);
         }
         return result;
-    }
-
-    private static <T> String versionFor(T pluginImpl) {
-//        return pluginImpl instanceof Versioned ? ((Versioned) pluginImpl).version() : UNDEFINED_VERSION;
-        return UNDEFINED_VERSION;
-    }
-
-    private static <T> String versionFor(Class<? extends T> pluginKlass) throws IllegalAccessException, InstantiationException {
-        // Temporary workaround until all the plugins are versioned.
-        return Connector.class.isAssignableFrom(pluginKlass) ? versionFor(pluginKlass.newInstance()) : UNDEFINED_VERSION;
     }
 
     @Override

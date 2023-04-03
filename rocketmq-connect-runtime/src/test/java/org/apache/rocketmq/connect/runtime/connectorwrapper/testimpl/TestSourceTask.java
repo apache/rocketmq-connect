@@ -20,16 +20,16 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
-import io.openmessaging.connector.api.component.task.source.SourceTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.data.SchemaBuilder;
+import org.assertj.core.util.Maps;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.assertj.core.util.Maps;
 
 public class TestSourceTask extends SourceTask {
 
@@ -45,11 +45,13 @@ public class TestSourceTask extends SourceTask {
         return sourceTasks;
     }
 
-    @Override public void validate(KeyValue config) {
+    @Override
+    public void validate(KeyValue config) {
 
     }
 
-    @Override public void start(KeyValue config) {
+    @Override
+    public void start(KeyValue config) {
 
     }
 

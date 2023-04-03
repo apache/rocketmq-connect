@@ -51,8 +51,7 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
             .param(Options.EVICT_TYPE, keyValuePair.getEvictType())
             .param(Options.EVICT_VALUE, keyValuePair.getEvictValue())
             .key(new String(keyValuePair.getKey()))
-            .value(new String(keyValuePair.getValue()))
-            ;
+            .value(new String(keyValuePair.getValue()));
     }
 
     @Override
@@ -125,7 +124,7 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
         return commonStream(keyValuePair);
     }
 
-    private KVEntry commonStream(KeyValuePair<byte[], ? extends Stream> keyValuePair){
+    private KVEntry commonStream(KeyValuePair<byte[], ? extends Stream> keyValuePair) {
         RedisEntry builder = RedisEntry.newEntry(FieldType.ARRAY);
         return builder
             .param(Options.EXPIRED_TYPE, keyValuePair.getExpiredType())
@@ -133,11 +132,10 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
             .param(Options.EVICT_TYPE, keyValuePair.getEvictType())
             .param(Options.EVICT_VALUE, keyValuePair.getEvictValue())
             .key(new String(keyValuePair.getKey()))
-            .value(keyValuePair.getValue())
-            ;
+            .value(keyValuePair.getValue());
     }
 
-    private KVEntry commonModule(KeyValuePair<byte[], ? extends Module> keyValuePair){
+    private KVEntry commonModule(KeyValuePair<byte[], ? extends Module> keyValuePair) {
         RedisEntry builder = RedisEntry.newEntry(FieldType.ARRAY);
         return builder
             .param(Options.EXPIRED_TYPE, keyValuePair.getExpiredType())
@@ -145,11 +143,10 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
             .param(Options.EVICT_TYPE, keyValuePair.getEvictType())
             .param(Options.EVICT_VALUE, keyValuePair.getEvictValue())
             .key(new String(keyValuePair.getKey()))
-            .value(keyValuePair.getValue())
-            ;
+            .value(keyValuePair.getValue());
     }
 
-    private KVEntry commonArray(KeyValuePair<byte[], ? extends Collection<byte[]>> keyValuePair){
+    private KVEntry commonArray(KeyValuePair<byte[], ? extends Collection<byte[]>> keyValuePair) {
         RedisEntry builder = RedisEntry.newEntry(FieldType.ARRAY);
         return builder
             .param(Options.EXPIRED_TYPE, keyValuePair.getExpiredType())
@@ -157,11 +154,10 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
             .param(Options.EVICT_TYPE, keyValuePair.getEvictType())
             .param(Options.EVICT_VALUE, keyValuePair.getEvictValue())
             .key(new String(keyValuePair.getKey()))
-            .value(keyValuePair.getValue().stream().map(String::new).collect(Collectors.toCollection(ArrayList::new)))
-            ;
+            .value(keyValuePair.getValue().stream().map(String::new).collect(Collectors.toCollection(ArrayList::new)));
     }
 
-    private KVEntry commonZSet(KeyValuePair<byte[], ? extends Collection<ZSetEntry>> keyValuePair){
+    private KVEntry commonZSet(KeyValuePair<byte[], ? extends Collection<ZSetEntry>> keyValuePair) {
         RedisEntry builder = RedisEntry.newEntry(FieldType.MAP);
         return builder
             .param(Options.EXPIRED_TYPE, keyValuePair.getExpiredType())
@@ -174,11 +170,10 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
                     entry -> new String(entry.getElement()),
                     ZSetEntry::getScore)
                 )
-            )
-            ;
+            );
     }
 
-    private KVEntry commonHash(KeyValuePair<byte[], ? extends Map<byte[], byte[]>> keyValuePair){
+    private KVEntry commonHash(KeyValuePair<byte[], ? extends Map<byte[], byte[]>> keyValuePair) {
         RedisEntry builder = RedisEntry.newEntry(FieldType.MAP);
         return builder
             .param(Options.EXPIRED_TYPE, keyValuePair.getExpiredType())
@@ -191,7 +186,6 @@ public class DefaultRedisRdbParser implements RedisRdbParser<KVEntry> {
                     entry -> new String(entry.getKey()),
                     entry -> new String(entry.getValue())
                 ))
-            )
-            ;
+            );
     }
 }

@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUNTIME;
 
@@ -29,9 +31,10 @@ import static org.apache.rocketmq.connect.runtime.common.LoggerName.ROCKETMQ_RUN
  * Configurations for runtime.
  */
 public class WorkerConfig {
-    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
+    public static final String METRIC_CLASS = "metrics.reporter";
     public static final String CONNECT_HOME_PROPERTY = "connect.home.dir";
     public static final String CONNECT_HOME_ENV = "CONNECT_HOME";
+    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_RUNTIME);
     private String connectHome = System.getProperty(CONNECT_HOME_PROPERTY, System.getenv(CONNECT_HOME_ENV));
 
     /**
@@ -143,7 +146,7 @@ public class WorkerConfig {
     /**
      * Default topic to send/consume state change message.
      */
-    private String connectStatusTopic = "connect-status-topic";
+    private String connectStatusTopic = "connector-status-topic";
 
     /**
      * Connector state persistence interval.
@@ -204,10 +207,24 @@ public class WorkerConfig {
     /**
      * offset commit interval ms
      * config example with default
-     * offsetCommitIntervalMsConfig = 60000L
+     * offsetCommitIntervalMsConfig = 10000L
      */
-    private long offsetCommitIntervalMsConfig = 60000L;
+    private long offsetCommitIntervalMsConfig = 30000L;
 
+    /**
+     * metrics config
+     */
+    private boolean openLogMetricReporter = false;
+    private String metricsConfigPath;
+    private Map<String, Map<String, String>> metricsConfig = new HashMap<>();
+
+    /**
+     * Management service
+     */
+    private String clusterManagementService;
+    private String configManagementService;
+    private String positionManagementService;
+    private String stateManagementService;
 
     public String getWorkerId() {
         return workerId;
@@ -385,20 +402,16 @@ public class WorkerConfig {
         this.connectClusterId = connectClusterId;
     }
 
-    public void setAllocTaskStrategy(String allocTaskStrategy) {
-        this.allocTaskStrategy = allocTaskStrategy;
-    }
-
     public String getAllocTaskStrategy() {
         return this.allocTaskStrategy;
     }
 
-    public boolean getAclEnable() {
-        return aclEnable;
+    public void setAllocTaskStrategy(String allocTaskStrategy) {
+        this.allocTaskStrategy = allocTaskStrategy;
     }
 
-    public void setAclEnable(boolean aclEnable) {
-        this.aclEnable = aclEnable;
+    public boolean getAclEnable() {
+        return aclEnable;
     }
 
     public String getAccessKey() {
@@ -440,7 +453,6 @@ public class WorkerConfig {
     public void setConnectHome(String connectHome) {
         this.connectHome = connectHome;
     }
-
 
     public long getOffsetCommitIntervalMsConfig() {
         return offsetCommitIntervalMsConfig;
@@ -486,6 +498,10 @@ public class WorkerConfig {
         return aclEnable;
     }
 
+    public void setAclEnable(boolean aclEnable) {
+        this.aclEnable = aclEnable;
+    }
+
     public String getKeyConverter() {
         return keyConverter;
     }
@@ -508,6 +524,62 @@ public class WorkerConfig {
 
     public void setStatePersistInterval(int statePersistInterval) {
         this.statePersistInterval = statePersistInterval;
+    }
+
+    public String getMetricsConfigPath() {
+        return metricsConfigPath;
+    }
+
+    public void setMetricsConfigPath(String metricsConfigPath) {
+        this.metricsConfigPath = metricsConfigPath;
+    }
+
+    public Map<String, Map<String, String>> getMetricsConfig() {
+        return metricsConfig;
+    }
+
+    public void setMetricsConfig(Map<String, Map<String, String>> metricsConfig) {
+        this.metricsConfig = metricsConfig;
+    }
+
+    public boolean isOpenLogMetricReporter() {
+        return openLogMetricReporter;
+    }
+
+    public void setOpenLogMetricReporter(boolean openLogMetricReporter) {
+        this.openLogMetricReporter = openLogMetricReporter;
+    }
+
+    public String getClusterManagementService() {
+        return clusterManagementService;
+    }
+
+    public void setClusterManagementService(String clusterManagementService) {
+        this.clusterManagementService = clusterManagementService;
+    }
+
+    public String getConfigManagementService() {
+        return configManagementService;
+    }
+
+    public void setConfigManagementService(String configManagementService) {
+        this.configManagementService = configManagementService;
+    }
+
+    public String getPositionManagementService() {
+        return positionManagementService;
+    }
+
+    public void setPositionManagementService(String positionManagementService) {
+        this.positionManagementService = positionManagementService;
+    }
+
+    public String getStateManagementService() {
+        return stateManagementService;
+    }
+
+    public void setStateManagementService(String stateManagementService) {
+        this.stateManagementService = stateManagementService;
     }
 
     @Override
@@ -550,6 +622,13 @@ public class WorkerConfig {
                 ", maxStopTimeoutMills=" + maxStopTimeoutMills +
                 ", offsetCommitTimeoutMsConfig=" + offsetCommitTimeoutMsConfig +
                 ", offsetCommitIntervalMsConfig=" + offsetCommitIntervalMsConfig +
+                ", openLogMetricReporter=" + openLogMetricReporter +
+                ", metricsConfigPath='" + metricsConfigPath + '\'' +
+                ", metricsConfig=" + metricsConfig +
+                ", clusterManagementService='" + clusterManagementService + '\'' +
+                ", configManagementService='" + configManagementService + '\'' +
+                ", positionManagementService='" + positionManagementService + '\'' +
+                ", stateManagementService='" + stateManagementService + '\'' +
                 '}';
     }
 }

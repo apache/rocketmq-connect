@@ -64,7 +64,7 @@ public class Position {
         return timeStamp > 0 && inc > 0;
     }
 
-    public BsonTimestamp converBsonTimeStamp() {
+    public BsonTimestamp convertBsonTimeStamp() {
         return new BsonTimestamp(timeStamp, inc);
     }
 

@@ -22,17 +22,20 @@ import io.openmessaging.connector.api.component.Transform;
 import io.openmessaging.connector.api.data.ConnectRecord;
 
 public class TestTransform implements Transform {
-    @Override public ConnectRecord doTransform(ConnectRecord record) {
+    @Override
+    public ConnectRecord doTransform(ConnectRecord record) {
         final Object data = record.getData();
         record.setData(data + "Hello World");
         return record;
     }
 
-    @Override public void start(KeyValue config) {
+    @Override
+    public void start(KeyValue config) {
 
     }
 
-    @Override public void stop() {
+    @Override
+    public void stop() {
 
     }
 }

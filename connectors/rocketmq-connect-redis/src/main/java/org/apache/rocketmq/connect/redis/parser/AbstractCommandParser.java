@@ -50,16 +50,16 @@ public abstract class AbstractCommandParser implements CommandParser<KVEntry> {
 
         // 有其他参数
         if (command.length > 2) {
-            byte[][] real_byte_args = new byte[command.length - 2][];
-            System.arraycopy(command, 2, real_byte_args, 0, real_byte_args.length);
-            String[] real_args = Arrays.stream(real_byte_args).map(CommandParsers::toRune).toArray(String[]::new);
+            byte[][] realByteArgs = new byte[command.length - 2][];
+            System.arraycopy(command, 2, realByteArgs, 0, realByteArgs.length);
+            String[] realArgs = Arrays.stream(realByteArgs).map(CommandParsers::toRune).toArray(String[]::new);
             try {
-                builder = handleValue(builder, real_args);
+                builder = handleValue(builder, realArgs);
             } catch (Exception e) {
                 LOGGER.error("parser value error: {} {}", Arrays.stream(command).map(CommandParsers::toRune)
                     .collect(Collectors.joining(" ")), e);
             }
-        }else {
+        } else {
             try {
                 builder = handleNoArgValue(builder);
             } catch (Exception e) {
@@ -72,11 +72,11 @@ public abstract class AbstractCommandParser implements CommandParser<KVEntry> {
 
     public abstract KVEntry createBuilder();
 
-    public KVEntry handleValue(KVEntry builder, String[] args){
+    public KVEntry handleValue(KVEntry builder, String[] args) {
         return builder;
     }
 
-    public KVEntry handleNoArgValue(KVEntry builder){
+    public KVEntry handleNoArgValue(KVEntry builder) {
         return builder;
     }
 }

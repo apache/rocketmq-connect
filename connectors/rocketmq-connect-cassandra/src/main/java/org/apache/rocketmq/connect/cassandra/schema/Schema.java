@@ -30,7 +30,6 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.querybuilder.select.Select;
-import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +64,7 @@ public class Schema {
         this.tableFilterMap = new HashMap<>();
     }
 
-    public void load() throws Exception {
+    public void load() {
 
         dbMap = new HashMap<>();
 
@@ -78,7 +77,7 @@ public class Schema {
         LOGGER.info("trying to execute sql query,{}", selectFrom.asCql());
         ResultSet result = null;
         try {
-            while (!cqlSession.isClosed() && !finishUpdate){
+            while (!cqlSession.isClosed() && !finishUpdate) {
                 stmt = selectFrom.build();
                 result = cqlSession.execute(stmt);
                 if (result.wasApplied()) {
@@ -103,25 +102,6 @@ public class Schema {
         }
 
     }
-
-//    public Table getTable(String dbName, String tableName) {
-//
-//        if (dbMap == null) {
-//            reload();
-//        }
-//
-//        Database database = dbMap.get(dbName);
-//        if (database == null) {
-//            return null;
-//        }
-//
-//        Table table = database.getTable(tableName);
-//        if (table == null) {
-//            return null;
-//        }
-//
-//        return table;
-//    }
 
     private void reload() {
 

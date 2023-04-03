@@ -18,6 +18,7 @@
 package org.apache.rocketmq.connect.runtime.serialization;
 
 import io.openmessaging.connector.api.data.RecordOffset;
+
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class RecordOffsetSerdeTest {
 
     @Test
     public void objectToByteTest() {
-        Map<String, Integer> offset  =new HashMap<>();
+        Map<String, Integer> offset = new HashMap<>();
         offset.put("nextPosition", 123);
         RecordOffset recordOffset = new RecordOffset(offset);
         final byte[] actual = recordOffsetSerde.serializer().serialize("", recordOffset);

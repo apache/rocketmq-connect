@@ -51,7 +51,7 @@ public class ReplicatorTest {
 
     @Test(expected = RuntimeException.class)
     public void startTest() throws Exception {
-        replicator.start();
+        replicator.start(0L);
     }
 
     @Test

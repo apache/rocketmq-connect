@@ -20,16 +20,19 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper.testimpl;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
+
 import java.util.Collection;
 import java.util.Map;
 
 public class TestPositionStorageReader implements OffsetStorageReader {
 
-    @Override public RecordOffset readOffset(RecordPartition partition) {
+    @Override
+    public RecordOffset readOffset(RecordPartition partition) {
         return null;
     }
 
-    @Override public Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
+    @Override
+    public Map<RecordPartition, RecordOffset> readOffsets(Collection<RecordPartition> partitions) {
         return null;
     }
 }

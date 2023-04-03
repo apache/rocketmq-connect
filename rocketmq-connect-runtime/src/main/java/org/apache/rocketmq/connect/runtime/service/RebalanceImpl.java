@@ -17,21 +17,21 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnAndTaskConfigs;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.Worker;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.strategy.AllocateConnAndTaskStrategy;
 import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Distribute connectors and tasks in current cluster.
@@ -54,13 +54,11 @@ public class RebalanceImpl {
      * ClusterManagementService to access current cluster info.
      */
     private final ClusterManagementService clusterManagementService;
-
+    private final AbstractConnectController connectController;
     /**
      * Strategy to allocate connectors and tasks.
      */
     private AllocateConnAndTaskStrategy allocateConnAndTaskStrategy;
-
-    private final AbstractConnectController connectController;
 
     public RebalanceImpl(Worker worker,
                          ConfigManagementService configManagementService,
@@ -100,12 +98,12 @@ public class RebalanceImpl {
 
         // exculde delete connector
         Map<String, ConnectKeyValue> curConnectorConfigs = configManagementService.getConnectorConfigs();
-        log.info("Current ConnectorConfigs : " + curConnectorConfigs);
+        log.trace("Current ConnectorConfigs : " + curConnectorConfigs);
         Map<String, List<ConnectKeyValue>> curTaskConfigs = configManagementService.getTaskConfigs();
-        log.info("Current TaskConfigs : " + curTaskConfigs);
+        log.trace("Current TaskConfigs : " + curTaskConfigs);
         ConnAndTaskConfigs allocateResult = allocateConnAndTaskStrategy.allocate(curAliveWorkers, clusterManagementService.getCurrentWorker(), curConnectorConfigs, curTaskConfigs);
-        log.info("Allocated connector:{}", allocateResult.getConnectorConfigs());
-        log.info("Allocated task:{}", allocateResult.getTaskConfigs());
+        log.trace("Allocated connector:{}", allocateResult.getConnectorConfigs());
+        log.trace("Allocated task:{}", allocateResult.getTaskConfigs());
         updateProcessConfigsInRebalance(allocateResult);
     }
 

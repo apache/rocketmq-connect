@@ -30,7 +30,6 @@ public class JsonSerdeTest {
     private JsonSerde serde = new JsonSerde(ConnectKeyValue.class);
     private  static final Long epoch = Long.valueOf(123456789);
 
-
     /**
      * serializer
      */

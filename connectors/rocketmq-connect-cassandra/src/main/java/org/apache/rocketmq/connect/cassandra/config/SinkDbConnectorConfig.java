@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -19,11 +18,9 @@
 package org.apache.rocketmq.connect.cassandra.config;
 
 import io.openmessaging.KeyValue;
-import org.apache.rocketmq.connect.cassandra.strategy.DivideStrategyEnum;
 import org.apache.rocketmq.connect.cassandra.strategy.DivideTaskByTopic;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,15 +32,12 @@ public class SinkDbConnectorConfig extends DbConnectorConfig {
     private long refreshInterval;
     private Map<String, Set<TaskTopicInfo>> topicRouteMap;
 
-    public SinkDbConnectorConfig(){
+    public SinkDbConnectorConfig() {
     }
 
     @Override
     public void validate(KeyValue config) {
         this.taskParallelism = config.getInt(Config.CONN_TASK_PARALLELISM, 1);
-
-        int strategy = config.getInt(Config.CONN_TASK_DIVIDE_STRATEGY, DivideStrategyEnum.BY_TOPIC.ordinal());
-
         this.taskDivideStrategy = new DivideTaskByTopic();
 
         buildWhiteList(config);

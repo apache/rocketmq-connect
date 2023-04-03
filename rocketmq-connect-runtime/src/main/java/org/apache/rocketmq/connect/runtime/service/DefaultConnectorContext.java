@@ -18,14 +18,14 @@
 package org.apache.rocketmq.connect.runtime.service;
 
 import io.openmessaging.connector.api.component.connector.ConnectorContext;
-import java.util.Set;
-
-import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerConnector;
+import org.apache.rocketmq.connect.runtime.controller.AbstractConnectController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 public class DefaultConnectorContext implements ConnectorContext {
 
@@ -40,7 +40,8 @@ public class DefaultConnectorContext implements ConnectorContext {
         this.connectorName = connectorName;
     }
 
-    @Override public void requestTaskReconfiguration() {
+    @Override
+    public void requestTaskReconfiguration() {
         Set<WorkerConnector> connectors = controller.getWorker().getWorkingConnectors();
         WorkerConnector currentConnector = null;
         for (WorkerConnector workerConnector : connectors) {
@@ -58,7 +59,8 @@ public class DefaultConnectorContext implements ConnectorContext {
         }
     }
 
-    @Override public void raiseError(Exception e) {
+    @Override
+    public void raiseError(Exception e) {
         log.error("Exception", e);
     }
 }

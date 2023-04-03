@@ -19,10 +19,6 @@ package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.assertj.core.api.Assertions;
@@ -31,6 +27,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RunWith(MockitoJUnitRunner.class)
 public class WorkerSinkTaskContextTest {
@@ -58,6 +59,7 @@ public class WorkerSinkTaskContextTest {
         Map<String, String> offset = new HashMap<>();
         offset.put("queueOffset", "0");
         recordOffset = new RecordOffset(offset);
+
         workerSinkTaskContext = new WorkerSinkTaskContext(connectKeyValue, workerSinkTask, consumer);
     }
 
@@ -65,9 +67,9 @@ public class WorkerSinkTaskContextTest {
     public void resetOffsetTest() {
         Assertions.assertThatCode(() -> workerSinkTaskContext.resetOffset(recordPartition, recordOffset)).doesNotThrowAnyException();
 
-        Map<RecordPartition, RecordOffset> offsets  = new HashMap<>();
+        Map<RecordPartition, RecordOffset> offsets = new HashMap<>();
         offsets.put(recordPartition, recordOffset);
-        Assertions.assertThatCode(() ->  workerSinkTaskContext.resetOffset(offsets)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> workerSinkTaskContext.resetOffset(offsets)).doesNotThrowAnyException();
     }
 
     @Test

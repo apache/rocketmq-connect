@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.connect.runtime.service;
 
-import java.util.List;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
+
+import java.util.List;
 
 /**
  * Interface for cluster management.
@@ -69,15 +70,10 @@ public interface ClusterManagementService {
 
     /**
      * get current run worker
+     *
      * @return
      */
     String getCurrentWorker();
-
-    /**
-     * staging mode
-     * @return
-     */
-    StagingMode getStagingMode();
 
     interface WorkerStatusListener {
 

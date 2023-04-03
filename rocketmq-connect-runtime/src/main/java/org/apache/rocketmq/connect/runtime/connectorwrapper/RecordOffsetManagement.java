@@ -44,8 +44,7 @@ class RecordOffsetManagement {
     private AtomicInteger numUnackedMessages = new AtomicInteger(0);
     private CountDownLatch messageDrainLatch;
 
-    public RecordOffsetManagement() {
-    }
+    public RecordOffsetManagement() {}
 
     /**
      * submit record
@@ -146,57 +145,6 @@ class RecordOffsetManagement {
         }
     }
 
-    public class SubmittedPosition {
-        private final RecordPosition position;
-        private final AtomicBoolean acked;
-
-        public SubmittedPosition(RecordPosition position) {
-            this.position = position;
-            acked = new AtomicBoolean(false);
-        }
-
-
-        /**
-         * Acknowledge this record; signals that its offset may be safely committed.
-         */
-        public void ack() {
-            if (this.acked.compareAndSet(false, true)) {
-                messageAcked();
-            }
-        }
-
-        /**
-         * remove record
-         *
-         * @return
-         */
-        public boolean remove() {
-            Deque<SubmittedPosition> deque = records.get(position.getPartition());
-            if (deque == null) {
-                return false;
-            }
-            boolean result = deque.removeLastOccurrence(this);
-            if (deque.isEmpty()) {
-                records.remove(position.getPartition());
-            }
-            if (result) {
-                messageAcked();
-            } else {
-                log.warn("Attempted to remove record from submitted queue for partition {}, but the record has not been submitted or has already been removed", position.getPartition());
-            }
-            return result;
-        }
-
-        public RecordPosition getPosition() {
-            return position;
-        }
-
-        public Boolean getAcked() {
-            return acked.get();
-        }
-    }
-
-
     /**
      * Contains a snapshot of offsets that can be committed for a source task and metadata for that offset commit
      * (such as the number of messages for which offsets can and cannot be committed).
@@ -278,6 +226,56 @@ class RecordOffsetManagement {
                     newerOffsets.largestDequeSize,
                     newerOffsets.largestDequePartition
             );
+        }
+    }
+
+    public class SubmittedPosition {
+        private final RecordPosition position;
+        private final AtomicBoolean acked;
+
+        public SubmittedPosition(RecordPosition position) {
+            this.position = position;
+            acked = new AtomicBoolean(false);
+        }
+
+
+        /**
+         * Acknowledge this record; signals that its offset may be safely committed.
+         */
+        public void ack() {
+            if (this.acked.compareAndSet(false, true)) {
+                messageAcked();
+            }
+        }
+
+        /**
+         * remove record
+         *
+         * @return
+         */
+        public boolean remove() {
+            Deque<SubmittedPosition> deque = records.get(position.getPartition());
+            if (deque == null) {
+                return false;
+            }
+            boolean result = deque.removeLastOccurrence(this);
+            if (deque.isEmpty()) {
+                records.remove(position.getPartition());
+            }
+            if (result) {
+                messageAcked();
+            } else {
+                log.warn("Attempted to remove record from submitted queue for partition {}, but the record has not been submitted or has already been removed", position.getPartition());
+            }
+            return result;
+        }
+
+        public RecordPosition getPosition() {
+            return position;
+        }
+
+        public Boolean getAcked() {
+            return acked.get();
         }
     }
 

@@ -78,6 +78,23 @@ public class Utils {
         }
     }
 
+    public static <T> T newInstance(Class<T> c, Class[] parameterTypes, Object[] initargs) {
+        if (c == null) {
+            throw new ConnectException("class cannot be null");
+        }
+        try {
+            return c.getDeclaredConstructor(parameterTypes).newInstance(initargs);
+        } catch (NoSuchMethodException e) {
+            throw new ConnectException("Could not find a public no-argument constructor for " + c.getName(), e);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw new ConnectException("Could not instantiate class " + c.getName(), e);
+        }
+    }
+
+
+    public static <T> T newInstance(String klass, Class<T> base, Class[] parameterTypes, Object[] initargs) throws ClassNotFoundException {
+        return Utils.newInstance(loadClass(klass, base), parameterTypes, initargs);
+    }
 
     /**
      * new instance

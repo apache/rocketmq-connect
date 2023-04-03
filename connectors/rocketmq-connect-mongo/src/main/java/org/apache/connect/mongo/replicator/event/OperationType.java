@@ -31,6 +31,10 @@ public enum OperationType {
 
     private final String operation;
 
+    public String getOperation() {
+        return operation;
+    }
+
     OperationType(String operation) {
         this.operation = operation;
     }

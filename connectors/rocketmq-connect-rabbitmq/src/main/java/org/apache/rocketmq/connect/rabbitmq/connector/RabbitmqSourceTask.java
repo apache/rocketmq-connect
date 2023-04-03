@@ -23,9 +23,14 @@ import org.apache.rocketmq.connect.jms.connector.BaseJmsSourceTask;
 import org.apache.rocketmq.connect.jms.pattern.PatternProcessor;
 import org.apache.rocketmq.connect.rabbitmq.RabbitmqConfig;
 import org.apache.rocketmq.connect.rabbitmq.pattern.RabbitMQPatternProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RabbitmqSourceTask extends BaseJmsSourceTask {
 
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    @Override
     public PatternProcessor getPatternProcessor(Replicator replicator) {
         return new RabbitMQPatternProcessor(replicator);
     }

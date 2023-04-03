@@ -25,7 +25,7 @@ import org.apache.rocketmq.connect.runtime.serialization.WrapperSerde;
  */
 public class RecordOffsetSerde extends WrapperSerde<RecordOffset> {
     public RecordOffsetSerde() {
-        super(new RecordOffsetSerializer(), new  RecordOffsetDeserializer());
+        super(new RecordOffsetSerializer(), new RecordOffsetDeserializer());
     }
 
 }

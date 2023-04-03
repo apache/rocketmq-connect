@@ -17,11 +17,11 @@
 
 package org.apache.rocketmq.connect.redis.connector;
 
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.List;
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.Task;
-import io.openmessaging.connector.api.source.SourceConnector;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,45 +30,38 @@ public class RedisSourceConnector extends SourceConnector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisSourceConnector.class);
 
-    private KeyValue keyValue;
+    private Config redisConfig = new Config();
 
-    @Override public String verifyAndSetConfig(KeyValue keyValue) {
-        this.keyValue = keyValue;
-        String msg = Config.checkConfig(keyValue);
-        if (msg != null) {
-            return msg;
-        }
-        return null;
+    private KeyValue originalConfig;
+
+    /**
+     * Should invoke before start the connector.
+     *
+     * @param config
+     * @return error message
+     */
+    @Override
+    public void validate(KeyValue config) {
+        this.redisConfig.load(config);
     }
 
-    @Override public void start() {
-        LOGGER.info("the redis source start...");
-    }
+    @Override public void start(KeyValue config) {
+        this.originalConfig = config;
 
+    }
 
     @Override public void stop() {
-
+        this.redisConfig = null;
     }
 
-
-    @Override public void pause() {
-
+    @Override public List<KeyValue> taskConfigs(int maxTasks) {
+        List<KeyValue> taskConfigs = new ArrayList<>();
+        taskConfigs.add(this.originalConfig);
+        return taskConfigs;
     }
-
-
-    @Override public void resume() {
-
-    }
-
 
     @Override public Class<? extends Task> taskClass() {
         return RedisSourceTask.class;
     }
 
-
-    @Override public List<KeyValue> taskConfigs() {
-        List<KeyValue> keyValues = new ArrayList<>();
-        keyValues.add(this.keyValue);
-        return keyValues;
-    }
 }

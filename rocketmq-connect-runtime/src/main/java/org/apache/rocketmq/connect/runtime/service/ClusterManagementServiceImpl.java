@@ -19,9 +19,6 @@ package org.apache.rocketmq.connect.runtime.service;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.openmessaging.connector.api.errors.ConnectException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
@@ -35,6 +32,10 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class ClusterManagementServiceImpl implements ClusterManagementService {
 
@@ -76,7 +77,8 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
 
     }
 
-    @Override public void initialize(WorkerConfig connectConfig) {
+    @Override
+    public void initialize(WorkerConfig connectConfig) {
         this.connectConfig = connectConfig;
         this.workerStatusListeners = new HashSet<>();
         this.defaultMQPullConsumer = ConnectUtil.initDefaultMQPullConsumer(connectConfig);
@@ -95,12 +97,12 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
         WorkerChangeListener workerChangeListener = new WorkerChangeListener();
 
         this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl()
-            .getRebalanceImpl()
-            .getmQClientFactory()
-            .getMQClientAPIImpl()
-            .getRemotingClient()
-            .registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, workerChangeListener,
-                null);
+                .getRebalanceImpl()
+                .getmQClientFactory()
+                .getMQClientAPIImpl()
+                .getRemotingClient()
+                .registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, workerChangeListener,
+                        null);
     }
 
     @Override
@@ -111,26 +113,22 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
     @Override
     public boolean hasClusterStoreTopic() {
         return this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl()
-            .getRebalanceImpl()
-            .getmQClientFactory()
-            .updateTopicRouteInfoFromNameServer(connectConfig.getClusterStoreTopic());
+                .getRebalanceImpl()
+                .getmQClientFactory()
+                .updateTopicRouteInfoFromNameServer(connectConfig.getClusterStoreTopic());
     }
 
     @Override
     public List<String> getAllAliveWorkers() {
         return this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl()
-            .getRebalanceImpl()
-            .getmQClientFactory()
-            .findConsumerIdList(connectConfig.getClusterStoreTopic(), connectConfig.getConnectClusterId());
+                .getRebalanceImpl()
+                .getmQClientFactory()
+                .findConsumerIdList(connectConfig.getClusterStoreTopic(), connectConfig.getConnectClusterId());
     }
 
     @Override
     public String getCurrentWorker() {
         return this.defaultMQPullConsumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory().getClientId();
-    }
-
-    @Override public StagingMode getStagingMode() {
-        return StagingMode.DISTRIBUTED;
     }
 
     @Override
@@ -152,13 +150,13 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
         }
 
         public RemotingCommand workerChanged(ChannelHandlerContext ctx,
-            RemotingCommand request) {
+                                             RemotingCommand request) {
             try {
                 final NotifyConsumerIdsChangedRequestHeader requestHeader =
-                    (NotifyConsumerIdsChangedRequestHeader) request.decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
+                        (NotifyConsumerIdsChangedRequestHeader) request.decodeCommandCustomHeader(NotifyConsumerIdsChangedRequestHeader.class);
                 log.info("Receive broker's notification[{}], the consumer group for connect: {} changed,  rebalance immediately",
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    requestHeader.getConsumerGroup());
+                        RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                        requestHeader.getConsumerGroup());
                 for (WorkerStatusListener workerChangeListener : workerStatusListeners) {
                     workerChangeListener.onWorkerChange();
                 }
@@ -168,7 +166,8 @@ public class ClusterManagementServiceImpl implements ClusterManagementService {
             return null;
         }
 
-        @Override public boolean rejectRequest() {
+        @Override
+        public boolean rejectRequest() {
             return false;
         }
     }

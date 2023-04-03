@@ -90,6 +90,11 @@ public interface ConfigManagementService {
      */
     void resumeConnector(String connectorName);
 
+    /**
+     * Recompute task configs
+     * @param connectorName
+     * @param configs
+     */
     void recomputeTaskConfigs(String connectorName, ConnectKeyValue configs);
 
     /**
@@ -115,14 +120,12 @@ public interface ConfigManagementService {
 
     ClusterConfigState snapshot();
 
+    Plugin getPlugin();
+
     interface ConnectorConfigUpdateListener {
         /**
          * Invoke while connector config changed.
          */
         void onConfigUpdate();
     }
-
-    Plugin getPlugin();
-
-    StagingMode getStagingMode();
 }

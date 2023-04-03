@@ -10,7 +10,7 @@ public class ShortConverterTest extends AbstractRecordConverterTest {
 
 
     @Before
-    public void before(){
+    public void before() {
         this.recordConverter = new ShortConverter();
     }
 
