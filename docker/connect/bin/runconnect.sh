@@ -45,20 +45,6 @@ check_java_version ()
   echo $flag
 }
 
-find_java_home()
-{
-    case "`uname`" in
-        Darwin)
-            JAVA_HOME=$(/usr/libexec/java_home)
-        ;;
-        *)
-            JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
-        ;;
-    esac
-}
-
-find_java_home
-
 [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=$HOME/jdk/java
 [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=/usr/java
 [ ! -e "$JAVA_HOME/bin/java" ] && error_exit "Please set the JAVA_HOME variable in your environment, We need java(x64)!"
@@ -85,7 +71,7 @@ if [[ $(check_java_version "$JAVA" "1.8") == "false" ]]; then
   JAVA_OPT="${JAVA_OPT} -XX:PermSize=128m -XX:MaxPermSize=320m"
 fi
 if [[ $(check_java_version "$JAVA" "9") == "false" ]]; then
-  JAVA_OPT="${JAVA_OPT} -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
+  JAVA_OPT="${JAVA_OPT} -Xloggc:/dev/shm/mq_gc_%p.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy"
   JAVA_OPT="${JAVA_OPT} -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
   JAVA_OPT="${JAVA_OPT} -Djava.ext.dirs=${BASE_DIR}/lib:${JAVA_HOME}/jre/lib/ext"
   JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
@@ -106,6 +92,7 @@ JAVA_OPT="${JAVA_OPT} -DisSyncFlush=false"
 JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=disabled"
 JAVA_OPT="${JAVA_OPT} -Dtls.private.key.encrypted=false"
 JAVA_OPT="${JAVA_OPT} -Djdk.tls.rejectClientInitiatedRenegotiation=true"
+
 
 if [[ $(check_java_version "$JAVA" "1.7") == "false" ]]; then
     error_exit "Java version is too low, we need java(x64) 1.7+!"
