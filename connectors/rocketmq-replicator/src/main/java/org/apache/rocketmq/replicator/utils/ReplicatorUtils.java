@@ -32,7 +32,7 @@ import java.util.*;
 public class ReplicatorUtils {
     private static Log log = LogFactory.getLog(ReplicatorUtils.class);
     public static String buildTopicWithNamespace(String rawTopic, String instanceId) {
-        if (StringUtils.isBlank(instanceId)) {
+        if (StringUtils.isBlank(instanceId) || StringUtils.isEmpty(instanceId)) {
             return rawTopic;
         }
         return instanceId + "%" + rawTopic;
