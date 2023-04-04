@@ -39,12 +39,12 @@ public enum ConnectorType {
         return UNKNOWN;
     }
 
+    public static ConnectorType forValue(String value) {
+        return ConnectorType.valueOf(value.toUpperCase(Locale.ROOT));
+    }
+
     @Override
     public String toString() {
         return super.toString().toLowerCase(Locale.ROOT);
-    }
-
-    public static ConnectorType forValue(String value) {
-        return ConnectorType.valueOf(value.toUpperCase(Locale.ROOT));
     }
 }

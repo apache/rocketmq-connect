@@ -19,21 +19,22 @@ package org.apache.rocketmq.connect.runtime.store;
 
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.NameServerMocker;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.ServerResponseMocker;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalPositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizerCallback;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PositionStorageWriterTest {
 
@@ -69,7 +70,7 @@ public class PositionStorageWriterTest {
         connectConfig = new WorkerConfig();
         connectConfig.setNamesrvAddr("localhost:9876");
 
-        positionManagementService = new PositionManagementServiceImpl();
+        positionManagementService = new LocalPositionManagementServiceImpl();
         positionManagementService.initialize(connectConfig, new JsonConverter(), new JsonConverter());
 
         positionStorageWriter = new PositionStorageWriter("testNameSpace", positionManagementService);
@@ -90,7 +91,7 @@ public class PositionStorageWriterTest {
 
         Map<RecordPartition, RecordOffset> positions = new HashMap<>();
         positions.put(recordPartition, recordOffset);
-        Assertions.assertThatCode(() ->  positionStorageWriter.writeOffset(positions)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> positionStorageWriter.writeOffset(positions)).doesNotThrowAnyException();
     }
 
     @Test
@@ -98,7 +99,8 @@ public class PositionStorageWriterTest {
         Assertions.assertThatCode(() -> positionStorageWriter.beginFlush()).doesNotThrowAnyException();
         Assertions.assertThatCode(() -> {
             positionStorageWriter.doFlush(new DataSynchronizerCallback() {
-                @Override public void onCompletion(Throwable error, Object key, Object result) {
+                @Override
+                public void onCompletion(Throwable error, Object key, Object result) {
 
                 }
             });

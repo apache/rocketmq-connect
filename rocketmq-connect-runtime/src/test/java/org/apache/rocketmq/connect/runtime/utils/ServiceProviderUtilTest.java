@@ -20,10 +20,9 @@ package org.apache.rocketmq.connect.runtime.utils;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
-import org.apache.rocketmq.connect.runtime.service.ConfigManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.local.LocalConfigManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.PositionManagementServiceImpl;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
+import org.apache.rocketmq.connect.runtime.service.local.LocalPositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl;
@@ -34,27 +33,33 @@ public class ServiceProviderUtilTest {
 
     @Test
     public void getClusterManagementServicesTest() {
-        final ClusterManagementService distributed = ServiceProviderUtil.getClusterManagementServices(StagingMode.DISTRIBUTED);
+        final ClusterManagementService distributed =
+                ServiceProviderUtil.getClusterManagementService(ClusterManagementServiceImpl.class.getName());
         Assert.assertTrue(distributed instanceof ClusterManagementServiceImpl);
 
-        final ClusterManagementService standAlone = ServiceProviderUtil.getClusterManagementServices(StagingMode.STANDALONE);
+        final ClusterManagementService standAlone =
+                ServiceProviderUtil.getClusterManagementService(MemoryClusterManagementServiceImpl.class.getName());
         Assert.assertTrue(standAlone instanceof MemoryClusterManagementServiceImpl);
     }
 
     @Test
     public void getConfigManagementServicesTest(){
-        final ConfigManagementService distributedService = ServiceProviderUtil.getConfigManagementServices(StagingMode.DISTRIBUTED);
-        Assert.assertTrue(distributedService instanceof ConfigManagementServiceImpl);
+        final ConfigManagementService distributedService =
+                ServiceProviderUtil.getConfigManagementService(LocalConfigManagementServiceImpl.class.getName());
+        Assert.assertTrue(distributedService instanceof LocalConfigManagementServiceImpl);
 
-        final ConfigManagementService standaloneService = ServiceProviderUtil.getConfigManagementServices(StagingMode.STANDALONE);
+        final ConfigManagementService standaloneService =
+                ServiceProviderUtil.getConfigManagementService(MemoryConfigManagementServiceImpl.class.getName());
         Assert.assertTrue(standaloneService instanceof MemoryConfigManagementServiceImpl);
     }
 
     @Test
     public void getPositionManagementServicesTest() {
-        final PositionManagementService distributedService = ServiceProviderUtil.getPositionManagementServices(StagingMode.DISTRIBUTED);
-        Assert.assertTrue(distributedService instanceof PositionManagementServiceImpl);
-        final PositionManagementService standaloneService = ServiceProviderUtil.getPositionManagementServices(StagingMode.STANDALONE);
+        final PositionManagementService distributedService =
+                ServiceProviderUtil.getPositionManagementService(LocalPositionManagementServiceImpl.class.getName());
+        Assert.assertTrue(distributedService instanceof LocalPositionManagementServiceImpl);
+        final PositionManagementService standaloneService =
+                ServiceProviderUtil.getPositionManagementService(FilePositionManagementServiceImpl.class.getName());
         Assert.assertTrue(standaloneService instanceof FilePositionManagementServiceImpl);
     }
 }

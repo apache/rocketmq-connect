@@ -24,9 +24,6 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.select.Select;
-import com.datastax.oss.driver.api.querybuilder.select.SelectFrom;
-import com.datastax.oss.driver.api.querybuilder.term.Term;
-import io.openmessaging.connector.api.data.FieldType;
 import org.apache.rocketmq.connect.cassandra.schema.column.ColumnParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +70,7 @@ public class Database {
 
     }
 
-    public void init(){
+    public void init() {
         Select selectFrom = QueryBuilder.selectFrom(SCHEMA_SYSTEM_SCHEMA, TABLE_COLUMNS)
                 .all()
                 .whereColumn(COLUMN_KEYSPACE_NAME)
@@ -85,7 +82,7 @@ public class Database {
         LOGGER.info("trying to execute sql query,{}", selectFrom.asCql());
         ResultSet result = null;
         try {
-            while (!cqlSession.isClosed() && !finishUpdate){
+            while (!cqlSession.isClosed() && !finishUpdate) {
                 stmt = selectFrom.build();
                 result = cqlSession.execute(stmt);
                 if (result.wasApplied()) {
@@ -103,7 +100,7 @@ public class Database {
 
                 ColumnParser columnParser = ColumnParser.getColumnParser(columnType, columnType, GENERAL_CHARSET);
 
-                if (!tableWhiteList.contains(tableName)){
+                if (!tableWhiteList.contains(tableName)) {
                     continue;
                 }
                 if (!tableMap.containsKey(tableName)) {

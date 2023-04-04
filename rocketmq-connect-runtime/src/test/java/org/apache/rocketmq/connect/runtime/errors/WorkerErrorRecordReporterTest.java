@@ -23,14 +23,15 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.converter.record.StringConverter;
+import org.apache.rocketmq.connect.runtime.metrics.ConnectMetrics;
+import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class WorkerErrorRecordReporterTest {
 
@@ -50,7 +51,8 @@ public class WorkerErrorRecordReporterTest {
     public void before() {
         Map<String, Object> offset = new HashMap<>();
         recordOffset = new RecordOffset(offset);
-        retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 2000, ToleranceType.ALL);
+        retryWithToleranceOperator = new RetryWithToleranceOperator(1000, 2000, ToleranceType.ALL, new ErrorMetricsGroup(new ConnectorTaskId("test-connect",1), new ConnectMetrics(new
+                WorkerConfig())));
         recordConverter = new StringConverter();
         workerErrorRecordReporter = new WorkerErrorRecordReporter(retryWithToleranceOperator, recordConverter);
         Map<String, Object> partition = new HashMap<>();

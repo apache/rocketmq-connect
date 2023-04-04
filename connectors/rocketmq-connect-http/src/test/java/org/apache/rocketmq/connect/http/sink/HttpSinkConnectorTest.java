@@ -24,7 +24,7 @@ public class HttpSinkConnectorTest {
         HttpSinkTask httpSinkTask = new HttpSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
         keyValue.put(HttpConstant.URL_CONSTANT, "http://127.0.0.1:8081/demo");
-        httpSinkTask.init(keyValue);
+        httpSinkTask.start(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null ,null, System.currentTimeMillis());
         connectRecord.setData("test");

@@ -19,16 +19,6 @@ public class DingTalkSinkConnector extends SinkConnector {
     private String secretKey;
 
     @Override
-    public void pause() {
-
-    }
-
-    @Override
-    public void resume() {
-
-    }
-
-    @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> taskConfigList = new ArrayList<>(11);
         KeyValue keyValue = new DefaultKeyValue();
@@ -59,7 +49,7 @@ public class DingTalkSinkConnector extends SinkConnector {
     }
 
     @Override
-    public void init(KeyValue config) {
+    public void start(KeyValue config) {
         webHook = config.getString(DingTalkConstant.WEB_HOOK);
         secretKey = config.getString(DingTalkConstant.SECRET_KEY);
     }

@@ -24,6 +24,16 @@ public class ReplicaSetConfig {
     private String host;
     private Position position;
 
+    private Integer maxTask;
+
+    public Integer getMaxTask() {
+        return maxTask;
+    }
+
+    public void setMaxTask(Integer maxTask) {
+        this.maxTask = maxTask;
+    }
+
     public Position getPosition() {
         return position;
     }

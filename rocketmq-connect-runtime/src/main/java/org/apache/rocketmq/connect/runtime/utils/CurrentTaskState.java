@@ -37,7 +37,7 @@ public class CurrentTaskState implements Serializable {
     public CurrentTaskState(String connector, ConnectKeyValue connectKeyValue, WorkerTaskState taskState) {
         this.connectorName = connector;
         this.config = connectKeyValue.getProperties();
-        this.taskState =  taskState;
+        this.taskState = taskState;
     }
 
     public String getConnectorName() {

@@ -51,7 +51,7 @@ public class LRUCacheTest {
 
     @Test
     public void putTest() {
-        Assertions.assertThatCode(() ->  lruCache.put("key1", "value1")).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> lruCache.put("key1", "value1")).doesNotThrowAnyException();
     }
 
     @Test

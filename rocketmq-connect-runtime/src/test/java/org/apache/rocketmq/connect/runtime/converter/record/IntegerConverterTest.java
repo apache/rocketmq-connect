@@ -6,13 +6,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 public class IntegerConverterTest extends AbstractRecordConverterTest {
 
 
     @Before
-    public void before(){
+    public void before() {
         this.recordConverter = new IntegerConverter();
     }
 

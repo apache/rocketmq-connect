@@ -178,7 +178,7 @@
         <dependency>
             <groupId>io.openmessaging</groupId>
             <artifactId>openmessaging-connector</artifactId>
-            <version>0.1.1</version>
+            <version>0.1.4</version>
         </dependency>
         <dependency>
             <groupId>com.moilioncircle</groupId>

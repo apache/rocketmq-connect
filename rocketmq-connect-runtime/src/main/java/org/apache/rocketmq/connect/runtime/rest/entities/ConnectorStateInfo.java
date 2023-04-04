@@ -28,7 +28,10 @@ public class ConnectorStateInfo {
     private ConnectorState connector;
     private List<TaskState> tasks;
     private ConnectorType type;
-    public ConnectorStateInfo(){}
+
+    public ConnectorStateInfo() {
+    }
+
     public ConnectorStateInfo(String name,
                               ConnectorState connector,
                               List<TaskState> tasks,
@@ -72,13 +75,14 @@ public class ConnectorStateInfo {
     }
 
 
-
     public abstract static class AbstractState {
         private String state;
         private String trace;
         private String workerId;
 
-        public AbstractState(){}
+        public AbstractState() {
+        }
+
         public AbstractState(String state, String workerId, String trace) {
             this.state = state;
             this.workerId = workerId;
@@ -120,7 +124,10 @@ public class ConnectorStateInfo {
 
     public static class TaskState extends AbstractState implements Comparable<TaskState> {
         private int id;
-        public TaskState(){}
+
+        public TaskState() {
+        }
+
         public TaskState(int id, String state, String worker, String msg) {
             super(state, worker, msg);
             this.id = id;

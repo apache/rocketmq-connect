@@ -63,7 +63,14 @@ public class ReplicaSet {
         try {
             this.mongoClient = replicaSetsContext.createMongoClient(replicaSetConfig);
             this.checkReplicaMongo();
-            executorService.submit(new ReplicatorTask(this, mongoClient, replicaSetConfig, replicaSetsContext));
+            final Integer maxTask = replicaSetConfig.getMaxTask();
+            if (maxTask != null && maxTask > 1) {
+                for (int i = 0; i < maxTask; i++) {
+                    executorService.submit(new ReplicatorTask(this, mongoClient, replicaSetConfig, replicaSetsContext));
+                }
+            } else {
+                executorService.submit(new ReplicatorTask(this, mongoClient, replicaSetConfig, replicaSetsContext));
+            }
         } catch (Exception e) {
             logger.error("start replicator:{} error", replicaSetConfig, e);
             shutdown();
@@ -83,15 +90,7 @@ public class ReplicaSet {
     }
 
     public void shutdown() {
-        if (running.compareAndSet(true, false)) {
-            if (!this.executorService.isShutdown()) {
-                executorService.shutdown();
-            }
-            if (this.mongoClient != null) {
-                this.mongoClient.close();
-            }
-        }
-
+        running.compareAndSet(true, false);
     }
 
     public void pause() {

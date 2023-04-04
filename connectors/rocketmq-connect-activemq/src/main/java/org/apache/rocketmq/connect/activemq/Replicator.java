@@ -39,9 +39,9 @@ public class Replicator {
         this.config = config;
     }
 
-    public void start() throws Exception {
+    public void start(long offset) throws Exception {
         processor = new PatternProcessor(this);
-        processor.start();
+        processor.start(offset);
         LOGGER.info("Replicator start succeed");
     }
 

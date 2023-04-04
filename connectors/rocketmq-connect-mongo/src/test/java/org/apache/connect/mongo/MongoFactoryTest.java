@@ -46,7 +46,7 @@ public class MongoFactoryTest {
 
     @Before
     public void before() {
-        this.replicaSetConfig = new ReplicaSetConfig("shardName1", "rep1", "127.0.0.1:27027");
+        this.replicaSetConfig = new ReplicaSetConfig("shardName1", "rep1", "127.0.0.1:27017");
         this.sourceTaskConfig = new SourceTaskConfig();
         this.mongoClientFactory = new MongoClientFactory(sourceTaskConfig);
     }
@@ -168,27 +168,6 @@ public class MongoFactoryTest {
 
         }
         return null;
-    }
-
-    @Test
-    public void testSSLTrustStore() {
-        sourceTaskConfig.setMongoUserName("user_test");
-        sourceTaskConfig.setMongoPassWord("pwd_test");
-        sourceTaskConfig.setSsl(true);
-        sourceTaskConfig.setSslInvalidHostNameAllowed(true);
-        sourceTaskConfig.setTrustStore("/Users/home/test.pem");
-        sourceTaskConfig.setTrustStorePassword("test001");
-        sourceTaskConfig.setServerSelectionTimeoutMS(10000);
-        MongoClient client = mongoClientFactory.createMongoClient(replicaSetConfig);
-        MongoCollection<Document> collection = client.getDatabase("test").getCollection("person");
-        Document document = new Document();
-        document.put("name", "test");
-        collection.insertOne(document);
-        MongoCursor<Document> iterator = collection.find().iterator();
-        while (iterator.hasNext()) {
-            System.out.println(iterator.next());
-        }
-
     }
 
 }

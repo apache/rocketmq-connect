@@ -10,7 +10,7 @@ public class LongConverterTest extends AbstractRecordConverterTest {
 
 
     @Before
-    public void before(){
+    public void before() {
         this.recordConverter = new LongConverter();
     }
 

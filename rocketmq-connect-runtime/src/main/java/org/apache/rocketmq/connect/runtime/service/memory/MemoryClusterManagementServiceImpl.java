@@ -23,7 +23,6 @@ import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 
 import java.util.Collections;
 import java.util.List;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 
 /**
  * standalone cluster management service
@@ -36,7 +35,8 @@ public class MemoryClusterManagementServiceImpl implements ClusterManagementServ
 
     }
 
-    @Override public void initialize(WorkerConfig connectConfig) {
+    @Override
+    public void initialize(WorkerConfig connectConfig) {
         this.configure(connectConfig);
     }
 
@@ -100,7 +100,4 @@ public class MemoryClusterManagementServiceImpl implements ClusterManagementServ
         return this.config.getWorkerId();
     }
 
-    @Override public StagingMode getStagingMode() {
-        return StagingMode.STANDALONE;
-    }
 }

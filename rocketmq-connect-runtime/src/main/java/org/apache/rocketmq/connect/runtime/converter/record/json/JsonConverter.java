@@ -159,8 +159,8 @@ public class JsonConverter implements RecordConverter {
                             throw new ConnectException("Found invalid map entry, expected length 2 but found :" + entryArray.toArray().length);
                         }
                         result.put(
-                            convertToConnect(keySchema, entryArray.toArray()[0]),
-                            convertToConnect(valueSchema, entryArray.toArray()[1]));
+                                convertToConnect(keySchema, entryArray.toArray()[0]),
+                                convertToConnect(valueSchema, entryArray.toArray()[1]));
                     }
                 }
                 return result;
@@ -179,7 +179,6 @@ public class JsonConverter implements RecordConverter {
         });
     }
 
-    // Convert values in Kafka Connect form into/from their logical types. These logical converters are discovered by logical type
     // names specified in the field
     private static final HashMap<String, LogicalTypeConverter> LOGICAL_CONVERTERS = new HashMap<>();
 
@@ -351,8 +350,8 @@ public class JsonConverter implements RecordConverter {
         Object jsonSchema = newJsonValue.get(JsonSchema.ENVELOPE_SCHEMA_FIELD_NAME);
         Schema schema = asConnectSchema(jsonSchema == null ? null : (JSONObject) jsonSchema);
         return new SchemaAndValue(
-            schema,
-            convertToConnect(schema, newJsonValue.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME))
+                schema,
+                convertToConnect(schema, newJsonValue.get(JsonSchema.ENVELOPE_PAYLOAD_FIELD_NAME))
         );
     }
 
@@ -365,8 +364,8 @@ public class JsonConverter implements RecordConverter {
      */
     private JSONObject convertToJsonWithEnvelope(Schema schema, Object value) {
         return new JsonSchema.Envelope(
-            asJsonSchema(schema),
-            convertToJson(schema, value)
+                asJsonSchema(schema),
+                convertToJson(schema, value)
         ).toJsonNode();
     }
 

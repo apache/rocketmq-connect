@@ -138,35 +138,35 @@ public class DefaultRedisEventHandler implements RedisEventHandler {
 
         switch (rdbValueType) {
             case RDB_TYPE_STRING:
-                return (T)redisRdbParser.applyString(keyValuePair).command("SET");
+                return (T) redisRdbParser.applyString(keyValuePair).command("SET");
             case RDB_TYPE_LIST:
-                return (T)redisRdbParser.applyList(keyValuePair).command("RPUSH");
+                return (T) redisRdbParser.applyList(keyValuePair).command("RPUSH");
             case RDB_TYPE_SET:
-                return (T)redisRdbParser.applySet(keyValuePair).command("SADD");
+                return (T) redisRdbParser.applySet(keyValuePair).command("SADD");
             case RDB_TYPE_ZSET:
-                return (T)redisRdbParser.applyZSet(keyValuePair).command("ZADD");
+                return (T) redisRdbParser.applyZSet(keyValuePair).command("ZADD");
             case RDB_TYPE_ZSET_2:
-                return (T)redisRdbParser.applyZSet2(keyValuePair).command("ZADD");
+                return (T) redisRdbParser.applyZSet2(keyValuePair).command("ZADD");
             case RDB_TYPE_HASH:
-                return (T)redisRdbParser.applyHash(keyValuePair).command("HMSET");
+                return (T) redisRdbParser.applyHash(keyValuePair).command("HMSET");
             case RDB_TYPE_HASH_ZIPMAP:
-                return (T)redisRdbParser.applyHashZipMap(keyValuePair).command("HMSET");
+                return (T) redisRdbParser.applyHashZipMap(keyValuePair).command("HMSET");
             case RDB_TYPE_LIST_ZIPLIST:
-                return (T)redisRdbParser.applyListZipList(keyValuePair).command("RPUSH");
+                return (T) redisRdbParser.applyListZipList(keyValuePair).command("RPUSH");
             case RDB_TYPE_SET_INTSET:
-                return (T)redisRdbParser.applySetIntSet(keyValuePair).command("ZADD");
+                return (T) redisRdbParser.applySetIntSet(keyValuePair).command("ZADD");
             case RDB_TYPE_ZSET_ZIPLIST:
-                return (T)redisRdbParser.applyZSetZipList(keyValuePair).command("ZADD");
+                return (T) redisRdbParser.applyZSetZipList(keyValuePair).command("ZADD");
             case RDB_TYPE_HASH_ZIPLIST:
-                return (T)redisRdbParser.applyHashZipList(keyValuePair).command("HMSET");
+                return (T) redisRdbParser.applyHashZipList(keyValuePair).command("HMSET");
             case RDB_TYPE_LIST_QUICKLIST:
-                return (T)redisRdbParser.applyListQuickList(keyValuePair).command("RPUSH");
+                return (T) redisRdbParser.applyListQuickList(keyValuePair).command("RPUSH");
             case RDB_TYPE_MODULE:
-                return (T)redisRdbParser.applyModule(keyValuePair);
+                return (T) redisRdbParser.applyModule(keyValuePair);
             case RDB_TYPE_MODULE_2:
-                return (T)redisRdbParser.applyModule2(keyValuePair);
+                return (T) redisRdbParser.applyModule2(keyValuePair);
             case RDB_TYPE_STREAM_LISTPACKS:
-                return (T)redisRdbParser.applyStreamListPacks(keyValuePair);
+                return (T) redisRdbParser.applyStreamListPacks(keyValuePair);
             default:
                 throw new AssertionError("unexpected value type:" + rdbValueType);
         }

@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.connect.cassandra.config;
 
-import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +41,8 @@ public class Config {
     private String whiteDataBase;
     private String whiteTable;
 
-
     public static final String CONN_TASK_PARALLELISM = "task-parallelism";
+
     public static final String CONN_TASK_DIVIDE_STRATEGY = "task-divide-strategy";
     public static final String CONN_WHITE_LIST = "whiteDataBase";
     public static final String CONN_SOURCE_RECORD_CONVERTER = "source-record-converter";
@@ -59,6 +58,11 @@ public class Config {
     public static final String CONN_SOURCE_RMQ = "source-rocketmq";
     public static final String CONN_SOURCE_CLUSTER = "source-cluster";
     public static final String REFRESH_INTERVAL = "refresh.interval";
+
+    public static final String CONNECTOR_CLASS = "connector.class";
+
+    public static final String VALUE_CONVERTER = "value.converter";
+    public static final String ROCKETMQ_TOPIC = "rocketmqTopic";
 
     /* Mode Config */
     private String mode = "";
@@ -82,8 +86,6 @@ public class Config {
             add("dbUrl");
             add("dbPort");
             add("localDataCenter");
-            add("dbUsername");
-            add("dbPassword");
             add("mode");
             add("rocketmqTopic");
         }

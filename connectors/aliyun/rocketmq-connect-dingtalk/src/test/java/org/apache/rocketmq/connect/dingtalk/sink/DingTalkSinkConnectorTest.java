@@ -1,5 +1,6 @@
 package org.apache.rocketmq.connect.dingtalk.sink;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
@@ -28,7 +29,7 @@ public class DingTalkSinkConnectorTest {
         // Replace it with your own robot webhook.
         keyValue.put("webHook", "https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxx");
         keyValue.put("secretKey", "Replace it with your own robot secretKey.");
-        dingTalkSinkTask.init(keyValue);
+        dingTalkSinkTask.start(keyValue);
         Map<String, Object> map = new HashMap<>();
         map.put("msgtype", "text");
         Map<String, String> map1 = new HashMap<>();
@@ -36,7 +37,7 @@ public class DingTalkSinkConnectorTest {
         map.put("text", map1);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
-        connectRecord.setData(map);
+        connectRecord.setData(JSON.toJSONString(map));
         connectRecordList.add(connectRecord);
         dingTalkSinkTask.put(connectRecordList);
     }

@@ -17,9 +17,8 @@
 
 package org.apache.rocketmq.redis.test.converter;
 
-import io.openmessaging.connector.api.data.EntryType;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.FieldType;
-import io.openmessaging.connector.api.data.SourceDataEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,14 +38,9 @@ public class RedisEntryConverterTest {
     public void test(){
         KVEntry entry = getKVEntry();
         KVEntryConverter converter = new RedisEntryConverter();
-        Collection<SourceDataEntry> res = converter.kVEntryToDataEntries(entry);
+        Collection<ConnectRecord> res = converter.kVEntryToConnectRecord(entry);
         Assert.assertNotNull(res);
         Assert.assertEquals(1, res.size());
-        Assert.assertEquals("key", ((List<SourceDataEntry>) res).get(0).getPayload()[1]);
-        Assert.assertEquals("value", ((List<SourceDataEntry>) res).get(0).getPayload()[2]);
-        Assert.assertEquals("set", ((List<SourceDataEntry>) res).get(0).getPayload()[0]);
-        Map<String, Object> params = (Map<String, Object>) ((List<SourceDataEntry>) res).get(0).getPayload()[3];
-        Assert.assertEquals("replId", params.get(Options.REDIS_REPLID.name()));
     }
 
     @Test
@@ -55,15 +49,15 @@ public class RedisEntryConverterTest {
 
 
         KVEntry entry = getArrayKVEntry(999);
-        Collection res = converter.kVEntryToDataEntries(entry);
+        Collection res = converter.kVEntryToConnectRecord(entry);
         Assert.assertEquals(2, res.size());
 
         KVEntry entry1 = getArrayKVEntry(1001);
-        Collection res1 = converter.kVEntryToDataEntries(entry1);
+        Collection res1 = converter.kVEntryToConnectRecord(entry1);
         Assert.assertEquals(3, res1.size());
 
         KVEntry entry2 = getArrayKVEntry(1000);
-        Collection res2 = converter.kVEntryToDataEntries(entry2);
+        Collection res2 = converter.kVEntryToConnectRecord(entry2);
         Assert.assertEquals(2, res2.size());
     }
 
@@ -75,7 +69,6 @@ public class RedisEntryConverterTest {
         RedisEntry entry = RedisEntry.newEntry(FieldType.MAP);
         entry.queueName("queue1");
         entry.key("key");
-        entry.entryType(EntryType.UPDATE);
         entry.offset(65535L);
         entry.param(Options.REDIS_INCREMENT, 15L);
         entry.sourceId("123");
@@ -88,10 +81,9 @@ public class RedisEntryConverterTest {
         }
         entry.value(values);
 
-        List<SourceDataEntry> entryList = converter.kVEntryToDataEntries(entry);
+        List<ConnectRecord> entryList = converter.kVEntryToConnectRecord(entry);
         Assert.assertNotNull(entryList);
         Assert.assertEquals(21, entryList.size());
-        Assert.assertEquals("set", entryList.get(0).getPayload()[0]);
     }
 
     private KVEntry getKVEntry(){

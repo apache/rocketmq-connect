@@ -32,11 +32,13 @@ import org.apache.rocketmq.connect.runtime.controller.standalone.StandaloneConne
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
+import org.apache.rocketmq.connect.runtime.service.memory.FilePositionManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryClusterManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryConfigManagementServiceImpl;
+import org.apache.rocketmq.connect.runtime.service.memory.MemoryStateManagementServiceImpl;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
-import org.apache.rocketmq.connect.runtime.utils.ServiceProviderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,9 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -108,6 +112,25 @@ public class StandaloneConnectStartup {
                 }
             }
 
+            if (StringUtils.isNotEmpty(config.getMetricsConfigPath())) {
+                String file = config.getMetricsConfigPath();
+                InputStream in = new BufferedInputStream(new FileInputStream(file));
+                properties = new Properties();
+                properties.load(in);
+                Map<String, String> metricsConfig = new ConcurrentHashMap<>();
+                if (properties.contains(WorkerConfig.METRIC_CLASS)) {
+                    throw new IllegalArgumentException("[metrics.reporter] is empty");
+                }
+                for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+                    if (entry.getKey().equals(WorkerConfig.METRIC_CLASS)) {
+                        continue;
+                    }
+                    metricsConfig.put(entry.getKey().toString(), entry.getValue().toString());
+                }
+                config.getMetricsConfig().put(properties.getProperty(WorkerConfig.METRIC_CLASS), metricsConfig);
+                in.close();
+            }
+
             if (null == config.getConnectHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);
@@ -129,13 +152,13 @@ public class StandaloneConnectStartup {
                 }
             }
             Plugin plugin = new Plugin(pluginPaths);
-            ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.STANDALONE);
+            ClusterManagementService clusterManagementService = new MemoryClusterManagementServiceImpl();
             clusterManagementService.initialize(config);
-            ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.STANDALONE);
+            ConfigManagementService configManagementService = new MemoryConfigManagementServiceImpl();
             configManagementService.initialize(config, null, plugin);
-            PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.STANDALONE);
+            PositionManagementService positionManagementServices = new FilePositionManagementServiceImpl();
             positionManagementServices.initialize(config, null, null);
-            StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.STANDALONE);
+            StateManagementService stateManagementService = new MemoryStateManagementServiceImpl();
             stateManagementService.initialize(config, null);
             StandaloneConnectController controller = new StandaloneConnectController(
                     plugin,

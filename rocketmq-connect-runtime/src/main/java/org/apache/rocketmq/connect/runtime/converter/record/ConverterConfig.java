@@ -28,6 +28,7 @@ public class ConverterConfig {
 
     /**
      * Get the type of converter as defined by the {@link #TYPE_CONFIG} configuration.
+     *
      * @return the converter type; never null
      */
     public ConverterType type(KeyValue config) {

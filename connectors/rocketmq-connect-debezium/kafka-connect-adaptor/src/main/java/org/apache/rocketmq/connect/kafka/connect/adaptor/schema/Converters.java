@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.kafka.connect.adaptor.schema;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.header.ConnectHeaders;
@@ -37,6 +38,7 @@ import java.util.Map;
  */
 public class Converters {
 
+    public static final String TOPIC = "topic";
 
     public static ConnectRecord fromSourceRecord(SourceRecord record) {
         // sourceRecord convert connect Record
@@ -51,6 +53,7 @@ public class Converters {
 
 
         RocketMQSourceValueConverter rocketMQSourceValueConverter = new RocketMQSourceValueConverter();
+
         ConnectRecord connectRecord = new ConnectRecord(
                 new RecordPartition(record.sourcePartition()),
                 new RecordOffset(record.sourceOffset()),
@@ -59,6 +62,10 @@ public class Converters {
                 record.key() == null ? null : rocketMQSourceValueConverter.value(keySchema, record.key()),
                 valueSchema,
                 record.value() == null ? null : rocketMQSourceValueConverter.value(valueSchema, record.value()));
+        String sourceTopic = record.topic();
+        if (StringUtils.isNotBlank(sourceTopic) ) {
+            connectRecord.addExtension(TOPIC, sourceTopic);
+        }
         Iterator<Header> headers = record.headers().iterator();
         while (headers.hasNext()) {
             Header header = headers.next();

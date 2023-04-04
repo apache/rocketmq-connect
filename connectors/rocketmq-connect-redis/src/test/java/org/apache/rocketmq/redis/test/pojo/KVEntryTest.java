@@ -1,14 +1,11 @@
 package org.apache.rocketmq.redis.test.pojo;
 
+import io.openmessaging.connector.api.data.ConnectRecord;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import io.openmessaging.connector.api.data.DataEntry;
-import io.openmessaging.connector.api.data.EntryType;
 import io.openmessaging.connector.api.data.FieldType;
-import io.openmessaging.connector.api.data.SourceDataEntry;
 import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
 import org.apache.rocketmq.connect.redis.converter.RedisEntryConverter;
@@ -18,6 +15,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class KVEntryTest {
+
 
     @Test
     public void testConstruct(){
@@ -47,7 +45,7 @@ public class KVEntryTest {
         Assert.assertNotNull(entry.toString());
 
 
-        List<SourceDataEntry> entries = getConverter().kVEntryToDataEntries(entry);
+        List<ConnectRecord> entries = getConverter().kVEntryToConnectRecord(entry);
         Assert.assertNotNull(entries);
     }
 
@@ -56,7 +54,7 @@ public class KVEntryTest {
         RedisEntry entry = RedisEntry.newEntry(FieldType.STRING);
         entry.partition("partition");
         entry.queueName("queue1");
-        entry.entryType(EntryType.UPDATE);
+//        entry.entryType(EntryType.UPDATE);
         entry.sourceId("replId");
         entry.offset(65535L);
         entry.command("set");
@@ -67,7 +65,7 @@ public class KVEntryTest {
 
         Assert.assertEquals("partition", entry.getPartition());
         Assert.assertEquals("queue1", entry.getQueueName());
-        Assert.assertEquals(EntryType.UPDATE, entry.getEntryType());
+//        Assert.assertEquals(EntryType.UPDATE, entry.getEntryType());
         Assert.assertEquals("replId", entry.getSourceId());
         Assert.assertEquals(65535L, (long)entry.getOffset());
         Assert.assertEquals("set", entry.getCommand());

@@ -19,5 +19,12 @@ package org.apache.rocketmq.connect.cassandra.common;
 public class ConstDefine {
 
     public static String CASSANDRA_CONNECTOR_ADMIN_PREFIX = "CASSANDRA-CONNECTOR-ADMIN";
+
     public static final String PREFIX = "cassandra";
+
+    public static final String DATABASE_NAME = "database";
+
+    public static final String TABLE = "table";
+
+    public static final String INCREASE = "increase";
 }

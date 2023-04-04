@@ -22,14 +22,11 @@ public class RedisSourceConnectorTest {
     @Test
     public void testConnector(){
         RedisSourceConnector connector = new RedisSourceConnector();
-        connector.verifyAndSetConfig(this.keyValue);
         Class cl = connector.taskClass();
         Assert.assertNotNull(cl);
-        List<KeyValue> keyValues = connector.taskConfigs();
+        List<KeyValue> keyValues = connector.taskConfigs(2);
         Assert.assertNotNull(keyValues);
-        connector.start();
-        connector.pause();
-        connector.resume();
+        connector.start(keyValue);
         connector.stop();
     }
 }

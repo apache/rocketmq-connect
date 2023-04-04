@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * tools class
@@ -31,9 +32,9 @@ public class NameServerMocker {
     /**
      * use the specified port to start the nameserver
      *
-     * @param nameServerPort    nameServer port
-     * @param brokerPort    broker port
-     * @return  ServerResponseMocker
+     * @param nameServerPort nameServer port
+     * @param brokerPort     broker port
+     * @return ServerResponseMocker
      */
     public static ServerResponseMocker startByDefaultConf(int nameServerPort, int brokerPort) {
         return startByDefaultConf(nameServerPort, brokerPort, null);
@@ -42,10 +43,10 @@ public class NameServerMocker {
     /**
      * use the specified port to start the nameserver
      *
-     * @param nameServerPort    nameServer port
-     * @param brokerPort    broker port
-     * @param extMap    extend config
-     * @return  ServerResponseMocker
+     * @param nameServerPort nameServer port
+     * @param brokerPort     broker port
+     * @param extMap         extend config
+     * @return ServerResponseMocker
      */
     public static ServerResponseMocker startByDefaultConf(int nameServerPort, int brokerPort,
                                                           HashMap<String, String> extMap) {

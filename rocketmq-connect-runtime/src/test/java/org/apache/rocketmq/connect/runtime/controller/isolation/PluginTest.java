@@ -17,11 +17,13 @@
 
 package org.apache.rocketmq.connect.runtime.controller.isolation;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.assertj.core.api.Assertions;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PluginTest {
 
@@ -38,4 +40,14 @@ public class PluginTest {
     public void initLoadersTest() {
         Assertions.assertThatCode(() -> plugin.initLoaders()).doesNotThrowAnyException();
     }
+
+
+    @Test
+    public void shouldLoadInIsolationTest() {
+        Assert.assertTrue(PluginUtils.shouldLoadInIsolation("org.apache.rocketmq.replicator.ReplicatorSourceTask"));
+        Assert.assertTrue(PluginUtils.shouldLoadInIsolation("org.apache.rocketmq.connect.jdbc.mysql.source.MysqlJdbcSourceConnector"));
+
+        Assert.assertFalse(PluginUtils.shouldLoadInIsolation("org.apache.rocketmq.client.consumer.DefaultMQPushConsumer"));
+    }
+
 }

@@ -19,13 +19,6 @@ package org.apache.rocketmq.connect.runtime;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -35,18 +28,27 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConfig;
 import org.apache.rocketmq.connect.runtime.controller.distributed.DistributedConnectController;
+import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter;
 import org.apache.rocketmq.connect.runtime.service.ClusterManagementService;
 import org.apache.rocketmq.connect.runtime.service.ConfigManagementService;
 import org.apache.rocketmq.connect.runtime.service.PositionManagementService;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.service.StateManagementService;
 import org.apache.rocketmq.connect.runtime.utils.FileAndPropertyUtil;
-import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.utils.ServerUtil;
 import org.apache.rocketmq.connect.runtime.utils.ServiceProviderUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Startup class of the runtime worker.
@@ -110,6 +112,25 @@ public class DistributedConnectStartup {
                 }
             }
 
+            if (StringUtils.isNotEmpty(config.getMetricsConfigPath())) {
+                String file = config.getMetricsConfigPath();
+                InputStream in = new BufferedInputStream(new FileInputStream(file));
+                properties = new Properties();
+                properties.load(in);
+                Map<String, String> metricsConfig = new ConcurrentHashMap<>();
+                if (properties.contains(WorkerConfig.METRIC_CLASS)) {
+                    throw new IllegalArgumentException("[metrics.reporter] is empty");
+                }
+                for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+                    if (entry.getKey().equals(WorkerConfig.METRIC_CLASS)) {
+                        continue;
+                    }
+                    metricsConfig.put(entry.getKey().toString(), entry.getValue().toString());
+                }
+                config.getMetricsConfig().put(properties.getProperty(WorkerConfig.METRIC_CLASS), metricsConfig);
+                in.close();
+            }
+
             if (null == config.getConnectHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the Connect installation", WorkerConfig.CONNECT_HOME_ENV);
                 System.exit(-2);
@@ -133,23 +154,27 @@ public class DistributedConnectStartup {
             Plugin plugin = new Plugin(pluginPaths);
 
             // Create controller and initialize.
-            ClusterManagementService clusterManagementService = ServiceProviderUtil.getClusterManagementServices(StagingMode.DISTRIBUTED);
+            ClusterManagementService clusterManagementService =
+                    ServiceProviderUtil.getClusterManagementService(config.getClusterManagementService());
             clusterManagementService.initialize(config);
             // config
-            ConfigManagementService configManagementService = ServiceProviderUtil.getConfigManagementServices(StagingMode.DISTRIBUTED);
+            ConfigManagementService configManagementService =
+                    ServiceProviderUtil.getConfigManagementService(config.getConfigManagementService());
             configManagementService.initialize(config, new JsonConverter(), plugin);
             // position
-            PositionManagementService positionManagementServices = ServiceProviderUtil.getPositionManagementServices(StagingMode.DISTRIBUTED);
-            positionManagementServices.initialize(config, new JsonConverter(), new JsonConverter());
+            PositionManagementService positionManagementService =
+                    ServiceProviderUtil.getPositionManagementService(config.getPositionManagementService());
+            positionManagementService.initialize(config, new JsonConverter(), new JsonConverter());
             // state
-            StateManagementService stateManagementService = ServiceProviderUtil.getStateManagementServices(StagingMode.DISTRIBUTED);
+            StateManagementService stateManagementService =
+                    ServiceProviderUtil.getStateManagementService(config.getStateManagementService());
             stateManagementService.initialize(config, new JsonConverter());
             DistributedConnectController controller = new DistributedConnectController(
                     plugin,
                     config,
                     clusterManagementService,
                     configManagementService,
-                    positionManagementServices,
+                    positionManagementService,
                     stateManagementService);
             // Invoked when shutdown.
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

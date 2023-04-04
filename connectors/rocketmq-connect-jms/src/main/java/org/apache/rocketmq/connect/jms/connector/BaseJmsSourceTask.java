@@ -17,10 +17,17 @@
 
 package org.apache.rocketmq.connect.jms.connector;
 
+import io.openmessaging.connector.api.component.task.source.SourceTask;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.Field;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.Struct;
+import io.openmessaging.internal.DefaultKeyValue;
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +43,6 @@ import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 
 import org.apache.rocketmq.connect.jms.Config;
-import org.apache.rocketmq.connect.jms.ErrorCode;
 import org.apache.rocketmq.connect.jms.Replicator;
 import org.apache.rocketmq.connect.jms.pattern.PatternProcessor;
 import org.slf4j.Logger;
@@ -45,33 +51,28 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.JSON;
 
 import io.openmessaging.KeyValue;
-import io.openmessaging.connector.api.data.EntryType;
-import io.openmessaging.connector.api.data.SourceDataEntry;
-import io.openmessaging.connector.api.exception.DataConnectException;
-import io.openmessaging.connector.api.source.SourceTask;
+
 
 public abstract class BaseJmsSourceTask extends SourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(BaseJmsSourceTask.class);
 
-    private Replicator replicator;
+    protected Replicator replicator;
 
-    private Config config;
-
-    private ByteBuffer sourcePartition;
+    protected Config config;
 
     @Override
-    public Collection<SourceDataEntry> poll() {
-        List<SourceDataEntry> res = new ArrayList<>();
+    public List<ConnectRecord> poll() {
+        List<ConnectRecord> res = new ArrayList<>();
         try {
             Message message = replicator.getQueue().poll(1000, TimeUnit.MILLISECONDS);
             if (message != null) {
-                Object[] payload = new Object[] {config.getDestinationType(), config.getDestinationName(), getMessageContent(message)};
-                SourceDataEntry sourceDataEntry = new SourceDataEntry(sourcePartition, null, System.currentTimeMillis(), EntryType.CREATE, null, null, payload);
-                res.add(sourceDataEntry);
+                final ConnectRecord connectRecord = this.message2ConnectRecord(message);
+                connectRecord.setExtensions(this.buildExtendFiled());
+                res.add(connectRecord);
             }
         } catch (Exception e) {
-            log.error("activemq task poll error, current config:" + JSON.toJSONString(config), e);
+            log.error("jms task poll error, current config:" + JSON.toJSONString(config), e);
         }
         return res;
     }
@@ -81,11 +82,19 @@ public abstract class BaseJmsSourceTask extends SourceTask {
         try {
             this.config = new Config();
             this.config.load(props);
-            this.sourcePartition = ByteBuffer.wrap(config.getBrokerUrl().getBytes("UTF-8"));
-            this.replicator.start();
+            replicator = new Replicator(this.config, this);
+            final RecordOffset recordOffset = this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition());
+            long offset = 0L;
+            if (recordOffset != null) {
+                final Object position = recordOffset.getOffset().get(Config.POSITION);
+                if (position != null) {
+                    offset = Long.valueOf(position.toString());
+                }
+            }
+            this.replicator.start(offset);
         } catch (Exception e) {
-            log.error("activemq task start failed.", e);
-            throw new DataConnectException(ErrorCode.START_ERROR_CODE, e.getMessage(), e);
+            log.error("jms task start failed.", e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 
@@ -94,30 +103,20 @@ public abstract class BaseJmsSourceTask extends SourceTask {
         try {
             replicator.stop();
         } catch (Exception e) {
-            log.error("activemq task stop failed.", e);
-            throw new DataConnectException(ErrorCode.STOP_ERROR_CODE, e.getMessage(), e);
+            log.error("jms task stop failed.", e);
+            throw new RuntimeException(e.getMessage());
         }
     }
 
-    @Override public void pause() {
-
-    }
-
-    @Override public void resume() {
-
-    }
-
-    @SuppressWarnings("unchecked")
-    public ByteBuffer getMessageContent(Message message) throws JMSException {
-        byte[] data = null;
+    public String getMessageContent(Message message) throws JMSException {
+        String data = null;
         if (message instanceof TextMessage) {
-            data = ((TextMessage) message).getText().getBytes();
+            data = ((TextMessage) message).getText();
         } else if (message instanceof ObjectMessage) {
-            data = JSON.toJSONBytes(((ObjectMessage) message).getObject());
+            data = JSON.toJSONString(((ObjectMessage) message).getObject());
         } else if (message instanceof BytesMessage) {
             BytesMessage bytesMessage = (BytesMessage) message;
-            data = new byte[(int) bytesMessage.getBodyLength()];
-            bytesMessage.readBytes(data);
+            data = bytesMessage.toString();
         } else if (message instanceof MapMessage) {
             MapMessage mapMessage = (MapMessage) message;
             Map<String, Object> map = new HashMap<>();
@@ -126,7 +125,7 @@ public abstract class BaseJmsSourceTask extends SourceTask {
                 String name = names.nextElement().toString();
                 map.put(name, mapMessage.getObject(name));
             }
-            data = JSON.toJSONBytes(map);
+            data = JSON.toJSONString(map);
         } else if (message instanceof StreamMessage) {
             StreamMessage streamMessage = (StreamMessage) message;
             ByteArrayOutputStream bis = new ByteArrayOutputStream();
@@ -135,14 +134,57 @@ public abstract class BaseJmsSourceTask extends SourceTask {
             while ((i = streamMessage.readBytes(by)) != -1) {
                 bis.write(by, 0, i);
             }
-            data = bis.toByteArray();
+            data = bis.toString();
         } else {
-            // The exception is printed and does not need to be written as a DataConnectException
             throw new RuntimeException("message type exception");
         }
-        return ByteBuffer.wrap(data);
+        return data;
     }
 
+    protected ConnectRecord message2ConnectRecord(Message message) throws JMSException {
+        Schema schema = SchemaBuilder.struct().name("jms").build();
+        final List<Field> fields = buildFields();
+        schema.setFields(fields);
+        return new ConnectRecord(buildRecordPartition(),
+            buildRecordOffset(message),
+            System.currentTimeMillis(),
+            schema,
+            buildPayLoad(fields, message, schema));
+    }
+
+    protected RecordOffset buildRecordOffset(Message message) throws JMSException {
+        Map<String, Long> offsetMap = new HashMap<>();
+        offsetMap.put(Config.POSITION, message.getJMSTimestamp());
+        RecordOffset recordOffset = new RecordOffset(offsetMap);
+        return recordOffset;
+    }
+
+    protected RecordPartition buildRecordPartition() {
+        Map<String, String> partitionMap = new HashMap<>();
+        partitionMap.put("partition", config.getHost() + ":" + config.getPort());
+        RecordPartition  recordPartition = new RecordPartition(partitionMap);
+        return recordPartition;
+    }
+
+    protected List<Field> buildFields() {
+        final Schema stringSchema = SchemaBuilder.string().build();
+        List<Field> fields = new ArrayList<>();
+        fields.add(new Field(0, Config.MESSAGE, stringSchema));
+        return fields;
+    }
+
+    protected Struct buildPayLoad(List<Field> fields, Message message, Schema schema) throws JMSException {
+        Struct payLoad = new Struct(schema);
+        payLoad.put(fields.get(0), getMessageContent(message));
+        return payLoad;
+    }
+
+    protected KeyValue buildExtendFiled() {
+        KeyValue keyValue = new DefaultKeyValue();
+        keyValue.put(Config.DESTINATION_NAME,  config.getDestinationName());
+        keyValue.put(Config.DESTINATION_TYPE, config.getDestinationType());
+        return keyValue;
+    }
 
     public abstract Config getConfig();
     

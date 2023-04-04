@@ -24,15 +24,15 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.errors.ConnectException;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SinkConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.TargetState;
 import org.apache.rocketmq.connect.runtime.controller.isolation.Plugin;
 import org.apache.rocketmq.connect.runtime.service.AbstractConfigManagementService;
-import org.apache.rocketmq.connect.runtime.service.StagingMode;
 import org.apache.rocketmq.connect.runtime.store.MemoryBasedKeyValueStore;
+import org.apache.rocketmq.connect.runtime.utils.datasync.DataSynchronizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,15 +46,17 @@ import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECT
  */
 public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
+    /**
+     * store topic
+     */
+    public String topic;
     /**
      * All listeners to trigger while config change.
      */
     private ConnectorConfigUpdateListener connectorConfigUpdateListener;
-    // store topic
-    public String topic;
 
-    public MemoryConfigManagementServiceImpl() {}
+    public MemoryConfigManagementServiceImpl() {
+    }
 
     @Override
     public void initialize(WorkerConfig workerConfig, RecordConverter converter, Plugin plugin) {
@@ -64,6 +66,11 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
 
         this.connectorKeyValueStore = new MemoryBasedKeyValueStore<>();
         this.taskKeyValueStore = new MemoryBasedKeyValueStore<>();
+    }
+
+    @Override
+    public DataSynchronizer initializationDataSynchronizer(WorkerConfig workerConfig) {
+        return null;
     }
 
     @Override
@@ -169,7 +176,6 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
     }
 
 
-
     @Override
     public Map<String, List<ConnectKeyValue>> getTaskConfigs() {
         return taskKeyValueStore.getKVMap();
@@ -195,7 +201,8 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         this.connectorConfigUpdateListener = listener;
     }
 
-    private void triggerListener() {
+    @Override
+    public void triggerListener() {
         if (null == this.connectorConfigUpdateListener) {
             return;
         }
@@ -207,8 +214,4 @@ public class MemoryConfigManagementServiceImpl extends AbstractConfigManagementS
         return this.plugin;
     }
 
-    @Override
-    public StagingMode getStagingMode() {
-        return StagingMode.STANDALONE;
-    }
 }

@@ -47,17 +47,11 @@ import java.util.Set;
 public class TransformChain<R extends ConnectRecord> implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
-
-    private final List<Transform> transformList;
-
-    private final KeyValue config;
-
-    private final Plugin plugin;
-
     private static final String COMMA = ",";
-
     private static final String PREFIX = ConnectorConfig.TRANSFORMS + ".";
-
+    private final List<Transform> transformList;
+    private final KeyValue config;
+    private final Plugin plugin;
     private RetryWithToleranceOperator retryWithToleranceOperator;
 
     public TransformChain(KeyValue config, Plugin plugin) {

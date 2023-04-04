@@ -72,9 +72,9 @@ public class ProcessorTest {
     public void testRepeatStart() throws IOException {
         try{
             processor = getProcessor();
-            processor.start();
+            processor.start(0L);
             Assert.assertFalse(processor.isStopped());
-            processor.start();
+            processor.start(0L);
             Assert.assertFalse(processor.isStopped());
 
             processor.stop();
@@ -91,16 +91,16 @@ public class ProcessorTest {
         RedisEventProcessor processor = null;
         try{
             processor = getProcessor(SyncMod.LAST_OFFSET_FORCE);
-            processor.start();
+            processor.start(0L);
 
             processor = getProcessor(SyncMod.CUSTOM_OFFSET_FORCE);
-            processor.start();
+            processor.start(0L);
 
             processor = getProcessor(SyncMod.LAST_OFFSET);
-            processor.start();
+            processor.start(0L);
 
             processor = getProcessor(SyncMod.CUSTOM_OFFSET);
-            processor.start();
+            processor.start(0L);
         }catch (JedisConnectionException e){
 
         }
@@ -167,7 +167,7 @@ public class ProcessorTest {
     private RedisEventProcessor getProcessor(Config config){
         RedisEventHandler eventHandler = new DefaultRedisEventHandler(config);
         RedisEventProcessor processor = new DefaultRedisEventProcessor(config);
-        processor.registEventHandler(eventHandler);
+        processor.registerEventHandler(eventHandler);
         return processor;
     }
 
@@ -181,7 +181,6 @@ public class ProcessorTest {
         config.setRedisAddr("127.0.0.1");
         config.setRedisPort(6379);
         config.setOffset(100L);
-        config.setPosition(200L);
         config.setCommands("SET,HSET");
 
         if(syncMod != null){

@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.connect.runtime.service.strategy;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.consistenthash.ConsistentHashRouter;
 import org.apache.rocketmq.common.consistenthash.HashFunction;
@@ -31,6 +26,12 @@ import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class AllocateConnAndTaskStrategyByConsistentHash implements AllocateConnAndTaskStrategy {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_RUNTIME);
@@ -51,8 +52,9 @@ public class AllocateConnAndTaskStrategyByConsistentHash implements AllocateConn
         }
     }
 
-    @Override public ConnAndTaskConfigs allocate(List<String> allWorker, String curWorker,
-        Map<String, ConnectKeyValue> connectorConfigs, Map<String, List<ConnectKeyValue>> taskConfigs) {
+    @Override
+    public ConnAndTaskConfigs allocate(List<String> allWorker, String curWorker,
+                                       Map<String, ConnectKeyValue> connectorConfigs, Map<String, List<ConnectKeyValue>> taskConfigs) {
         ConnAndTaskConfigs allocateResult = new ConnAndTaskConfigs();
         if (null == allWorker || 0 == allWorker.size()) {
             return allocateResult;
@@ -62,11 +64,11 @@ public class AllocateConnAndTaskStrategyByConsistentHash implements AllocateConn
         ConsistentHashRouter router = getRouter(cidNodes);
 
         connectorConfigs.entrySet().stream().filter(task -> curWorker.equals(router.routeNode(task.getKey()).getKey()))
-            .forEach(task -> allocateResult.getConnectorConfigs().put(task.getKey(), task.getValue()));
+                .forEach(task -> allocateResult.getConnectorConfigs().put(task.getKey(), task.getValue()));
 
         for (Map.Entry<String, List<ConnectKeyValue>> connector : taskConfigs.entrySet()) {
             connector.getValue().stream().filter(kv -> curWorker.equals(router.routeNode(kv.toString()).getKey()))
-                .forEach(allocateResult.getTaskConfigs().computeIfAbsent(connector.getKey(), k -> new ArrayList<>())::add);
+                    .forEach(allocateResult.getTaskConfigs().computeIfAbsent(connector.getKey(), k -> new ArrayList<>())::add);
         }
         log.debug("allocate result: " + allocateResult);
         return allocateResult;
