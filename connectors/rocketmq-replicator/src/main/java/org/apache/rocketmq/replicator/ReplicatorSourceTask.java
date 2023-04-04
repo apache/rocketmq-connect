@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
@@ -289,7 +290,7 @@ public class ReplicatorSourceTask extends SourceTask {
         for (MessageQueue mq : allQueues) {
             String topic = mq.getTopic();
             String tag = ReplicatorConnectorConfig.getSrcTopicTagMap(connectorConfig.getSrcInstanceId(), connectorConfig.getSrcTopicTags()).get(topic);
-            pullConsumer.setSubExpressionForAssign(topic, tag);
+//            pullConsumer.setSubExpressionForAssign(topic, tag);
         }
 
         try {

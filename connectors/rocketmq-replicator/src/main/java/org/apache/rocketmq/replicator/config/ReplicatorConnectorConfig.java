@@ -159,6 +159,7 @@ public class ReplicatorConnectorConfig {
     public final static String SYNC_TPS = "sync.tps";
     public final static String MAX_TASK = "max.task";
     public final static String COMMIT_OFFSET_INTERVALS_MS = "commit.offset.interval.ms";
+    public final static String REQUEST_TASK_RECONFIG_INTERVAL_MS = "request.task.reconfig.ms";
 
     public String getTaskId() {
         return taskId;
