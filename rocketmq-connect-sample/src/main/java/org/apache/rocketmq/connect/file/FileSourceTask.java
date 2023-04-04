@@ -39,7 +39,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,7 +147,9 @@ public class FileSourceTask extends SourceTask {
                             fields.add(field);
                             schema.setFields(fields);
                             ConnectRecord connectRecord = new ConnectRecord(offsetKey(fileConfig.getFilename()), offsetValue(streamOffset), System.currentTimeMillis(), schema, line);
-                            if (StringUtils.isNoneBlank(fileConfig.getTopic())) {
+                            if (fileConfig.getTopic() == null) {
+                                connectRecord.addExtension("topic", "");
+                            } else {
                                 connectRecord.addExtension("topic", fileConfig.getTopic());
                             }
                             records.add(connectRecord);
