@@ -70,7 +70,7 @@ public class ReplicatorUtils {
     }
 
     public static void checkNeedParamNotEmpty(String connectorName, KeyValue config, String needParamKey, boolean isNeeded) {
-        if (StringUtils.isEmpty(config.getString(needParamKey, ""))) {
+        if (StringUtils.isEmpty(config.getString(needParamKey, "")) && isNeeded) {
             log.error("Replicator connector " + connectorName + " do not set " + needParamKey);
             throw new ParamInvalidException("Replicator connector " + connectorName + " do not set " + needParamKey);
         }
