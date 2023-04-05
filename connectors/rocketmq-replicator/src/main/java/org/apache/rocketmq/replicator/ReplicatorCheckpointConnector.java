@@ -39,9 +39,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 public class ReplicatorCheckpointConnector extends SourceConnector {
@@ -89,21 +89,21 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
     }
 
 
-    private Set<String> neededParamKeys = new HashSet<String>() {
+    private Map<String, Boolean> neededParamKeys = new HashMap<String, Boolean>() {
         {
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
-            add(ReplicatorConnectorConfig.SRC_REGION);
-            add(ReplicatorConnectorConfig.SRC_CLUSTER);
-            add(ReplicatorConnectorConfig.SRC_ENDPOINT);
-            add(ReplicatorConnectorConfig.SRC_TOPICS);
-            add(ReplicatorConnectorConfig.DEST_CLOUD);
-            add(ReplicatorConnectorConfig.DEST_REGION);
-            add(ReplicatorConnectorConfig.DEST_CLUSTER);
-            add(ReplicatorConnectorConfig.DEST_ENDPOINT);
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
-            add(ReplicatorConnectorConfig.SYNC_GIDS);
-            add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
-            add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
+            put(ReplicatorConnectorConfig.SRC_CLOUD, false);
+            put(ReplicatorConnectorConfig.SRC_REGION, false);
+            put(ReplicatorConnectorConfig.SRC_CLUSTER, false);
+            put(ReplicatorConnectorConfig.SRC_ENDPOINT, true);
+            put(ReplicatorConnectorConfig.SRC_TOPICS, true);
+            put(ReplicatorConnectorConfig.DEST_CLOUD, false);
+            put(ReplicatorConnectorConfig.DEST_REGION, false);
+            put(ReplicatorConnectorConfig.DEST_CLUSTER, false);
+            put(ReplicatorConnectorConfig.DEST_ENDPOINT, true);
+            put(ReplicatorConnectorConfig.SRC_CLOUD, false);
+            put(ReplicatorConnectorConfig.SYNC_GIDS, true);
+            put(ReplicatorConnectorConfig.SRC_ACL_ENABLE, false);
+            put(ReplicatorConnectorConfig.DEST_ACL_ENABLE, false);
         }
     };
 

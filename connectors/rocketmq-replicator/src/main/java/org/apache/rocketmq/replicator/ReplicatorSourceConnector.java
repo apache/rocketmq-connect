@@ -208,22 +208,22 @@ public class ReplicatorSourceConnector extends SourceConnector {
         return ReplicatorSourceTask.class;
     }
 
-    private Set<String> neededParamKeys = new HashSet<String>() {
+    private Map<String, Boolean> neededParamKeys = new HashMap<String, Boolean>() {
         {
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
-            add(ReplicatorConnectorConfig.SRC_REGION);
-            add(ReplicatorConnectorConfig.SRC_CLUSTER);
-            add(ReplicatorConnectorConfig.SRC_ENDPOINT);
-            add(ReplicatorConnectorConfig.SRC_TOPICTAGS);
-            add(ReplicatorConnectorConfig.DEST_CLOUD);
-            add(ReplicatorConnectorConfig.DEST_REGION);
-            add(ReplicatorConnectorConfig.DEST_CLUSTER);
-            add(ReplicatorConnectorConfig.DEST_ENDPOINT);
-            add(ReplicatorConnectorConfig.DEST_TOPIC);
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
-            add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
-            add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
-            add(ERRORS_TOLERANCE_CONFIG);
+            put(ReplicatorConnectorConfig.SRC_CLOUD, false);
+            put(ReplicatorConnectorConfig.SRC_REGION, false);
+            put(ReplicatorConnectorConfig.SRC_CLUSTER, false);
+            put(ReplicatorConnectorConfig.SRC_ENDPOINT, true);
+            put(ReplicatorConnectorConfig.SRC_TOPICTAGS, true);
+            put(ReplicatorConnectorConfig.DEST_CLOUD, false);
+            put(ReplicatorConnectorConfig.DEST_REGION, false);
+            put(ReplicatorConnectorConfig.DEST_CLUSTER, false);
+            put(ReplicatorConnectorConfig.DEST_ENDPOINT, true);
+            put(ReplicatorConnectorConfig.DEST_TOPIC, true);
+            put(ReplicatorConnectorConfig.SRC_CLOUD, false);
+            put(ReplicatorConnectorConfig.SRC_ACL_ENABLE, false);
+            put(ReplicatorConnectorConfig.DEST_ACL_ENABLE, false);
+            put(ERRORS_TOLERANCE_CONFIG, false);
         }
     };
 
@@ -239,7 +239,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
         ReplicatorUtils.checkNeedParams(ReplicatorSourceConnector.class.getName(), config, neededParamKeys);
         String consumeFromWhere = config.getString(ReplicatorConnectorConfig.CONSUME_FROM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name());
         if (StringUtils.isNotBlank(consumeFromWhere) && consumeFromWhere.equals(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP.name())) {
-            ReplicatorUtils.checkNeedParamNotEmpty(ReplicatorSourceConnector.class.getName(), config, ReplicatorConnectorConfig.CONSUME_FROM_TIMESTAMP);
+            ReplicatorUtils.checkNeedParamNotEmpty(ReplicatorSourceConnector.class.getName(), config, ReplicatorConnectorConfig.CONSUME_FROM_TIMESTAMP, true);
         }
     }
 

@@ -63,13 +63,13 @@ public class ReplicatorUtils {
         return instanceId + "%" + consumerGroup;
     }
 
-    public static void checkNeedParams(String connectorName, KeyValue config, Set<String> neededParamKeys) {
-        for (String needParamKey : neededParamKeys) {
-            checkNeedParamNotEmpty(connectorName, config, needParamKey);
+    public static void checkNeedParams(String connectorName, KeyValue config, Map<String, Boolean> neededParamKeys) {
+        for (String needParamKey : neededParamKeys.keySet()) {
+            checkNeedParamNotEmpty(connectorName, config, needParamKey, neededParamKeys.get(needParamKey));
         }
     }
 
-    public static void checkNeedParamNotEmpty(String connectorName, KeyValue config, String needParamKey) {
+    public static void checkNeedParamNotEmpty(String connectorName, KeyValue config, String needParamKey, boolean isNeeded) {
         if (StringUtils.isEmpty(config.getString(needParamKey, ""))) {
             log.error("Replicator connector " + connectorName + " do not set " + needParamKey);
             throw new ParamInvalidException("Replicator connector " + connectorName + " do not set " + needParamKey);
