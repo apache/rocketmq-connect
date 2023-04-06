@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.connectorwrapper;
 
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.PAUSED;
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.RUNNING;
 import com.alibaba.fastjson.JSON;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.internal.ConcurrentSet;
@@ -77,9 +79,6 @@ import org.apache.rocketmq.connect.runtime.utils.ServiceThread;
 import org.apache.rocketmq.connect.runtime.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.PAUSED;
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.status.AbstractStatus.State.RUNNING;
 
 /**
  * A worker to schedule all connectors and tasks in a process.
@@ -870,7 +869,7 @@ public class Worker {
                     }
 
                     if (task instanceof SourceTask) {
-                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig);
+                        DefaultMQProducer producer = ConnectUtil.initDefaultMQProducer(workerConfig, keyValue);
                         TransformChain<ConnectRecord> transformChain = new TransformChain<>(keyValue, plugin);
                         // create retry operator
                         RetryWithToleranceOperator retryWithToleranceOperator = ReporterManagerUtil.createRetryWithToleranceOperator(keyValue, errorMetricsGroup);

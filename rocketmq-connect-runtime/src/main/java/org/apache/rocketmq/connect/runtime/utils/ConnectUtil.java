@@ -17,10 +17,22 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 import com.beust.jcommander.internal.Sets;
 import com.google.common.collect.Maps;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -54,20 +66,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
 
 public class ConnectUtil {
 
@@ -111,19 +109,47 @@ public class ConnectUtil {
         }
     }
 
-    public static DefaultMQProducer initDefaultMQProducer(WorkerConfig connectConfig) {
+    public static DefaultMQProducer initDefaultMQProducer(WorkerConfig connectConfig, ConnectKeyValue keyValue) {
+        boolean aclEnable;
+        String accessKey;
+        String secretKey;
+        String namesrvAddr;
+        String producerGroup;
+        int sendTimeout;
+
+        if (keyValue != null
+                && Boolean.parseBoolean(keyValue.getString(ConnectorConfig.USE_NAMESRV_OF_CONNECTOR, "false"))) {
+            aclEnable = Boolean.parseBoolean(keyValue.getString(ConnectorConfig.RMQ_ACL_ENABLE, "false"));
+            accessKey = keyValue.getString(ConnectorConfig.RMQ_ACCESS_KEY);
+            secretKey = keyValue.getString(ConnectorConfig.RMQ_SECRET_KEY);
+            namesrvAddr = keyValue.getString(ConnectorConfig.RMQ_NAMESRVADDR);
+            producerGroup = keyValue.getString(ConnectorConfig.RMQ_PRODUCER_GROUP, connectConfig.getRmqProducerGroup());
+            sendTimeout = keyValue.getInt(ConnectorConfig.RMQ_OPERATION_TIMEOUT, connectConfig.getOperationTimeout());
+        } else {
+            aclEnable = connectConfig.isAclEnable();
+            accessKey = connectConfig.getAccessKey();
+            secretKey = connectConfig.getSecretKey();
+            namesrvAddr = connectConfig.getNamesrvAddr();
+            producerGroup = connectConfig.getRmqProducerGroup();
+            sendTimeout = connectConfig.getOperationTimeout();
+        }
+
         RPCHook rpcHook = null;
-        if (connectConfig.getAclEnable()) {
-            rpcHook = new AclClientRPCHook(new SessionCredentials(connectConfig.getAccessKey(), connectConfig.getSecretKey()));
+        if (aclEnable) {
+            rpcHook = new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
         }
         DefaultMQProducer producer = new DefaultMQProducer(rpcHook);
-        producer.setNamesrvAddr(connectConfig.getNamesrvAddr());
-        producer.setInstanceName(createUniqInstance(connectConfig.getNamesrvAddr()));
-        producer.setProducerGroup(connectConfig.getRmqProducerGroup());
-        producer.setSendMsgTimeout(connectConfig.getOperationTimeout());
+        producer.setNamesrvAddr(namesrvAddr);
+        producer.setInstanceName(createUniqInstance(namesrvAddr));
+        producer.setProducerGroup(producerGroup);
+        producer.setSendMsgTimeout(sendTimeout);
         producer.setMaxMessageSize(ConnectorConfig.MAX_MESSAGE_SIZE);
         producer.setLanguage(LanguageCode.JAVA);
         return producer;
+    }
+
+    public static DefaultMQProducer initDefaultMQProducer(WorkerConfig connectConfig) {
+        return initDefaultMQProducer(connectConfig, null);
     }
 
     public static DefaultMQPullConsumer initDefaultMQPullConsumer(WorkerConfig connectConfig) {

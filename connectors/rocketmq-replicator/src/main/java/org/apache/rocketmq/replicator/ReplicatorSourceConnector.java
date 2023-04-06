@@ -16,12 +16,23 @@
  */
 package org.apache.rocketmq.replicator;
 
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_ID;
+import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_TOLERANCE_CONFIG;
+import static org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig.CONNECT_TOPICNAME;
 import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.internal.DefaultKeyValue;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -32,19 +43,15 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.replicator.config.*;
+import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
+import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.replicator.config.ConsumeFromWhere;
+import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
 import org.apache.rocketmq.replicator.exception.GetMetaDataException;
 import org.apache.rocketmq.replicator.exception.InitMQClientException;
 import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
-import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-
-import java.util.*;
-
-import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_ID;
-import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_TOLERANCE_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig.CONNECT_TOPICNAME;
 
 /**
  * @author osgoo
@@ -176,11 +183,12 @@ public class ReplicatorSourceConnector extends SourceConnector {
             if (null != connectorConfig.getString(ReplicatorConnectorConfig.DEST_INSTANCEID)) {
                 keyValue.put(ReplicatorConnectorConfig.DEST_INSTANCEID, connectorConfig.getString(ReplicatorConnectorConfig.DEST_INSTANCEID));
             }
-            keyValue.put(ReplicatorConnectorConfig.DEST_ENDPOINT, connectorConfig.getString(ReplicatorConnectorConfig.DEST_ENDPOINT));
+            keyValue.put(ConnectorConfig.RMQ_NAMESRVADDR, connectorConfig.getString(ReplicatorConnectorConfig.DEST_ENDPOINT));
             keyValue.put(ReplicatorConnectorConfig.DEST_TOPIC, connectorConfig.getString(ReplicatorConnectorConfig.DEST_TOPIC));
-            keyValue.put(ReplicatorConnectorConfig.DEST_ACL_ENABLE, connectorConfig.getString(ReplicatorConnectorConfig.DEST_ACL_ENABLE, "false"));
-            keyValue.put(ReplicatorConnectorConfig.DEST_ACCESS_KEY, connectorConfig.getString(ReplicatorConnectorConfig.DEST_ACCESS_KEY, ""));
-            keyValue.put(ReplicatorConnectorConfig.DEST_SECRET_KEY, connectorConfig.getString(ReplicatorConnectorConfig.DEST_SECRET_KEY, ""));
+            keyValue.put(ConnectorConfig.RMQ_ACL_ENABLE, connectorConfig.getString(ReplicatorConnectorConfig.DEST_ACL_ENABLE, "false"));
+            keyValue.put(ConnectorConfig.RMQ_ACCESS_KEY, connectorConfig.getString(ReplicatorConnectorConfig.DEST_ACCESS_KEY, ""));
+            keyValue.put(ConnectorConfig.RMQ_SECRET_KEY, connectorConfig.getString(ReplicatorConnectorConfig.DEST_SECRET_KEY, ""));
+            keyValue.put(ConnectorConfig.USE_NAMESRV_OF_CONNECTOR, "true");
 
             keyValue.put(ReplicatorConnectorConfig.SYNC_TPS, connectorConfig.getInt(ReplicatorConnectorConfig.SYNC_TPS, ReplicatorConnectorConfig.DEFAULT_SYNC_TPS));
 
@@ -208,7 +216,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
         return ReplicatorSourceTask.class;
     }
 
-    private Set<String> neededParamKeys = new HashSet<String>() {
+    private static Set<String> neededParamKeys = new HashSet<String>() {
         {
             add(ReplicatorConnectorConfig.SRC_CLOUD);
             add(ReplicatorConnectorConfig.SRC_REGION);
@@ -220,7 +228,6 @@ public class ReplicatorSourceConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_CLUSTER);
             add(ReplicatorConnectorConfig.DEST_ENDPOINT);
             add(ReplicatorConnectorConfig.DEST_TOPIC);
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
             add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
             add(ERRORS_TOLERANCE_CONFIG);
