@@ -33,10 +33,8 @@ import java.util.Set;
 
 import static org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig.CONNECT_TOPICNAME;
 
-
 /**
  * @author osgoo
- * @date 2022/6/16
  */
 public class ReplicatorHeartbeatConnector extends SourceConnector {
     private Log log = LogFactory.getLog(ReplicatorHeartbeatConnector.class);
@@ -78,7 +76,6 @@ public class ReplicatorHeartbeatConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
         }
     };
-
 
     @Override
     public void validate(KeyValue config) {
