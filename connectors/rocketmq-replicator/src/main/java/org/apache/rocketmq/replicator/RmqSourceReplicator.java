@@ -303,7 +303,7 @@ public class RmqSourceReplicator extends SourceConnector {
         topicConfig.setPerm(queueData.getPerm());
         topicConfig.setReadQueueNums(queueData.getReadQueueNums());
         topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
-        topicConfig.setTopicSysFlag(queueData.getTopicSynFlag());
+        topicConfig.setTopicSysFlag(queueData.getTopicSysFlag());
         topicConfig.setTopicName(targetTopic);
         Utils.createTopic(this.targetMQAdminExt, topicConfig, targetCluster);
     }

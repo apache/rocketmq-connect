@@ -88,7 +88,6 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
         return ReplicatorCheckpointTask.class;
     }
 
-
     private Set<String> neededParamKeys = new HashSet<String>() {
         {
             add(ReplicatorConnectorConfig.SRC_CLOUD);
@@ -106,7 +105,6 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
         }
     };
-
 
     @Override
     public void validate(KeyValue config) {
@@ -136,7 +134,6 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
     }
 
     private void buildAndStartTargetMQAdmin() throws MQClientException {
-        // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         String destAclEnable = config.getString(ReplicatorConnectorConfig.DEST_ACL_ENABLE, "false");
         if (destAclEnable.equalsIgnoreCase("true")) {
@@ -156,6 +153,7 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
             targetMqAdminExt.start();
         }
     }
+
     private synchronized void closeAdmin() {
         if (targetMqAdminExt != null) {
             try {

@@ -111,7 +111,6 @@ public class ReplicatorCheckpointTask extends SourceTask {
     }
 
     private void buildAndStartTargetMQAdmin() throws MQClientException {
-        // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         if (connectorConfig.isDestAclEnable()) {
             if (StringUtils.isNotEmpty(connectorConfig.getDestAccessKey()) && StringUtils.isNotEmpty(connectorConfig.getDestSecretKey())) {
@@ -175,7 +174,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
                         RecordOffset recordOffset = ReplicatorUtils.convertToRecordOffset(0L);
                         ConnectRecord connectRecord = new ConnectRecord(recordPartition, recordOffset, System.currentTimeMillis());
                         Struct keyStruct = buildCheckpointKey(srcTopicWithInstanceId, srcConsumerGroupWithInstanceId);
-                        Struct valueStruct = buildCheckpointPlayload(srcTopicWithInstanceId, srcConsumerGroupWithInstanceId, minSrcLasttimestamp, minDestLasttimestamp);
+                        Struct valueStruct = buildCheckpointPayload(srcTopicWithInstanceId, srcConsumerGroupWithInstanceId, minSrcLasttimestamp, minDestLasttimestamp);
                         connectRecord.setKeySchema(KEY_SCHEMA);
                         connectRecord.setKey(keyStruct);
                         connectRecord.setSchema(VALUE_SCHEMA_V0);
@@ -196,7 +195,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
     }
 
     @NotNull
-    private static Struct buildCheckpointPlayload(String srcTopicWithInstanceId, String srcConsumerGroupWithInstanceId, long minSrcLasttimestamp, long minDestLasttimestamp) {
+    private static Struct buildCheckpointPayload(String srcTopicWithInstanceId, String srcConsumerGroupWithInstanceId, long minSrcLasttimestamp, long minDestLasttimestamp) {
         Struct struct = new Struct(VALUE_SCHEMA_V0);
         struct.put(CONSUMER_GROUP_KEY, srcConsumerGroupWithInstanceId);
         struct.put(TOPIC_KEY, srcTopicWithInstanceId);

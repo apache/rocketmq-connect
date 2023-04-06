@@ -50,10 +50,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-
 /**
  * @author osgoo
- * @date 2022/6/16
  */
 public class ReplicatorHeartbeatTask extends SourceTask {
     private Logger log = LoggerFactory.getLogger(ReplicatorHeartbeatTask.class);
@@ -65,14 +63,13 @@ public class ReplicatorHeartbeatTask extends SourceTask {
     private volatile long consumerLastConsumeOk = System.currentTimeMillis();
     private final long PRODUCER_SEND_ERROR_MAX_LASTING = 15000;
     private final long CONSUMER_CONSUME_ERROR_MAX_LASTING = 15000;
-    private final long HEALTHCHECK_PERIOD_MS = 1000;
+    private final long HEALTH_CHECK_PERIOD_MS = 1000;
     private ScheduledExecutorService executorService;
 
     private void reBuildProducer() throws Exception {
         if (producer != null) {
             producer.shutdown();
         }
-        // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         if (connectorConfig.isSrcAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials());
@@ -84,9 +81,9 @@ public class ReplicatorHeartbeatTask extends SourceTask {
         producer.start();
     }
 
-    private void createAndUpdatePullConsumerGroup(String clusterName, String subscriptionGroupName) throws MQClientException, InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+    private void createAndUpdatePullConsumerGroup(String clusterName,
+        String subscriptionGroupName) throws MQClientException, InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         DefaultMQAdminExt srcMQAdminExt;
-        // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         if (connectorConfig.isDestAclEnable()) {
             rpcHook = new AclClientRPCHook(new SessionCredentials());
@@ -102,7 +99,7 @@ public class ReplicatorHeartbeatTask extends SourceTask {
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName(subscriptionGroupName);
         Set<String> masterSet =
-                CommandUtil.fetchMasterAddrByClusterName(srcMQAdminExt, clusterName);
+            CommandUtil.fetchMasterAddrByClusterName(srcMQAdminExt, clusterName);
         for (String addr : masterSet) {
             try {
                 srcMQAdminExt.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
@@ -130,14 +127,15 @@ public class ReplicatorHeartbeatTask extends SourceTask {
         consumer.setMessageModel(MessageModel.CLUSTERING);
         consumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
-            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list,
+                ConsumeConcurrentlyContext consumeConcurrentlyContext) {
                 // check message & calculate rt
                 MessageExt messageExt = list.get(0);
                 long bornTimestamp = messageExt.getBornTimestamp();
                 long storeTimestamp = messageExt.getStoreTimestamp();
                 long consumeTimestamp = System.currentTimeMillis();
                 long rt = consumeTimestamp - bornTimestamp;
-                ReplicatorTaskStats.incItemValue(ReplicatorTaskStats.REPLICATOR_HEARTBEAT_DELAY_MS, connectorConfig.getConnectorId(), (int)rt, 1);
+                ReplicatorTaskStats.incItemValue(ReplicatorTaskStats.REPLICATOR_HEARTBEAT_DELAY_MS, connectorConfig.getConnectorId(), (int) rt, 1);
                 log.info(messageExt.getUserProperty("src") + " -->  " + messageExt.getUserProperty("dest") + " RT " + bornTimestamp + "," + storeTimestamp + "," + consumeTimestamp);
                 consumerLastConsumeOk = consumeTimestamp;
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -149,9 +147,9 @@ public class ReplicatorHeartbeatTask extends SourceTask {
     @Override
     public List<ConnectRecord> poll() throws InterruptedException {
         try {
-            // healthcheck producer & consumer
+            // health check producer & consumer
             healthCheck();
-            Thread.sleep(HEALTHCHECK_PERIOD_MS);
+            Thread.sleep(HEALTH_CHECK_PERIOD_MS);
         } catch (Exception e) {
             log.error("ReplicatorHeartbeatTask healthCheck exception,", e);
         }
@@ -177,7 +175,7 @@ public class ReplicatorHeartbeatTask extends SourceTask {
     @Override
     public void start(KeyValue config) {
         log.info("ReplicatorHeartbeatTask init " + config);
-        log.info(" sourceTaskContextConfigs : " + sourceTaskContext.configs());
+        log.info("sourceTaskContextConfigs : " + sourceTaskContext.configs());
         // build connectConfig
         connectorConfig.setTaskId(sourceTaskContext.getTaskName().substring(sourceTaskContext.getConnectorName().length()));
         connectorConfig.setConnectorId(sourceTaskContext.getConnectorName());
