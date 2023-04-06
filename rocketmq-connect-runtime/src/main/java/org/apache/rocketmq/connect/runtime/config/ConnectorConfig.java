@@ -68,6 +68,16 @@ public class ConnectorConfig {
     public static final String ERRORS_TOLERANCE_CONFIG = "errors.tolerance";
     public static final ToleranceType ERRORS_TOLERANCE_DEFAULT = ToleranceType.NONE;
     /**
+     * Use connector's namesrv address to create producer in `SourceTask`.
+     */
+    public final static String USE_NAMESRV_OF_CONNECTOR = "use.namesrv.of.connector";
+    public static final String RMQ_ACL_ENABLE = "rmq.acl.enable";
+    public static final String RMQ_ACCESS_KEY = "rmq.access.key";
+    public static final String RMQ_SECRET_KEY = "rmq.secret_key";
+    public static final String RMQ_NAMESRVADDR = "rmq.namesrvaddr";
+    public static final String RMQ_PRODUCER_GROUP = "rmq.producer.group";
+    public static final String RMQ_OPERATION_TIMEOUT = "rmq.operation.timeout";
+    /**
      * The required key for all configurations.
      */
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {

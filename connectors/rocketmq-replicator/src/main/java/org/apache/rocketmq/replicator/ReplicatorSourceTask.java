@@ -16,11 +16,39 @@
  */
 package org.apache.rocketmq.replicator;
 
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
+import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
 import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
-import io.openmessaging.connector.api.data.*;
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.internal.DefaultKeyValue;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
@@ -58,21 +86,10 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
 
 /**
  * @author osgoo
+ * @date 2022/6/16
  */
 public class ReplicatorSourceTask extends SourceTask {
     private static final Logger log = LoggerFactory.getLogger(ReplicatorSourceTask.class);
@@ -189,6 +206,7 @@ public class ReplicatorSourceTask extends SourceTask {
         if (srcMQAdminExt != null) {
             srcMQAdminExt.shutdown();
         }
+        // use /home/admin/onskey white ak as default
         RPCHook rpcHook = null;
         if (connectorConfig.isSrcAclEnable()) {
             if (StringUtils.isNotEmpty(connectorConfig.getSrcAccessKey()) && StringUtils.isNotEmpty(connectorConfig.getSrcSecretKey())) {
@@ -699,9 +717,9 @@ public class ReplicatorSourceTask extends SourceTask {
         connectorConfig.setDestInstanceId(config.getString(ReplicatorConnectorConfig.DEST_INSTANCEID));
         connectorConfig.setDestEndpoint(config.getString(ReplicatorConnectorConfig.DEST_ENDPOINT));
         connectorConfig.setDestTopic(config.getString(ReplicatorConnectorConfig.DEST_TOPIC));
-        connectorConfig.setDestAclEnable(Boolean.valueOf(config.getString(ReplicatorConnectorConfig.DEST_ACL_ENABLE, "true")));
-        connectorConfig.setSrcAclEnable(Boolean.valueOf(config.getString(ReplicatorConnectorConfig.SRC_ACL_ENABLE, "true")));
-        connectorConfig.setAutoCreateInnerConsumergroup(Boolean.valueOf(config.getString(ReplicatorConnectorConfig.AUTO_CREATE_INNER_CONSUMERGROUP, "false")));
+        connectorConfig.setDestAclEnable(Boolean.parseBoolean(config.getString(ReplicatorConnectorConfig.DEST_ACL_ENABLE, "true")));
+        connectorConfig.setSrcAclEnable(Boolean.parseBoolean(config.getString(ReplicatorConnectorConfig.SRC_ACL_ENABLE, "true")));
+        connectorConfig.setAutoCreateInnerConsumergroup(Boolean.parseBoolean(config.getString(ReplicatorConnectorConfig.AUTO_CREATE_INNER_CONSUMERGROUP, "false")));
 
         connectorConfig.setSyncTps(config.getInt(ReplicatorConnectorConfig.SYNC_TPS));
         connectorConfig.setDividedNormalQueues(config.getString(ReplicatorConnectorConfig.DIVIDED_NORMAL_QUEUES));
@@ -710,7 +728,7 @@ public class ReplicatorSourceTask extends SourceTask {
 
         connectorConfig.setConsumeFromWhere(config.getString(ReplicatorConnectorConfig.CONSUME_FROM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET.name()));
         if (connectorConfig.getConsumeFromWhere() == ConsumeFromWhere.CONSUME_FROM_TIMESTAMP) {
-            connectorConfig.setConsumeFromTimestamp(Long.valueOf(config.getString(ReplicatorConnectorConfig.CONSUME_FROM_TIMESTAMP)));
+            connectorConfig.setConsumeFromTimestamp(Long.parseLong(config.getString(ReplicatorConnectorConfig.CONSUME_FROM_TIMESTAMP)));
         }
         log.info("ReplicatorSourceTask connectorConfig : " + connectorConfig);
 
@@ -731,8 +749,7 @@ public class ReplicatorSourceTask extends SourceTask {
             buildConsumer();
             log.info("buildConsumer finished.");
             // init limiter
-            int limit = connectorConfig.getSyncTps();
-            tpsLimit = limit;
+            tpsLimit = connectorConfig.getSyncTps();
             log.info("RateLimiter init finished.");
             // subscribe topic & start consumer
             subscribeTopicAndStartConsumer();
