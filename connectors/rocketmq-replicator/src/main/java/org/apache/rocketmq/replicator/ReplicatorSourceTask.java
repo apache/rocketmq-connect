@@ -488,12 +488,18 @@ public class ReplicatorSourceTask extends SourceTask {
     }
 
     private String swapTopic(String topic) {
-        // normal topic, dest topic use destTopic config
-        if (!topic.startsWith("%RETRY%") && !topic.startsWith("%DLQ%")) {
-            return ReplicatorUtils.buildTopicWithNamespace(connectorConfig.getDestTopic(), connectorConfig.getDestInstanceId());
+        if (topic.startsWith("%RETRY%") || topic.startsWith("%DLQ%")) {
+            log.error("topic : " + topic + " is retry or dlq.");
+            return null;
         }
-        log.error("topic : " + topic + " is retry or dlq.");
-        return null;
+        String targetTopic = connectorConfig.getDestTopic();
+        String targetTopicWithInstanceId;
+        if (StringUtils.isEmpty(targetTopic) || StringUtils.isBlank(targetTopic)) {
+            targetTopicWithInstanceId = ReplicatorUtils.buildTopicWithNamespace(topic, connectorConfig.getDestInstanceId());
+        } else {
+            targetTopicWithInstanceId = ReplicatorUtils.buildTopicWithNamespace(targetTopic, connectorConfig.getDestInstanceId());
+        }
+        return targetTopicWithInstanceId;
     }
 
     private ConnectRecord convertToSinkDataEntry(MessageExt message) {
