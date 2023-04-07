@@ -28,6 +28,7 @@ import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -99,7 +100,6 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_REGION);
             add(ReplicatorConnectorConfig.DEST_CLUSTER);
             add(ReplicatorConnectorConfig.DEST_ENDPOINT);
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
             add(ReplicatorConnectorConfig.SYNC_GIDS);
             add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
@@ -122,7 +122,7 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
         this.config = keyValue;
         try {
             buildAndStartTargetMQAdmin();
-            createCheckpointTopic();
+            createCheckpointTopicIfNotExist();
         } catch (MQClientException e) {
             throw new InitMQClientException("Replicator checkpoint connector init mqAdminClient error.", e);
         }
@@ -164,14 +164,23 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
         }
     }
 
-    private void createCheckpointTopic() {
+    private void createCheckpointTopicIfNotExist() {
+        String checkpointTopic = config.getString(ReplicatorConnectorConfig.CHECKPOINT_TOPIC, ReplicatorConnectorConfig.DEFAULT_CHECKPOINT_TOPIC);
+        TopicRouteData topicRouteData = null;
+        try {
+            topicRouteData = targetMqAdminExt.examineTopicRouteInfo(checkpointTopic);
+        } catch (Exception ignored) {
+        }
+        if (topicRouteData != null && !topicRouteData.getQueueDatas().isEmpty()) {
+            return;
+        }
         //create target checkpoint topic, todo compact topic
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setReadQueueNums(8);
         topicConfig.setWriteQueueNums(8);
-        int perm = PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
+        int perm = PermName.PERM_READ | PermName.PERM_WRITE;
         topicConfig.setPerm(perm);
-        topicConfig.setTopicName(config.getString(ReplicatorConnectorConfig.CHECKPOINT_TOPIC, ReplicatorConnectorConfig.DEFAULT_CHECKPOINT_TOPIC));
+        topicConfig.setTopicName(checkpointTopic);
         ReplicatorUtils.createTopic(targetMqAdminExt, topicConfig);
     }
 }

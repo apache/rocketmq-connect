@@ -144,7 +144,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
             lastCheckPointTimestamp = System.currentTimeMillis();
             return null;
         }
-        Set<String> srcTopics = connectorConfig.getSrcTopics(connectorConfig.getSrcTopics());
+        Set<String> srcTopics = ReplicatorConnectorConfig.getSrcTopics(connectorConfig.getSrcTopics());
         try {
             String[] syncGidArr = syncGids.split(connectorConfig.GID_SPLITTER);
             for (String consumerGroup : syncGidArr) {

@@ -269,9 +269,8 @@ public class ReplicatorSourceTask extends SourceTask {
         ConsumeFromWhere consumeFromWhere = connectorConfig.getConsumeFromWhere();
         pullConsumer.setConsumeFromWhere(org.apache.rocketmq.common.consumer.ConsumeFromWhere.valueOf(consumeFromWhere.name()));
         log.info("litePullConsumer use " + consumeFromWhere.name());
-        long consumeFromTimestamp = System.currentTimeMillis();
         if (consumeFromWhere == ConsumeFromWhere.CONSUME_FROM_TIMESTAMP) {
-            consumeFromTimestamp = connectorConfig.getConsumeFromTimestamp();
+            long consumeFromTimestamp = connectorConfig.getConsumeFromTimestamp();
             String timestamp = UtilAll.timeMillisToHumanString3(consumeFromTimestamp);
             pullConsumer.setConsumeTimestamp(timestamp);
             log.info("litePullConsumer consume start at " + timestamp);
