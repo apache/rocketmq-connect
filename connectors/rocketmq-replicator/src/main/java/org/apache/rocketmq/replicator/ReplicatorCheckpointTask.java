@@ -144,7 +144,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
             lastCheckPointTimestamp = System.currentTimeMillis();
             return null;
         }
-        Set<String> srcTopics = connectorConfig.getSrcTopics(connectorConfig.getSrcTopics());
+        Set<String> srcTopics = ReplicatorConnectorConfig.getSrcTopicTagMap(connectorConfig.getSrcInstanceId(), connectorConfig.getSrcTopicTags()).keySet();
         try {
             String[] syncGidArr = syncGids.split(connectorConfig.GID_SPLITTER);
             for (String consumerGroup : syncGidArr) {
@@ -258,7 +258,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
         connectorConfig.setSrcCluster(config.getString(connectorConfig.SRC_CLUSTER));
         connectorConfig.setSrcInstanceId(config.getString(connectorConfig.SRC_INSTANCEID));
         connectorConfig.setSrcEndpoint(config.getString(connectorConfig.SRC_ENDPOINT));
-        connectorConfig.setSrcTopics(config.getString(connectorConfig.SRC_TOPICS));
+        connectorConfig.setSrcTopicTags(config.getString(connectorConfig.getSrcTopicTags()));
         connectorConfig.setDestCloud(config.getString(connectorConfig.DEST_CLOUD));
         connectorConfig.setDestRegion(config.getString(connectorConfig.DEST_REGION));
         connectorConfig.setDestCluster(config.getString(connectorConfig.DEST_CLUSTER));
