@@ -71,7 +71,6 @@ public class ReplicatorHeartbeatConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_INSTANCEID);
             add(ReplicatorConnectorConfig.DEST_ENDPOINT);
             add(ReplicatorConnectorConfig.DEST_TOPIC);
-            add(ReplicatorConnectorConfig.SRC_CLOUD);
             add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
         }
