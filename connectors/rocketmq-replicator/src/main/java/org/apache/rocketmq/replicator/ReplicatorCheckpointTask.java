@@ -57,7 +57,6 @@ import static org.apache.rocketmq.replicator.utils.ReplicatorUtils.METADATA_KEY;
 import static org.apache.rocketmq.replicator.utils.ReplicatorUtils.TOPIC_KEY;
 import static org.apache.rocketmq.replicator.utils.ReplicatorUtils.UPSTREAM_LASTTIMESTAMP_KEY;
 
-
 public class ReplicatorCheckpointTask extends SourceTask {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.REPLICATRO_RUNTIME);
@@ -66,21 +65,18 @@ public class ReplicatorCheckpointTask extends SourceTask {
     private DefaultMQAdminExt srcMqAdminExt;
     private DefaultMQAdminExt targetMqAdminExt;
 
-
     public static final Schema VALUE_SCHEMA_V0 = SchemaBuilder.struct()
-            .field(CONSUMER_GROUP_KEY, SchemaBuilder.string().build())
-            .field(TOPIC_KEY, SchemaBuilder.string().build())
-            .field(UPSTREAM_LASTTIMESTAMP_KEY, SchemaBuilder.int64().build())
-            .field(DOWNSTREAM_LASTTIMESTAMP_KEY, SchemaBuilder.int64().build())
-            .field(METADATA_KEY, SchemaBuilder.string().build())
-            .build();
-
+        .field(CONSUMER_GROUP_KEY, SchemaBuilder.string().build())
+        .field(TOPIC_KEY, SchemaBuilder.string().build())
+        .field(UPSTREAM_LASTTIMESTAMP_KEY, SchemaBuilder.int64().build())
+        .field(DOWNSTREAM_LASTTIMESTAMP_KEY, SchemaBuilder.int64().build())
+        .field(METADATA_KEY, SchemaBuilder.string().build())
+        .build();
 
     public static final Schema KEY_SCHEMA = SchemaBuilder.struct()
-            .field(CONSUMER_GROUP_KEY, SchemaBuilder.string().build())
-            .field(TOPIC_KEY, SchemaBuilder.string().build())
-            .build();
-
+        .field(CONSUMER_GROUP_KEY, SchemaBuilder.string().build())
+        .field(TOPIC_KEY, SchemaBuilder.string().build())
+        .build();
 
     private void buildMqAdmin() throws MQClientException {
         buildAndStartSrcMQAdmin();
@@ -133,7 +129,6 @@ public class ReplicatorCheckpointTask extends SourceTask {
         }
     }
 
-
     @Override
     public List<ConnectRecord> poll() throws InterruptedException {
         if (lastCheckPointTimestamp + connectorConfig.getCheckpointIntervalMs() > System.currentTimeMillis()) {
@@ -143,7 +138,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
         }
         log.info("not sleep " + lastCheckPointTimestamp + ", " + connectorConfig.getCheckpointIntervalMs() + ", " + System.currentTimeMillis());
         List<ConnectRecord> connectRecords = new LinkedList<>();
-        // pull consumergroup's consumer commit offset
+        // pull consumer group's consumer commit offset
         String syncGids = connectorConfig.getSyncGids();
         if (StringUtils.isEmpty(syncGids)) {
             lastCheckPointTimestamp = System.currentTimeMillis();
@@ -182,7 +177,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
                         connectRecord.addExtension(TOPIC_KEY, connectorConfig.getCheckpointTopic());
                         connectRecords.add(connectRecord);
                     } catch (Exception e) {
-                        log.error("examineConsumeStats gid : " + consumerGroup + ", topic : " + srcTopic +  " error", e);
+                        log.error("examineConsumeStats gid : " + consumerGroup + ", topic : " + srcTopic + " error", e);
                     }
                 }
             }
@@ -195,7 +190,8 @@ public class ReplicatorCheckpointTask extends SourceTask {
     }
 
     @NotNull
-    private static Struct buildCheckpointPayload(String srcTopicWithInstanceId, String srcConsumerGroupWithInstanceId, long minSrcLasttimestamp, long minDestLasttimestamp) {
+    private static Struct buildCheckpointPayload(String srcTopicWithInstanceId, String srcConsumerGroupWithInstanceId,
+        long minSrcLasttimestamp, long minDestLasttimestamp) {
         Struct struct = new Struct(VALUE_SCHEMA_V0);
         struct.put(CONSUMER_GROUP_KEY, srcConsumerGroupWithInstanceId);
         struct.put(TOPIC_KEY, srcTopicWithInstanceId);
@@ -212,7 +208,8 @@ public class ReplicatorCheckpointTask extends SourceTask {
         return struct;
     }
 
-    private long getMinSrcLasttimestamp(ConsumeStats consumeStats) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+    private long getMinSrcLasttimestamp(
+        ConsumeStats consumeStats) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         long minSrcLasttimestamp = -1;
         if (null != consumeStats) {
             Map<MessageQueue, OffsetWrapper> offsetTable = consumeStats.getOffsetTable();

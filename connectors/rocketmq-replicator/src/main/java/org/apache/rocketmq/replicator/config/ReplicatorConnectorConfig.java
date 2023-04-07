@@ -92,6 +92,7 @@ public class ReplicatorConnectorConfig {
     //
     private int heartbeatIntervalMs = 1 * 1000;
     private int checkpointIntervalMs = 10 * 1000;
+    private long commitOffsetIntervalMs = 10 * 1000;
     private String heartbeatTopic;
     private String checkpointTopic;
     public final static String DEFAULT_HEARTBEAT_TOPIC = "replicator_heartbeat";
@@ -160,6 +161,7 @@ public class ReplicatorConnectorConfig {
     public final static String DIVIDED_DLQ_QUEUES = "divided.dlqqueues";
     public final static String SYNC_TPS = "sync.tps";
     public final static String MAX_TASK = "max.task";
+    public final static String COMMIT_OFFSET_INTERVALS_MS = "commit.offset.interval.ms";
 
     public String getTaskId() {
         return taskId;
@@ -627,6 +629,14 @@ public class ReplicatorConnectorConfig {
         this.consumeFromWhere = consumeFromWhere;
     }
 
+    public long getCommitOffsetIntervalMs() {
+        return commitOffsetIntervalMs;
+    }
+
+    public void setCommitOffsetIntervalMs(long commitOffsetIntervalMs) {
+        this.commitOffsetIntervalMs = commitOffsetIntervalMs;
+    }
+
     @Override
     public String toString() {
         return "ReplicatorConnectorConfig{" +
@@ -668,6 +678,7 @@ public class ReplicatorConnectorConfig {
                 ", syncTps=" + syncTps +
                 ", heartbeatIntervalMs=" + heartbeatIntervalMs +
                 ", checkpointIntervalMs=" + checkpointIntervalMs +
+                ", commitOffsetIntervalMs=" + commitOffsetIntervalMs +
                 ", heartbeatTopic='" + heartbeatTopic + '\'' +
                 ", checkpointTopic='" + checkpointTopic + '\'' +
                 ", eachQueueBufferSize=" + eachQueueBufferSize +
