@@ -65,7 +65,7 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
         keyValue.put(ReplicatorConnectorConfig.SRC_ACL_ENABLE, config.getString(ReplicatorConnectorConfig.SRC_ACL_ENABLE, "false"));
         keyValue.put(ReplicatorConnectorConfig.SRC_ACCESS_KEY, config.getString(ReplicatorConnectorConfig.SRC_ACCESS_KEY, ""));
         keyValue.put(ReplicatorConnectorConfig.SRC_SECRET_KEY, config.getString(ReplicatorConnectorConfig.SRC_SECRET_KEY, ""));
-        keyValue.put(ReplicatorConnectorConfig.SRC_TOPICS, config.getString(ReplicatorConnectorConfig.SRC_TOPICS));
+        keyValue.put(ReplicatorConnectorConfig.SRC_TOPICTAGS, config.getString(ReplicatorConnectorConfig.SRC_TOPICTAGS));
         keyValue.put(ReplicatorConnectorConfig.DEST_CLOUD, config.getString(ReplicatorConnectorConfig.DEST_CLOUD));
         keyValue.put(ReplicatorConnectorConfig.DEST_REGION, config.getString(ReplicatorConnectorConfig.DEST_REGION));
         keyValue.put(ReplicatorConnectorConfig.DEST_CLUSTER, config.getString(ReplicatorConnectorConfig.DEST_CLUSTER));
@@ -95,7 +95,7 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.SRC_REGION);
             add(ReplicatorConnectorConfig.SRC_CLUSTER);
             add(ReplicatorConnectorConfig.SRC_ENDPOINT);
-            add(ReplicatorConnectorConfig.SRC_TOPICS);
+            add(ReplicatorConnectorConfig.SRC_TOPICTAGS);
             add(ReplicatorConnectorConfig.DEST_CLOUD);
             add(ReplicatorConnectorConfig.DEST_REGION);
             add(ReplicatorConnectorConfig.DEST_CLUSTER);
