@@ -330,7 +330,7 @@ public class ReplicatorSourceTask extends SourceTask {
     }
 
     private void commitOffsetSchedule() {
-        ConcurrentHashMap<MessageQueue, Long> commitOffsetTable = new ConcurrentHashMap<>();
+        Map<MessageQueue, Long> commitOffsetTable = new HashMap<>();
         prepareCommitOffset.forEach((messageQueue, offset) -> commitOffsetTable.put(messageQueue, offset.get()));
         pullConsumer.commitSync(commitOffsetTable, true);
     }
