@@ -43,7 +43,6 @@ public class ReplicatorConnectorConfig {
     private String srcCluster;
     private String srcInstanceId;
     private String srcTopicTags; // format topic-1,tag-a;topic-2,tag-b;topic-3,tag-c
-    private String srcTopics; // format topic-1;topic-2,tag-b;topic-3,tag-c
     private String srcEndpoint;
     private boolean srcAclEnable;
     private boolean autoCreateInnerConsumergroup;
@@ -66,7 +65,7 @@ public class ReplicatorConnectorConfig {
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
     // consume from timestamp
     private long consumeFromTimestamp = System.currentTimeMillis();
-    // sourcetask replicate to mq failover strategy
+    // source task replicate to mq failover strategy
     private FailoverStrategy failoverStrategy = FailoverStrategy.DISMISS;
     private boolean enableHeartbeat = true;
     private boolean enableCheckpoint = true;
@@ -90,7 +89,7 @@ public class ReplicatorConnectorConfig {
     private int syncTps = 1000;
     private int maxTask = 2;
     //
-    private int heartbeatIntervalMs = 1 * 1000;
+    private int heartbeatIntervalMs = 1000;
     private int checkpointIntervalMs = 10 * 1000;
     private long commitOffsetIntervalMs = 10 * 1000;
     private String heartbeatTopic;
@@ -120,8 +119,6 @@ public class ReplicatorConnectorConfig {
     public final static String SRC_CLUSTER = "src.cluster";
     public final static String SRC_INSTANCEID = "src.instanceid";
     public final static String SRC_TOPICTAGS = "src.topictags";
-
-    public final static String SRC_TOPICS = "src.topics";
     public final static String SRC_ENDPOINT = "src.endpoint";
     public final static String SRC_ACL_ENABLE = "src.acl.enable";
     public final static String SRC_ACCESS_KEY = "src.access.key";
@@ -242,29 +239,12 @@ public class ReplicatorConnectorConfig {
         return topicTagMap;
     }
 
-
-    public static Set<String> getSrcTopics(String srcTopics) {
-        if (StringUtils.isEmpty(srcTopics) || StringUtils.isBlank(srcTopics)) {
-            return null;
-        }
-        List<String> topicList = Splitter.on(TOPIC_SPLITTER).omitEmptyStrings().trimResults().splitToList(srcTopics);
-        return new HashSet(topicList);
-    }
-
     public String getSrcTopicTags() {
         return srcTopicTags;
     }
 
     public void setSrcTopicTags(String srcTopicTags) {
         this.srcTopicTags = srcTopicTags;
-    }
-
-    public String getSrcTopics() {
-        return srcTopics;
-    }
-
-    public void setSrcTopics(String srcTopics) {
-        this.srcTopics = srcTopics;
     }
 
     public String getSrcEndpoint() {
