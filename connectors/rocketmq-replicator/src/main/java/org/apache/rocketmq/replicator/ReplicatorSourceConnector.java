@@ -224,7 +224,6 @@ public class ReplicatorSourceConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_REGION);
             add(ReplicatorConnectorConfig.DEST_CLUSTER);
             add(ReplicatorConnectorConfig.DEST_ENDPOINT);
-            add(ReplicatorConnectorConfig.DEST_TOPIC);
             add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
             add(ERRORS_TOLERANCE_CONFIG);
@@ -233,7 +232,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
 
     @Override
     public void validate(KeyValue config) {
-        log.info("sourceconnectValidate : " + config);
+        log.info("source connector validate : " + config);
         if (StringUtils.isNotBlank(config.getString(CONNECT_TOPICNAME))) {
             log.warn("ReplicatorSourceConnector no need to set " + CONNECT_TOPICNAME + ", use " + ReplicatorConnectorConfig.DEST_TOPIC + " instead.");
             // use destInstanceId % destTopic for sink instead of CONNECT_TOPICNAME
