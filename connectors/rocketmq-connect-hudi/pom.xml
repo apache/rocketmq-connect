@@ -15,7 +15,7 @@
         <!-- Compiler settings properties -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <rocketmq.version>4.7.1</rocketmq.version>
+        <rocketmq.version>4.9.5</rocketmq.version>
 
         <hudi.version>0.8.0</hudi.version>
         <avro.version>1.10.2</avro.version>
