@@ -290,7 +290,7 @@ public class ReplicatorSourceTask extends SourceTask {
         for (MessageQueue mq : allQueues) {
             String topic = mq.getTopic();
             String tag = ReplicatorConnectorConfig.getSrcTopicTagMap(connectorConfig.getSrcInstanceId(), connectorConfig.getSrcTopicTags()).get(topic);
-//            pullConsumer.setSubExpressionForAssign(topic, tag);
+            pullConsumer.setSubExpressionForAssign(topic, tag);
         }
 
         try {

@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.connect.metrics.reporter;
 
-import com.beust.jcommander.internal.Sets;
+import com.google.common.collect.Sets;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.exception.MQClientException;
