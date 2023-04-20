@@ -285,7 +285,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
             log.error("init admin client error", e);
             throw new InitMQClientException("Replicator source connector init mqAdminClient error.", e);
         }
-        requestTaskReconfigIntervalMs = connectorConfig.getLong(ReplicatorConnectorConfig.REQUEST_TASK_RECONFIG_INTERVAL_MS, 10 * 1000);
+        requestTaskReconfigIntervalMs = connectorConfig.getLong(ReplicatorConnectorConfig.REQUEST_TASK_RECONFIG_INTERVAL_MS, 30 * 1000);
         requestTaskReconfigExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -295,7 +295,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
                     log.error("Request task reconfig error", e);
                 }
             }
-        }, 10 * 1000, requestTaskReconfigIntervalMs, TimeUnit.MILLISECONDS);
+        }, 60 * 1000, requestTaskReconfigIntervalMs, TimeUnit.MILLISECONDS);
     }
 
     @Override
