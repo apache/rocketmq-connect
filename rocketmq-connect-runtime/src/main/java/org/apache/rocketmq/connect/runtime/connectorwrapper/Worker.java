@@ -516,7 +516,7 @@ public class Worker {
 
 
     public Set<WorkerConnector> getWorkingConnectors() {
-        return workingConnectors;
+        return new HashSet<>(connectors.values());
     }
 
     public void setWorkingConnectors(

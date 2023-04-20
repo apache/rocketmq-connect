@@ -65,7 +65,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
     private final Log log = LogFactory.getLog(ReplicatorSourceConnector.class);
     private KeyValue connectorConfig;
     private DefaultMQAdminExt srcMQAdminExt;
-    private List<MessageQueue> curMessageQueues = new LinkedList<>();
+    private volatile Set<MessageQueue> curMessageQueues = new HashSet<>();
     private long requestTaskReconfigIntervalMs;
     private ScheduledExecutorService requestTaskReconfigExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
@@ -100,8 +100,14 @@ public class ReplicatorSourceConnector extends SourceConnector {
         }
     }
 
-    private List<MessageQueue> fetchMessageQueues(List<String> topicList) {
-        List<MessageQueue> messageQueues = new LinkedList<>();
+    private synchronized void closeScheduleTask() {
+        if (requestTaskReconfigExecutorService != null) {
+            requestTaskReconfigExecutorService.shutdown();
+        }
+    }
+
+    private Set<MessageQueue> fetchMessageQueues(List<String> topicList) {
+        Set<MessageQueue> messageQueues = new HashSet<>();
         try {
             for (String topic : topicList) {
                 TopicRouteData topicRouteData = srcMQAdminExt.examineTopicRouteInfo(topic);
@@ -141,7 +147,7 @@ public class ReplicatorSourceConnector extends SourceConnector {
         return result;
     }
 
-    private void requestTaskReconfig() {
+    private void checkAndRequestTaskReconfig() {
         Map<String, String> topicTagMap = ReplicatorConnectorConfig.getSrcTopicTagMap(
                 connectorConfig.getString(ReplicatorConnectorConfig.SRC_INSTANCEID),
                 connectorConfig.getString(ReplicatorConnectorConfig.SRC_TOPICTAGS));
@@ -149,20 +155,20 @@ public class ReplicatorSourceConnector extends SourceConnector {
             throw new ConnectException("Source topics & tags config cannot be null, please check the config info");
         }
         List<String> topics = new LinkedList<>(topicTagMap.keySet());
-        List<MessageQueue> updatedMessageQueues = fetchMessageQueues(topics);
+        Set<MessageQueue> updatedMessageQueues = fetchMessageQueues(topics);
+
+        if (CollectionUtils.isEmpty(curMessageQueues)) {
+            curMessageQueues = updatedMessageQueues;
+            return;
+        }
         if (!CollectionUtils.isEqualCollection(curMessageQueues, updatedMessageQueues)) {
+            curMessageQueues = updatedMessageQueues;
             connectorContext.requestTaskReconfiguration();
         }
     }
 
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
-        try {
-            initAdmin();
-        } catch (Exception e) {
-            log.error("init admin client error", e);
-            throw new InitMQClientException("Replicator source connector init mqAdminClient error.", e);
-        }
         // normal topic
         Map<String, String> topicTagMap = ReplicatorConnectorConfig.getSrcTopicTagMap(
                 connectorConfig.getString(ReplicatorConnectorConfig.SRC_INSTANCEID),
@@ -174,13 +180,15 @@ public class ReplicatorSourceConnector extends SourceConnector {
         // todo rebalance 使用原生的；runtime & connector 都保存offset；
         // get queue
         curMessageQueues = fetchMessageQueues(topics);
+        int taskNum;
+        taskNum = Math.min(curMessageQueues.size(), maxTasks);
         log.info("messageQueue : " + curMessageQueues.size() + " " + curMessageQueues);
         // divide
-        List<List<MessageQueue>> normalDivided = divide(curMessageQueues, maxTasks);
+        List<List<MessageQueue>> normalDivided = divide(new ArrayList<>(curMessageQueues), taskNum);
         log.info("normalDivided : " + normalDivided + " " + normalDivided);
 
         List<KeyValue> configs = new ArrayList<>();
-        for (int i = 0; i < maxTasks; i++) {
+        for (int i = 0; i < taskNum; i++) {
             KeyValue keyValue = new DefaultKeyValue();
             keyValue.put(ReplicatorConnectorConfig.DIVIDED_NORMAL_QUEUES, JSON.toJSONString(normalDivided.get(i)));
 
@@ -223,7 +231,6 @@ public class ReplicatorSourceConnector extends SourceConnector {
                 return buildCompareString(o1).compareTo(buildCompareString(o2));
             }
         });
-        closeAdmin();
         return configs;
     }
 
@@ -272,22 +279,29 @@ public class ReplicatorSourceConnector extends SourceConnector {
     @Override
     public void start(KeyValue keyValue) {
         this.connectorConfig = keyValue;
-        requestTaskReconfigIntervalMs = connectorConfig.getLong(ReplicatorConnectorConfig.REQUEST_TASK_RECONFIG_INTERVAL_MS, 30 * 1000);
+        try {
+            initAdmin();
+        } catch (Exception e) {
+            log.error("init admin client error", e);
+            throw new InitMQClientException("Replicator source connector init mqAdminClient error.", e);
+        }
+        requestTaskReconfigIntervalMs = connectorConfig.getLong(ReplicatorConnectorConfig.REQUEST_TASK_RECONFIG_INTERVAL_MS, 10 * 1000);
         requestTaskReconfigExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 try {
-                    requestTaskReconfig();
+                    checkAndRequestTaskReconfig();
                 } catch (Throwable e) {
                     log.error("Request task reconfig error", e);
                 }
             }
-        }, requestTaskReconfigIntervalMs, requestTaskReconfigIntervalMs, TimeUnit.MILLISECONDS);
+        }, 10 * 1000, requestTaskReconfigIntervalMs, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void stop() {
         closeAdmin();
+        closeScheduleTask();
     }
 
 }
