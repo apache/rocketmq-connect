@@ -82,7 +82,8 @@ public class WorkerConfig {
      * config example:
      * autoCreateGroupEnable = false
      */
-    private boolean autoCreateGroupEnable = false;
+    private boolean autoCreateGroupEnable = true;
+    private boolean autoCreateTopicEnable = true;
 
     /**
      * Configure cluster converter
@@ -436,6 +437,14 @@ public class WorkerConfig {
 
     public void setAutoCreateGroupEnable(boolean autoCreateGroupEnable) {
         this.autoCreateGroupEnable = autoCreateGroupEnable;
+    }
+
+    public boolean isAutoCreateTopicEnable() {
+        return autoCreateTopicEnable;
+    }
+
+    public void setAutoCreateTopicEnable(boolean autoCreateTopicEnable) {
+        this.autoCreateTopicEnable = autoCreateTopicEnable;
     }
 
     public String getAdminExtGroup() {
