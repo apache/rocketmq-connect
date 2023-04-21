@@ -134,16 +134,6 @@ public class WorkerTest {
         stateManagementService = new LocalStateManagementServiceImpl();
         stateManagementService.initialize(connectConfig, new TestConverter());
         worker = new Worker(connectConfig, positionManagementService, configManagementService, plugin, connectController, stateManagementService);
-
-        Set<WorkerConnector> workingConnectors = new HashSet<>();
-        for (int i = 0; i < 3; i++) {
-            ConnectKeyValue connectKeyValue = new ConnectKeyValue();
-            connectKeyValue.getProperties().put("key1", "TEST-CONN-" + i + "1");
-            connectKeyValue.getProperties().put("key2", "TEST-CONN-" + i + "2");
-            workingConnectors.add(new WorkerConnector("TEST-CONN-" + i, new TestConnector(), connectKeyValue, connectorContext, null, null));
-        }
-        worker.setWorkingConnectors(workingConnectors);
-        assertThat(worker.getWorkingConnectors().size()).isEqualTo(3);
         TransformChain<ConnectRecord> transformChain = new TransformChain<ConnectRecord>(new DefaultKeyValue(), plugin);
         Set<Runnable> runnables = new HashSet<>();
 
