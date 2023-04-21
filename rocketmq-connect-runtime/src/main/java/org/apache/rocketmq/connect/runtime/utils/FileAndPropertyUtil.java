@@ -37,21 +37,22 @@ public class FileAndPropertyUtil {
      * @throws IOException
      */
     public static void string2File(final String str, final String fileName) throws IOException {
+        synchronized (fileName) {
+            String tmpFile = fileName + ".tmp";
+            string2FileNotSafe(str, tmpFile);
 
-        String tmpFile = fileName + ".tmp";
-        string2FileNotSafe(str, tmpFile);
+            String bakFile = fileName + ".bak";
+            String prevContent = file2String(fileName);
+            if (prevContent != null) {
+                string2FileNotSafe(prevContent, bakFile);
+            }
 
-        String bakFile = fileName + ".bak";
-        String prevContent = file2String(fileName);
-        if (prevContent != null) {
-            string2FileNotSafe(prevContent, bakFile);
+            File file = new File(fileName);
+            file.delete();
+
+            file = new File(tmpFile);
+            file.renameTo(new File(fileName));
         }
-
-        File file = new File(fileName);
-        file.delete();
-
-        file = new File(tmpFile);
-        file.renameTo(new File(fileName));
     }
 
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
