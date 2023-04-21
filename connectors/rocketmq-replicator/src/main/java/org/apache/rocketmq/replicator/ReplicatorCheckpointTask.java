@@ -258,7 +258,7 @@ public class ReplicatorCheckpointTask extends SourceTask {
         connectorConfig.setSrcCluster(config.getString(connectorConfig.SRC_CLUSTER));
         connectorConfig.setSrcInstanceId(config.getString(connectorConfig.SRC_INSTANCEID));
         connectorConfig.setSrcEndpoint(config.getString(connectorConfig.SRC_ENDPOINT));
-        connectorConfig.setSrcTopicTags(config.getString(connectorConfig.getSrcTopicTags()));
+        connectorConfig.setSrcTopicTags(config.getString(connectorConfig.SRC_TOPICTAGS));
         connectorConfig.setDestCloud(config.getString(connectorConfig.DEST_CLOUD));
         connectorConfig.setDestRegion(config.getString(connectorConfig.DEST_REGION));
         connectorConfig.setDestCluster(config.getString(connectorConfig.DEST_CLUSTER));
