@@ -105,10 +105,7 @@ public class Worker {
     private final ConfigManagementService configManagementService;
     private final ConnectMetrics connectMetrics;
     Map<String, List<ConnectKeyValue>> latestTaskConfigs = new HashMap<>();
-    /**
-     * Current running connectors.
-     */
-    private Set<WorkerConnector> workingConnectors = new ConcurrentSet<>();
+
     /**
      * Current tasks state.
      */
@@ -516,12 +513,7 @@ public class Worker {
 
 
     public Set<WorkerConnector> getWorkingConnectors() {
-        return workingConnectors;
-    }
-
-    public void setWorkingConnectors(
-            Set<WorkerConnector> workingConnectors) {
-        this.workingConnectors = workingConnectors;
+        return new HashSet<>(connectors.values());
     }
 
     /**
