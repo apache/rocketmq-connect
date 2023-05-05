@@ -21,8 +21,13 @@ package org.apache.rocketmq.connect.runtime.common;
  * Define all the logger name of the runtime.
  */
 public class LoggerName {
+    public static final String CONNECT_BUG = "ConnectBug";
+
     public static final String ROCKETMQ_RUNTIME = "RocketMQRuntime";
     public static final String BROKER_BASE_LOG = "BrokerBaseLog";
     public static final String COMMON_LOGGER_NAME = "ConnectCommon";
     public static final String ROCKETMQ_CONNECT_STATS = "RocketmqConnectStats";
+    public static final String REPLICATRO_RUNTIME = "ReplicatorRuntime";
+    public static final String WORKER_MSG_ID = "WorkerMsgId";
+    public static final String WORKER_ERROR_MSG_ID = "WorkerErrorMsgId";
 }

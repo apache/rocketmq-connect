@@ -201,12 +201,12 @@ public class WorkerSinkTaskContext implements SinkTaskContext {
 
     @Override
     public String getConnectorName() {
-        return taskConfig.getString("connectorName");
+        return workerSinkTask.id().connector();
     }
 
     @Override
     public String getTaskName() {
-        return taskConfig.getString("taskId");
+        return workerSinkTask.id().toString();
     }
 
     /**

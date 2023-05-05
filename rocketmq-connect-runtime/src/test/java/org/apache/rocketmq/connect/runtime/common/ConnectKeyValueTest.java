@@ -41,6 +41,7 @@ public class ConnectKeyValueTest {
         keyValue.put("DoubleKey", 5.2);
 
         assertEquals("StringValue", keyValue.getString("StringKey"));
+        assertEquals(null, keyValue.getString("nothingness"));
         assertEquals(0, keyValue.getInt("IntegerKey"));
         assertEquals(1L, keyValue.getLong("LongKey"));
         assertEquals(5.2, keyValue.getDouble("DoubleKey"), 0.0);

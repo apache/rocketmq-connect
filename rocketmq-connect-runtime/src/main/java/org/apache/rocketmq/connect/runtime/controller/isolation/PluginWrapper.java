@@ -100,4 +100,18 @@ public class PluginWrapper<T> implements Comparable<PluginWrapper<T>> {
         int nameComp = name.compareTo(other.name);
         return nameComp != 0 ? nameComp : encodedVersion.compareTo(other.encodedVersion);
     }
+
+    @Override
+    public String toString() {
+        return "PluginWrapper{" +
+                "klass=" + klass +
+                ", name='" + name + '\'' +
+                ", type=" + type +
+                ", typeName='" + typeName + '\'' +
+                ", location='" + location + '\'' +
+                ", version='" + version + '\'' +
+                ", encodedVersion=" + encodedVersion +
+                ", classLoader=" + classLoader +
+                '}';
+    }
 }

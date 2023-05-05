@@ -21,7 +21,13 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
@@ -42,6 +48,37 @@ public class FileAndPropertyUtilTest {
         FileAndPropertyUtil.string2File(str, filePath);
         String s = FileAndPropertyUtil.file2String(filePath);
         assertEquals(str, s);
+    }
+
+    @Test
+    public void testMultiThreadString2File2String() {
+        CountDownLatch countDownLatch = new CountDownLatch(100);
+        List<Thread> threadList = new ArrayList<>();
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        for (int i = 0; i < 100; i++) {
+            final int n = i;
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String str1 = String.valueOf(n);
+                        FileAndPropertyUtil.string2File(str1, filePath);
+                    } catch (IOException e) {
+                        atomicInteger.getAndIncrement();
+                        throw new RuntimeException(e);
+                    }
+                    countDownLatch.countDown();
+                }
+            });
+            threadList.add(thread);
+        }
+        threadList.forEach(t -> t.start());
+        try {
+            countDownLatch.await(3, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        assertEquals(atomicInteger.get(), 0);
     }
 
     @Test

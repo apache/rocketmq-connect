@@ -130,6 +130,7 @@ public class WorkerSourceTask extends WorkerTask {
     private DefaultMQProducer producer;
     private List<ConnectRecord> toSendRecord;
     private volatile RecordOffsetManagement.CommittableOffsets committableOffsets;
+    private final Set<String> topicCache;
 
     public WorkerSourceTask(WorkerConfig workerConfig,
                             ConnectorTaskId id,
@@ -163,12 +164,14 @@ public class WorkerSourceTask extends WorkerTask {
         this.offsetManagement = new RecordOffsetManagement();
         this.committableOffsets = RecordOffsetManagement.CommittableOffsets.EMPTY;
         this.sourceTaskMetricsGroup = new SourceTaskMetricsGroup(id, connectMetrics);
+        this.topicCache = new HashSet();
     }
 
     @Nullable
     private static String overwriteTopicFromRecord(ConnectRecord record) {
         KeyValue extensions = record.getExtensions();
-        if (Objects.isNull(extensions)) {
+        if (extensions == null) {
+            log.error("record extensions null , lack of topic config");
             return null;
         }
         String o = extensions.getString(TOPIC, null);
@@ -430,9 +433,14 @@ public class WorkerSourceTask extends WorkerTask {
         if (StringUtils.isBlank(topic)) {
             throw new ConnectException("source connect lack of topic config");
         }
+
+        if (!workerConfig.isAutoCreateTopicEnable() || topicCache.contains(topic)) {
+            return topic;
+        }
         if (!ConnectUtil.isTopicExist(workerConfig, topic)) {
             ConnectUtil.createTopic(workerConfig, new TopicConfig(topic));
         }
+        topicCache.add(topic);
         return topic;
     }
 

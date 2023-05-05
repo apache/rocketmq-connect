@@ -180,7 +180,7 @@
         <debezium.version>1.7.2.Final</debezium.version>
         <debezium.postgresql.version>42.3.3</debezium.postgresql.version>
         <!--rocketmq version-->
-        <rocketmq.version>4.7.1</rocketmq.version>
+        <rocketmq.version>4.9.5</rocketmq.version>
         <rocketmq-openmessaging.version>4.3.2</rocketmq-openmessaging.version>
 
         <!--rocketmq connect version-->

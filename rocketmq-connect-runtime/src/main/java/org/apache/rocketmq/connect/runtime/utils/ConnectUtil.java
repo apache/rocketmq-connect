@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.connect.runtime.utils;
 
-import com.beust.jcommander.internal.Sets;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.commons.lang3.StringUtils;
