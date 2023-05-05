@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.clickhouse.connector.sink;
+package org.apache.rocketmq.connect.clickhouse.sink;
 
 import com.alibaba.fastjson.JSONObject;
 import com.clickhouse.client.ClickHouseClient;
@@ -32,7 +32,6 @@ import com.clickhouse.client.config.ClickHouseClientOption;
 import com.clickhouse.data.ClickHouseDataStreamFactory;
 import com.clickhouse.data.ClickHouseFormat;
 import com.clickhouse.data.ClickHousePipedOutputStream;
-import com.clickhouse.data.ClickHouseRecord;
 import com.clickhouse.data.format.BinaryStreamUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -40,6 +39,8 @@ import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.Field;
+import io.openmessaging.connector.api.data.Schema;
+import io.openmessaging.connector.api.data.SchemaBuilder;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import java.nio.charset.StandardCharsets;
@@ -48,7 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.apache.rocketmq.connect.clickhouse.connector.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
 
 public class ClickHouseSinkTask extends SinkTask {
 
@@ -72,6 +73,7 @@ public class ClickHouseSinkTask extends SinkTask {
 
             for (ConnectRecord record : sinkRecords) {
 
+
                 String table = record.getSchema().getName();
                 ClickHouseRequest.Mutation request = client.connect(server)
                     .write()
@@ -94,8 +96,10 @@ public class ClickHouseSinkTask extends SinkTask {
                     JSONObject object = new JSONObject();
                     for (Field field : fields) {
                         object.put(field.getName(), structData.get(field));
-                        data.put(field.getName(), structData.get(field).toString());
+                        data.put(field.getName(), structData.get(field));
                     }
+                    Schema NESTED_SCHEMA = SchemaBuilder.struct().build();
+
                     String gsonString = gson.toJson(data,gsonType);
 //                    BinaryStreamUtils.writeBytes(stream, object.toJSONString().getBytes(StandardCharsets.UTF_8));
                     BinaryStreamUtils.writeBytes(stream, gsonString.getBytes(StandardCharsets.UTF_8));

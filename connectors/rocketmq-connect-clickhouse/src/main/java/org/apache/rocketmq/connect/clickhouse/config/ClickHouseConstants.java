@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.clickhouse.connector.config;
+package org.apache.rocketmq.connect.clickhouse.config;
 
 public class ClickHouseConstants {
     public static final String CLICKHOUSE_HOST = "clickhousehost";
@@ -29,4 +29,6 @@ public class ClickHouseConstants {
     public static final String CLICKHOUSE_PASSWORD = "password";
 
     public static final String CLICKHOUSE_ACCESSTOKEN = "accesstoken";
+
+    
 }

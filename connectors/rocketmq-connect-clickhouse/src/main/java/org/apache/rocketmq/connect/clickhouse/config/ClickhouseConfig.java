@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.clickhouse.connector.config;
+package org.apache.rocketmq.connect.clickhouse.config;
 
 import io.openmessaging.KeyValue;
 import java.lang.reflect.Method;

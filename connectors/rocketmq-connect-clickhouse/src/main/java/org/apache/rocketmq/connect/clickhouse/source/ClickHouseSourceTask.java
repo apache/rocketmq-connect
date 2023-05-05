@@ -1,4 +1,4 @@
-package org.apache.rocketmq.connect.clickhouse.connector.source;
+package org.apache.rocketmq.connect.clickhouse.source;
 
 import com.clickhouse.client.ClickHouseClient;
 import com.clickhouse.client.ClickHouseCredentials;
@@ -13,7 +13,7 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import org.apache.rocketmq.connect.clickhouse.connector.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
 
 public class ClickHouseSourceTask extends SourceTask {
 

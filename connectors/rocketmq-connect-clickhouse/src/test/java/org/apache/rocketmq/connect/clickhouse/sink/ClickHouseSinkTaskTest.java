@@ -1,4 +1,4 @@
-package org.apache.rocketmq.connect.clickhouse.connector.sink;
+package org.apache.rocketmq.connect.clickhouse.sink;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.connect.clickhouse.connector.config.ClickHouseConstants;
+import org.apache.rocketmq.connect.clickhouse.config.ClickHouseConstants;
 
 
 class ClickHouseSinkTaskTest {
@@ -30,11 +30,11 @@ class ClickHouseSinkTaskTest {
         // build schema
         Schema schema = SchemaBuilder.struct()
                 .name("tableName")
-                .field("c1",SchemaBuilder.int32().build())
+                .field("c1",SchemaBuilder.string().build())
                 .field("c2", SchemaBuilder.string().build())
                 .build();
         // build record
-        int param0 = 1001;
+        String param0 = "1001";
         Struct struct= new Struct(schema);
         struct.put("c1",param0);
         struct.put("c2",String.format("test-data-%s", param0));

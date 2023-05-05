@@ -1,4 +1,4 @@
-package org.apache.rocketmq.connect.clickhouse.connector.sink;
+package org.apache.rocketmq.connect.clickhouse.sink;
 
 
 import io.openmessaging.KeyValue;
@@ -6,7 +6,7 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.connect.clickhouse.connector.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
 
 public class ClickHouseSinkConnector extends SinkConnector {
 

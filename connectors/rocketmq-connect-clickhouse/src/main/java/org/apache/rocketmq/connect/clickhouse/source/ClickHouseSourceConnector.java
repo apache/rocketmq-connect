@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.clickhouse.connector.source;
+package org.apache.rocketmq.connect.clickhouse.source;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.connect.clickhouse.connector.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
 
 public class ClickHouseSourceConnector extends SourceConnector {
 
