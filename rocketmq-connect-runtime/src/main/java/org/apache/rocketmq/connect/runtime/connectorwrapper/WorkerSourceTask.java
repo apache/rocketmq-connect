@@ -26,9 +26,9 @@ import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.errors.ConnectException;
 import io.openmessaging.connector.api.errors.RetriableException;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
-
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -38,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -169,6 +168,9 @@ public class WorkerSourceTask extends WorkerTask {
     @Nullable
     private static String overwriteTopicFromRecord(ConnectRecord record) {
         KeyValue extensions = record.getExtensions();
+        if (Objects.isNull(extensions)) {
+            return null;
+        }
         String o = extensions.getString(TOPIC, null);
         if (null == o) {
             log.error("Partition map element topic is null , lack of topic config");

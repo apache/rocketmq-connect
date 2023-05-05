@@ -39,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
@@ -142,7 +143,9 @@ public abstract class GenericDatabaseDialect implements DatabaseDialect {
         DriverManager.setLoginTimeout(40);
         Connection connection = DriverManager.getConnection(jdbcUrl, properties);
         // init jdbc driver info
-        jdbcDriverInfo();
+        if (Objects.isNull(jdbcDriverInfo)){
+            jdbcDriverInfo = createdJdbcDriverInfo(connection);
+        }
         connections.add(connection);
         return connection;
     }
@@ -171,7 +174,7 @@ public abstract class GenericDatabaseDialect implements DatabaseDialect {
 
     @Override
     public boolean isConnectionValid(Connection connection, int timeout) throws SQLException {
-        if (jdbcDriverInfo().jdbcMajorVersion() >= 4) {
+        if (jdbcDriverInfo.jdbcMajorVersion() >= 4) {
             return connection.isValid(timeout);
         }
         String query = checkConnectionQuery();
@@ -205,21 +208,15 @@ public abstract class GenericDatabaseDialect implements DatabaseDialect {
      * Get jdbc driver info
      * @return
      */
-    protected JdbcDriverInfo jdbcDriverInfo() {
-        if (jdbcDriverInfo == null) {
-            try (Connection connection = getConnection()) {
-                DatabaseMetaData metadata = connection.getMetaData();
-                this.jdbcDriverInfo = new JdbcDriverInfo(
-                    metadata.getJDBCMajorVersion(),
-                    metadata.getJDBCMinorVersion(),
-                    metadata.getDriverName(),
-                    metadata.getDatabaseProductName(),
-                    metadata.getDatabaseProductVersion()
-                );
-            } catch (SQLException e) {
-                throw new io.openmessaging.connector.api.errors.ConnectException("Unable to get JDBC driver information", e);
-            }
-        }
+    protected JdbcDriverInfo createdJdbcDriverInfo(Connection connection) throws SQLException {
+        DatabaseMetaData metadata = connection.getMetaData();
+        this.jdbcDriverInfo = new JdbcDriverInfo(
+            metadata.getJDBCMajorVersion(),
+            metadata.getJDBCMinorVersion(),
+            metadata.getDriverName(),
+            metadata.getDatabaseProductName(),
+            metadata.getDatabaseProductVersion()
+        );
         return jdbcDriverInfo;
     }
 
@@ -746,7 +743,7 @@ public abstract class GenericDatabaseDialect implements DatabaseDialect {
 
     @Override
     public JdbcColumnConverter createJdbcColumnConverter() {
-        return new DefaultColumnConverter(mapNumerics, jdbcDriverInfo().jdbcVersionAtLeast(4, 0), timeZone);
+        return new DefaultColumnConverter(mapNumerics, jdbcDriverInfo.jdbcVersionAtLeast(4, 0), timeZone);
     }
 
     @Override
