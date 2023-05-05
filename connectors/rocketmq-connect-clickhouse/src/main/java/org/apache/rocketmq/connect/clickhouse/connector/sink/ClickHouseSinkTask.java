@@ -32,7 +32,10 @@ import com.clickhouse.client.config.ClickHouseClientOption;
 import com.clickhouse.data.ClickHouseDataStreamFactory;
 import com.clickhouse.data.ClickHouseFormat;
 import com.clickhouse.data.ClickHousePipedOutputStream;
+import com.clickhouse.data.ClickHouseRecord;
 import com.clickhouse.data.format.BinaryStreamUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -40,7 +43,9 @@ import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.connect.clickhouse.connector.config.ClickhouseConfig;
@@ -56,12 +61,14 @@ public class ClickHouseSinkTask extends SinkTask {
             return;
         }
 
+
+
         try (ClickHouseClient client = ClickHouseClient.newInstance(server.getProtocol())) {
+
             boolean pingOK = client.ping(server, 30000);
             if (!pingOK) {
                 throw new RuntimeException("Cannot connect to clickhouse server!");
             }
-
 
             for (ConnectRecord record : sinkRecords) {
 
@@ -79,12 +86,19 @@ public class ClickHouseSinkTask extends SinkTask {
 
                     final List<Field> fields = record.getSchema().getFields();
                     final Struct structData = (Struct) record.getData();
+                    Gson gson = new Gson();
+                    Map<String, Object> data = new HashMap<>();
+                    java.lang.reflect.Type gsonType = new TypeToken<HashMap>(){}.getType();
+
+
                     JSONObject object = new JSONObject();
                     for (Field field : fields) {
                         object.put(field.getName(), structData.get(field));
+                        data.put(field.getName(), structData.get(field).toString());
                     }
-                    BinaryStreamUtils.writeBytes(stream, object.toJSONString().getBytes(StandardCharsets.UTF_8));
-
+                    String gsonString = gson.toJson(data,gsonType);
+//                    BinaryStreamUtils.writeBytes(stream, object.toJSONString().getBytes(StandardCharsets.UTF_8));
+                    BinaryStreamUtils.writeBytes(stream, gsonString.getBytes(StandardCharsets.UTF_8));
                     try (ClickHouseResponse response = future.get()) {
                         ClickHouseResponseSummary summary = response.getSummary();
 
@@ -133,6 +147,27 @@ public class ClickHouseSinkTask extends SinkTask {
 
         }
 
+//    static int query(ClickHouseNode server, String table) throws ClickHouseException {
+//        try (ClickHouseClient client = ClickHouseClient.newInstance(server.getProtocol());
+//             ClickHouseResponse response = client.read(server)
+//                 // prefer to use RowBinaryWithNamesAndTypes as it's fully supported
+//                 // see details at https://github.com/ClickHouse/clickhouse-java/issues/928
+//                 .format(ClickHouseFormat.RowBinaryWithNamesAndTypes)
+//                 .query("select * from " + table).execute().get()) {
+//            int count = 0;
+//            // or use stream API via response.stream()
+//            for (ClickHouseRecord r : response.records()) {
+//                count++;
+//            }
+//            return count;
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            throw ClickHouseException.forCancellation(e, server);
+//        } catch (ExecutionException e) {
+//            throw ClickHouseException.of(e, server);
+//        }
+//    }
+
         @Override public void start (KeyValue keyValue){
             this.config = new ClickhouseConfig();
             this.config.load(keyValue);
@@ -143,8 +178,8 @@ public class ClickHouseSinkTask extends SinkTask {
                 .database(config.getDatabase()).credentials(getCredentials(config))
                 .build();
 
-            ClickHouseClient clientPing = ClickHouseClient.newInstance(ClickHouseProtocol.HTTP);
-            boolean pingOK = clientPing.ping(server, 30000);
+//            ClickHouseClient clientPing = ClickHouseClient.newInstance(ClickHouseProtocol.HTTP);
+//            boolean pingOK = clientPing.ping(server, 30000);
 //            if (!pingOK) {
 //                throw new RuntimeException("Cannot connect to clickhouse server!");
 //            }
