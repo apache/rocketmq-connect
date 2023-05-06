@@ -6,7 +6,7 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickHouseBaseConfig;
 
 public class ClickHouseSinkConnector extends SinkConnector {
 
@@ -26,7 +26,7 @@ public class ClickHouseSinkConnector extends SinkConnector {
 
     @Override public void start(KeyValue value) {
 
-        for (String requestKey : ClickhouseConfig.REQUEST_CONFIG) {
+        for (String requestKey : ClickHouseBaseConfig.REQUEST_CONFIG) {
             if (!value.containsKey(requestKey)) {
                 throw new RuntimeException("Request config key: " + requestKey);
             }

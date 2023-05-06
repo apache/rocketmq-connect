@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ClickhouseConfig {
+public class ClickHouseBaseConfig {
 
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
@@ -33,7 +33,7 @@ public class ClickhouseConfig {
 
     private String clickHouseHost;
 
-    private String clickHousePort;
+    private Integer clickHousePort;
 
     private String database;
 
@@ -43,6 +43,16 @@ public class ClickhouseConfig {
 
     private String accessToken;
 
+    private String topic;
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
     public String getClickHouseHost() {
         return clickHouseHost;
     }
@@ -51,11 +61,11 @@ public class ClickhouseConfig {
         this.clickHouseHost = clickHouseHost;
     }
 
-    public String getClickHousePort() {
+    public Integer getClickHousePort() {
         return clickHousePort;
     }
 
-    public void setClickHousePort(String clickHousePort) {
+    public void setClickHousePort(Integer clickHousePort) {
         this.clickHousePort = clickHousePort;
     }
 

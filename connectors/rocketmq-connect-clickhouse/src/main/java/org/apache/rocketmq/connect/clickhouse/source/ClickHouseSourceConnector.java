@@ -22,13 +22,15 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickHouseBaseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickHouseSourceConfig;
 
 public class ClickHouseSourceConnector extends SourceConnector {
 
     private KeyValue keyValue;
 
-    private ClickhouseConfig config;
+    private ClickHouseBaseConfig config;
+
     @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> configs = new ArrayList<>();
         for (int i = 0; i < maxTasks; i++) {
@@ -43,7 +45,7 @@ public class ClickHouseSourceConnector extends SourceConnector {
 
     @Override public void start(KeyValue config) {
 
-        for (String requestKey : ClickhouseConfig.REQUEST_CONFIG) {
+        for (String requestKey : ClickHouseSourceConfig.REQUEST_CONFIG) {
             if (!config.containsKey(requestKey)) {
                 throw new RuntimeException("Request config key: " + requestKey);
             }

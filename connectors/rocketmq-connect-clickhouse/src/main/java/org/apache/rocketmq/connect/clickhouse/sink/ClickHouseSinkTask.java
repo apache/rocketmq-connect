@@ -21,7 +21,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.clickhouse.client.ClickHouseClient;
 import com.clickhouse.client.ClickHouseConfig;
 import com.clickhouse.client.ClickHouseCredentials;
-import com.clickhouse.client.ClickHouseException;
 import com.clickhouse.client.ClickHouseNode;
 import com.clickhouse.client.ClickHouseProtocol;
 import com.clickhouse.client.ClickHouseRequest;
@@ -49,11 +48,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.apache.rocketmq.connect.clickhouse.config.ClickhouseConfig;
+import org.apache.rocketmq.connect.clickhouse.config.ClickHouseBaseConfig;
 
 public class ClickHouseSinkTask extends SinkTask {
 
-    public ClickhouseConfig config;
+    public ClickHouseBaseConfig config;
 
     private ClickHouseNode server;
 
@@ -61,8 +60,6 @@ public class ClickHouseSinkTask extends SinkTask {
         if (sinkRecords == null || sinkRecords.size() < 1) {
             return;
         }
-
-
 
         try (ClickHouseClient client = ClickHouseClient.newInstance(server.getProtocol())) {
 
@@ -72,7 +69,6 @@ public class ClickHouseSinkTask extends SinkTask {
             }
 
             for (ConnectRecord record : sinkRecords) {
-
 
                 String table = record.getSchema().getName();
                 ClickHouseRequest.Mutation request = client.connect(server)
@@ -90,8 +86,8 @@ public class ClickHouseSinkTask extends SinkTask {
                     final Struct structData = (Struct) record.getData();
                     Gson gson = new Gson();
                     Map<String, Object> data = new HashMap<>();
-                    java.lang.reflect.Type gsonType = new TypeToken<HashMap>(){}.getType();
-
+                    java.lang.reflect.Type gsonType = new TypeToken<HashMap>() {
+                    }.getType();
 
                     JSONObject object = new JSONObject();
                     for (Field field : fields) {
@@ -100,7 +96,7 @@ public class ClickHouseSinkTask extends SinkTask {
                     }
                     Schema NESTED_SCHEMA = SchemaBuilder.struct().build();
 
-                    String gsonString = gson.toJson(data,gsonType);
+                    String gsonString = gson.toJson(data, gsonType);
 //                    BinaryStreamUtils.writeBytes(stream, object.toJSONString().getBytes(StandardCharsets.UTF_8));
                     BinaryStreamUtils.writeBytes(stream, gsonString.getBytes(StandardCharsets.UTF_8));
                     try (ClickHouseResponse response = future.get()) {
@@ -134,22 +130,11 @@ public class ClickHouseSinkTask extends SinkTask {
 //                    ClickHouseResponseSummary summary = response.getSummary();
 ////                return summary.getWrittenRows();
 //                }
-            } catch(InterruptedException e){
-                Thread.currentThread().interrupt();
-                try {
-                    throw ClickHouseException.forCancellation(e, server);
-                } catch (ClickHouseException ex) {
-                    throw new RuntimeException(ex);
-                }
-            } catch(Exception e){
-                try {
-                    throw ClickHouseException.of(e, server);
-                } catch (ClickHouseException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+
+    }
 
 //    static int query(ClickHouseNode server, String table) throws ClickHouseException {
 //        try (ClickHouseClient client = ClickHouseClient.newInstance(server.getProtocol());
@@ -172,15 +157,15 @@ public class ClickHouseSinkTask extends SinkTask {
 //        }
 //    }
 
-        @Override public void start (KeyValue keyValue){
-            this.config = new ClickhouseConfig();
-            this.config.load(keyValue);
+    @Override public void start(KeyValue keyValue) {
+        this.config = new ClickHouseBaseConfig();
+        this.config.load(keyValue);
 
-            this.server = ClickHouseNode.builder()
-                .host(config.getClickHouseHost())
-                .port(ClickHouseProtocol.HTTP, Integer.valueOf(config.getClickHousePort()))
-                .database(config.getDatabase()).credentials(getCredentials(config))
-                .build();
+        this.server = ClickHouseNode.builder()
+            .host(config.getClickHouseHost())
+            .port(ClickHouseProtocol.HTTP, config.getClickHousePort())
+            .database(config.getDatabase()).credentials(getCredentials(config))
+            .build();
 
 //            ClickHouseClient clientPing = ClickHouseClient.newInstance(ClickHouseProtocol.HTTP);
 //            boolean pingOK = clientPing.ping(server, 30000);
@@ -193,35 +178,32 @@ public class ClickHouseSinkTask extends SinkTask {
 //                e.printStackTrace();
 //            }
 
-        }
+    }
 
-    void dropAndCreateTable(ClickHouseNode server, String table) throws ClickHouseException {
+    void dropAndCreateTable(ClickHouseNode server, String table) throws Exception {
         try (ClickHouseClient client = ClickHouseClient.newInstance(server.getProtocol())) {
             ClickHouseRequest<?> request = client.connect(server);
             // or use future chaining
             request.query("drop table if exists " + table).execute().get();
             request.query("create table " + table + "(a String, b Nullable(String)) engine=MergeTree() order by a")
                 .execute().get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw ClickHouseException.forCancellation(e, server);
-        } catch (ExecutionException e) {
-            throw ClickHouseException.of(e, server);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-        private ClickHouseCredentials getCredentials (ClickhouseConfig config){
-            if (config.getUserName() != null && config.getPassWord() != null) {
-                return ClickHouseCredentials.fromUserAndPassword(config.getUserName(), config.getPassWord());
-            }
-            if (config.getAccessToken() != null) {
-                return ClickHouseCredentials.fromAccessToken(config.getAccessToken());
-            }
-            throw new RuntimeException("Credentials cannot be empty!");
-
+    private ClickHouseCredentials getCredentials(ClickHouseBaseConfig config) {
+        if (config.getUserName() != null && config.getPassWord() != null) {
+            return ClickHouseCredentials.fromUserAndPassword(config.getUserName(), config.getPassWord());
         }
-
-        @Override public void stop () {
-            this.server = null;
+        if (config.getAccessToken() != null) {
+            return ClickHouseCredentials.fromAccessToken(config.getAccessToken());
         }
+        throw new RuntimeException("Credentials cannot be empty!");
+
     }
+
+    @Override public void stop() {
+        this.server = null;
+    }
+}
