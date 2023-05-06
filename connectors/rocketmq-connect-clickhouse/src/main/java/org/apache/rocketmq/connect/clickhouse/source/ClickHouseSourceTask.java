@@ -40,7 +40,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.connect.clickhouse.ClickHouseHelperClient;
+import org.apache.rocketmq.connect.clickhouse.helper.ClickHouseHelperClient;
 import org.apache.rocketmq.connect.clickhouse.config.ClickHouseConstants;
 import org.apache.rocketmq.connect.clickhouse.config.ClickHouseSourceConfig;
 import org.slf4j.Logger;

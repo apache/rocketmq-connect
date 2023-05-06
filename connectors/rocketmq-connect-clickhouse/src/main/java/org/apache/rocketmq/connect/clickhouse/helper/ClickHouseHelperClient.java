@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.connect.clickhouse;
+package org.apache.rocketmq.connect.clickhouse.helper;
 
 import com.clickhouse.client.ClickHouseClient;
 import com.clickhouse.client.ClickHouseCredentials;

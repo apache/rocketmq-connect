@@ -28,7 +28,7 @@ import io.openmessaging.connector.api.errors.ConnectException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.connect.clickhouse.ClickHouseHelperClient;
+import org.apache.rocketmq.connect.clickhouse.helper.ClickHouseHelperClient;
 import org.apache.rocketmq.connect.clickhouse.config.ClickHouseSinkConfig;
 
 public class ClickHouseSinkTask extends SinkTask {
