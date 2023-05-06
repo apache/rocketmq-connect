@@ -1,28 +1,13 @@
-##### ElasticsearchSourceConnector fully-qualified name
-org.apache.rocketmq.connect.elasticsearch.connector.ElasticsearchSourceConnector
+##### ClickHouseSourceConnector fully-qualified name
+org.apache.rocketmq.connect.clickhouse.source.ClickHouseSourceConnector
 
-**elasticsearch-source-connector** start
+**clickhouse-source-connector** start
 
 ```
-POST  http://${runtime-ip}:${runtime-port}/connectors/elasticsearchSourceConnector
+POST  http://${runtime-ip}:${runtime-port}/connectors/clickhouseSourceConnector
 {
     "connector.class":"org.apache.rocketmq.connect.clickhouse.source.ClickHouseSourceConnector",
-    "clickhousehost":"120.48.26.195",
-    "clickhouseport":8123,
-    "clickhousedatabase":"default",
-    "username":"default",
-    "password":"123456",
-    "table":"tableName",
-    "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
-    "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
-}
-```
-
-```
-POST  http://localhost:8082/connectors/clickhouseSourceConnector
-{
-    "connector.class":"org.apache.rocketmq.connect.clickhouse.source.ClickHouseSourceConnector",
-    "clickhousehost":"120.48.26.195",
+    "clickhousehost":"localhost",
     "clickhouseport":8123,
     "database":"default",
     "username":"default",
@@ -34,18 +19,20 @@ POST  http://localhost:8082/connectors/clickhouseSourceConnector
 }
 ```
 
-**elasticsearch-sink-connector** start
+##### ClickHouseSinkConnector fully-qualified name
+org.apache.rocketmq.connect.clickhouse.sink.ClickHouseSinkConnector
+
+**clickhouse-sink-connector** start
 
 ```
-POST  http://localhost:8082/connectors/clickhouseSinkConnector
+POST  http://${runtime-ip}:${runtime-port}/connectors/clickhouseSinkConnector
 {
     "connector.class":"org.apache.rocketmq.connect.clickhouse.sink.ClickHouseSinkConnector",
-    "clickhousehost":"120.48.26.195",
+    "clickhousehost":"localhost",
     "clickhouseport":8123,
     "database":"clickhouse",
     "username":"default",
     "password":"123456",
-    "table":"tableName",
     "connect.topicnames":"testClickHouseTopic",
     "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
@@ -54,8 +41,11 @@ POST  http://localhost:8082/connectors/clickhouseSinkConnector
 
 ##### parameter configuration
 
-parameter | effect                                                                                                                                                    | required |default
----|-----------------------------------------------------------------------------------------------------------------------------------------------------------|----------| ---
-elasticsearchHost | The Host of the Elasticsearch server                                                                                                                      | yes      | null
-elasticsearchPort | The Port of the Elasticsearch server                                                                                                                      | yes      |  null
-index| The info of the index                                                                                                                                     | yes      | null
+| parameter          | effect                                            | required          | default |
+|--------------------|---------------------------------------------------|-------------------|---------|
+| clickhousehost     | The Host of the Clickhouse server                 | yes               | null    |
+| clickhouseport     | The Port of the Clickhouse server                 | yes               | null    |
+| database           | The database to read or write                     | yes               | null    |
+| table              | The source table to read                          | yes (source only) | null    |
+| topic              | RocketMQ topic for source connector to write into | yes (source only) | null    |
+| connect.topicnames | RocketMQ topic for sink connector to read from    | yes (sink only)   | null    |
