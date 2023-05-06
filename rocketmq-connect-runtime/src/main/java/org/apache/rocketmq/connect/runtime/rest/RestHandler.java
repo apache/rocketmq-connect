@@ -31,6 +31,11 @@ import org.apache.rocketmq.connect.runtime.rest.entities.ErrorMessage;
 import org.apache.rocketmq.connect.runtime.rest.entities.HttpResponse;
 import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +64,21 @@ public class RestHandler {
     public RestHandler(AbstractConnectController connectController) {
         this.connectController = connectController;
         pluginsResource = new ConnectorPluginsResource(connectController);
+
+        Javalin embeddedApp = Javalin.create(config -> {
+            config.server(() -> {
+                Server server = new Server(connectController.getConnectConfig().getExporterPort());
+                ServletContextHandler context = new ServletContextHandler();
+                context.setContextPath("/");
+                context.addServlet(new ServletHolder(new PrometheusMetricsServlet()), "/metrics");
+                ContextHandlerCollection handlers = new ContextHandlerCollection();
+                handlers.setHandlers(new Handler[]{context});
+                server.setHandler(handlers);
+                return server;
+            });
+        });
+
+        embeddedApp.start(connectController.getConnectConfig().getExporterPort());
 
         Javalin app = Javalin.create();
         app = app.start(connectController.getConnectConfig().getHttpPort());
