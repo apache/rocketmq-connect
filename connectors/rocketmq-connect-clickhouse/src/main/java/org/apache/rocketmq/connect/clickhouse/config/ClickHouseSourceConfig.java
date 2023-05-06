@@ -27,6 +27,7 @@ public class ClickHouseSourceConfig extends ClickHouseBaseConfig {
             add(ClickHouseConstants.CLICKHOUSE_HOST);
             add(ClickHouseConstants.CLICKHOUSE_PORT);
             add(ClickHouseConstants.CLICKHOUSE_TABLE);
+            add(ClickHouseConstants.TOPIC);
         }
     };
     private String table;

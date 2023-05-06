@@ -19,17 +19,8 @@ package org.apache.rocketmq.connect.clickhouse.config;
 
 import io.openmessaging.KeyValue;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ClickHouseBaseConfig {
-
-    public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
-        {
-            add(ClickHouseConstants.CLICKHOUSE_HOST);
-            add(ClickHouseConstants.CLICKHOUSE_PORT);
-        }
-    };
 
     private String clickHouseHost;
 

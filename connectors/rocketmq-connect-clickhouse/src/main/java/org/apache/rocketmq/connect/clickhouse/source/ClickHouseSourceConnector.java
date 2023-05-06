@@ -22,14 +22,11 @@ import io.openmessaging.connector.api.component.task.Task;
 import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.connect.clickhouse.config.ClickHouseBaseConfig;
 import org.apache.rocketmq.connect.clickhouse.config.ClickHouseSourceConfig;
 
 public class ClickHouseSourceConnector extends SourceConnector {
 
     private KeyValue keyValue;
-
-    private ClickHouseBaseConfig config;
 
     @Override public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> configs = new ArrayList<>();

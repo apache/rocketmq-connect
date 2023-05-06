@@ -18,7 +18,6 @@
 package org.apache.rocketmq.connect.clickhouse.source;
 
 import com.clickhouse.data.ClickHouseColumn;
-import com.clickhouse.data.ClickHouseDataType;
 import com.clickhouse.data.ClickHouseRecord;
 import com.clickhouse.data.value.UnsignedByte;
 import com.clickhouse.data.value.UnsignedInteger;

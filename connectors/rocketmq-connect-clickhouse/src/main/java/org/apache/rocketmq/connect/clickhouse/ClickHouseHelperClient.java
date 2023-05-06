@@ -23,9 +23,17 @@ import com.clickhouse.client.ClickHouseNode;
 import com.clickhouse.client.ClickHouseProtocol;
 import com.clickhouse.client.ClickHouseResponse;
 import com.clickhouse.data.ClickHouseFormat;
+import com.clickhouse.data.ClickHouseOutputStream;
 import com.clickhouse.data.ClickHouseRecord;
+import com.clickhouse.data.ClickHouseWriter;
+import com.clickhouse.jdbc.ClickHouseDataSource;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import org.apache.rocketmq.connect.clickhouse.config.ClickHouseConstants;
 import org.apache.rocketmq.connect.clickhouse.config.ClickHouseBaseConfig;
 import org.slf4j.Logger;
@@ -118,116 +126,43 @@ public class ClickHouseHelperClient {
 
     }
 
-//    public List<String> showTables() {
-//        List<String> tablesNames = new ArrayList<>();
-//        try (ClickHouseClient client = ClickHouseClient.newInstance(ClickHouseProtocol.HTTP);
-//             ClickHouseResponse response = client.connect(server) // or client.connect(endpoints)
-//                 // you'll have to parse response manually if using a different format
-//
-//                 .query("SHOW TABLES")
-//                 .executeAndWait()) {
-//            for (ClickHouseRecord r : response.records()) {
-//                ClickHouseValue v = r.getValue(0);
-//                String tableName = v.asString();
-//                tablesNames.add(tableName);
-//            }
-//
-//        } catch (ClickHouseException e) {
-//            LOGGER.error("Failed in show tables", e);
-//        }
-//        return tablesNames;
-//    }
+    private Connection getConnection(String url, Properties properties) throws SQLException {
+        ClickHouseDataSource dataSource = new ClickHouseDataSource(url, properties);
+        Connection conn = dataSource.getConnection(config.getUserName(), config.getPassWord());
 
-//    public Table describeTable(String tableName) {
-//        if (tableName.startsWith(".inner"))
-//            return null;
-//        String describeQuery = String.format("DESCRIBE TABLE `%s`.`%s`", this.database, tableName);
-//
-//        try (ClickHouseClient client = ClickHouseClient.newInstance(ClickHouseProtocol.HTTP);
-//             ClickHouseResponse response = client.connect(server) // or client.connect(endpoints)
-//                 .query(describeQuery)
-//                 .executeAndWait()) {
-//            Table table = new Table(tableName);
-//            for (ClickHouseRecord r : response.records()) {
-//                ClickHouseValue v = r.getValue(0);
-//                String value = v.asString();
-//                String[] cols = value.split("\t");
-//                if (cols.length > 2) {
-//                    String defaultKind = cols[2];
-//                    if ("ALIAS".equals(defaultKind) || "MATERIALIZED".equals(defaultKind)) {
-//                        // Only insert into "real" columns
-//                        continue;
-//                    }
-//                }
-//                String name = cols[0];
-//                String type = cols[1];
-//                table.addColumn(Column.extractColumn(name, type, false));
-//            }
-//            return table;
-//        } catch (ClickHouseException e) {
-//            LOGGER.error(String.format("Got exception when running %s", describeQuery), e);
-//            return null;
-//        }
-//
-//    }
-//    public List<Table> extractTablesMapping() {
-//        List<Table> tableList =  new ArrayList<>();
-//        for (String tableName : showTables() ) {
-//            Table table = describeTable(tableName);
-//            if (table != null )
-//                tableList.add(table);
-//        }
-//        return tableList;
-//    }
+        System.out.println("Connected to: " + conn.getMetaData().getURL());
+        return conn;
+    }
 
-//    public static class ClickHouseClientBuilder{
-//        private String hostname = null;
-//        private int port = -1;
-//        private String username = "default";
-//        private String database = "default";
-//        private String password = "";
-//        private boolean sslEnabled = false;
-//        private int timeout = ClickHouseSinkConfig.timeoutSecondsDefault * ClickHouseSinkConfig.MILLI_IN_A_SEC;
-//        private int retry = ClickHouseSinkConfig.retryCountDefault;
-//        public ClickHouseClientBuilder(String hostname, int port) {
-//            this.hostname = hostname;
-//            this.port = port;
-//        }
-//
-//
-//        public ClickHouseClientBuilder setUsername(String username) {
-//            this.username = username;
-//            return this;
-//        }
-//
-//        public ClickHouseClientBuilder setPassword(String password) {
-//            this.password = password;
-//            return this;
-//        }
-//
-//        public ClickHouseClientBuilder setDatabase(String database) {
-//            this.database = database;
-//            return this;
-//        }
-//
-//        public ClickHouseClientBuilder sslEnable(boolean sslEnabled) {
-//            this.sslEnabled = sslEnabled;
-//            return this;
-//        }
-//
-//        public ClickHouseClientBuilder setTimeout(int timeout) {
-//            this.timeout = timeout;
-//            return this;
-//        }
-//
-//        public ClickHouseClientBuilder setRetry(int retry) {
-//            this.retry = retry;
-//            return this;
-//        }
-//
-//        public ClickHouseHelperClient build(){
-//            return new ClickHouseHelperClient(this);
-//        }
-//
-//    }
+    private boolean insertJson(String jsonString, String table, String sql, String url) {
+
+        try (Connection connection = getConnection(url, new Properties());
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setObject(1, new ClickHouseWriter() {
+                @Override
+                public void write(ClickHouseOutputStream output) throws IOException {
+                    output.writeBytes(jsonString.getBytes());
+                }
+            });
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+    public void insertJson(String jsonString, String table) {
+        String url = String.format("jdbc:clickhouse://%s:%s/%s", config.getClickHouseHost(), config.getClickHousePort(), config.getDatabase());
+        String sql = String.format("INSERT INTO %s FORMAT JSONEachRow", table);
+        int retryCount = 0;
+
+        while (retryCount < this.retry) {
+            if (insertJson(jsonString, table, sql, url)) {
+                return;
+            }
+        }
+        LOGGER.error(String.format("Insert into table %s error", table));
+    }
+
 }

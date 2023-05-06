@@ -39,7 +39,18 @@ class ClickHouseSinkTaskTest {
         struct.put("c1",param0);
         struct.put("c2",String.format("test-data-%s", param0));
 
-        ConnectRecord record = new ConnectRecord(
+        Schema schema2 = SchemaBuilder.struct()
+            .name("t1")
+            .field("c1",SchemaBuilder.string().build())
+            .field("c2", SchemaBuilder.string().build())
+            .build();
+        // build record
+        Struct struct2= new Struct(schema2);
+        struct.put("c1",param0);
+        struct.put("c2",String.format("test-data-%s", param0));
+
+        for (int i = 0; i < 4; i++) {
+            ConnectRecord record = new ConnectRecord(
                 // offset partition
                 // offset partition"
                 new RecordPartition(new ConcurrentHashMap<>()),
@@ -47,8 +58,22 @@ class ClickHouseSinkTaskTest {
                 System.currentTimeMillis(),
                 schema,
                 struct
-        );
-        records.add(record);
+            );
+            records.add(record);
+
+            ConnectRecord record2 = new ConnectRecord(
+                // offset partition
+                // offset partition"
+                new RecordPartition(new ConcurrentHashMap<>()),
+                new RecordOffset(new HashMap<>()),
+                System.currentTimeMillis(),
+                schema2,
+                struct
+            );
+            records.add(record2);
+
+        }
+
         ClickHouseSinkTask task = new ClickHouseSinkTask();
         KeyValue config = new DefaultKeyValue();
         config.put(ClickHouseConstants.CLICKHOUSE_HOST, host);

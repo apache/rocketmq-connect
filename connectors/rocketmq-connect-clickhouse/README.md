@@ -28,7 +28,7 @@ POST  http://localhost:8082/connectors/clickhouseSourceConnector
     "username":"default",
     "password":"123456",
     "table":"tableName",
-    "topic":"topic",
+    "topic":"testClickHouseTopic",
     "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
@@ -37,13 +37,16 @@ POST  http://localhost:8082/connectors/clickhouseSourceConnector
 **elasticsearch-sink-connector** start
 
 ```
-POST  http://${runtime-ip}:${runtime-port}/connectors/elasticsearchSinkConnector
+POST  http://localhost:8082/connectors/clickhouseSinkConnector
 {
-    "connector.class":"org.apache.rocketmq.connect.elasticsearch.connector.ElasticsearchSinkConnector",
-    "elasticsearchHost":"localhost",
-    "elasticsearchPort":9200,
-    "max.tasks":1,
-    "connect.topicnames":"esTopic",
+    "connector.class":"org.apache.rocketmq.connect.clickhouse.sink.ClickHouseSinkConnector",
+    "clickhousehost":"120.48.26.195",
+    "clickhouseport":8123,
+    "database":"clickhouse",
+    "username":"default",
+    "password":"123456",
+    "table":"tableName",
+    "connect.topicnames":"testClickHouseTopic",
     "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
