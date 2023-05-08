@@ -17,15 +17,13 @@
 
 package org.apache.rocketmq.connect.redis.parser;
 
-import static com.moilioncircle.redis.replicator.cmd.CommandParsers.toRune;
-import static com.moilioncircle.redis.replicator.util.Strings.isEquals;
-
+import io.openmessaging.connector.api.data.FieldType;
 import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.common.RedisConstants;
 import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 import org.apache.rocketmq.connect.redis.pojo.RedisEntry;
 
-import io.openmessaging.connector.api.data.FieldType;
+import static com.moilioncircle.redis.replicator.util.Strings.isEquals;
 
 /**
  * set key value [expiration EX seconds|PX milliseconds] [NX|XX]

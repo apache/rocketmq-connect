@@ -20,14 +20,15 @@ package org.apache.rocketmq.connect.redis.processor;
 import com.moilioncircle.redis.replicator.ExceptionListener;
 import com.moilioncircle.redis.replicator.Replicator;
 import com.moilioncircle.redis.replicator.event.Event;
-import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public class RedisExceptionListener implements ExceptionListener {
     protected final Logger logger = LoggerFactory.getLogger(RedisExceptionListener.class);
 
-    private RedisEventProcessor processor;
+    private final RedisEventProcessor processor;
 
     public RedisExceptionListener(RedisEventProcessor processor) {
         this.processor = processor;
@@ -35,7 +36,7 @@ public class RedisExceptionListener implements ExceptionListener {
 
 
     @Override public void handle(Replicator replicator, Throwable throwable, Event event) {
-        logger.error("listen event error. {}", throwable);
+        logger.error("listen event error.", throwable);
         try {
             this.processor.stop();
         } catch (IOException e) {

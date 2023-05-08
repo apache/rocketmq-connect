@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.connect.redis.pojo;
 
-import java.util.HashMap;
-import java.util.Map;
 import io.openmessaging.connector.api.data.FieldType;
 import org.apache.rocketmq.connect.redis.common.Options;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class RedisEntry implements KVEntry {
     private Long replOffset;
@@ -47,7 +48,7 @@ public class RedisEntry implements KVEntry {
     public RedisEntry(String partition, FieldType valueType) {
         this.partition = partition;
         this.valueType = valueType;
-        this.params = new HashMap<>();
+        this.params = new LinkedHashMap<>();
     }
 
     @Override public KVEntry partition(String partition) {

@@ -17,14 +17,14 @@
 
 package org.apache.rocketmq.connect.redis.parser;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import com.moilioncircle.redis.replicator.cmd.CommandParser;
 import com.moilioncircle.redis.replicator.cmd.CommandParsers;
 import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static com.moilioncircle.redis.replicator.cmd.CommandParsers.toRune;
 
@@ -56,14 +56,14 @@ public abstract class AbstractCommandParser implements CommandParser<KVEntry> {
             try {
                 builder = handleValue(builder, realArgs);
             } catch (Exception e) {
-                LOGGER.error("parser value error: {} {}", Arrays.stream(command).map(CommandParsers::toRune)
+                LOGGER.error("parser value error: {}", Arrays.stream(command).map(CommandParsers::toRune)
                     .collect(Collectors.joining(" ")), e);
             }
         } else {
             try {
                 builder = handleNoArgValue(builder);
             } catch (Exception e) {
-                LOGGER.error("parser value error: {} {}", Arrays.stream(command).map(CommandParsers::toRune)
+                LOGGER.error("parser value error: {}", Arrays.stream(command).map(CommandParsers::toRune)
                     .collect(Collectors.joining(" ")), e);
             }
         }

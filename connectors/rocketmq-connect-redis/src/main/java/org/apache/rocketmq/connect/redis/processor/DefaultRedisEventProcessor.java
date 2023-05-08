@@ -17,29 +17,21 @@
 
 package org.apache.rocketmq.connect.redis.processor;
 
+import com.moilioncircle.redis.replicator.CloseListener;
+import com.moilioncircle.redis.replicator.ExceptionListener;
 import com.moilioncircle.redis.replicator.RedisURI;
+import com.moilioncircle.redis.replicator.Replicator;
 import com.moilioncircle.redis.replicator.cmd.Command;
 import com.moilioncircle.redis.replicator.cmd.CommandName;
 import com.moilioncircle.redis.replicator.cmd.CommandParser;
 import com.moilioncircle.redis.replicator.cmd.parser.PingParser;
 import com.moilioncircle.redis.replicator.cmd.parser.ReplConfParser;
+import com.moilioncircle.redis.replicator.event.EventListener;
 import com.moilioncircle.redis.replicator.rdb.datatype.KeyValuePair;
 import com.moilioncircle.redis.replicator.rdb.iterable.datatype.BatchedKeyValuePair;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import com.moilioncircle.redis.replicator.CloseListener;
-import com.moilioncircle.redis.replicator.ExceptionListener;
-import com.moilioncircle.redis.replicator.Replicator;
-import com.moilioncircle.redis.replicator.event.EventListener;
 import org.apache.commons.lang.StringUtils;
 import org.apache.rocketmq.connect.redis.common.Config;
+import org.apache.rocketmq.connect.redis.common.JedisUtil;
 import org.apache.rocketmq.connect.redis.common.RedisConstants;
 import org.apache.rocketmq.connect.redis.handler.RedisEventHandler;
 import org.apache.rocketmq.connect.redis.parser.AppendParser;
@@ -131,7 +123,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * listen redis event
@@ -148,7 +149,7 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
      * handle different kind of redis event.
      */
     private RedisEventHandler redisEventHandler;
-    private JedisPool pool;
+    private final JedisPool pool;
     /**
      * redis info msg cache.
      */
@@ -177,7 +178,7 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
      */
     public DefaultRedisEventProcessor(Config config) {
         this.config = config;
-        this.pool = getJedisPool(config);
+        this.pool = JedisUtil.getJedisPool(config);
 
         this.parserCache = new ParserCache();
         this.closeListener = new RedisClosedListener(this);
@@ -222,9 +223,8 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
                 this.replicator.close();
             }
             this.pool.close();
-            int size = redisEventProcessorCallbacks.size();
-            for (int i = 0; i < size; i++) {
-                redisEventProcessorCallbacks.get(i).onStop(this);
+            for (RedisEventProcessorCallback redisEventProcessorCallback : redisEventProcessorCallbacks) {
+                redisEventProcessorCallback.onStop(this);
             }
             logger.info("processor is stopped.");
         } else {
@@ -233,12 +233,13 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
     }
 
 
-    @Override public boolean commit(RedisEvent event) throws Exception {
+    @Override
+    public boolean commit(RedisEvent event) throws Exception {
         return this.eventQueue.offer(event, this.offerTimeout, TimeUnit.MILLISECONDS);
     }
-
-
-    @Override public KVEntry poll() throws Exception {
+    
+    @Override
+    public KVEntry poll() throws Exception {
         RedisEvent event = this.eventQueue.poll(this.pollTimeout, TimeUnit.MILLISECONDS);
         if (event == null) {
             return null;
@@ -290,32 +291,13 @@ public class DefaultRedisEventProcessor implements RedisEventProcessor {
             try {
                 this.replicator.open();
             } catch (IOException e) {
-                logger.error("start replicator error. {}", e);
+                logger.error("start replicator error.", e);
                 try {
                     this.stop();
-                } catch (IOException ie) {
+                } catch (IOException ignored) {
                 }
             }
         }).start();
-    }
-
-    private JedisPool getJedisPool(Config config) {
-        JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
-        jedisPoolConfig.setMaxTotal(100);
-        jedisPoolConfig.setMaxIdle(50);
-        jedisPoolConfig.setMaxWaitMillis(3000);
-        jedisPoolConfig.setTestOnBorrow(true);
-        jedisPoolConfig.setTestOnReturn(true);
-        String pwd = null;
-        if (StringUtils.isNotBlank(config.getRedisPassword())) {
-            pwd = config.getRedisPassword();
-        }
-
-        return new JedisPool(jedisPoolConfig,
-            config.getRedisAddr(),
-            config.getRedisPort(),
-            config.getTimeout(),
-            pwd);
     }
 
     /**

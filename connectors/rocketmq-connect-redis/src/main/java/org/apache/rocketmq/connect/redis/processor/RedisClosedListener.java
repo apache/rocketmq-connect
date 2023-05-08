@@ -24,11 +24,8 @@ import org.slf4j.LoggerFactory;
 
 public class RedisClosedListener implements CloseListener {
     protected final Logger logger = LoggerFactory.getLogger(RedisClosedListener.class);
-
-    private RedisEventProcessor processor;
-
+    
     public RedisClosedListener(RedisEventProcessor processor) {
-        this.processor = processor;
     }
 
     @Override public void handle(Replicator replicator) {

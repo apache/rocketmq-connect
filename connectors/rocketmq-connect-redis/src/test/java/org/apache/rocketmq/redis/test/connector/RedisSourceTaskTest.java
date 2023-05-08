@@ -21,7 +21,6 @@ import com.moilioncircle.redis.replicator.rdb.datatype.KeyStringValueString;
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
-import java.util.Collection;
 import org.apache.rocketmq.connect.redis.connector.RedisSourceTask;
 import org.apache.rocketmq.connect.redis.pojo.RedisEvent;
 import org.apache.rocketmq.connect.redis.processor.DefaultRedisEventProcessor;
@@ -31,9 +30,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+
+import java.util.Collection;
 
 import static com.moilioncircle.redis.replicator.Constants.RDB_TYPE_STRING;
 import static org.mockito.Mockito.mock;

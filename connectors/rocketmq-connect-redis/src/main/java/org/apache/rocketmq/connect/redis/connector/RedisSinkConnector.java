@@ -19,53 +19,41 @@ package org.apache.rocketmq.connect.redis.connector;
 
 import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.Task;
-import io.openmessaging.connector.api.component.task.source.SourceConnector;
-import org.apache.rocketmq.connect.redis.common.Config;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class RedisSourceConnector extends SourceConnector {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(RedisSourceConnector.class);
-
-    private Config redisConfig = new Config();
-
-    private KeyValue originalConfig;
-
-    /**
-     * Should invoke before start the connector.
-     *
-     * @param config
-     * @return error message
-     */
+public class RedisSinkConnector extends SinkConnector {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisSinkConnector.class);
+    
+    private KeyValue connectConfig;
+    
     @Override
-    public void validate(KeyValue config) {
-        this.redisConfig.load(config);
+    public List<KeyValue> taskConfigs(final int maxTasks) {
+        LOGGER.info("Starting task config !!! ");
+        List<KeyValue> configs = new ArrayList<>();
+        for (int i = 0; i < maxTasks; i++) {
+            configs.add(this.connectConfig);
+        }
+        return configs;
     }
-
-    @Override
-    public void start(KeyValue config) {
-        this.originalConfig = config;
-    }
-
-    @Override
-    public void stop() {
-        this.redisConfig = null;
-    }
-
-    @Override
-    public List<KeyValue> taskConfigs(int maxTasks) {
-        List<KeyValue> taskConfigs = new ArrayList<>();
-        taskConfigs.add(this.originalConfig);
-        return taskConfigs;
-    }
-
+    
     @Override
     public Class<? extends Task> taskClass() {
-        return RedisSourceTask.class;
+        return RedisSinkTask.class;
     }
-
+    
+    @Override
+    public void start(final KeyValue keyValue) {
+        this.connectConfig = keyValue;
+    }
+    
+    @Override
+    public void stop() {
+        this.connectConfig = null;
+    }
 }

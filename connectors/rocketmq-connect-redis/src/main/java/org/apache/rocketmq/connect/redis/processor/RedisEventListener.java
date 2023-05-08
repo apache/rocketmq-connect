@@ -24,11 +24,12 @@ import com.moilioncircle.redis.replicator.event.PostRdbSyncEvent;
 import com.moilioncircle.redis.replicator.event.PreCommandSyncEvent;
 import com.moilioncircle.redis.replicator.event.PreRdbSyncEvent;
 import com.moilioncircle.redis.replicator.rdb.datatype.AuxField;
-import java.io.IOException;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.pojo.RedisEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * Do simple event filtering to push event events to queues
@@ -66,7 +67,7 @@ public class RedisEventListener implements EventListener {
                 try {
                     this.processor.stop();
                 } catch (IOException e) {
-                    logger.error("processor stop error. {}", e);
+                    logger.error("processor stop error.", e);
                 }
             }
         }
@@ -91,7 +92,7 @@ public class RedisEventListener implements EventListener {
                 } catch (InterruptedException ie) {
                 }
             }
-            logger.error("processor commit redisEvent with retry({}) error: {}", retryTimes, e);
+            logger.error("processor commit redisEvent with retry({}) error", retryTimes, e);
         }
         return commitWithRetry(redisEvent, retryTimes, retryInterval);
     }

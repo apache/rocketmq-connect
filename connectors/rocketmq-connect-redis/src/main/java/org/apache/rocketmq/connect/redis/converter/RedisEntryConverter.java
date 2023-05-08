@@ -18,20 +18,15 @@
 package org.apache.rocketmq.connect.redis.converter;
 
 import com.alibaba.fastjson.JSON;
-import io.openmessaging.connector.api.data.ConnectRecord;
-import io.openmessaging.connector.api.data.Field;
-import io.openmessaging.connector.api.data.FieldType;
-import io.openmessaging.connector.api.data.RecordOffset;
-import io.openmessaging.connector.api.data.RecordPartition;
-import io.openmessaging.connector.api.data.Schema;
-import io.openmessaging.connector.api.data.SchemaBuilder;
+import io.openmessaging.connector.api.data.*;
+import org.apache.rocketmq.connect.redis.common.Options;
+import org.apache.rocketmq.connect.redis.pojo.KVEntry;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.connect.redis.common.Options;
-import org.apache.rocketmq.connect.redis.pojo.KVEntry;
 
 public class RedisEntryConverter implements KVEntryConverter {
     private final int maxValueSize = 500;
@@ -45,37 +40,32 @@ public class RedisEntryConverter implements KVEntryConverter {
 
         List<ConnectRecord> res = new ArrayList<>();
         List<Object> values = splitValue(kvEntry.getValueType(), kvEntry.getValue(), this.maxValueSize);
-        for (int i = 0; i < values.size(); i++) {
-            Schema keySchema = SchemaBuilder.string().name(Options.REDIS_KEY.name()).build();
-            keySchema.setFields(buildFields());
-            final Object data = values.get(i);
-            if (data == null  || data.toString().equals("")) {
+        for (final Object data : values) {
+            if (data == null || data.toString().equals("")) {
                 continue;
             }
-            res.add(new ConnectRecord(
-                buildRecordPartition(),
-                buildRecordOffset(kvEntry.getOffset()),
-                System.currentTimeMillis(),
-                keySchema,
-                kvEntry.getKey(),
-                buildValueSchema(),
-                JSON.toJSONString(kvEntry.getValue())));
+            Schema schema = SchemaBuilder.struct().name(Options.REDIS_KEY.name()).build();
+            schema.setFields(buildFields());
+            res.add(new ConnectRecord(buildRecordPartition(), buildRecordOffset(kvEntry.getOffset()), System.currentTimeMillis(), schema, this.buildPayLoad(schema.getFields(), schema, kvEntry, data)));
         }
         return res;
     }
-
+    
+    @Override
+    public KVEntry connectRecordsToKVEntry(final List<ConnectRecord> connectRecords) {
+        return null;
+    }
+    
     private RecordOffset buildRecordOffset(Long offset)  {
         Map<String, Long> offsetMap = new HashMap<>();
         offsetMap.put(Options.REDIS_OFFSET.name(), offset);
-        RecordOffset recordOffset = new RecordOffset(offsetMap);
-        return recordOffset;
+        return new RecordOffset(offsetMap);
     }
 
     private RecordPartition buildRecordPartition() {
         Map<String, String> partitionMap = new HashMap<>();
         partitionMap.put(Options.REDIS_PARTITION.name(), Options.REDIS_PARTITION.name());
-        RecordPartition  recordPartition = new RecordPartition(partitionMap);
-        return recordPartition;
+        return new RecordPartition(partitionMap);
     }
 
     private List<Field> buildFields() {
@@ -87,10 +77,14 @@ public class RedisEntryConverter implements KVEntryConverter {
         fields.add(new Field(3, Options.REDIS_PARAMS.name(), stringSchema));
         return fields;
     }
-
-    private Schema buildValueSchema() {
-        final Schema valueSchema = SchemaBuilder.string().build();
-        return valueSchema;
+    
+    private Struct buildPayLoad(List<Field> fields, Schema schema, KVEntry kvEntry, Object data) {
+        Struct payLoad = new Struct(schema);
+        payLoad.put(fields.get(0), kvEntry.getCommand());
+        payLoad.put(fields.get(1), kvEntry.getKey());
+        payLoad.put(fields.get(2), data instanceof String ? data : JSON.toJSONString(data));
+        payLoad.put(fields.get(3), JSON.toJSONString(kvEntry.getParams()));
+        return payLoad;
     }
 
     private List<Object> splitValue(FieldType valueType, Object value, Integer maxValueSize) {

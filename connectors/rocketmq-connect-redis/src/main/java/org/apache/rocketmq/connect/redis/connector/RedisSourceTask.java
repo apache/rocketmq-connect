@@ -17,17 +17,12 @@
 
 package org.apache.rocketmq.connect.redis.connector;
 
+import io.openmessaging.KeyValue;
 import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordOffset;
 import io.openmessaging.connector.api.data.RecordPartition;
 import io.openmessaging.connector.api.storage.OffsetStorageReader;
-import java.io.IOException;
-import io.openmessaging.KeyValue;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.Options;
 import org.apache.rocketmq.connect.redis.converter.KVEntryConverter;
@@ -41,7 +36,14 @@ import org.apache.rocketmq.connect.redis.processor.RedisEventProcessorCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class RedisSourceTask extends SourceTask {
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisSourceTask.class);
     /**
      * listening and handle Redis event.
@@ -80,7 +82,7 @@ public class RedisSourceTask extends SourceTask {
                 final Map<String, ?> offset = recordOffset.getOffset();
                 final Object obj = offset.get(Options.REDIS_OFFSET.name());
                 if (obj != null) {
-                    if (event.getOffset() <= Long.valueOf(obj.toString())) {
+                    if (event.getOffset() <= Long.parseLong(obj.toString())) {
                         return new ArrayList<>();
                     }
                 }
@@ -89,10 +91,10 @@ public class RedisSourceTask extends SourceTask {
             LOGGER.info("send data entries: {}", res);
             return res;
         } catch (InterruptedException e) {
-            LOGGER.error("redis task interrupted. {}", e);
+            LOGGER.error("redis task interrupted.", e);
             this.stop();
         } catch (Exception e) {
-            LOGGER.error("redis task error. {}", e);
+            LOGGER.error("redis task error.", e);
             this.stop();
         }
         return null;
@@ -109,9 +111,10 @@ public class RedisSourceTask extends SourceTask {
 
         final OffsetStorageReader reader = this.sourceTaskContext.offsetStorageReader();
         final RecordOffset recordOffset = reader.readOffset(buildRecordPartition());
-        Long offset = 0L;
+        long offset = 0L;
         if (recordOffset != null && recordOffset.getOffset().size() > 0) {
-            offset = (Long) recordOffset.getOffset().get(Options.REDIS_OFFSET.name());
+            String str = recordOffset.getOffset().get(Options.REDIS_OFFSET.name()).toString();
+            offset = Long.parseLong(str);
         }
 
         LOGGER.info("task load connector runtime position: {}", offset);
@@ -124,25 +127,27 @@ public class RedisSourceTask extends SourceTask {
             this.eventProcessor.start(offset);
             LOGGER.info("Redis task start.");
         } catch (IOException e) {
-            LOGGER.error("processor start error: {}", e);
+            LOGGER.error("processor start error.", e);
             this.stop();
         }
     }
 
 
-    @Override public void stop() {
+    @Override
+    public void stop() {
         if (this.eventProcessor != null) {
             try {
                 this.eventProcessor.stop();
                 LOGGER.info("Redis task is stopped.");
             } catch (IOException e) {
-                LOGGER.error("processor stop error: {}", e);
+                LOGGER.error("processor stop error.", e);
             }
         }
     }
 
     private class DefaultRedisEventProcessorCallback implements RedisEventProcessorCallback {
-        @Override public void onStop(RedisEventProcessor eventProcessor) {
+        @Override
+        public void onStop(RedisEventProcessor eventProcessor) {
             stop();
         }
     }
@@ -150,8 +155,7 @@ public class RedisSourceTask extends SourceTask {
     private RecordPartition buildRecordPartition() {
         Map<String, String> partitionMap = new HashMap<>();
         partitionMap.put(Options.REDIS_PARTITION.name(), Options.REDIS_PARTITION.name());
-        RecordPartition  recordPartition = new RecordPartition(partitionMap);
-        return recordPartition;
+        return new RecordPartition(partitionMap);
     }
 
 }
