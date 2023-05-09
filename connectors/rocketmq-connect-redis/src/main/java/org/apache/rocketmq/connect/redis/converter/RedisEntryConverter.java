@@ -40,7 +40,8 @@ public class RedisEntryConverter implements KVEntryConverter {
 
         List<ConnectRecord> res = new ArrayList<>();
         List<Object> values = splitValue(kvEntry.getValueType(), kvEntry.getValue(), this.maxValueSize);
-        for (final Object data : values) {
+        for (int i = 0; i < values.size(); i++) {
+            final Object data = values.get(i);
             if (data == null || data.toString().equals("")) {
                 continue;
             }

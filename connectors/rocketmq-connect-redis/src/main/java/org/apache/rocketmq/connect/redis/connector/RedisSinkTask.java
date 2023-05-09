@@ -24,10 +24,10 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.FieldType;
 import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.errors.ConnectException;
-import org.apache.rocketmq.connect.redis.builder.AbstractCommandExec;
-import org.apache.rocketmq.connect.redis.builder.CommandExecFactory;
 import org.apache.rocketmq.connect.redis.common.Config;
 import org.apache.rocketmq.connect.redis.common.JedisUtil;
+import org.apache.rocketmq.connect.redis.exec.AbstractCommandExec;
+import org.apache.rocketmq.connect.redis.exec.CommandExecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -50,8 +50,8 @@ public class RedisSinkTask extends SinkTask {
             return;
         }
         Jedis jedis = this.pool.getResource();
-        // 读取每一条记录，并且按照source的操作反向插入redis
-        for (ConnectRecord record : records) {
+        for (int i = 0; i < records.size(); i++) {
+            final ConnectRecord record = records.get(i);
             if (record == null || record.getSchema().getFieldType() != FieldType.STRUCT) {
                 continue;
             }
@@ -66,7 +66,7 @@ public class RedisSinkTask extends SinkTask {
                 LOGGER.error("command: {} not support", command);
                 continue;
             }
-            String execResult = commandExec.exec(jedis, key, value, params);
+            Object execResult = commandExec.exec(jedis, key, value, params);
             LOGGER.info("commandExec key={}, value={}, params={}, result: {}", key, value, params, execResult);
         }
     }
