@@ -25,12 +25,10 @@ public class SinkConfig {
     public static final Set<String> REQUEST_CONFIG = new HashSet<String>() {
         {
             add(SinkConstants.WEB_HOOK);
-            add(SinkConstants.MSG_TYPE);
         }
     };
 
     private String url;
-    private String msgType;
 
     public String getUrl() {
         return url;

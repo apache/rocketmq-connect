@@ -160,6 +160,7 @@
         <okhttp.version>3.9.1</okhttp.version>
         <fastjson.version>1.2.83</fastjson.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
+        <junit.version>4.13.1</junit.version>
     </properties>
 
     <dependencies>
@@ -171,7 +172,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>RELEASE</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

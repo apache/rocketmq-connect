@@ -27,8 +27,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.connect.enterprisewechat.common.SinkConstants;
 import org.apache.rocketmq.connect.enterprisewechat.config.SinkConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EnterpriseWechatSinkConnector extends SinkConnector {
+    private static final Logger log = LoggerFactory.getLogger(EnterpriseWechatSinkConnector.class);
+
     private KeyValue connectConfig;
 
     @Override
@@ -44,6 +48,7 @@ public class EnterpriseWechatSinkConnector extends SinkConnector {
             URLConnection urlConnection = urlConnect.openConnection();
             urlConnection.setConnectTimeout(5000);
             urlConnection.connect();
+            log.info("url validate success");
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
