@@ -248,7 +248,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
         struct.put(FIELD_EPOCH, System.currentTimeMillis());
         struct.put(FIELD_DELETED, true);
         byte[] config = converter.fromConnectData(topic, CONNECTOR_DELETE_CONFIGURATION_V1, struct);
-        notify(DELETE_CONNECTOR_KEY(connectorName), config);
+        notify(TARGET_STATE_KEY(connectorName), config);
     }
 
     /**

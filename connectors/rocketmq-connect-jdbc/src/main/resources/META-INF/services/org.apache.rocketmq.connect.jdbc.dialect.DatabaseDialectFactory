@@ -1,0 +1,2 @@
+org.apache.rocketmq.connect.jdbc.dialect.mysql.MysqlDatabaseDialectFactory
+org.apache.rocketmq.connect.jdbc.dialect.openmldb.OpenMLDBDatabaseDialectFactory

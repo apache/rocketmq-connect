@@ -1,20 +1,24 @@
 # rocketmq-connect-jdbc
 
-为方便扩展，rocketmq-connect-jdbc目前采用模块化插件的形式进行组织，内部的connector需要用户手动编译成jar包来进行使用。目前支持Mysql、OpenMLDB等数据库
+为方便扩展，rocketmq-connect-jdbc目前采用Spi插件的形式进行扩展，核心扩展api主要有：
+   ```SPI api
+   org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialectFactory
+   org.apache.rocketmq.connect.jdbc.dialect.DatabaseDialect
+   ```
+目前支持Mysql、OpenMLDB数据库, pg、oracle、sqlserver、db2 等关系型数据库还在持续扩展中
 
 ## rocketmq-connect-jdbc使用方法
 
-1. 进入想要使用的connector
-   目录下（以rocketmq-connect-jdbc-mysql目录为例），使用以下指令将此connector打包为jar文件
-   
+1. 进入想要使用的connectors目录下（以rocketmq-connect-jdbc目录为例），使用以下指令将插件进行打包
    ```shell
    mvn clean package -Dmaven.test.skip=true
    ```
-2. 打包好的jar文件将出现在`rocketmq-connect-jdbc-mysql/target/`目录下
+2. 打包好的插件以tar.gz的模式出现在`rocketmq-connect-jdbc/target/`目录下
+
 3. 在`distribution/conf`目录下找的对应的配置文件进行更新，对于standalone的启动方式，更新`connect-standalone.conf`文件中的`pluginPaths`变量
    
    ```lombok.config
-   pluginPaths=rocketmq-connect-sample/target/rocketmq-connect-jdbc-mysql-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+   pluginPaths=(you plugin path)
    ```
    
    相应的，使用distributed启动方式，则更新`connect-distributed.conf`中的变量
@@ -40,7 +44,7 @@ mvn clean package -Dmaven.test.skip=true
 ```
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-source-connector-name}
 {
-    "connector.class":"org.apache.rocketmq.connect.jdbc.mysql.source.BaseSourceConnector",
+    "connector.class":"org.apache.rocketmq.connect.jdbc.mysql.source.JdbcSourceConnector",
     "max.tasks":"2",
     "connection.url":"jdbc:mysql://XXXXXXXXX:3306",
     "connection.user":"*****",
@@ -92,7 +96,7 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 * **jdbc-source-connector 参数说明**
 
 | KEY                      | TYPE    | Must be filled | Description      | Example                                                   |
-| ------------------------ | ------- | -------------- | ---------------- | --------------------------------------------------------- |
+|--------------------------| ------- | -------------- |------------------| --------------------------------------------------------- |
 | connection.url           | String  | YES            | source端 jdbc连接   | jdbc:mysql://XXXXXXXXX:3306                               |
 | connection.user          | String  | YES            | source端 DB 用户名   | root                                                      |
 | connection.password      | String  | YES            | source端 DB 密码    | root                                                      |
@@ -104,8 +108,9 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 | incrementing.column.name | Integer | NO             | 增量字段，常用ID        | id                                                        |
 | timestamp.column.name    | String  | YES            | 时间增量字段           | modified_time                                             |
 | table.whitelist          | String  | YES            | 需要扫描的表           | db.table,db.table01                                       |
-| max-task                 | Integer | YES            | 任务数量，最大不能大于表的数量  | 2                                                         |
-| source-record-converter  | Integer | YES            | data转换器          | org.apache.rocketmq.connect.doris.converter.JsonConverter |
+| max.tasks                | Integer | YES            | 任务数量，最大不能大于表的数量  | 2                                                         |
+| key.converter            | Integer | YES            | key转换器           | org.apache.rocketmq.connect.doris.converter.JsonConverter |
+| value.converter          | Integer | YES            | data转换器          | org.apache.rocketmq.connect.doris.converter.JsonConverter |
 
 ```
 注：1.source拉取的数据写入到以表名自动创建的topic中，如果需要写入特定的topic中则需要指定"connect-topicname" 参数
@@ -114,14 +119,15 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-connector-name}/
 
 * **jdbc-sink-connector 参数说明**
 
-| KEY                     | TYPE    | Must be filled | Description     | Example                                                   |
-| ----------------------- | ------- | -------------- | --------------- | --------------------------------------------------------- |
-| connection.url          | String  | YES            | sink端 jdbc连接    | jdbc:mysql://XXXXXXXXX:3306                               |
-| connection.user         | String  | YES            | sink端 DB 用户名    | root                                                      |
-| connection.password     | String  | YES            | sink端 DB 密码     | root                                                      |
-| host                    | String  | YES            | doris host      | 192.168.0.1                                               |
-| port                    | String  | YES            | doris http port | 8030                                                      |
-| user                    | String  | YES            | 监听的topic        | root                                                      |
-| passwd                  | String  | YES            | 监听的topic        | passwd                                                    |
-| max-task                | Integer | NO             | 任务数量            | 2                                                         |
-| source-record-converter | Integer | YES            | data转换器         | org.apache.rocketmq.connect.doris.converter.JsonConverter |
+| KEY                 | TYPE    | Must be filled | Description     | Example                                                   |
+|---------------------| ------- | -------------- |-----------------| --------------------------------------------------------- |
+| connection.url      | String  | YES            | sink端 jdbc连接    | jdbc:mysql://XXXXXXXXX:3306                               |
+| connection.user     | String  | YES            | sink端 DB 用户名    | root                                                      |
+| connection.password | String  | YES            | sink端 DB 密码     | root                                                      |
+| host                | String  | YES            | doris host      | 192.168.0.1                                               |
+| port                | String  | YES            | doris http port | 8030                                                      |
+| user                | String  | YES            | 监听的topic        | root                                                      |
+| passwd              | String  | YES            | 监听的topic        | passwd                                                    |
+| max.tasks           | Integer | NO             | 任务数量            | 2                                                         |
+| key.converter       | Integer | YES            | key转换器          | org.apache.rocketmq.connect.doris.converter.JsonConverter |
+| value.converter     | Integer | YES            | data转换器         | org.apache.rocketmq.connect.doris.converter.JsonConverter |
