@@ -17,22 +17,39 @@
 
 package org.apache.rocketmq.connect.enterprisewechat.sink;
 
+import com.alibaba.fastjson.JSON;
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
-import org.apache.rocketmq.connect.enterprisewechat.common.SinkConstants;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.Test;
 
-public class EnterpriseWechatSinkConnectorTest {
-    private EnterpriseWechatSinkConnector connector = new EnterpriseWechatSinkConnector();
-
+public class EnterpriseWechatSinkTaskTest {
     // Replace it with your own robot webhook.
     private static final String webHook = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxx&debug=1";
 
     @Test
-    public void testValidate() {
+    public void testPut() {
+        EnterpriseWechatSinkTask wechatSinkTask = new EnterpriseWechatSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
-        // put webhook which need validation
-        keyValue.put(SinkConstants.WEB_HOOK, webHook);
-        connector.validate(keyValue);
+        keyValue.put("webHook", webHook);
+        wechatSinkTask.start(keyValue);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("msgtype", "text");
+
+        Map<String, String> map1 = new HashMap<>();
+        map1.put("content", "hello world");
+        map.put("text", map1);
+
+        List<ConnectRecord> connectRecordList = new ArrayList<>();
+        ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
+        connectRecord.setData(JSON.toJSONString(map));
+        connectRecordList.add(connectRecord);
+
+        wechatSinkTask.put(connectRecordList);
     }
 }
