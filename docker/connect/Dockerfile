@@ -52,4 +52,4 @@ COPY bin/connect-distributed.sh \
      bin/connectAdmin \
      /home/connect/mq-connect/bin/
 
-ENTRYPOINT ["/usr/bin/sh", "/home/connect/mq-connect/bin/connect-distributed.sh", "-c", "/home/connect/mq-connect/conf/connect-distributed.conf"]
+#ENTRYPOINT ["/usr/bin/sh", "/home/connect/mq-connect/bin/connect-distributed.sh", "-c", "/home/connect/mq-connect/conf/connect-distributed.conf"]
