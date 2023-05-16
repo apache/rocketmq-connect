@@ -17,19 +17,19 @@
 
 package org.apache.rocketmq.connect.redis.common;
 
+import com.moilioncircle.redis.replicator.RedisURI;
+import io.openmessaging.KeyValue;
+import org.apache.commons.lang.StringUtils;
+import org.apache.rocketmq.connect.redis.util.PropertyToObjectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
-import com.moilioncircle.redis.replicator.RedisURI;
-import org.apache.commons.lang.StringUtils;
-import org.apache.rocketmq.connect.redis.util.PropertyToObjectUtils;
-import io.openmessaging.KeyValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Config info.
@@ -74,7 +74,7 @@ public class Config {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("redisAddr: ")
-            .append(redisPassword)
+            .append(redisAddr)
             .append(",")
             .append("redisPort: ")
             .append(redisPort)

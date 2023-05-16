@@ -512,7 +512,6 @@ public class WorkerSourceTask extends WorkerTask {
                     prepareToPollTask();
                     long start = System.currentTimeMillis();
                     toSendRecord = poll();
-                    log.info("toSendRecord = {}", toSendRecord);
                     if (null != toSendRecord && toSendRecord.size() > 0) {
                         recordPollReturned(toSendRecord.size(), System.currentTimeMillis() - start);
                     }

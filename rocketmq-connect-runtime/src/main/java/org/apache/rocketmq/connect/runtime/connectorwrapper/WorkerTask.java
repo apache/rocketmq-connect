@@ -21,9 +21,6 @@ import io.openmessaging.connector.api.data.ConnectRecord;
 import org.apache.rocketmq.connect.metrics.stats.Avg;
 import org.apache.rocketmq.connect.metrics.stats.CumulativeCount;
 import org.apache.rocketmq.connect.metrics.stats.Max;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.config.WorkerConfig;
 import org.apache.rocketmq.connect.runtime.connectorwrapper.status.TaskStatus;
@@ -37,6 +34,10 @@ import org.apache.rocketmq.connect.runtime.utils.ConnectorTaskId;
 import org.apache.rocketmq.connect.runtime.utils.CurrentTaskState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Should we use callable here ?
@@ -223,10 +224,8 @@ public abstract class WorkerTask implements Runnable {
             // while poll
             doExecute();
         } catch (Throwable t) {
-            if (isRunning()) {
-                log.error("{} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted", this, t);
-                throw t;
-            }
+            log.error("{} Task threw an uncaught and unrecoverable exception. Task is being killed and will not recover until manually restarted", this, t);
+            throw t;
         } finally {
             doClose();
         }
