@@ -24,6 +24,18 @@ sh build_image.sh
 
 ##启动Connector
 
+使用默认connect-distributed.conf启动
+
 ```
 docker run  --name rmqconnect --link rmqnamesrv:namesrv -e "NAMESRV_ADDR=namesrv:9876" -p 8082:8082 apache/rocketmqconnect:0.0.1-SNAPSHOT sh /home/connect/mq-connect/bin/connect-distributed.sh -c /home/connect/mq-connect/conf/connect-distributed.conf
+```
+
+使用自定义配置启动
+
+替换自定义connect-distributed.conf配置
+
+可以将 ~/rocketmq-connect/distribution/conf/connect-distributed.conf 替换为自定义的配置
+
+```
+docker run -d -v ~/rocketmq-connect/distribution/conf/connect-distributed.conf:/home/connect/mq-connect/conf/connect-distributed.conf  --name rmqconnect --link rmqnamesrv:namesrv -e "NAMESRV_ADDR=namesrv:9876" -p 8082:8082  apache/rocketmqconnect:0.0.1-SNAPSHOT  sh /home/connect/mq-connect/bin/connect-distributed.sh -c /home/connect/mq-connect/conf/connect-distributed.conf
 ```
