@@ -14,7 +14,7 @@ rocketmq connect runtime参数：
   如果是SinkConnector，对应为org.apache.rocketmq.connect.kafka.connector.KafkaRocketmqSinkConnector。
   
 - **connector.class**: 要导入导出数据的rocketmq topic
-- **max.task**: 启动的task数目 
+- **max.tasks**: 启动的task数目 
 
 kafka-connector参数放在kafka.connector.configs里，又分为2类：kafka-connector-adapter参数，以及 具体kafka connector
 

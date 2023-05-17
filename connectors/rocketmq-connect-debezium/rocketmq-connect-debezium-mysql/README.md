@@ -175,7 +175,7 @@ PRIMARY KEY (`id`)
 ```
 curl-X POST-H"Content-Type: application/json"http: //127.0.0.1:8082/connectors/MySQLCDCSource'{
 "connector.class": "org.apache.rocketmq.connect.debezium.MySQL.DebeziumMySQLConnector",
-"max.task": "1",
+"max.tasks": "1",
 "connect.topicname": "debezium-MySQL-source-topic",
 "kafka.transforms": "Unwrap",
 "kafka.transforms.Unwrap.delete.handling.mode": "none",
@@ -209,7 +209,7 @@ curl-X POST-H"Content-Type: application/json"http: //127.0.0.1:8082/connectors/M
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/jdbcmysqlsinktest -d '{
   "connector.class": "org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
-  "max.task": "2",
+  "max.tasks": "2",
   "connect.topicnames": "debezium-mysql-source",
   "connection.url": "jdbc:mysql://数据库ip:3306/inventory_2",
   "connection.user": "root",

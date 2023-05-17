@@ -175,7 +175,7 @@ CREATE TABLE holding (
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/postgres-connector -d  '{
   "connector.class": "org.apache.rocketmq.connect.debezium.postgres.DebeziumPostgresConnector",
-  "max.task": "1",
+  "max.tasks": "1",
   "connect.topicname": "debezium-postgres-source-01",
   "kafka.transforms": "Unwrap",
   "kafka.transforms.Unwrap.delete.handling.mode": "none",
@@ -202,7 +202,7 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/jdbcmysqlsinktest201 -d '{
   "connector.class": "org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
-  "max.task": "2",
+  "max.tasks": "2",
   "connect.topicnames": "debezium-postgres-source-01",
   "connection.url": "jdbc:mysql://数据库ip:3306/bank1",
   "connection.user": "root",
