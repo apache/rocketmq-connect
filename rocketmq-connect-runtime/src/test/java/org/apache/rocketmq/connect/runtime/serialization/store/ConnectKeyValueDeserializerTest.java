@@ -31,7 +31,7 @@ public class ConnectKeyValueDeserializerTest {
         connectKeyValue.put("connector.topic", "testTopic");
         connectKeyValue.put("max.tasks", 2);
         final ConnectKeyValue result = deserializer.deserialize("testTopic", JSON.toJSONBytes(connectKeyValue));
-        Assert.assertEquals(2, result.getInt("max.task"));
+        Assert.assertEquals(2, result.getInt("max.tasks"));
         Assert.assertEquals("testTopic", result.getString("connector.topic"));
     }
 }
