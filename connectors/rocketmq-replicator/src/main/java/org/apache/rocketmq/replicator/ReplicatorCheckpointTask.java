@@ -34,14 +34,13 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.replicator.common.LoggerName;
 import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
 import org.apache.rocketmq.replicator.exception.InitMQClientException;
 import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,7 +188,6 @@ public class ReplicatorCheckpointTask extends SourceTask {
         return connectRecords;
     }
 
-    @NotNull
     private static Struct buildCheckpointPayload(String srcTopicWithInstanceId, String srcConsumerGroupWithInstanceId,
         long minSrcLasttimestamp, long minDestLasttimestamp) {
         Struct struct = new Struct(VALUE_SCHEMA_V0);

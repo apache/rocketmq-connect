@@ -39,7 +39,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.replicator.stats.ReplicatorTaskStats;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.slf4j.Logger;
@@ -135,7 +134,6 @@ public class ReplicatorHeartbeatTask extends SourceTask {
                 long storeTimestamp = messageExt.getStoreTimestamp();
                 long consumeTimestamp = System.currentTimeMillis();
                 long rt = consumeTimestamp - bornTimestamp;
-                ReplicatorTaskStats.incItemValue(ReplicatorTaskStats.REPLICATOR_HEARTBEAT_DELAY_MS, connectorConfig.getConnectorId(), (int) rt, 1);
                 log.info(messageExt.getUserProperty("src") + " -->  " + messageExt.getUserProperty("dest") + " RT " + bornTimestamp + "," + storeTimestamp + "," + consumeTimestamp);
                 consumerLastConsumeOk = consumeTimestamp;
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -201,7 +199,6 @@ public class ReplicatorHeartbeatTask extends SourceTask {
         log.info("ReplicatorHeartbeatTask connectorConfig : " + connectorConfig);
 
         try {
-            ReplicatorTaskStats.init();
             // init consumer group
             String destClusterName = connectorConfig.getDestCluster();
             createAndUpdatePullConsumerGroup(destClusterName, consumeGroup);
