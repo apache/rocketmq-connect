@@ -24,7 +24,7 @@ import io.openmessaging.connector.api.data.RecordPartition;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
+import org.apache.rocketmq.replicator.common.LoggerName;
 import org.apache.rocketmq.replicator.exception.ParamInvalidException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
+
 
 public class ReplicatorUtils {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.REPLICATRO_RUNTIME);
@@ -48,6 +48,8 @@ public class ReplicatorUtils {
     public static final String UPSTREAM_LASTTIMESTAMP_KEY = "upstreamLastTimestamp";
     public static final String DOWNSTREAM_LASTTIMESTAMP_KEY = "downstreamLastTimestamp";
     public static final String METADATA_KEY = "metadata";
+    public static final String QUEUE_OFFSET = "queueOffset";
+    public static final String TOPIC = "topic";
 
     public static String buildTopicWithNamespace(String topic, String instanceId) {
         if (StringUtils.isBlank(instanceId)) {
@@ -91,6 +93,15 @@ public class ReplicatorUtils {
         return recordPartition;
     }
 
+    public static RecordPartition convertToRecordPartition(String topic, String brokerName, int queueId) {
+        Map<String, String> map = new HashMap<>();
+        map.put("topic", topic);
+        map.put("brokerName", brokerName);
+        map.put("queueId", queueId + "");
+        RecordPartition recordPartition = new RecordPartition(map);
+        return recordPartition;
+    }
+
     public static RecordOffset convertToRecordOffset(Long offset) {
         Map<String, String> offsetMap = new HashMap<>();
         offsetMap.put(QUEUE_OFFSET, offset + "");
@@ -114,4 +125,5 @@ public class ReplicatorUtils {
             throw new RuntimeException("Create topic [" + topicConfig.getTopicName() + "] failed", e);
         }
     }
+
 }

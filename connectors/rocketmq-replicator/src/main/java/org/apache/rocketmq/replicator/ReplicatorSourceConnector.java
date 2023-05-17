@@ -50,13 +50,11 @@ import org.apache.rocketmq.replicator.config.*;
 import org.apache.rocketmq.replicator.exception.GetMetaDataException;
 import org.apache.rocketmq.replicator.exception.InitMQClientException;
 import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
-import org.apache.rocketmq.connect.runtime.errors.ToleranceType;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
-import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.CONNECTOR_ID;
-import static org.apache.rocketmq.connect.runtime.config.ConnectorConfig.ERRORS_TOLERANCE_CONFIG;
-import static org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig.CONNECT_TOPICNAME;
+import static org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig.CONNECT_TOPICNAME;
+
 
 /**
  * @author osgoo
@@ -193,8 +191,8 @@ public class ReplicatorSourceConnector extends SourceConnector {
             keyValue.put(ReplicatorConnectorConfig.DIVIDED_NORMAL_QUEUES, JSON.toJSONString(normalDivided.get(i)));
 
             // CONNECTOR_ID is not fulfilled by rebalance
-            keyValue.put(CONNECTOR_ID, connectorConfig.getString(CONNECTOR_ID));
-            keyValue.put(ERRORS_TOLERANCE_CONFIG, connectorConfig.getString(ERRORS_TOLERANCE_CONFIG, ToleranceType.ALL.name()));
+//            keyValue.put(CONNECTOR_ID, connectorConfig.getString(CONNECTOR_ID));
+//            keyValue.put(ERRORS_TOLERANCE_CONFIG, connectorConfig.getString(ERRORS_TOLERANCE_CONFIG, ToleranceType.ALL.name()));
             keyValue.put(ReplicatorConnectorConfig.SRC_CLOUD, connectorConfig.getString(ReplicatorConnectorConfig.SRC_CLOUD));
             keyValue.put(ReplicatorConnectorConfig.SRC_REGION, connectorConfig.getString(ReplicatorConnectorConfig.SRC_REGION));
             keyValue.put(ReplicatorConnectorConfig.SRC_CLUSTER, connectorConfig.getString(ReplicatorConnectorConfig.SRC_CLUSTER));
@@ -257,7 +255,6 @@ public class ReplicatorSourceConnector extends SourceConnector {
             add(ReplicatorConnectorConfig.DEST_ENDPOINT);
             add(ReplicatorConnectorConfig.SRC_ACL_ENABLE);
             add(ReplicatorConnectorConfig.DEST_ACL_ENABLE);
-            add(ERRORS_TOLERANCE_CONFIG);
         }
     };
 
