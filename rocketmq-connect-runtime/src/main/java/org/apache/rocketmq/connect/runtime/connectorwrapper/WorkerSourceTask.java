@@ -250,7 +250,7 @@ public class WorkerSourceTask extends WorkerTask {
                 SendCallback callback = new SendCallback() {
                     @Override
                     public void onSuccess(SendResult result) {
-                        log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
+                        log.info("Successful send message to RocketMQ, MsgId:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
                         // complete record
                         counter.completeRecord();
                         // commit record for custom
