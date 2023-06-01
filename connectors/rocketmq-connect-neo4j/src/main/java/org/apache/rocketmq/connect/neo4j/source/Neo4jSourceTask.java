@@ -89,6 +89,9 @@ public class Neo4jSourceTask extends SourceTask {
     }
 
     private long readRecordOffset() {
+        if (sourceTaskContext == null) {
+            return 0L;
+        }
         final RecordOffset positionInfo =
             this.sourceTaskContext.offsetStorageReader().readOffset(buildRecordPartition(config.getNeo4jDataBase()));
         if (positionInfo == null) {

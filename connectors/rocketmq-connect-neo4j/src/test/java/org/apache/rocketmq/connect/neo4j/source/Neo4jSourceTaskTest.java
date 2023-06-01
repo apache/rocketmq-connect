@@ -17,37 +17,70 @@
 
 package org.apache.rocketmq.connect.neo4j.source;
 
+import java.util.List;
+
 import org.apache.rocketmq.connect.neo4j.config.Neo4jBaseConfig;
 import org.apache.rocketmq.connect.neo4j.config.Neo4jConstants;
 import org.apache.rocketmq.connect.neo4j.config.Neo4jSourceConfig;
 import org.apache.rocketmq.connect.neo4j.helper.Neo4jClient;
 
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.internal.DefaultKeyValue;
 
 public class Neo4jSourceTaskTest {
-    private static final String host= "localhost";
-    private static final Integer port = 7687;
-    private static final String db = "test";
-    private static final String user = "test";
-    private static final String password = "root123456";
-
-    public void testClient() {
-        Neo4jBaseConfig neo4jBaseConfig = new Neo4jSourceConfig();
-        KeyValue config = new DefaultKeyValue();
-        config.put(Neo4jConstants.NEO4J_HOST, host);
-        config.put(Neo4jConstants.NEO4J_PORT, port);
-        config.put(Neo4jConstants.NEO4J_USER, user);
-        config.put(Neo4jConstants.NEO4J_PASSWORD, password);
-        config.put(Neo4jConstants.NEO4J_DB, db);
-        neo4jBaseConfig.load(config);
-        Neo4jClient client = new Neo4jClient(neo4jBaseConfig);
-        final boolean ping = client.ping();
-        System.out.println(ping);
-    }
-
-    public static void main(String[] args) {
-        Neo4jSourceTaskTest neo4jSourceTaskTest = new Neo4jSourceTaskTest();
-        neo4jSourceTaskTest.testClient();
-    }
+//    private static final String host= "localhost";
+//    private static final Integer port = 7687;
+//    private static final String db = "test";
+//    private static final String user = "test";
+//    private static final String password = "root123456";
+//
+//    public void testClient() {
+//        Neo4jBaseConfig neo4jBaseConfig = new Neo4jSourceConfig();
+//        KeyValue config = new DefaultKeyValue();
+//        config.put(Neo4jConstants.NEO4J_HOST, host);
+//        config.put(Neo4jConstants.NEO4J_PORT, port);
+//        config.put(Neo4jConstants.NEO4J_USER, user);
+//        config.put(Neo4jConstants.NEO4J_PASSWORD, password);
+//        config.put(Neo4jConstants.NEO4J_DB, db);
+//        neo4jBaseConfig.load(config);
+//        Neo4jClient client = new Neo4jClient(neo4jBaseConfig);
+//        final boolean ping = client.ping();
+//        System.out.println(ping);
+//    }
+//
+//    public void testPoll() throws InterruptedException {
+//        Neo4jSourceTask task = new Neo4jSourceTask();
+//        KeyValue config = new DefaultKeyValue();
+//        config.put(Neo4jConstants.NEO4J_HOST, host);
+//        config.put(Neo4jConstants.NEO4J_PORT, port);
+//        config.put(Neo4jConstants.NEO4J_USER, user);
+//        config.put(Neo4jConstants.NEO4J_PASSWORD, password);
+//        config.put(Neo4jConstants.NEO4J_DB, db);
+//        config.put(Neo4jConstants.NEO4J_TOPIC, "nodeNeo4jTopic");
+//        config.put(Neo4jConstants.LABEL_TYPE, "node");
+//        config.put(Neo4jConstants.LABELS, "Goods");
+//        config.put(Neo4jConstants.COLUMN, "[\n" + "        {\n" + "            \"name\":\"goodsId\",\n"
+//            + "            \"type\":\"long\",\n" + "            \"columnType\":\"primaryKey\",\n"
+//            + "            \"valueExtract\":\"#{goodsId}\"\n" + "        },\n" + "        {\n"
+//            + "            \"name\":\"label\",\n" + "            \"type\":\"string\",\n"
+//            + "            \"columnType\":\"primaryLabel\"\n" + "        },\n" + "        {\n"
+//            + "            \"name\":\"goodsName\",\n" + "            \"type\":\"string\",\n"
+//            + "            \"columnType\":\"nodeProperty\",\n" + "            \"valueExtract\":\"#{goodsName}\"\n"
+//            + "        }\n" + "    ]");
+//        task.start(config);
+//        while (true) {
+//            final List<ConnectRecord> connectRecordList = task.poll();
+//            for(ConnectRecord record : connectRecordList) {
+//                System.out.println(record);
+//            }
+//            Thread.sleep(3000);
+//        }
+//    }
+//
+//    public static void main(String[] args) throws InterruptedException {
+//        Neo4jSourceTaskTest neo4jSourceTaskTest = new Neo4jSourceTaskTest();
+//        neo4jSourceTaskTest.testClient();
+//        neo4jSourceTaskTest.testPoll();
+//    }
 }
