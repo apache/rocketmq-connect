@@ -27,7 +27,7 @@
 
 
 
-## 示例：jdbc -> Rocketmq -> doirs
+## 示例：jdbc -> Rocketmq -> doris
 
 注: 目前支持将根据mysql ,openMLDB对应的source connect以流式的方式导入到rocketmq中的数据导入到doris
 

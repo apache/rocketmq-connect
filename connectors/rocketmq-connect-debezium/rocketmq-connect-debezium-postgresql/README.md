@@ -1,6 +1,6 @@
 # DEMO
 
-PostgreSQL Source(CDC)  -  >RocketMQ Connect  ->  MySQL Sink(JDBC)
+PostgreSQL Source(CDC)  ->  RocketMQ Connect  ->  MySQL Sink(JDBC)
 
 ## 准备
 
@@ -201,7 +201,7 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/jdbcmysqlsinktest201 -d '{
-  "connector.class": "org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
+  "connector.class": "org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConnector",
   "max.tasks": "2",
   "connect.topicnames": "debezium-postgres-source-01",
   "connection.url": "jdbc:mysql://数据库ip:3306/bank1",
@@ -227,7 +227,5 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 通过start_data_engineer/password账号登录数据库
 账号登录数据库
 
-对源数据库表：bankholding增删改
+对源数据库表：bank.holding增删改
 即可同步到目标表bank1.holding
-
-

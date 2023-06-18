@@ -115,7 +115,7 @@ cat test-sink-file.txt
 | connect.topicnames | false    |         | sink需要处理数据消息topics                                             |
 
 ```  
-注：source/sink配置文件说明是以rocketmq-connect-sample为demo，不同source/sink connector配置有差异，请以具体sourc/sink connector 为准
+注：source/sink配置文件说明是以rocketmq-connect-sample为demo，不同source/sink connector配置有差异，请以具体source/sink connector 为准
 ```
 
 ## 6.停止connector
@@ -366,9 +366,9 @@ public interface Transform<R extends ConnectRecord> extends Component {
 | key                         | nullable | standalone | distributed | default                                                            | description                                       |
 |-----------------------------|----------|------------|-------------|--------------------------------------------------------------------|---------------------------------------------------|
 | workerId                    | false    | ✅ ️        | ✅           | DEFAULT_WORKER_1                                                   | 集群节点唯一标识                                          |
-| namesrvAddr                 | false    | ✅          | ✅           | loacalhost:9876                                                    | RocketMQ Name Server地址列表，多个NameServer地址用分号隔开      |
+| namesrvAddr                 | false    | ✅          | ✅           | localhost:9876                                                    | RocketMQ Name Server地址列表，多个NameServer地址用分号隔开      |
 | httpPort                    | false    | ✅          | ✅           | 8082                                                               | runtime提供restful接口服务端口                            |
-| pluginPaths                 | false    | ✅          | ✅           |                                                                    | source或者sink目录，启动runttime时加载                      |
+| pluginPaths                 | false    | ✅          | ✅           |                                                                    | source或者sink目录，启动runtime时加载                      |
 | storePathRootDir            | true     | ✅          | ✅           | /tmp/connectorStore                                                | 持久化文件保存目录                                         |
 | positionStoreTopic          | true     | ❌          | ✅           | connector-position-topic                                           | source端position变更通知topic                          |
 | positionPersistInterval     | true     | ✅          | ✅           | 20s                                                                | source端持久化position数据间隔                            |
@@ -498,8 +498,3 @@ Program arguments配置
 Environment variables配置
 
 >CONNECT_HOME=${user path}/rocketmq-connect/distribution
-
-
-
-
-
