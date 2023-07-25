@@ -22,7 +22,7 @@ cd `dirname $0`
 
 WORK_DIR=`pwd`
 
-mvn clean package -DskipTests -Dmaven.test.skip=true -U
+mvn clean install -DskipTests -Dmaven.test.skip=true -U
 
 if test -f ${WORK_DIR}/docker/connect/distribution.tar.gz; then
     rm -f ${WORK_DIR}/docker/connect/distribution.tar.gz
@@ -34,6 +34,10 @@ fi
 
 if test -f ${WORK_DIR}/docker/connect/rocketmq-connect-sample-0.0.1-SNAPSHOT.jar; then
     rm -f ${WORK_DIR}/docker/connect/rocketmq-connect-sample-0.0.1-SNAPSHOT.jar
+fi
+
+if test -f ${WORK_DIR}/docker/connect/rocketmq-replicator-0.1.0-SNAPSHOT-jar-with-dependencies.jar; then
+    rm -f ${WORK_DIR}/docker/connect/rocketmq-replicator-0.1.0-SNAPSHOT-jar-with-dependencies.jar
 fi
 
 cd ${WORK_DIR}/rocketmq-connect-runtime/target/
@@ -50,6 +54,11 @@ mkdir -p ${WORK_DIR}/docker/connect/plugins/
 cd ${WORK_DIR}/rocketmq-connect-sample/target
 
 cp rocketmq-connect-sample-0.0.1-SNAPSHOT.jar ${WORK_DIR}/docker/connect/plugins/
+
+cd ${WORK_DIR}/connectors/rocketmq-replicator/
+mvn clean package -DskipTests -Dmaven.test.skip=true -U
+cd ${WORK_DIR}/connectors/rocketmq-replicator/target
+cp rocketmq-replicator-0.1.0-SNAPSHOT-jar-with-dependencies.jar ${WORK_DIR}/docker/connect/plugins/
 
 CONNECT_VERSION=0.0.1-SNAPSHOT
 
