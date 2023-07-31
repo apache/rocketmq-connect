@@ -24,11 +24,15 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.rocketmq.connect.hbase.config.HBaseConstants;
+import org.apache.rocketmq.connect.hbase.config.HBaseSinkConfig;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 public class HBaseHelperClient {
@@ -40,14 +44,18 @@ public class HBaseHelperClient {
     private HBaseAdmin admin;
 
 
-    public boolean tableExists(String tableName) throws IOException {
-        if (admin == null) {
-            return false;
+    public boolean tableExists(String tableName) {
+        try {
+            if (admin == null) {
+                return false;
+            }
+            return admin.tableExists(TableName.valueOf(tableName));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return admin.tableExists(TableName.valueOf(tableName));
     }
 
-    public void createTable(String tableName, List<String> columnFamilies) throws IOException {
+    public void createTable(String tableName, List<String> columnFamilies) {
         if (tableExists(tableName)) {
             log.warn("table already exist, {}", tableName);
             return;
@@ -60,48 +68,53 @@ public class HBaseHelperClient {
                 HColumnDescriptor f = new HColumnDescriptor(columnFamily);
                 hTableDescriptor.addFamily(f);
             });
+        }
+        try {
             //创建表
             admin.createTable(hTableDescriptor);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public void batchInsert(String tableName, List<Put> puts) throws IOException {
-        Table table = connection.getTable(TableName.valueOf(tableName));
-        table.put(puts);
+    public void batchInsert(String tableName, List<Put> puts) {
+        try {
+            Table table = connection.getTable(TableName.valueOf(tableName));
+            table.put(puts);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public HBaseHelperClient(Map<String, String> confMap) {
-        getConnection(confMap);
+    public HBaseHelperClient(HBaseSinkConfig hBaseSinkConfig) {
+        getConnection(hBaseSinkConfig);
         initAdmin();
     }
 
-    private void getConnection(Map<String, String> confMap) {
+    private void getConnection(HBaseSinkConfig hBaseSinkConfig) {
         configuration = HBaseConfiguration.create();
-        if (!confMap.isEmpty()) {
-            confMap.forEach((confKey, confValue) -> {
-                configuration.set(confKey, confValue);
-            });
-        }
+//        configuration.set(HBaseConstants.HBASE_MASTER, hBaseSinkConfig.getHbaseMaster());
+        configuration.set(HBaseConstants.HBASE_ZOOKEEPER_QUORUM, hBaseSinkConfig.getZkHost());
+//        configuration.set(HBaseConstants.HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT, hBaseSinkConfig.getZkPort());
         try {
             connection = ConnectionFactory.createConnection(configuration);
         } catch (Exception e) {
-            log.error("get connection with hbase error ", e);
+            throw new RuntimeException("Cannot connect to hbase server! ", e);
         }
     }
 
     private void initAdmin() {
         if (connection == null) {
-            log.error("cannot get connection with hbase");
-            return;
+            throw new RuntimeException("Cannot connect to hbase server!");
         }
         try {
             admin = (HBaseAdmin) connection.getAdmin();
         } catch (Exception e) {
-            log.error("cannot get hbase admin ", e);
+            throw new RuntimeException("Cannot get admin from hbase server! ", e);
         }
     }
 
-    private void close() {
+    public void close() {
         try {
             admin.close();
             connection.close();

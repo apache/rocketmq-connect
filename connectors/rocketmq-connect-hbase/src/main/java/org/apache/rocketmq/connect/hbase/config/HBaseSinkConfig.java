@@ -17,5 +17,103 @@
 
 package org.apache.rocketmq.connect.hbase.config;
 
+import io.openmessaging.KeyValue;
+
+import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
+
 public class HBaseSinkConfig {
+
+    public static final Set<String> SINK_REQUEST_CONFIG = new HashSet<String>() {
+        {
+            add(HBaseConstants.HBASE_MASTER_CONFIG);
+            add(HBaseConstants.HBASE_ZK_HOST);
+            add(HBaseConstants.HBASE_ZK_PORT);
+            add(HBaseConstants.COLUMN_FAMILY);
+        }
+    };
+    private String hbaseMaster;
+
+    private String zkHost;
+
+    private String zkPort;
+
+    private String columnFamily;
+
+    public String getHbaseMaster() {
+        return hbaseMaster;
+    }
+
+    public void setHbaseMaster(String hbaseMaster) {
+        this.hbaseMaster = hbaseMaster;
+    }
+
+    public String getZkHost() {
+        return zkHost;
+    }
+
+    public void setZkHost(String zkHost) {
+        this.zkHost = zkHost;
+    }
+
+    public String getZkPort() {
+        return zkPort;
+    }
+
+    public void setZkPort(String zkPort) {
+        this.zkPort = zkPort;
+    }
+
+    public String getColumnFamily() {
+        return columnFamily;
+    }
+
+    public void setColumnFamily(String columnFamily) {
+        this.columnFamily = columnFamily;
+    }
+
+    public void load(KeyValue props) {
+        properties2Object(props, this);
+    }
+
+    private void properties2Object(final KeyValue p, final Object object) {
+
+        Method[] methods = object.getClass().getMethods();
+        for (Method method : methods) {
+            String mn = method.getName();
+            if (mn.startsWith("set")) {
+                try {
+                    String tmp = mn.substring(3);
+                    String key = tmp.toLowerCase();
+
+                    String property = p.getString(key);
+                    if (property != null) {
+                        Class<?>[] pt = method.getParameterTypes();
+                        if (pt != null && pt.length > 0) {
+                            String cn = pt[0].getSimpleName();
+                            Object arg;
+                            if (cn.equals("int") || cn.equals("Integer")) {
+                                arg = Integer.parseInt(property);
+                            } else if (cn.equals("long") || cn.equals("Long")) {
+                                arg = Long.parseLong(property);
+                            } else if (cn.equals("double") || cn.equals("Double")) {
+                                arg = Double.parseDouble(property);
+                            } else if (cn.equals("boolean") || cn.equals("Boolean")) {
+                                arg = Boolean.parseBoolean(property);
+                            } else if (cn.equals("float") || cn.equals("Float")) {
+                                arg = Float.parseFloat(property);
+                            } else if (cn.equals("String")) {
+                                arg = property;
+                            } else {
+                                continue;
+                            }
+                            method.invoke(object, arg);
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+    }
 }

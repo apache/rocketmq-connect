@@ -17,5 +17,41 @@
 
 package org.apache.rocketmq.connect.hbase.sink;
 
-public class HBaseSinkConnector {
+import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.component.task.Task;
+import io.openmessaging.connector.api.component.task.sink.SinkConnector;
+import org.apache.rocketmq.connect.hbase.config.HBaseSinkConfig;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class HBaseSinkConnector extends SinkConnector {
+    private KeyValue keyValue;
+
+    @Override public List<KeyValue> taskConfigs(int maxTasks) {
+        List<KeyValue> configs = new ArrayList<>();
+        for (int i = 0; i < maxTasks; i++) {
+            configs.add(this.keyValue);
+        }
+        return configs;
+    }
+
+    @Override public Class<? extends Task> taskClass() {
+        return HBaseSinkTask.class;
+    }
+
+    @Override public void start(KeyValue value) {
+
+        for (String requestKey : HBaseSinkConfig.SINK_REQUEST_CONFIG) {
+            if (!value.containsKey(requestKey)) {
+                throw new RuntimeException("Request config key: " + requestKey);
+            }
+        }
+
+        this.keyValue = value;
+    }
+
+    @Override public void stop() {
+        this.keyValue = null;
+    }
 }

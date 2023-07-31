@@ -18,4 +18,18 @@
 package org.apache.rocketmq.connect.hbase.config;
 
 public class HBaseConstants {
+    public static final String HBASE_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
+
+    public static final String HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT = "hbase.zookeeper.property.clientPort";
+
+    public static final String HBASE_MASTER = "hbase.master";
+
+    public static final String COLUMN_FAMILY = "columnfamily";
+
+    public static final String HBASE_ZK_HOST = "zkhost";
+
+    public static final String HBASE_ZK_PORT = "zkport";
+
+    public static final String HBASE_MASTER_CONFIG = "hbasemaster";
+
 }
