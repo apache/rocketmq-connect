@@ -144,7 +144,7 @@ INSERT INTO `employee` VALUES (15, NULL, 0, 0, NULL, 0, NULL, '2022-06-14 20:13:
 
 
 
-use 
+use
 ```
 
 目标库：inventory_2.employee
@@ -208,9 +208,9 @@ curl-X POST-H"Content-Type: application/json"http: //127.0.0.1:8082/connectors/M
 
 ```
 curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connectors/jdbcmysqlsinktest -d '{
-  "connector.class": "org.apache.rocketmq.connect.jdbc.connector.JdbcSinkConnector",
+  "connector.class": "org.apache.rocketmq.connect.jdbc.sink.JdbcSinkConnector",
   "max.tasks": "2",
-  "connect.topicnames": "debezium-mysql-source",
+  "connect.topicnames": "debezium-MySQL-source-topic",
   "connection.url": "jdbc:mysql://数据库ip:3306/inventory_2",
   "connection.user": "root",
   "connection.password": "debezium",
@@ -235,5 +235,3 @@ curl -X POST -H "Content-Type: application/json" http://127.0.0.1:8082/connector
 
 对源数据库表：inventory.employee增删改
 即可同步到目标办inventory_2.employee
-
-
