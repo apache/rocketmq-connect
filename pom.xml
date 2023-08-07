@@ -30,7 +30,6 @@
         <module>transforms</module>
         <module>metric-exporter</module>
         <module>schema-converter</module>
-        <module>connectors/rocketmq-connect-hbase</module>
     </modules>
     <name>RocketMQ Connect</name>
 

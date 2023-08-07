@@ -5,14 +5,14 @@ org.apache.rocketmq.connect.hbase.sink.HBaseSinkConnector
 **hbase-sink-connector** start
 
 ```
-POST  http://${runtime-ip}:${runtime-port}/connectors/clickhouseSinkConnector
+POST  http://${runtime-ip}:${runtime-port}/connectors/HBaseSinkConnector
 {
-    "connector.class":"org.apache.rocketmq.connect.clickhouse.sink.ClickHouseSinkConnector",
+    "connector.class":"org.apache.rocketmq.connect.hbase.sink.HBaseSinkConnector",
     "zkquorum":"localhost:2181",
     "columnfamily":"cf",
     "username":"default",
     "password":"123456",
-    "connect.topicnames":"testClickHouseTopic",
+    "connect.topicnames":"testHBaseTopic",
     "value.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter",
     "key.converter":"org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter"
 }
