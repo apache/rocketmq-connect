@@ -5,7 +5,14 @@ import io.openmessaging.connector.api.data.*;
 import io.openmessaging.internal.DefaultKeyValue;
 import junit.framework.TestCase;
 import org.apache.rocketmq.connect.hbase.config.HBaseConstants;
+import org.apache.rocketmq.connect.hbase.config.HBaseSinkConfig;
+import org.apache.rocketmq.connect.hbase.helper.HBaseHelperClient;
+import org.junit.Assert;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,10 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class HBaseSinkTaskTest extends TestCase {
 
-    private static final String zkHost = "localhost:2181";
-    private static final String zkPort = "2181";
-    private static final String hbaseMaster = "localhost:16000";
+    private static final String zkHost = "ld-m5ejp1wxrnytqnmz1-proxy-lindorm-pub.lindorm.rds.aliyuncs.com:30020";
     private static final String columnFamily = "cf";
+
+    private static final String userName = "root";
+
+    private static final String password = "xxxxxx";
 
     public static void main(String[] args) {
         List<ConnectRecord> records = new ArrayList<>();
@@ -70,11 +79,45 @@ public class HBaseSinkTaskTest extends TestCase {
         HBaseSinkTask task = new HBaseSinkTask();
         KeyValue config = new DefaultKeyValue();
         config.put(HBaseConstants.COLUMN_FAMILY, columnFamily);
-        config.put(HBaseConstants.HBASE_MASTER_CONFIG, hbaseMaster);
-        config.put(HBaseConstants.HBASE_ZK_HOST, zkHost);
-        config.put(HBaseConstants.HBASE_ZK_PORT, zkPort);
+        config.put(HBaseConstants.HBASE_ZK_QUORUM, zkHost);
+        config.put(HBaseConstants.HBASE_USERNAME_CONFIG, userName);
+        config.put(HBaseConstants.HBASE_PASSWORD_CONFIG, password);
 
         task.start(config);
         task.put(records);
     }
+
+    @Test
+    public void testClient() {
+        String tableName = "test";
+        HBaseSinkConfig config = new HBaseSinkConfig();
+        config.setColumnFamily(columnFamily);
+        config.setZkQuorum(zkHost);
+        config.setUserName(userName);
+        config.setPassWord(password);
+        HBaseHelperClient helperClient = new HBaseHelperClient(config);
+        boolean flag = helperClient.tableExists(tableName);
+        Assert.assertFalse(flag);
+    }
+
+    @Test
+    public void testConn() {
+        Socket connect = new Socket();
+        try {
+            connect.connect(new InetSocketAddress("localhost", 2181),100);//建立连接
+            boolean res = connect.isConnected();//通过现有方法查看连通状态
+            System.out.println(res);//true为连通
+        } catch (IOException e) {
+            System.out.println("false");//当连不通时，直接抛异常，异常捕获即可
+        }finally{
+            try {
+                connect.close();
+            } catch (IOException e) {
+                System.out.println("false");
+            }
+        }
+    }
+
+
+
 }

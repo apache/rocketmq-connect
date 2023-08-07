@@ -27,19 +27,35 @@ public class HBaseSinkConfig {
 
     public static final Set<String> SINK_REQUEST_CONFIG = new HashSet<String>() {
         {
-            add(HBaseConstants.HBASE_MASTER_CONFIG);
-            add(HBaseConstants.HBASE_ZK_HOST);
-            add(HBaseConstants.HBASE_ZK_PORT);
+            add(HBaseConstants.HBASE_ZK_QUORUM);
             add(HBaseConstants.COLUMN_FAMILY);
         }
     };
     private String hbaseMaster;
 
-    private String zkHost;
-
-    private String zkPort;
+    private String zkQuorum;
 
     private String columnFamily;
+
+    private String userName;
+
+    private String passWord;
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassWord() {
+        return passWord;
+    }
+
+    public void setPassWord(String passWord) {
+        this.passWord = passWord;
+    }
 
     public String getHbaseMaster() {
         return hbaseMaster;
@@ -49,20 +65,12 @@ public class HBaseSinkConfig {
         this.hbaseMaster = hbaseMaster;
     }
 
-    public String getZkHost() {
-        return zkHost;
+    public String getZkQuorum() {
+        return zkQuorum;
     }
 
-    public void setZkHost(String zkHost) {
-        this.zkHost = zkHost;
-    }
-
-    public String getZkPort() {
-        return zkPort;
-    }
-
-    public void setZkPort(String zkPort) {
-        this.zkPort = zkPort;
+    public void setZkQuorum(String zkQuorum) {
+        this.zkQuorum = zkQuorum;
     }
 
     public String getColumnFamily() {

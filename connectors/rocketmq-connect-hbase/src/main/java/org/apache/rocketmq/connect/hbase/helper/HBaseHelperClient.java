@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.hbase.helper;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -93,9 +94,17 @@ public class HBaseHelperClient {
 
     private void getConnection(HBaseSinkConfig hBaseSinkConfig) {
         configuration = HBaseConfiguration.create();
-//        configuration.set(HBaseConstants.HBASE_MASTER, hBaseSinkConfig.getHbaseMaster());
-        configuration.set(HBaseConstants.HBASE_ZOOKEEPER_QUORUM, hBaseSinkConfig.getZkHost());
-//        configuration.set(HBaseConstants.HBASE_ZOOKEEPER_PROPERTY_CLIENTPORT, hBaseSinkConfig.getZkPort());
+        configuration.set(HBaseConstants.HBASE_ZOOKEEPER_QUORUM, hBaseSinkConfig.getZkQuorum());
+
+        if (StringUtils.isNotBlank(hBaseSinkConfig.getHbaseMaster())) {
+            configuration.set(HBaseConstants.HBASE_MASTER, hBaseSinkConfig.getHbaseMaster());
+        }
+        if (StringUtils.isNotBlank(hBaseSinkConfig.getUserName())) {
+            configuration.set(HBaseConstants.HBASE_CLIENT_USERNAME, hBaseSinkConfig.getUserName());
+        }
+        if (StringUtils.isNotBlank(hBaseSinkConfig.getPassWord())) {
+            configuration.set(HBaseConstants.HBASE_CLIENT_PASSWORD, hBaseSinkConfig.getPassWord());
+        }
         try {
             connection = ConnectionFactory.createConnection(configuration);
         } catch (Exception e) {

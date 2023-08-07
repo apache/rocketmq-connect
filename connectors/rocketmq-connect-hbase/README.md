@@ -8,9 +8,8 @@ org.apache.rocketmq.connect.hbase.sink.HBaseSinkConnector
 POST  http://${runtime-ip}:${runtime-port}/connectors/clickhouseSinkConnector
 {
     "connector.class":"org.apache.rocketmq.connect.clickhouse.sink.ClickHouseSinkConnector",
-    "clickhousehost":"localhost",
-    "clickhouseport":8123,
-    "database":"clickhouse",
+    "zkquorum":"localhost:2181",
+    "columnfamily":"cf",
     "username":"default",
     "password":"123456",
     "connect.topicnames":"testClickHouseTopic",
@@ -21,11 +20,11 @@ POST  http://${runtime-ip}:${runtime-port}/connectors/clickhouseSinkConnector
 
 ##### parameter configuration
 
-| parameter          | effect                                            | required          | default |
-|--------------------|---------------------------------------------------|-------------------|---------|
-| clickhousehost     | The Host of the Clickhouse server                 | yes               | null    |
-| clickhouseport     | The Port of the Clickhouse server                 | yes               | null    |
-| database           | The database to read or write                     | yes               | null    |
-| table              | The source table to read                          | yes (source only) | null    |
-| topic              | RocketMQ topic for source connector to write into | yes (source only) | null    |
-| connect.topicnames | RocketMQ topic for sink connector to read from    | yes (sink only)   | null    |
+| parameter          | effect                                         | required        | default |
+|--------------------|------------------------------------------------|-----------------|---------|
+| zkquorum           | The Endpoint of the Zookeeper server           | yes             | null    |
+| columnfamily       | The Column Family of the Destination table     | yes             | null    |
+| username           | The UserName to login to HBase server          | yes             | null    |
+| password           | The Password of the UserName                   | no              | null    |
+| hbasemaster        | The Endpoint of HBase Master server            | no              | null    |
+| connect.topicnames | RocketMQ topic for sink connector to read from | yes (sink only) | null    |
