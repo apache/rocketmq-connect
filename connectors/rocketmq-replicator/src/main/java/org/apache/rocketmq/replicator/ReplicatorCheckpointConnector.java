@@ -29,9 +29,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.replicator.common.LoggerName;
 import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
 import org.apache.rocketmq.replicator.exception.InitMQClientException;
 import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
@@ -108,11 +107,11 @@ public class ReplicatorCheckpointConnector extends SourceConnector {
 
     @Override
     public void validate(KeyValue config) {
-        if (config.getInt(ConnectorConfig.MAX_TASK, 1) > 1) {
+        if (config.getInt(ReplicatorConnectorConfig.MAX_TASK, 1) > 1) {
             log.warn("ReplicatorCheckpointConnector no need to set max-task, only used 1.");
         }
         // checkpoint just need only one task.
-        config.put(ConnectorConfig.MAX_TASK, 1);
+        config.put(ReplicatorConnectorConfig.MAX_TASK, 1);
         ReplicatorUtils.checkNeedParams(ReplicatorCheckpointConnector.class.getName(), config, neededParamKeys);
 
     }

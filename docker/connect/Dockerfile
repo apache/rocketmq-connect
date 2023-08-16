@@ -34,13 +34,12 @@ EXPOSE 8082
 
 USER ${user}
 #WORKDIR /home/connect
+ENV JAVA_HOME /lib/jvm/java-1.8.0-openjdk
+ENV CLASSPATH .:$JAVA_HOME/lib
+ENV PATH $PATH:$JAVA_HOME/bin
 
 RUN mkdir -p /home/connect/mq-connect/bin /home/connect/mq-connect/plugins /home/connect/mq-connect/target /home/connect/mq-connect/cli && \
-    chown -R connect:connect /home/connect/ && \
-    echo "export JAVA_HOME=/lib/jvm/java-1.8.0-openjdk" >> ~/.bash_profile && \
-    echo "export PATH=$PATH:/lib/jvm/java-1.8.0-openjdk/bin" >> ~/.bash_profile && \
-    echo "export CLASSPATH=.:/lib/jvm/java-1.8.0-openjdk/lib" >> ~/.bash_profile && \
-    source ~/.bash_profile
+    chown -R connect:connect /home/connect/
 
 COPY ./plugins/*.jar /home/connect/mq-connect/plugins/
 ADD runtime.tar.gz /home/connect/mq-connect/
@@ -53,4 +52,4 @@ COPY bin/connect-distributed.sh \
      bin/connectAdmin \
      /home/connect/mq-connect/bin/
 
-ENTRYPOINT ["/usr/bin/sh", "/home/connect/mq-connect/bin/connect-distributed.sh", "-c", "/home/connect/mq-connect/conf/connect-distributed.conf"]
+#ENTRYPOINT ["/usr/bin/sh", "/home/connect/mq-connect/bin/connect-distributed.sh", "-c", "/home/connect/mq-connect/conf/connect-distributed.conf"]

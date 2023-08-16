@@ -29,7 +29,7 @@ public class ConnectKeyValueSerializerTest {
         ConnectKeyValueSerializer serializer = new ConnectKeyValueSerializer();
         ConnectKeyValue connectKeyValue = new ConnectKeyValue();
         connectKeyValue.put("connect.topic", "testTopic");
-        connectKeyValue.put("max.task", 2);
+        connectKeyValue.put("max.tasks", 2);
         final byte[] result = serializer.serialize("testTopic", connectKeyValue);
         Assert.assertEquals(new String(JSON.toJSONBytes(connectKeyValue)), new String(result));
     }

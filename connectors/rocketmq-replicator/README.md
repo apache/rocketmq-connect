@@ -38,7 +38,7 @@ curl -X POST -H "Content-Type: application/json" http://${runtime-port}:${runtim
     "src.secret.key": "${sk}",
     "dest.topic": "${targetClusterTopic}",
     "dest.access.key": "${ak}",
-    "max.task": "2",
+    "max.tasks": "2",
     "src.topictags": "test1,*",
     "src.acl.enable": "false",
     "errors.tolerance": "all",
@@ -150,7 +150,7 @@ src.endpoint | String | Yes  | namesrv address of source rocketmq cluster       
 src.topictags | String | Yes  | source cluster topic and tag，${topic},{tag}                                                                                                                                                                                                                                                                                              | test1,*        |
 dest.topic | String | Yes  | target cluster topic                                                                                                                                                                                                                                                                                                                     | test2          |
 dest.endpoint | String | Yes   | namesrv address of target rocketmq cluster                                                                                                                                                                                                                                                                                               | 127.0.0.1:9876 |
-max.task | String | No   | maximum number of tasks                                                                                                                                                                                                                                                                                                                  | 2              |
+max.tasks | String | No   | maximum number of tasks                                                                                                                                                                                                                                                                                                                  | 2              |
 dest.acl.enable | String | No  | acl switch,enumeration value : true/false                                                                                                                                                                                                                                                                                                | false          |
 dest.access.key | String | No  | please refer to the RocketMQ ACL module，when dest.acl.enable is false, this parameter does not take effect                                                                                                                                                                                                                               | accesskey      |
 dest.secret.key | String | No   | please refer to the RocketMQ ACL module，when dest.acl.enable is false, this parameter does not take effect                                                                                                                                                                                                                               | secretkey      |

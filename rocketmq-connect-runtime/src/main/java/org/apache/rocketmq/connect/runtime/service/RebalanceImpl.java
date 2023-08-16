@@ -113,12 +113,15 @@ public class RebalanceImpl {
      * @param allocateResult
      */
     private void updateProcessConfigsInRebalance(ConnAndTaskConfigs allocateResult) {
-
         try {
             worker.startConnectors(allocateResult.getConnectorConfigs(), connectController);
+        } catch (Throwable e) {
+            log.error("RebalanceImpl#updateProcessConfigsInRebalance start connector failed", e);
+        }
+        try {
             worker.startTasks(allocateResult.getTaskConfigs());
-        } catch (Exception e) {
-            log.error("RebalanceImpl#updateProcessConfigsInRebalance start connector or task failed", e);
+        } catch (Throwable e) {
+            log.error("RebalanceImpl#updateProcessConfigsInRebalance start task failed", e);
         }
     }
 

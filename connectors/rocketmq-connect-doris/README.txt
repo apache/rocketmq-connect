@@ -40,7 +40,7 @@ Transaction concept not different in Mysql and Doris, so TCL is not supported.
 POST  http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-jdbc-sink-connector-name}
 {
     "connector.class":"org.apache.rocketmq.connect.doris.connector.DorisSinkConnector",
-    "max.task":"1",
+    "max.tasks":"1",
     "table.whitelist":"sink_test.doris_test_sink",
     "connect.topicnames":"doris_test_sink",
     "host":"xx.xx.xx.xx",
@@ -75,7 +75,7 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-doris-connector-name}
 |port                         | String  | YES           |doris http port    | 8030          |
 |user                         | String  | YES           |doris user name    | root          |
 |passwd                       | String  | YES           |doris passwd       | passwd        |
-|max.task                     | Integer | NO            |task number        | 2             |
+|max.tasks                     | Integer | NO            |task number        | 2             |
 |key.converter                | String  | YES           |data converter     | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter          |
 |value.converter              | String  | YES           |value converter    | org.apache.rocketmq.connect.runtime.converter.record.json.JsonConverter          |
 ```

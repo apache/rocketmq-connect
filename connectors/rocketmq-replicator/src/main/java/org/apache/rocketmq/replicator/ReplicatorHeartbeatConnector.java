@@ -22,7 +22,6 @@ import io.openmessaging.connector.api.component.task.source.SourceConnector;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
 import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
 import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
 
@@ -31,7 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.rocketmq.connect.runtime.config.SourceConnectorConfig.CONNECT_TOPICNAME;
+import static org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig.CONNECT_TOPICNAME;
 
 /**
  * @author osgoo
@@ -78,11 +77,11 @@ public class ReplicatorHeartbeatConnector extends SourceConnector {
 
     @Override
     public void validate(KeyValue config) {
-        if (config.getInt(ConnectorConfig.MAX_TASK) > 1) {
+        if (config.getInt(ReplicatorConnectorConfig.MAX_TASK) > 1) {
             log.warn("ReplicatorHeartbeatConnector no need to set max-task, only used 1.");
         }
         // heartbeat just need only one task.
-        config.put(ConnectorConfig.MAX_TASK, 1);
+        config.put(ReplicatorConnectorConfig.MAX_TASK, 1);
         if (StringUtils.isNotBlank(config.getString(CONNECT_TOPICNAME))) {
             log.warn("ReplicatorHeartbeatConnector no need to set " + CONNECT_TOPICNAME + ", use " + ReplicatorConnectorConfig.DEST_TOPIC + " instead.");
             // use destInstanceId % destTopic for sink instead of CONNECT_TOPICNAME

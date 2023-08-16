@@ -367,7 +367,6 @@ public class DefaultColumnConverter implements JdbcColumnConverter {
                         break;
                     }
                 }
-
             case Types.DECIMAL:
                 scale = decimalScale(columnDefinition);
                 SchemaBuilder fieldBuilder = Decimal.builder(scale);
