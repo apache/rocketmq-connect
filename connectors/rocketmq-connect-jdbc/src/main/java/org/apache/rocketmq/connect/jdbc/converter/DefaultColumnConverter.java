@@ -337,15 +337,6 @@ public class DefaultColumnConverter implements JdbcColumnConverter {
             case Types.DOUBLE:
                 builder.field(fieldName, SchemaBuilder.float64().build());
                 break;
-            case Types.DECIMAL:
-                scale = decimalScale(columnDefinition);
-                SchemaBuilder fieldBuilder = Decimal.builder(scale);
-                if (optional) {
-                    fieldBuilder.optional();
-                }
-                builder.field(fieldName, fieldBuilder.build());
-                break;
-
             case Types.NUMERIC:
                 if (numericMapping == NumericMapping.PRECISION_ONLY) {
                     log.debug("NUMERIC with precision: '{}' and scale: '{}'", precision, scale);
@@ -376,6 +367,14 @@ public class DefaultColumnConverter implements JdbcColumnConverter {
                         break;
                     }
                 }
+            case Types.DECIMAL:
+                scale = decimalScale(columnDefinition);
+                SchemaBuilder fieldBuilder = Decimal.builder(scale);
+                if (optional) {
+                    fieldBuilder.optional();
+                }
+                builder.field(fieldName, fieldBuilder.build());
+                break;
 
             case Types.CHAR:
             case Types.VARCHAR:
