@@ -54,6 +54,7 @@ public class DivideTaskByTopic extends TaskDivideStrategy {
             keyValue.put(TaskConfigEnum.TASK_SOURCE_ACL_ENABLE.getKey(), String.valueOf(tdc.isSrcAclEnable()));
             keyValue.put(TaskConfigEnum.TASK_SOURCE_ACCESS_KEY.getKey(), tdc.getSrcAccessKey());
             keyValue.put(TaskConfigEnum.TASK_SOURCE_SECRET_KEY.getKey(), tdc.getSrcSecretKey());
+            keyValue.put(TaskConfigEnum.TASK_FILTER_RULE.getKey(), tdc.getFilterRule());
             config.add(keyValue);
         }
 

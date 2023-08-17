@@ -78,7 +78,8 @@ public class DefaultTaskDivideStrategyTest {
             DataType.COMMON_MESSAGE.ordinal(),
             false,
             "",
-            ""
+            "",
+            "TagA"
         );
         List<KeyValue> taskConfigs = config.getTaskDivideStrategy().divide(topicRouteMap, tdc, 4);
         assertThat(taskConfigs.size()).isEqualTo(4);
@@ -125,7 +126,8 @@ public class DefaultTaskDivideStrategyTest {
             DataType.COMMON_MESSAGE.ordinal(),
             false,
             "",
-            ""
+            "",
+            "TagA||TagB"
         );
         List<KeyValue> taskConfigs = config.getTaskDivideStrategy().divide(topicRouteMap, tdc, 4);
         assertThat(taskConfigs.size()).isEqualTo(4);
@@ -183,6 +185,7 @@ public class DefaultTaskDivideStrategyTest {
             "",
             DataType.COMMON_MESSAGE.ordinal(),
             false,
+            "",
             "",
             ""
         );
