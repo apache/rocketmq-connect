@@ -19,6 +19,7 @@ package org.apache.rocketmq.connect.jdbc.source;
 import io.openmessaging.connector.api.data.Field;
 import io.openmessaging.connector.api.data.Schema;
 import io.openmessaging.connector.api.data.Struct;
+import io.openmessaging.connector.api.data.logical.Decimal;
 import io.openmessaging.connector.api.errors.ConnectException;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -216,12 +217,26 @@ public class TimestampIncrementingCriteria {
             extractedId = ((Number) incrementingColumnValue).longValue();
         } else if (isLongFromString(incrementingColumnValue)) {
             extractedId = Long.parseLong((String) incrementingColumnValue);
+        } else if (incrementingColumnSchema.getName() != null && incrementingColumnSchema.getName().equals(
+                Decimal.LOGICAL_NAME)) {
+            extractedId = extractDecimalId(incrementingColumnValue);
         } else {
             throw new ConnectException(
                     "Invalid type for incrementing column: " + incrementingColumnSchema.getFieldType());
         }
         log.trace("Extracted incrementing column value: {}", extractedId);
         return extractedId;
+    }
+
+    protected Long extractDecimalId(Object incrementingColumnValue) {
+        final BigDecimal decimal = ((BigDecimal) incrementingColumnValue);
+        if (decimal.compareTo(LONG_MAX_VALUE_AS_BIGDEC) > 0) {
+            throw new ConnectException("Decimal value for incrementing column exceeded Long.MAX_VALUE");
+        }
+        if (decimal.scale() != 0) {
+            throw new ConnectException("Scale of Decimal value for incrementing column must be 0");
+        }
+        return decimal.longValue();
     }
 
     protected boolean isLongFromString(Object incrementingColumnValue) {
