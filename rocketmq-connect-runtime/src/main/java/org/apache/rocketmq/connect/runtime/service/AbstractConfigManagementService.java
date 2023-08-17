@@ -334,6 +334,7 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             // put task id
             newKeyValue.put(ConnectorConfig.TASK_ID, taskId);
             newKeyValue.put(ConnectorConfig.TASK_CLASS, connector.taskClass().getName());
+            newKeyValue.put(ConnectorConfig.CONNECTOR_CLASS, connector.getClass().getName());
 
             // source topic
             if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)) {

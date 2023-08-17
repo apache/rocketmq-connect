@@ -37,20 +37,17 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.connect.runtime.common.LoggerName;
-import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
-import org.apache.rocketmq.connect.runtime.utils.ConnectUtil;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.replicator.common.LoggerName;
 import org.apache.rocketmq.replicator.config.ConsumeFromWhere;
 import org.apache.rocketmq.replicator.config.FailoverStrategy;
 import org.apache.rocketmq.replicator.config.ReplicatorConnectorConfig;
 import org.apache.rocketmq.replicator.context.UnAckMessage;
 import org.apache.rocketmq.replicator.exception.StartTaskException;
-import org.apache.rocketmq.replicator.stats.ReplicatorTaskStats;
 import org.apache.rocketmq.replicator.stats.TpsLimiter;
 import org.apache.rocketmq.replicator.utils.ReplicatorUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -65,10 +62,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.QUEUE_OFFSET;
-import static org.apache.rocketmq.connect.runtime.connectorwrapper.WorkerSinkTask.TOPIC;
+import static org.apache.rocketmq.replicator.utils.ReplicatorUtils.QUEUE_OFFSET;
 
 /**
  * @author osgoo
@@ -366,13 +361,9 @@ public class ReplicatorSourceTask extends SourceTask {
             List<String> delayMsKeys = new ArrayList<>();
             String normalNumKey = connectorConfig.getConnectorId();
             delayNumsKeys.add(normalNumKey);
-            ReplicatorTaskStats.incItemValue(ReplicatorTaskStats.REPLICATOR_SOURCE_TASK_DELAY_NUMS, normalNumKey, (int) normalDelayCount.get(), 1);
             String normalMsKey = connectorConfig.getConnectorId();
             delayMsKeys.add(normalMsKey);
-            ReplicatorTaskStats.incItemValue(ReplicatorTaskStats.REPLICATOR_SOURCE_TASK_DELAY_MS, normalMsKey, (int) normalDelayMs.get(), 1);
 
-            metricsItem2KeyMap.put(ReplicatorTaskStats.REPLICATOR_SOURCE_TASK_DELAY_NUMS, delayNumsKeys);
-            metricsItem2KeyMap.put(ReplicatorTaskStats.REPLICATOR_SOURCE_TASK_DELAY_MS, delayMsKeys);
         } catch (RemotingException | MQClientException e) {
             log.error("occur remoting or mqclient exception, retry build mqadminclient", e);
             try {
@@ -510,10 +501,8 @@ public class ReplicatorSourceTask extends SourceTask {
         Long timestamp;
         ConnectRecord sinkDataEntry = null;
 
-        String connectTimestamp = properties.get(ConnectorConfig.CONNECT_TIMESTAMP);
+        String connectTimestamp = properties.get(ReplicatorConnectorConfig.CONNECT_TIMESTAMP);
         timestamp = StringUtils.isNotEmpty(connectTimestamp) ? Long.parseLong(connectTimestamp) : System.currentTimeMillis();
-//        String connectSchema = properties.get(ConnectorConfig.CONNECT_SCHEMA);
-//        schema = StringUtils.isNotEmpty(connectSchema) ? JSON.parseObject(connectSchema, Schema.class) : null;
         Schema schema = SchemaBuilder.string().build();
         byte[] body = message.getBody();
         String destTopic = swapTopic(topic);
@@ -524,8 +513,8 @@ public class ReplicatorSourceTask extends SourceTask {
                 log.error("swap topic got null, topic : " + topic);
             }
         }
-        RecordPartition recordPartition = ConnectUtil.convertToRecordPartition(topic, message.getBrokerName(), message.getQueueId());
-        RecordOffset recordOffset = ConnectUtil.convertToRecordOffset(message.getQueueOffset());
+        RecordPartition recordPartition = ReplicatorUtils.convertToRecordPartition(topic, message.getBrokerName(), message.getQueueId());
+        RecordOffset recordOffset = ReplicatorUtils.convertToRecordOffset(message.getQueueOffset());
         String bodyStr = new String(body, StandardCharsets.UTF_8);
         sinkDataEntry = new ConnectRecord(recordPartition, recordOffset, timestamp, schema, bodyStr);
         KeyValue keyValue = new DefaultKeyValue();
@@ -576,7 +565,7 @@ public class ReplicatorSourceTask extends SourceTask {
         keyValue.put(REPLICATOR_SRC_MESSAGE_ID, message.getMsgId());
         log.debug("addExtension : " + keyValue.keySet());
         sinkDataEntry.addExtension(keyValue);
-        sinkDataEntry.addExtension(TOPIC, destTopic);
+        sinkDataEntry.addExtension(ReplicatorUtils.TOPIC, destTopic);
 
         return sinkDataEntry;
     }
@@ -722,8 +711,6 @@ public class ReplicatorSourceTask extends SourceTask {
                 createAndUpdatePullConsumerGroup(srcClusterName, pullConsumerGroup);
             }
             log.info("createAndUpdatePullConsumerGroup " + pullConsumerGroup + " finished.");
-            ReplicatorTaskStats.init();
-            log.info("TaskStats init.");
             // init converter
             // init pullConsumer
             buildConsumer();
@@ -745,20 +732,6 @@ public class ReplicatorSourceTask extends SourceTask {
 
     }
 
-    private void cleanMetricsMonitor() {
-        metricsItem2KeyMap.forEach(new BiConsumer<String, List<String>>() {
-            @Override
-            public void accept(String itemName, List<String> itemKeys) {
-                itemKeys.forEach(new Consumer<String>() {
-                    @Override
-                    public void accept(String itemKey) {
-                        ReplicatorTaskStats.getConnectStatsManager().removeAdditionalItem(itemName, itemKey);
-                    }
-                });
-            }
-        });
-    }
-
     private void cleanResource() {
         try {
             if (pullConsumer != null) {
@@ -767,7 +740,6 @@ public class ReplicatorSourceTask extends SourceTask {
             if (metricsMonitorExecutorService != null) {
                 metricsMonitorExecutorService.shutdown();
             }
-            cleanMetricsMonitor();
         } catch (Exception e) {
             log.error("clean resource error,", e);
         }
