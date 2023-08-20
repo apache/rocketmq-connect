@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archetype-descriptor xsi:schemaLocation="https://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.1.0 http://maven.apache.org/xsd/archetype-descriptor-1.1.0.xsd" name="rocketmq-connect-connectors-archetype"
+    xmlns="https://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <requiredProperties>
+    <!--必填属性-->
+    <requiredProperty key="groupId">
+      <defaultValue>org.apache.rocketmq</defaultValue>
+    </requiredProperty>
+    <requiredProperty key="artifactId">
+      <defaultValue>rocketmq-connect-${dbNameToLowerCase}</defaultValue>
+    </requiredProperty>
+    <requiredProperty key="version">
+      <defaultValue>1.0.0-SNAPSHOT</defaultValue>
+    </requiredProperty>
+    <requiredProperty key="package">
+      <defaultValue>org.apache.rocketmq.connect.${dbNameToLowerCase}</defaultValue>
+    </requiredProperty>
+
+    <!--   The database to connect   -->
+    <requiredProperty key="databaseName"/>
+
+    <requiredProperty key="dbNameToUpperCase" >
+      <defaultValue>${databaseName.toUpperCase()}</defaultValue>
+    </requiredProperty>
+
+    <requiredProperty key="dbNameToCamel" >
+      <defaultValue>${databaseName.toLowerCase().substring(0,1).toUpperCase()}${databaseName.toLowerCase().substring(1)}</defaultValue>
+    </requiredProperty>
+
+    <requiredProperty key="dbNameToLowerCase" >
+      <defaultValue>${databaseName.toLowerCase()}</defaultValue>
+    </requiredProperty>
+  </requiredProperties>
+
+  <fileSets>
+    <fileSet filtered="true" encoding="UTF-8">
+      <directory/>
+      <includes>
+        <include>.reviewboardrc</include>
+        <include>README.md</include>
+      </includes>
+    </fileSet>
+    <fileSet encoding="UTF-8">
+      <directory/>
+      <includes>
+        <include>.gitignore</include>
+        <include>TODO.md</include>
+      </includes>
+    </fileSet>
+    <fileSet encoding="UTF-8">
+      <directory/>
+      <includes>
+        <include>.gitignore</include>
+      </includes>
+    </fileSet>
+    <fileSet filtered="true" packaged="true" encoding="UTF-8">
+      <directory>src/main/java</directory>
+    </fileSet>
+    <fileSet filtered="true" packaged="true" encoding="UTF-8">
+      <directory>src/test/java</directory>
+    </fileSet>
+  </fileSets>
+
+</archetype-descriptor>
