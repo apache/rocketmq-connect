@@ -276,7 +276,22 @@ public class WorkerSourceTask extends WorkerTask {
                 } else {
                     // Partition message ordering,
                     // At the same time, ensure that the data is pulled in an orderly manner, which needs to be guaranteed by sourceTask in the business
-                    producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys(), callback);
+                    try {
+                        SendResult result = producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys());
+                        log.info("Successful send message to RocketMQ:{}, Topic {}", result.getMsgId(), result.getMessageQueue().getTopic());
+                        // complete record
+                        counter.completeRecord();
+                        // commit record for custom
+                        recordSent(preTransformRecord, sourceMessage, result);
+                        // ack record position
+                        submittedRecordPosition.ifPresent(RecordOffsetManagement.SubmittedPosition::ack);
+                    } catch (Exception e){
+                        log.error("Source task send record failed ,error msg {}. message {}", e.getMessage(), JSON.toJSONString(sourceMessage), e);
+                        // skip record
+                        counter.skipRecord();
+                        // record send failed
+                        recordSendFailed(false, sourceMessage, preTransformRecord, e);
+                    }
                 }
 
             } catch (RetriableException e) {
