@@ -270,7 +270,7 @@ public class WorkerSourceTask extends WorkerTask {
                     }
                 };
 
-                if (StringUtils.isEmpty(sourceMessage.getKeys())) {
+                if (StringUtils.isEmpty(sourceMessage.getKeys()) && !taskConfig.getProperties().get(SourceConnectorConfig.ORDERING_MSG_COMPATIBLE_V4).equals("true")) {
                     // Round robin
                     producer.send(sourceMessage, callback);
                 } else {

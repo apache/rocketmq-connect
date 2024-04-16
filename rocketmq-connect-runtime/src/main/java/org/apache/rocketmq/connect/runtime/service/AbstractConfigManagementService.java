@@ -340,6 +340,12 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)) {
                 newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
             }
+            // put ordering msg compatible with rocketmq4.x config
+            if (configs.containsKey(SourceConnectorConfig.ORDERING_MSG_COMPATIBLE_V4)) {
+                newKeyValue.put(SourceConnectorConfig.ORDERING_MSG_COMPATIBLE_V4, configs.getString(SourceConnectorConfig.ORDERING_MSG_COMPATIBLE_V4));
+            } else {
+                newKeyValue.put(SourceConnectorConfig.ORDERING_MSG_COMPATIBLE_V4, "false");
+            }
             // sink consume topic
             if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)) {
                 newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
