@@ -30,6 +30,7 @@
         <module>transforms</module>
         <module>metric-exporter</module>
         <module>schema-converter</module>
+        <module>rocket-connect-oss</module>
     </modules>
     <name>RocketMQ Connect</name>
 
