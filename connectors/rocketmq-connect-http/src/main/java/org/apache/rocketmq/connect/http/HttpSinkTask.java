@@ -48,13 +48,17 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class HttpSinkTask extends SinkTask {
     private static final Logger log = LoggerFactory.getLogger(HttpSinkTask.class);
+    // the Regex Pattern like '{number}'
+    protected static final Pattern PATTERN = Pattern.compile("\\{(\\w+)\\}");
     protected static final int DEFAULT_CONSUMER_TIMEOUT_SECONDS = 30;
     protected static final String DEFAULT_REQUEST_TIMEOUT_MILL_SECONDS = "3000";
     protected static final int DEFAULT_OAUTH_DELAY_SECONDS = 1;
@@ -105,8 +109,10 @@ public class HttpSinkTask extends SinkTask {
                 if (auth != null) {
                     headerMap.putAll(auth.auth());
                 }
+                // replace the placeholder of url with extensions
+                String urlInsteadOfPlaceholder = formatUrl(url, connectRecord.getExtensions());
                 // render query to url
-                String urlWithQueryParameters = renderQueryParametersToUrl(url, queryParameters, fixedQueryParameters);
+                String urlWithQueryParameters = renderQueryParametersToUrl(urlInsteadOfPlaceholder, queryParameters, fixedQueryParameters);
                 HttpRequest httpRequest = new HttpRequest();
                 httpRequest.setUrl(urlWithQueryParameters);
                 httpRequest.setMethod(method);
@@ -138,6 +144,32 @@ public class HttpSinkTask extends SinkTask {
             log.error("HttpSinkTask | put | error => ", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Get a formatted url that will replace a placeholder with Extension Values
+     *
+     * @param url the source url str
+     * @param extensions ConnectRecord Extension Values
+     * @return the formatted url
+     */
+    private String formatUrl(String url, KeyValue extensions) {
+        if (!PATTERN.matcher(url).matches()) {
+            return url;
+        }
+        if (extensions != null && extensions.keySet() != null) {
+            Set<String> keys = extensions.keySet();
+            String template = url;
+            for (String key : keys) {
+                String value = extensions.getString(key);
+                if (StringUtils.isNotEmpty(value)) {
+                    // simple replaced the placeholder
+                    template = template.replace("{" + key + "}", value);
+                }
+            }
+            return template;
+        }
+        return url;
     }
 
     private Map<String, String> renderHeaderMap(String headerParameters, String fixedHeaderParameters, String token) {
