@@ -344,9 +344,10 @@ public interface Transform<R extends ConnectRecord> extends Component {
 
 
 ### Source Connector特殊配置
-| key                         | nullable | default | description                                          |
-|-----------------------------|---------|---------|------------------------------------------------------|
-| connect.topicname           | true    |         | 指定数据写入的topic，若不配置则直接取position中key为topic的值，若取不到则抛出异常  |
+| key                 | nullable | default | description                                                  |
+|---------------------|---------|---------|--------------------------------------------------------------|
+| connect.topicname   | true    |         | 指定数据写入的topic，若不配置则直接取position中key为topic的值，若取不到则抛出异常          |
+| ordering.msg.enable | true    | false   | 当目标集群不为rocketmq 5.x时，顺序消息会乱序，若设置为true，才能支持顺序，但会降低connector性能 |
 
 ### Sink Connector特殊配置
 | key                                               | nullable | default               | description                |

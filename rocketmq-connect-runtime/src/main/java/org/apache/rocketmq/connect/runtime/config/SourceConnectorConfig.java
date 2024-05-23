@@ -26,6 +26,7 @@ import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 public class SourceConnectorConfig extends ConnectorConfig {
 
     public static final String CONNECT_TOPICNAME = "connect.topicname";
+    public static final String ORDERING_MSG_ENABLE = "ordering.msg.enable";
 
     public SourceConnectorConfig(ConnectKeyValue config) {
         super(config);

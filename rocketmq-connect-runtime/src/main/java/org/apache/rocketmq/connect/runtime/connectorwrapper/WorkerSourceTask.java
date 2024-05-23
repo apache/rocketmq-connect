@@ -276,7 +276,16 @@ public class WorkerSourceTask extends WorkerTask {
                 } else {
                     // Partition message ordering,
                     // At the same time, ensure that the data is pulled in an orderly manner, which needs to be guaranteed by sourceTask in the business
-                    producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys(), callback);
+                    if (taskConfig.getProperties().get(SourceConnectorConfig.ORDERING_MSG_ENABLE).equals("true")) {
+                        try {
+                            SendResult result = producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys());
+                            callback.onSuccess(result);
+                        } catch (Exception e) {
+                            callback.onException(e);
+                        }
+                    } else {
+                        producer.send(sourceMessage, new SelectMessageQueueByHash(), sourceMessage.getKeys(), callback);
+                    }
                 }
 
             } catch (RetriableException e) {

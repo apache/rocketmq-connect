@@ -340,6 +340,12 @@ public abstract class AbstractConfigManagementService implements ConfigManagemen
             if (configs.containsKey(SourceConnectorConfig.CONNECT_TOPICNAME)) {
                 newKeyValue.put(SourceConnectorConfig.CONNECT_TOPICNAME, configs.getString(SourceConnectorConfig.CONNECT_TOPICNAME));
             }
+            // put ordering msg enable config
+            if (configs.containsKey(SourceConnectorConfig.ORDERING_MSG_ENABLE)) {
+                newKeyValue.put(SourceConnectorConfig.ORDERING_MSG_ENABLE, configs.getString(SourceConnectorConfig.ORDERING_MSG_ENABLE));
+            } else {
+                newKeyValue.put(SourceConnectorConfig.ORDERING_MSG_ENABLE, "false");
+            }
             // sink consume topic
             if (configs.containsKey(SinkConnectorConfig.CONNECT_TOPICNAMES)) {
                 newKeyValue.put(SinkConnectorConfig.CONNECT_TOPICNAMES, configs.getString(SinkConnectorConfig.CONNECT_TOPICNAMES));
