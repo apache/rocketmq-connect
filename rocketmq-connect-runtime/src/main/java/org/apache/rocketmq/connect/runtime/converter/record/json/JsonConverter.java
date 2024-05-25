@@ -313,7 +313,7 @@ public class JsonConverter implements RecordConverter {
         try {
             return serializer.serialize(topic, jsonValue);
         } catch (Exception e) {
-            throw new ConnectException("Converting Kafka Connect data to byte[] failed due to serialization error: ", e);
+            throw new ConnectException("Converting RocketMQ Connect data to byte[] failed due to serialization error: ", e);
         }
     }
 
@@ -334,7 +334,7 @@ public class JsonConverter implements RecordConverter {
         try {
             jsonValue = deserializer.deserialize(topic, value);
         } catch (Exception e) {
-            throw new ConnectException("Converting byte[] to Kafka Connect data failed due to serialization error: ", e);
+            throw new ConnectException("Converting byte[] to RocketMQ Connect data failed due to serialization error: ", e);
         }
         JSONObject newJsonValue;
         if (!converterConfig.schemasEnabled()) {
@@ -500,8 +500,8 @@ public class JsonConverter implements RecordConverter {
     }
 
     /**
-     * Convert this object, in the org.apache.kafka.connect.data format, into a JSON object, returning both the schema
-     * and the converted object.
+     * Convert this object, in the io.openmessaging.connector.api.data.ConnectRecord format,
+     * into a JSON object, returning both the schema and the converted object.
      */
     private Object convertToJson(Schema schema, Object value) {
         if (value == null) {

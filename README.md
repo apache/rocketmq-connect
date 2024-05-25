@@ -486,7 +486,7 @@ Environment variables配置
 
 > CONNECT_HOME=${user path}/rocketmq-connect/distribution
 
-###集群模式启动Connect Worker
+### 集群模式启动Connect Worker
 
 Main Class配置
 >org.apache.rocketmq.connect.runtime.DistributedConnectStartup
