@@ -208,11 +208,6 @@
             <artifactId>aliyun-java-sdk-sts</artifactId>
             <version>${aliyun-java-sdk-sts.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.aliyun</groupId>
-            <artifactId>aliyun-java-sdk-sts-internal</artifactId>
-            <version>${aliyun-java-sdk-sts-internal.version}</version>
-        </dependency>
     </dependencies>
 
 </project>
