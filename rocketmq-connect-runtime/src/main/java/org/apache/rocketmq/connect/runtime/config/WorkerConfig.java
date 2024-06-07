@@ -58,6 +58,8 @@ public class WorkerConfig {
      */
     private int httpPort = 8082;
 
+    private int exporterPort = 5557;
+
     /**
      * plugin paths config;
      * Multiple use ',' split
@@ -591,6 +593,14 @@ public class WorkerConfig {
         this.stateManagementService = stateManagementService;
     }
 
+    public int getExporterPort() {
+        return exporterPort;
+    }
+
+    public void setExporterPort(int exporterPort) {
+        this.exporterPort = exporterPort;
+    }
+
     @Override
     public String toString() {
         return "WorkerConfig{" +
@@ -638,6 +648,7 @@ public class WorkerConfig {
                 ", configManagementService='" + configManagementService + '\'' +
                 ", positionManagementService='" + positionManagementService + '\'' +
                 ", stateManagementService='" + stateManagementService + '\'' +
+                ", exporterPort=" + exporterPort +
                 '}';
     }
 }
