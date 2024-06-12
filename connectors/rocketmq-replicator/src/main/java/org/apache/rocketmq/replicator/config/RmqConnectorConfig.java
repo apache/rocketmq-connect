@@ -42,6 +42,7 @@ public class RmqConnectorConfig {
     private boolean targetAclEnable = false;
     private String targetAccessKey;
     private String targetSecretKey;
+    private String filterRule;
 
     public RmqConnectorConfig() {
     }
@@ -67,6 +68,7 @@ public class RmqConnectorConfig {
         refreshInterval = config.getLong(ConfigDefine.REFRESH_INTERVAL, 3);
         renamePattern = config.getString(ConfigDefine.CONN_TOPIC_RENAME_FMT);
         offsetSyncTopic = config.getString(ConfigDefine.OFFSET_SYNC_TOPIC);
+        filterRule = config.getString(ConfigDefine.FILTER_RULE);
 
         if (config.containsKey(ConfigDefine.CONN_SOURCE_ACL_ENABLE)) {
             srcAclEnable = Boolean.parseBoolean(config.getString(ConfigDefine.CONN_SOURCE_ACL_ENABLE));
@@ -161,5 +163,9 @@ public class RmqConnectorConfig {
 
     public String getTargetSecretKey() {
         return targetSecretKey;
+    }
+
+    public String getFilterRule() {
+        return filterRule;
     }
 }
