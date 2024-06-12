@@ -369,10 +369,18 @@ public class WorkerConnector implements Runnable {
         return sb;
     }
 
-    private enum State {
+    public enum State {
         INIT,
         STOPPED,
         STARTED,
         FAILED,
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public void setState(State state) {
+        this.state = state;
     }
 }
