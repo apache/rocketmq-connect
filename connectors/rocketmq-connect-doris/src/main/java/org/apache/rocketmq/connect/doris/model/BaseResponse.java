@@ -17,22 +17,26 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.model;
 
-public class DorisException extends RuntimeException {
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-    public DorisException() {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class BaseResponse<T> {
+    private int code;
+    private String msg;
+    private T data;
+    private int count;
+
+    public int getCode() {
+        return code;
     }
 
-    public DorisException(String message) {
-        super(message);
+    public String getMsg() {
+        return msg;
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    public T getData() {
+        return data;
     }
 }

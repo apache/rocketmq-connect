@@ -19,20 +19,29 @@
 
 package org.apache.rocketmq.connect.doris.exception;
 
-public class DorisException extends RuntimeException {
+public class StreamLoadException extends RuntimeException {
 
-    public DorisException() {
+    public StreamLoadException() {
+        super();
     }
 
-    public DorisException(String message) {
+    public StreamLoadException(String message) {
         super(message);
     }
 
-    public DorisException(String message, Throwable cause) {
+    public StreamLoadException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DorisException(Throwable cause) {
+    public StreamLoadException(Throwable cause) {
         super(cause);
+    }
+
+    protected StreamLoadException(
+        String message,
+        Throwable cause,
+        boolean enableSuppression,
+        boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

@@ -19,20 +19,20 @@
 
 package org.apache.rocketmq.connect.doris.exception;
 
-public class DorisException extends RuntimeException {
+public class UploadException extends DorisException {
 
-    public DorisException() {
+    public UploadException() {
     }
 
-    public DorisException(String message) {
+    public UploadException(String message) {
         super(message);
     }
 
-    public DorisException(String message, Throwable cause) {
+    public UploadException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DorisException(Throwable cause) {
+    public UploadException(Throwable cause) {
         super(cause);
     }
 }

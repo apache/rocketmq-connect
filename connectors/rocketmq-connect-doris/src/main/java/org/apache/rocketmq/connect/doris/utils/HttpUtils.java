@@ -17,22 +17,28 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.utils;
 
-public class DorisException extends RuntimeException {
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
 
-    public DorisException() {
-    }
+/**
+ * util to build http client.
+ */
+public class HttpUtils {
+    private final HttpClientBuilder httpClientBuilder =
+        HttpClients.custom()
+            .setRedirectStrategy(
+                new DefaultRedirectStrategy() {
+                    @Override
+                    protected boolean isRedirectable(String method) {
+                        return true;
+                    }
+                });
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    public CloseableHttpClient getHttpClient() {
+        return httpClientBuilder.build();
     }
 }

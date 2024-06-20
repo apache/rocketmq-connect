@@ -17,22 +17,16 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.model;
 
-public class DorisException extends RuntimeException {
+public enum LoadOperation {
+    SEND_REQUEST_TO_DORIS,
 
-    public DorisException() {
-    }
+    COMMIT_TRANSACTION,
 
-    public DorisException(String message) {
-        super(message);
-    }
+    GET_UPLOAD_ADDRESS,
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    UPLOAD_FILE,
 
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+    EXECUTE_COPY;
 }

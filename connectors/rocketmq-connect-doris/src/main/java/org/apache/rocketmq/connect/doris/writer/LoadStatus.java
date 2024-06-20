@@ -17,22 +17,14 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.writer;
 
-public class DorisException extends RuntimeException {
-
-    public DorisException() {
-    }
-
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+/**
+ * enum of LoadStatus.
+ */
+public class LoadStatus {
+    public static final String SUCCESS = "Success";
+    public static final String PUBLISH_TIMEOUT = "Publish Timeout";
+    public static final String LABEL_ALREADY_EXIST = "Label Already Exists";
+    public static final String FAIL = "Fail";
 }

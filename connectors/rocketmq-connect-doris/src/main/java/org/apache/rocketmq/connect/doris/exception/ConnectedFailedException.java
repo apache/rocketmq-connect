@@ -19,20 +19,17 @@
 
 package org.apache.rocketmq.connect.doris.exception;
 
-public class DorisException extends RuntimeException {
+public class ConnectedFailedException extends DorisException {
 
-    public DorisException() {
-    }
-
-    public DorisException(String message) {
+    public ConnectedFailedException(String message) {
         super(message);
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
+    public ConnectedFailedException(String server, Throwable cause) {
+        super("Connect to " + server + " failed.", cause);
     }
 
-    public DorisException(Throwable cause) {
-        super(cause);
+    public ConnectedFailedException(String server, int statusCode, Throwable cause) {
+        super("Connect to " + server + " failed, status code is " + statusCode + ".", cause);
     }
 }

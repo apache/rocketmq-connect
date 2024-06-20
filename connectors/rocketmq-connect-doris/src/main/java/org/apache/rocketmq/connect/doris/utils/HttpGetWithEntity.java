@@ -17,22 +17,21 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.utils;
 
-public class DorisException extends RuntimeException {
+import java.net.URI;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 
-    public DorisException() {
+public class HttpGetWithEntity extends HttpEntityEnclosingRequestBase {
+    private static final String METHOD_NAME = "GET";
+
+    @Override
+    public String getMethod() {
+        return METHOD_NAME;
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    public HttpGetWithEntity(final String uri) {
+        super();
+        setURI(URI.create(uri));
     }
 }
