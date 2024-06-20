@@ -47,6 +47,7 @@ public class ConfigCheckUtils {
      * @return connector name
      */
     public static String validateConfig(KeyValue config) {
+        LOG.info("start validate connector config");
         boolean configIsValid = true; // verify all config
 
         // unique name of this connector instance

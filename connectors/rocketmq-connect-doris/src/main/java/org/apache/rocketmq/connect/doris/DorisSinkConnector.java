@@ -37,6 +37,7 @@ public class DorisSinkConnector extends SinkConnector {
     public void start(KeyValue keyValue) {
         this.keyValue = DorisSinkConnectorConfig.convertToLowercase(keyValue);
         DorisSinkConnectorConfig.setDefaultValues(this.keyValue);
+        ConfigCheckUtils.validateConfig(this.keyValue);
     }
 
     /**
@@ -60,12 +61,6 @@ public class DorisSinkConnector extends SinkConnector {
             taskConfigs.add(this.keyValue);
         }
         return taskConfigs;
-    }
-
-    @Override
-    public void validate(KeyValue config) {
-        LOG.info("start validate connector config");
-        ConfigCheckUtils.validateConfig(config);
     }
 
 }
