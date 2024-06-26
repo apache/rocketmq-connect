@@ -45,6 +45,7 @@ public class DorisConnectMonitor {
     private Histogram partitionBufferCountHistogram;
     private final AtomicLong buffMemoryUsage;
     private final int taskId;
+    private final boolean enableCustomJMX;
 
     public DorisConnectMonitor(
         final boolean enableCustomJMXConfig,
@@ -58,7 +59,8 @@ public class DorisConnectMonitor {
 
         this.buffMemoryUsage = new AtomicLong(0);
         this.taskId = taskId;
-        if (enableCustomJMXConfig) {
+        this.enableCustomJMX = enableCustomJMXConfig;
+        if (this.enableCustomJMX) {
             registerJMXMetrics(metricsJmxReporter);
             LOG.info("init DorisConnectMonitor, taskId={}", taskId);
         }
@@ -132,31 +134,45 @@ public class DorisConnectMonitor {
     }
 
     public void setCommittedOffset(long committedOffset) {
-        this.committedOffset.set(committedOffset);
+        if (enableCustomJMX) {
+            this.committedOffset.set(committedOffset);
+        }
     }
 
     public void addAndGetLoadCount() {
-        this.totalLoadCount.getAndIncrement();
+        if (enableCustomJMX) {
+            this.totalLoadCount.getAndIncrement();
+        }
     }
 
     public void addAndGetTotalNumberOfRecord(long totalNumberOfRecord) {
-        this.totalNumberOfRecord.addAndGet(totalNumberOfRecord);
+        if (enableCustomJMX) {
+            this.totalNumberOfRecord.addAndGet(totalNumberOfRecord);
+        }
     }
 
     public void addAndGetTotalSizeOfData(long totalSizeOfData) {
-        this.totalSizeOfData.addAndGet(totalSizeOfData);
+        if (enableCustomJMX) {
+            this.totalSizeOfData.addAndGet(totalSizeOfData);
+        }
     }
 
     public void addAndGetBuffMemoryUsage(long memoryUsage) {
-        this.buffMemoryUsage.addAndGet(memoryUsage);
+        if (enableCustomJMX) {
+            this.buffMemoryUsage.addAndGet(memoryUsage);
+        }
     }
 
     public void resetMemoryUsage() {
-        this.buffMemoryUsage.set(0L);
+        if (enableCustomJMX) {
+            this.buffMemoryUsage.set(0L);
+        }
     }
 
     public void updateBufferMetrics(long bufferSizeBytes, int numOfRecords) {
-        partitionBufferSizeBytesHistogram.update(bufferSizeBytes);
-        partitionBufferCountHistogram.update(numOfRecords);
+        if (enableCustomJMX) {
+            partitionBufferSizeBytesHistogram.update(bufferSizeBytes);
+            partitionBufferCountHistogram.update(numOfRecords);
+        }
     }
 }
