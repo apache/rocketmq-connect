@@ -37,6 +37,7 @@ public class OssSinkTest {
         keyValue.put(OssConstant.OBJECT_NAME, "oss_new.txt");
         keyValue.put(OssConstant.REGION, "cn-beijing");
         keyValue.put(OssConstant.PARTITION_METHOD, "Normal");
+        keyValue.put(OssConstant.ENABLE_BATCH_PUT, "false");
 
         ossSinkTask.start(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
@@ -101,6 +102,7 @@ public class OssSinkTest {
         keyValue.put(OssConstant.OBJECT_NAME, "oss_new.txt");
         keyValue.put(OssConstant.REGION, "cn-beijing");
         keyValue.put(OssConstant.PARTITION_METHOD, "Time");
+        keyValue.put(OssConstant.ENABLE_BATCH_PUT, "false");
 
         ossSinkTask.start(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();

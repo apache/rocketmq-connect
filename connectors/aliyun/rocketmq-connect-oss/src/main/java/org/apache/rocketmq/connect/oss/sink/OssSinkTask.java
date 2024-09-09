@@ -8,6 +8,7 @@ import com.aliyuncs.IAcsClient;
 import com.aliyuncs.http.FormatType;
 import com.aliyuncs.profile.DefaultProfile;
 import io.openmessaging.KeyValue;
+import io.openmessaging.connector.api.data.Struct;
 import io.openmessaging.connector.api.component.task.sink.SinkTask;
 import io.openmessaging.connector.api.component.task.sink.SinkTaskContext;
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -33,6 +34,12 @@ import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;  
+import java.util.concurrent.locks.ReentrantLock;  
+import java.util.concurrent.ScheduledExecutorService; 
+import java.util.stream.Collectors;
+import java.util.HashMap; 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
@@ -64,11 +71,45 @@ public class OssSinkTask extends SinkTask {
 
     private String compressType;
 
+    private boolean enableBatchPut;
+
+    private int taskId;
+
     private long lastOffset;
 
     private long lastTimeStamp;
 
     private String lastPrefix;
+
+    private HashMap<String, List<String>> recordMap = new HashMap<>();
+
+    private ReentrantLock mapLock = new ReentrantLock();
+
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    private void processMap() throws ConnectException, IOException {
+        mapLock.lock();
+        recordMap.forEach((key, values) -> {  
+            String joinedString = values.stream().collect(Collectors.joining("\n"));
+            String absolutePath = key + objectName;
+            boolean exists = ossClient.doesObjectExist(bucketName, absolutePath);
+            long offset = 0;
+            // If the object does not exist, create it and set offset to 0, otherwise read the offset of the current object
+            if (exists) {
+                try {
+                    OSSObject ossObject = ossClient.getObject(bucketName, absolutePath);
+                    InputStream inputStream = ossObject.getObjectContent();
+                    offset = inputStream.available();
+                } catch (Exception e) {
+                    log.error("OSSSinkTask | getObjectContent | error => ", e);
+                }
+            } else {
+                offset = 0;
+            }
+            putOss(absolutePath, offset, joinedString);
+        });
+        mapLock.unlock();
+    }
 
     private String genFilePrefixByPartition(ConnectRecord record) throws ConnectException {
         if (partitionMethod.equals("Normal")) {
@@ -87,8 +128,6 @@ public class OssSinkTask extends SinkTask {
             return lastPrefix;
         } else {
             throw new RetriableException("Illegal partition method.");
-            // log.error("Illegal partition method.");
-            // return "";
         }
     }
 
@@ -113,8 +152,50 @@ public class OssSinkTask extends SinkTask {
             }
         } else {
             throw new RetriableException("Illegal partition method.");
-            // log.error("Illegal partition method.");
-            // return 0;
+        }
+    }
+
+    private void putOss(String absolutePath, long offset, String context) throws ConnectException {
+        try {
+            // Create an append write request and send it
+            AppendObjectRequest appendObjectRequest = new AppendObjectRequest(bucketName, absolutePath, new ByteArrayInputStream(context.getBytes()));
+            appendObjectRequest.setPosition(offset);
+            AppendObjectResult appendObjectResult = ossClient.appendObject(appendObjectRequest);
+
+            // Update
+            lastOffset = appendObjectResult.getNextPosition();
+        } catch (OSSException oe) {
+            System.out.println("Caught an OSSException, which means your request made it to OSS, "
+                + "but was rejected with an error response for some reason.");
+            System.out.println("Error Message:" + oe.getErrorMessage());
+            System.out.println("Error Code:" + oe.getErrorCode());
+            System.out.println("Request ID:" + oe.getRequestId());
+            System.out.println("Host ID:" + oe.getHostId());
+        } catch (ClientException ce) {
+            System.out.println("Caught an ClientException, which means the client encountered "
+                    + "a serious internal problem while trying to communicate with OSS, "
+                    + "such as not being able to access the network.");
+            System.out.println("Error Message:" + ce.getMessage());
+        }
+    }
+
+    private void handleRecord(ConnectRecord record) throws ConnectException, IOException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("data", record.getData());
+        String context = JSON.toJSONString(jsonObject);
+        String prefix = genFilePrefixByPartition(record);
+        if (enableBatchPut) {
+            mapLock.lock();
+            if (!recordMap.containsKey(prefix)) {
+                recordMap.put(prefix, new ArrayList<>()); 
+            }
+            recordMap.get(prefix).add(context);
+            mapLock.unlock();
+        } else {
+            String absolutePath = prefix + objectName;
+            long appendOffset = genObjectOffset(record, absolutePath);
+            putOss(absolutePath, appendOffset, context);
+            lastTimeStamp = record.getTimestamp();
         }
     }
 
@@ -123,23 +204,7 @@ public class OssSinkTask extends SinkTask {
         try {
             sinkRecords.forEach(sinkRecord -> {
                 try {
-                    //Create JOSN to save the info of connectrecord, now only contains the data content
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("data", sinkRecord.getData());
-                    String context = JSON.toJSONString(jsonObject);
-
-                    String prefix = genFilePrefixByPartition(sinkRecord);
-                    String absolutePath = prefix + objectName;
-                    long appendOffset = genObjectOffset(sinkRecord, absolutePath);
-
-                    // Create an append write request and send it
-                    AppendObjectRequest appendObjectRequest = new AppendObjectRequest(bucketName, absolutePath, new ByteArrayInputStream(context.getBytes()));
-                    appendObjectRequest.setPosition(appendOffset);
-                    AppendObjectResult appendObjectResult = ossClient.appendObject(appendObjectRequest);
-
-                    // Update
-                    lastOffset = appendObjectResult.getNextPosition();
-                    lastTimeStamp = sinkRecord.getTimestamp();
+                    handleRecord(sinkRecord);
                 } catch (OSSException oe) {
                     System.out.println("Caught an OSSException, which means your request made it to OSS, "
                             + "but was rejected with an error response for some reason.");
@@ -177,6 +242,21 @@ public class OssSinkTask extends SinkTask {
         region = config.getString(OssConstant.REGION);
         partitionMethod = config.getString(OssConstant.PARTITION_METHOD);
         compressType = config.getString(OssConstant.COMPRESS_TYPE);
+        enableBatchPut = Boolean.parseBoolean(config.getString(OssConstant.ENABLE_BATCH_PUT, "false"));
+        taskId = config.getInt(OssConstant.TASK_ID);
+        fileUrlPrefix = fileUrlPrefix + "task_" + Integer.toString(taskId) + "/";
+
+        if (enableBatchPut) {
+            scheduler.scheduleAtFixedRate(() -> {  
+                try {
+                    if (!recordMap.isEmpty()) {  
+                        processMap();
+                    }
+                } catch (Exception e) {
+                    log.error("OSSSinkTask | processMap | error => ", e);
+                }
+            }, 0, 10, TimeUnit.SECONDS);  
+        }
 
         try {
             DefaultCredentialProvider credentialsProvider = CredentialsProviderFactory.newDefaultCredentialProvider(accessKeyId, accessKeySecret);
@@ -209,6 +289,7 @@ public class OssSinkTask extends SinkTask {
 
     @Override
     public void stop() {
+        scheduler.shutdown();
         ossClient.shutdown();
     }
 

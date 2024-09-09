@@ -28,19 +28,27 @@ public class OssSinkConnector extends SinkConnector {
 
     private String partitionMethod;
 
+    private boolean enableBatchPut;
+
+    private int taskId;
+
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
-        List<KeyValue> keyValueList = new ArrayList<>(11);
-        KeyValue keyValue = new DefaultKeyValue();
-        keyValue.put(OssConstant.ACCESS_KEY_ID, accessKeyId);
-        keyValue.put(OssConstant.ACCESS_KEY_SECRET, accessKeySecret);
-        keyValue.put(OssConstant.ACCOUNT_ENDPOINT, accountEndpoint);
-        keyValue.put(OssConstant.BUCKET_NAME, bucketName);
-        keyValue.put(OssConstant.FILE_URL_PREFIX, fileUrlPrefix);
-        keyValue.put(OssConstant.OBJECT_NAME, objectName);
-        keyValue.put(OssConstant.REGION, region);
-        keyValue.put(OssConstant.PARTITION_METHOD, partitionMethod);
-        keyValueList.add(keyValue);
+        List<KeyValue> keyValueList = new ArrayList<>();
+        for (int i = 0; i < maxTasks; ++i) {
+            KeyValue keyValue = new DefaultKeyValue();
+            keyValue.put(OssConstant.ACCESS_KEY_ID, accessKeyId);
+            keyValue.put(OssConstant.ACCESS_KEY_SECRET, accessKeySecret);
+            keyValue.put(OssConstant.ACCOUNT_ENDPOINT, accountEndpoint);
+            keyValue.put(OssConstant.BUCKET_NAME, bucketName);
+            keyValue.put(OssConstant.FILE_URL_PREFIX, fileUrlPrefix);
+            keyValue.put(OssConstant.OBJECT_NAME, objectName);
+            keyValue.put(OssConstant.REGION, region);
+            keyValue.put(OssConstant.PARTITION_METHOD, partitionMethod);
+            keyValue.put(OssConstant.ENABLE_BATCH_PUT, String.valueOf(enableBatchPut));
+            keyValue.put(OssConstant.TASK_ID, taskId + i);
+            keyValueList.add(keyValue);
+        }
         return keyValueList;
     }
 
@@ -72,6 +80,8 @@ public class OssSinkConnector extends SinkConnector {
         objectName = config.getString(OssConstant.OBJECT_NAME);
         region = config.getString(OssConstant.REGION);
         partitionMethod = config.getString(OssConstant.PARTITION_METHOD);
+        enableBatchPut = Boolean.parseBoolean(config.getString(OssConstant.ENABLE_BATCH_PUT, "false"));
+        taskId = config.getInt(OssConstant.TASK_ID, 0);
     }
 
     @Override

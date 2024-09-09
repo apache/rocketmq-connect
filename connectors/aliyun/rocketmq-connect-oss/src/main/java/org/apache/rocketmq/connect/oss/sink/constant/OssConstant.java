@@ -11,4 +11,6 @@ public class OssConstant {
     public static final String REGION = "region";
     public static final String PARTITION_METHOD = "partitionMethod";
     public static final String COMPRESS_TYPE = "compressType";
+    public static final String ENABLE_BATCH_PUT = "enableBatchPut";
+    public static final String TASK_ID = "task_id";
 }
