@@ -27,4 +27,8 @@ public class LoadConstants {
 
     // Special identifier, label separator used for kafka-connect sink data
     public static final String FILE_DELIM_DEFAULT = "__KC_";
+
+    // since apache doris 2.1.0, support stream load with group commit mode.
+    public static final String GROUP_COMMIT = "group_commit";
+    public static final String PARTIAL_COLUMNS = "partial_columns";
 }

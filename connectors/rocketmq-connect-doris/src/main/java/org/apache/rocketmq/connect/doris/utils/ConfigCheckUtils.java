@@ -23,6 +23,7 @@ import io.openmessaging.KeyValue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.regex.Pattern;
 import org.apache.rocketmq.connect.doris.cfg.DorisSinkConnectorConfig;
 import org.apache.rocketmq.connect.doris.converter.ConverterMode;
@@ -30,6 +31,8 @@ import org.apache.rocketmq.connect.doris.converter.schema.SchemaEvolutionMode;
 import org.apache.rocketmq.connect.doris.exception.ArgumentsException;
 import org.apache.rocketmq.connect.doris.exception.DorisException;
 import org.apache.rocketmq.connect.doris.writer.DeliveryGuarantee;
+import org.apache.rocketmq.connect.doris.writer.LoadConstants;
+import org.apache.rocketmq.connect.doris.writer.load.GroupCommitMode;
 import org.apache.rocketmq.connect.doris.writer.load.LoadModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -297,5 +300,27 @@ public class ConfigCheckUtils {
             }
         }
         return false;
+    }
+
+    public static boolean validateGroupCommitMode(Properties streamLoadProp, boolean enable2PC) {
+        if (!streamLoadProp.containsKey(LoadConstants.GROUP_COMMIT)) {
+            return false;
+        }
+
+        Object value = streamLoadProp.get(LoadConstants.GROUP_COMMIT);
+        String normalizedValue = value.toString().trim().toLowerCase();
+        if (!GroupCommitMode.instances().contains(normalizedValue)) {
+            throw new DorisException(
+                "The value of group commit mode is an illegal parameter, illegal value="
+                    + value);
+        } else if (enable2PC) {
+            throw new DorisException(
+                "When group commit is enabled, you should disable two phase commit! Please  set 'enable.2pc':'false'");
+        } else if (streamLoadProp.containsKey(LoadConstants.PARTIAL_COLUMNS)
+            && streamLoadProp.get(LoadConstants.PARTIAL_COLUMNS).equals("true")) {
+            throw new DorisException(
+                "When group commit is enabled,you can not load data with partial column update.");
+        }
+        return true;
     }
 }
