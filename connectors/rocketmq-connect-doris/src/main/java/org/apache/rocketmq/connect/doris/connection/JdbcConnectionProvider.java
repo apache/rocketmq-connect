@@ -47,7 +47,7 @@ public class JdbcConnectionProvider implements ConnectionProvider, Serializable 
 
     @Override
     public Connection getOrEstablishConnection() throws ClassNotFoundException, SQLException {
-        if (connection != null) {
+        if (connection != null && !connection.isClosed() && connection.isValid(10)) {
             return connection;
         }
         try {

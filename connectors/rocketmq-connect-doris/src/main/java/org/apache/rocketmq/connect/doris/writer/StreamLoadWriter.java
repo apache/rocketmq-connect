@@ -97,17 +97,14 @@ public class StreamLoadWriter extends DorisWriter {
                 + "%'";
         LOG.info("query doris offset by sql: {}", querySQL);
         Map<String, String> label2Status = new HashMap<>();
-        try {
-            Connection connection = connectionProvider.getOrEstablishConnection();
-            PreparedStatement ps = connection.prepareStatement(querySQL);
-            ResultSet rs = ps.executeQuery();
+        try (Connection connection = connectionProvider.getOrEstablishConnection();
+             PreparedStatement ps = connection.prepareStatement(querySQL);
+             ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String label = rs.getString("Label");
                 String transactionStatus = rs.getString("TransactionStatus");
                 label2Status.put(label, transactionStatus);
             }
-            rs.close();
-            ps.close();
         } catch (Exception e) {
             LOG.warn(
                 "Unable to obtain the label generated when importing data through stream load from doris, "

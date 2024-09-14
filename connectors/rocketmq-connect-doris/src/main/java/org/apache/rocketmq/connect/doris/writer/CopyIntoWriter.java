@@ -81,18 +81,15 @@ public class CopyIntoWriter extends DorisWriter {
         String offsetQuery = String.format(SQL_TEMPLATE, dbName, tableName, filePrefix);
         LOG.info("query offset by sql: {}", offsetQuery);
         List<String> loadFileList = new ArrayList<>();
-        try {
-            Connection connection = connectionProvider.getOrEstablishConnection();
-            PreparedStatement ps = connection.prepareStatement(offsetQuery);
-            ResultSet rs = ps.executeQuery();
+        try (Connection connection = connectionProvider.getOrEstablishConnection();
+             PreparedStatement ps = connection.prepareStatement(offsetQuery);
+             ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String filesStr = rs.getString("Files");
 
                 String[] files = objectMapper.readValue(filesStr, String[].class);
                 loadFileList.addAll(Arrays.asList(files));
             }
-            rs.close();
-            ps.close();
         } catch (Exception ex) {
             LOG.warn(
                 "Failed to get copy-into file name, causing the doris kafka connector to not guarantee exactly once.",

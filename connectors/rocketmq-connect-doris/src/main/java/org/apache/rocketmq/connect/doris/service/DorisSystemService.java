@@ -19,9 +19,10 @@
 
 package org.apache.rocketmq.connect.doris.service;
 
+import com.google.common.collect.Lists;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -86,19 +87,23 @@ public class DorisSystemService {
     public List<String> extractColumnValuesBySQL(
         String sql, int columnIndex, Predicate<String> filterFunc, Object... params) {
 
-        List<String> columnValues = new ArrayList<>();
-        try (PreparedStatement ps =
-                 jdbcConnectionProvider.getOrEstablishConnection().prepareStatement(sql)) {
+        List<String> columnValues = Lists.newArrayList();
+
+        try (Connection connection = jdbcConnectionProvider.getOrEstablishConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
             if (Objects.nonNull(params) && params.length > 0) {
                 for (int i = 0; i < params.length; i++) {
                     ps.setObject(i + 1, params[i]);
                 }
             }
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                String columnValue = rs.getString(columnIndex);
-                if (Objects.isNull(filterFunc) || filterFunc.test(columnValue)) {
-                    columnValues.add(columnValue);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String columnValue = rs.getString(columnIndex);
+                    if (filterFunc == null || filterFunc.test(columnValue)) {
+                        columnValues.add(columnValue);
+                    }
                 }
             }
             return columnValues;
