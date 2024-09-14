@@ -20,14 +20,16 @@ package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
 import io.debezium.time.ZonedTime;
 import io.openmessaging.connector.api.errors.ConnectException;
-import java.time.LocalDate;
 import java.time.OffsetTime;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import org.apache.rocketmq.connect.doris.converter.type.AbstractTimeType;
 
 public class ZonedTimeType extends AbstractTimeType {
 
     public static final ZonedTimeType INSTANCE = new ZonedTimeType();
+    // The ZonedTime of debezium type only contains three types of hours, minutes and seconds
+    private final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     @Override
     public String[] getRegistrationKeys() {
@@ -40,11 +42,12 @@ public class ZonedTimeType extends AbstractTimeType {
             return null;
         }
         if (sourceValue instanceof String) {
-            final ZonedDateTime zdt =
+            OffsetTime offsetTime =
                 OffsetTime.parse((String) sourceValue, ZonedTime.FORMATTER)
-                    .atDate(LocalDate.now())
-                    .toZonedDateTime();
-            return zdt.toOffsetDateTime();
+                    .withOffsetSameInstant(
+                        ZonedDateTime.now(getDatabaseTimeZone().toZoneId())
+                            .getOffset());
+            return offsetTime.format(TIME_FORMATTER);
         }
 
         throw new ConnectException(
