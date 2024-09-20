@@ -47,5 +47,4 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-oss-connector-name}/s
 | partitionMethod | String | YES            | 分区模式，Normal表示不分区，Time表示按时间分区   | Time                       |
 | fileUrlPrefix   | String | YES            | 到object的URL前缀                  | file1/                     |
 | enableBatchPut  | String | NO             | 是否开启批处理模式                      | true                       |
-| taskId          | Int    | NO             | task id                        | 1                          |
 

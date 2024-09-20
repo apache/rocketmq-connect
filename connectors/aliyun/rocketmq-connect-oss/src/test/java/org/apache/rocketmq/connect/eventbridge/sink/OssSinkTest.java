@@ -39,7 +39,6 @@ public class OssSinkTest {
         keyValue.put(OssConstant.PARTITION_METHOD, "Normal");
         keyValue.put(OssConstant.ENABLE_BATCH_PUT, "false");
 
-        ossSinkTask.start(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
         connectRecord.setData("{\n" +
@@ -49,12 +48,12 @@ public class OssSinkTest {
         ossSinkTask.init(new SinkTaskContext() {
             @Override
             public String getConnectorName() {
-                return null;
+                return "test_connect";
             }
 
             @Override
             public String getTaskName() {
-                return null;
+                return "test_task";
             }
 
             @Override public KeyValue configs() {
@@ -86,6 +85,7 @@ public class OssSinkTest {
                 return null;
             }
         });
+        ossSinkTask.start(keyValue);
         ossSinkTask.put(connectRecordList);
     }
 
@@ -104,7 +104,6 @@ public class OssSinkTest {
         keyValue.put(OssConstant.PARTITION_METHOD, "Time");
         keyValue.put(OssConstant.ENABLE_BATCH_PUT, "false");
 
-        ossSinkTask.start(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
         connectRecord.setData("{\n" +
@@ -114,12 +113,12 @@ public class OssSinkTest {
         ossSinkTask.init(new SinkTaskContext() {
             @Override
             public String getConnectorName() {
-                return null;
+                return "test_connect";
             }
 
             @Override
             public String getTaskName() {
-                return null;
+                return "test_task";
             }
 
             @Override public KeyValue configs() {
@@ -151,6 +150,7 @@ public class OssSinkTest {
                 return null;
             }
         });
+        ossSinkTask.start(keyValue);
         ossSinkTask.put(connectRecordList);
     }
 

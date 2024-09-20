@@ -30,8 +30,6 @@ public class OssSinkConnector extends SinkConnector {
 
     private boolean enableBatchPut;
 
-    private int taskId;
-
     @Override
     public List<KeyValue> taskConfigs(int maxTasks) {
         List<KeyValue> keyValueList = new ArrayList<>();
@@ -46,7 +44,6 @@ public class OssSinkConnector extends SinkConnector {
             keyValue.put(OssConstant.REGION, region);
             keyValue.put(OssConstant.PARTITION_METHOD, partitionMethod);
             keyValue.put(OssConstant.ENABLE_BATCH_PUT, String.valueOf(enableBatchPut));
-            keyValue.put(OssConstant.TASK_ID, taskId + i);
             keyValueList.add(keyValue);
         }
         return keyValueList;
@@ -81,7 +78,6 @@ public class OssSinkConnector extends SinkConnector {
         region = config.getString(OssConstant.REGION);
         partitionMethod = config.getString(OssConstant.PARTITION_METHOD);
         enableBatchPut = Boolean.parseBoolean(config.getString(OssConstant.ENABLE_BATCH_PUT, "false"));
-        taskId = config.getInt(OssConstant.TASK_ID, 0);
     }
 
     @Override

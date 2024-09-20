@@ -34,10 +34,6 @@ import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;  
-import java.util.concurrent.locks.ReentrantLock;  
-import java.util.concurrent.ScheduledExecutorService; 
 import java.util.stream.Collectors;
 import java.util.HashMap; 
 import java.net.URI;
@@ -73,7 +69,7 @@ public class OssSinkTask extends SinkTask {
 
     private boolean enableBatchPut;
 
-    private int taskId;
+    private String taskId;
 
     private long lastOffset;
 
@@ -83,12 +79,7 @@ public class OssSinkTask extends SinkTask {
 
     private HashMap<String, List<String>> recordMap = new HashMap<>();
 
-    private ReentrantLock mapLock = new ReentrantLock();
-
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
     private void processMap() throws ConnectException, IOException {
-        mapLock.lock();
         recordMap.forEach((key, values) -> {  
             String joinedString = values.stream().collect(Collectors.joining("\n"));
             String absolutePath = key + objectName;
@@ -108,7 +99,6 @@ public class OssSinkTask extends SinkTask {
             }
             putOss(absolutePath, offset, joinedString);
         });
-        mapLock.unlock();
     }
 
     private String genFilePrefixByPartition(ConnectRecord record) throws ConnectException {
@@ -185,12 +175,10 @@ public class OssSinkTask extends SinkTask {
         String context = JSON.toJSONString(jsonObject);
         String prefix = genFilePrefixByPartition(record);
         if (enableBatchPut) {
-            mapLock.lock();
             if (!recordMap.containsKey(prefix)) {
                 recordMap.put(prefix, new ArrayList<>()); 
             }
             recordMap.get(prefix).add(context);
-            mapLock.unlock();
         } else {
             String absolutePath = prefix + objectName;
             long appendOffset = genObjectOffset(record, absolutePath);
@@ -221,6 +209,9 @@ public class OssSinkTask extends SinkTask {
                     log.error("OSSSinkTask | genObjectOffset | error => ", e);
                 }
             });
+            if (enableBatchPut && !recordMap.isEmpty()) {  
+                processMap();
+            }
         } catch (Exception e) {
             log.error("OSSSinkTask | put | error => ", e);
         }
@@ -229,6 +220,11 @@ public class OssSinkTask extends SinkTask {
     @Override
     public void validate(KeyValue config) {
 
+    }
+
+    @Override
+    public void init(SinkTaskContext sinkTaskContext) {
+        taskId = sinkTaskContext.getConnectorName() + "-" +  sinkTaskContext.getTaskName();
     }
 
     @Override
@@ -243,21 +239,8 @@ public class OssSinkTask extends SinkTask {
         partitionMethod = config.getString(OssConstant.PARTITION_METHOD);
         compressType = config.getString(OssConstant.COMPRESS_TYPE);
         enableBatchPut = Boolean.parseBoolean(config.getString(OssConstant.ENABLE_BATCH_PUT, "false"));
-        taskId = config.getInt(OssConstant.TASK_ID);
-        fileUrlPrefix = fileUrlPrefix + "task_" + Integer.toString(taskId) + "/";
-
-        if (enableBatchPut) {
-            scheduler.scheduleAtFixedRate(() -> {  
-                try {
-                    if (!recordMap.isEmpty()) {  
-                        processMap();
-                    }
-                } catch (Exception e) {
-                    log.error("OSSSinkTask | processMap | error => ", e);
-                }
-            }, 0, 10, TimeUnit.SECONDS);  
-        }
-
+        
+        fileUrlPrefix = fileUrlPrefix + taskId + "/";
         try {
             DefaultCredentialProvider credentialsProvider = CredentialsProviderFactory.newDefaultCredentialProvider(accessKeyId, accessKeySecret);
 
@@ -289,7 +272,6 @@ public class OssSinkTask extends SinkTask {
 
     @Override
     public void stop() {
-        scheduler.shutdown();
         ossClient.shutdown();
     }
 
