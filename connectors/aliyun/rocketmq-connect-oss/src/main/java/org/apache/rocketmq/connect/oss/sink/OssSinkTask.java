@@ -34,11 +34,13 @@ import com.aliyun.oss.model.OSSObject;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.HashMap; 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -79,6 +81,8 @@ public class OssSinkTask extends SinkTask {
 
     private HashMap<String, List<String>> recordMap = new HashMap<>();
 
+    private static final long OBJECT_SIZE_THRESHOLD = 200 * 1024 * 1024;  
+
     private void processMap() throws ConnectException, IOException {
         recordMap.forEach((key, values) -> {  
             String joinedString = values.stream().collect(Collectors.joining("\n"));
@@ -91,6 +95,14 @@ public class OssSinkTask extends SinkTask {
                     OSSObject ossObject = ossClient.getObject(bucketName, absolutePath);
                     InputStream inputStream = ossObject.getObjectContent();
                     offset = inputStream.available();
+                    if (offset > OBJECT_SIZE_THRESHOLD) {
+                        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        String sufix = formatter.format(new Date());
+                        ossClient.copyObject(bucketName, absolutePath, bucketName, absolutePath + sufix);
+                        ossClient.deleteObject(bucketName, absolutePath);
+                        ossClient.doesObjectExist(bucketName, absolutePath);
+                        offset = 0;
+                    }
                 } catch (Exception e) {
                     log.error("OSSSinkTask | getObjectContent | error => ", e);
                 }
@@ -155,17 +167,11 @@ public class OssSinkTask extends SinkTask {
             // Update
             lastOffset = appendObjectResult.getNextPosition();
         } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
+            log.error("Caught an OSSException, which means your request made it to OSS, but was rejected with an error response for some reason."
+            + " Error Message: {}, Error Code: {}, Request ID: {}, Host ID: {}.", oe.getErrorMessage(),oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
         } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
+            log.error("Caught an ClientException, which means the client encountered a serious internal problem while trying to communicate with OSS,"
+            + " such as not being able to access the network. Error Message: {}.", ce.getMessage());
         }
     }
 
@@ -182,6 +188,14 @@ public class OssSinkTask extends SinkTask {
         } else {
             String absolutePath = prefix + objectName;
             long appendOffset = genObjectOffset(record, absolutePath);
+            if (appendOffset > OBJECT_SIZE_THRESHOLD) {
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String sufix = formatter.format(new Date());
+                ossClient.copyObject(bucketName, absolutePath, bucketName, absolutePath + sufix);
+                ossClient.deleteObject(bucketName, absolutePath);
+                ossClient.doesObjectExist(bucketName, absolutePath);
+                lastOffset = 0;
+            }
             putOss(absolutePath, appendOffset, context);
             lastTimeStamp = record.getTimestamp();
         }
@@ -190,26 +204,24 @@ public class OssSinkTask extends SinkTask {
     @Override
     public void put(List<ConnectRecord> sinkRecords) throws ConnectException {
         try {
+            AtomicBoolean hasException = new AtomicBoolean(false); 
             sinkRecords.forEach(sinkRecord -> {
                 try {
                     handleRecord(sinkRecord);
                 } catch (OSSException oe) {
-                    System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                            + "but was rejected with an error response for some reason.");
-                    System.out.println("Error Message:" + oe.getErrorMessage());
-                    System.out.println("Error Code:" + oe.getErrorCode());
-                    System.out.println("Request ID:" + oe.getRequestId());
-                    System.out.println("Host ID:" + oe.getHostId());
+                    log.error("Caught an OSSException, which means your request made it to OSS, but was rejected with an error response for some reason."
+                    + " Error Message: {}, Error Code: {}, Request ID: {}, Host ID: {}.", oe.getErrorMessage(),oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
+                    hasException.set(true);
                 } catch (ClientException ce) {
-                    System.out.println("Caught an ClientException, which means the client encountered "
-                            + "a serious internal problem while trying to communicate with OSS, "
-                            + "such as not being able to access the network.");
-                    System.out.println("Error Message:" + ce.getMessage());
+                    log.error("Caught an ClientException, which means the client encountered a serious internal problem while trying to communicate with OSS,"
+                    + " such as not being able to access the network. Error Message: {}.", ce.getMessage());
+                    hasException.set(true);
                 } catch (Exception e) {
                     log.error("OSSSinkTask | genObjectOffset | error => ", e);
+                    hasException.set(true);
                 }
             });
-            if (enableBatchPut && !recordMap.isEmpty()) {  
+            if (!hasException.get() && enableBatchPut && !recordMap.isEmpty()) {  
                 processMap();
             }
         } catch (Exception e) {
