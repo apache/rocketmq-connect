@@ -29,15 +29,14 @@ public class OssSinkTest {
         OssSinkTask ossSinkTask = new OssSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
         // Replace KV pair with your own message
-        keyValue.put(OssConstant.ACCESS_KEY_ID, "LTAI5t68yKJXx6HbkrKowqe8");
-        keyValue.put(OssConstant.ACCESS_KEY_SECRET, "eiDUU47CIJ0ShVX2zzl3KhehyscrSY");
+        keyValue.put(OssConstant.ACCESS_KEY_ID, "xxx"); // Input yuor accesskey id
+        keyValue.put(OssConstant.ACCESS_KEY_SECRET, "xxx"); // Input your accesskey secret
         keyValue.put(OssConstant.ACCOUNT_ENDPOINT, "oss-cn-beijing.aliyuncs.com");
         keyValue.put(OssConstant.BUCKET_NAME, "rocketmqoss");
         keyValue.put(OssConstant.FILE_URL_PREFIX, "test/");
         keyValue.put(OssConstant.OBJECT_NAME, "oss_new.txt");
         keyValue.put(OssConstant.REGION, "cn-beijing");
         keyValue.put(OssConstant.PARTITION_METHOD, "Normal");
-        keyValue.put(OssConstant.ENABLE_BATCH_PUT, "false");
 
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());
@@ -94,15 +93,14 @@ public class OssSinkTest {
         OssSinkTask ossSinkTask = new OssSinkTask();
         KeyValue keyValue = new DefaultKeyValue();
         // Replace KV pair with your own message
-        keyValue.put(OssConstant.ACCESS_KEY_ID, "LTAI5t68yKJXx6HbkrKowqe8");
-        keyValue.put(OssConstant.ACCESS_KEY_SECRET, "eiDUU47CIJ0ShVX2zzl3KhehyscrSY");
+        keyValue.put(OssConstant.ACCESS_KEY_ID, "xxx"); // Input yuor accesskey id
+        keyValue.put(OssConstant.ACCESS_KEY_SECRET, "xxx"); // Input your accesskey secret
         keyValue.put(OssConstant.ACCOUNT_ENDPOINT, "oss-cn-beijing.aliyuncs.com");
         keyValue.put(OssConstant.BUCKET_NAME, "rocketmqoss");
         keyValue.put(OssConstant.FILE_URL_PREFIX, "test/");
         keyValue.put(OssConstant.OBJECT_NAME, "oss_new.txt");
         keyValue.put(OssConstant.REGION, "cn-beijing");
         keyValue.put(OssConstant.PARTITION_METHOD, "Time");
-        keyValue.put(OssConstant.ENABLE_BATCH_PUT, "false");
 
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(null, null, System.currentTimeMillis());

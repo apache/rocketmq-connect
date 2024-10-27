@@ -36,15 +36,13 @@ http://${runtime-ip}:${runtime-port}/connectors/${rocketmq-oss-connector-name}/s
 ## rocketmq-connect-oss 参数说明
 * **oss-sink-connector 参数说明**
 
-| KEY             | TYPE   | Must be filled | Description                    | Example                    
-|-----------------|--------|----------------|--------------------------------|----------------------------|
-| accountEndpoint | String | YES            | OSS endpoint                   | oss-cn-beijing.aliyuncs.com |
-| accessKeyId     | String | YES            | 阿里云授信账号的AK                     | xxxx                       |
-| accessKeySecret | String | YES            | 阿里云授信账号的SK                     | xxx                        |
-| bucketName      | String | YES            | OSS bucketName                 | test_bucket                |
-| objectName      | String | YES            | 上传目的object名字                   | test.txt                   |
-| region          | String | YES            | OSS region                     | cn-beijing                 |
-| partitionMethod | String | YES            | 分区模式，Normal表示不分区，Time表示按时间分区   | Time                       |
-| fileUrlPrefix   | String | YES            | 到object的URL前缀                  | file1/                     |
-| enableBatchPut  | String | NO             | 是否开启批处理模式                      | true                       |
-
+| KEY             | TYPE   | Must be filled | Description                   | Example                    
+|-----------------|--------|----------------|-------------------------------|----------------------------|
+| accountEndpoint | String | YES            | OSS endpoint                  | oss-cn-beijing.aliyuncs.com |
+| accessKeyId     | String | YES            | 阿里云授信账号的AK                    | xxxx                       |
+| accessKeySecret | String | YES            | 阿里云授信账号的SK                    | xxx                        |
+| bucketName      | String | YES            | OSS bucketName                | test_bucket                |
+| objectName      | String | YES            | 上传目的object名字                  | test.txt                   |
+| region          | String | YES            | OSS region                    | cn-beijing                 |
+| partitionMethod | String | YES            | 分区模式，Normal表示不分区，Time表示按时间分区  | Time                       |
+| fileUrlPrefix   | String | YES            | 到object的URL前缀                 | file1/                     |

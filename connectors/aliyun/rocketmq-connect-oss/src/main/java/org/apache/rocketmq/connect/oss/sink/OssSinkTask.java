@@ -69,8 +69,6 @@ public class OssSinkTask extends SinkTask {
 
     private String compressType;
 
-    private boolean enableBatchPut;
-
     private String taskId;
 
     private long lastOffset;
@@ -180,25 +178,19 @@ public class OssSinkTask extends SinkTask {
         jsonObject.put("data", record.getData());
         String context = JSON.toJSONString(jsonObject);
         String prefix = genFilePrefixByPartition(record);
-        if (enableBatchPut) {
-            if (!recordMap.containsKey(prefix)) {
-                recordMap.put(prefix, new ArrayList<>()); 
-            }
-            recordMap.get(prefix).add(context);
-        } else {
-            String absolutePath = prefix + objectName;
-            long appendOffset = genObjectOffset(record, absolutePath);
-            if (appendOffset > OBJECT_SIZE_THRESHOLD) {
-                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                String sufix = formatter.format(new Date());
-                ossClient.copyObject(bucketName, absolutePath, bucketName, absolutePath + sufix);
-                ossClient.deleteObject(bucketName, absolutePath);
-                ossClient.doesObjectExist(bucketName, absolutePath);
-                lastOffset = 0;
-            }
-            putOss(absolutePath, appendOffset, context);
-            lastTimeStamp = record.getTimestamp();
+
+        String absolutePath = prefix + objectName;
+        long appendOffset = genObjectOffset(record, absolutePath);
+        if (appendOffset > OBJECT_SIZE_THRESHOLD) {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String sufix = formatter.format(new Date());
+            ossClient.copyObject(bucketName, absolutePath, bucketName, absolutePath + sufix);
+            ossClient.deleteObject(bucketName, absolutePath);
+            ossClient.doesObjectExist(bucketName, absolutePath);
+            lastOffset = 0;
         }
+        putOss(absolutePath, appendOffset, context);
+        lastTimeStamp = record.getTimestamp();
     }
 
     @Override
@@ -221,7 +213,7 @@ public class OssSinkTask extends SinkTask {
                     hasException.set(true);
                 }
             });
-            if (!hasException.get() && enableBatchPut && !recordMap.isEmpty()) {  
+            if (!hasException.get() && !recordMap.isEmpty()) {
                 processMap();
             }
         } catch (Exception e) {
@@ -250,7 +242,6 @@ public class OssSinkTask extends SinkTask {
         region = config.getString(OssConstant.REGION);
         partitionMethod = config.getString(OssConstant.PARTITION_METHOD);
         compressType = config.getString(OssConstant.COMPRESS_TYPE);
-        enableBatchPut = Boolean.parseBoolean(config.getString(OssConstant.ENABLE_BATCH_PUT, "false"));
         
         fileUrlPrefix = fileUrlPrefix + taskId + "/";
         try {
