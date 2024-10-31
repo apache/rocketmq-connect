@@ -19,20 +19,20 @@
 
 package org.apache.rocketmq.connect.doris.exception;
 
-public class DorisException extends RuntimeException {
+public class CopyLoadException extends DorisException {
 
-    public DorisException() {
+    public CopyLoadException() {
     }
 
-    public DorisException(String message) {
+    public CopyLoadException(String message) {
         super(message);
     }
 
-    public DorisException(String message, Throwable cause) {
+    public CopyLoadException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DorisException(Throwable cause) {
+    public CopyLoadException(Throwable cause) {
         super(cause);
     }
 }

@@ -17,22 +17,44 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.model;
 
-public class DorisException extends RuntimeException {
+public class KafkaRespContent extends RespContent {
 
-    public DorisException() {
+    private String topic;
+    private String database;
+    private String table;
+    private long lastOffset;
+
+    public String getTopic() {
+        return topic;
     }
 
-    public DorisException(String message) {
-        super(message);
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
+    public String getDatabase() {
+        return database;
     }
 
-    public DorisException(Throwable cause) {
-        super(cause);
+    public void setDatabase(String database) {
+        this.database = database;
+    }
+
+    public String getTable() {
+        return table;
+    }
+
+    public void setTable(String table) {
+        this.table = table;
+    }
+
+    public long getLastOffset() {
+        return lastOffset;
+    }
+
+    public void setLastOffset(long lastOffset) {
+        this.lastOffset = lastOffset;
     }
 }

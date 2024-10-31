@@ -17,22 +17,28 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.writer.load;
 
-public class DorisException extends RuntimeException {
+public enum LoadModel {
+    STREAM_LOAD("stream_load"),
 
-    public DorisException() {
+    COPY_INTO("copy_into");
+
+    private final String name;
+
+    LoadModel(String name) {
+        this.name = name;
     }
 
-    public DorisException(String message) {
-        super(message);
+    public String getName() {
+        return name;
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
+    public static LoadModel of(String name) {
+        return LoadModel.valueOf(name.toUpperCase());
     }
 
-    public DorisException(Throwable cause) {
-        super(cause);
+    public static String[] instances() {
+        return new String[] {STREAM_LOAD.name, COPY_INTO.name};
     }
 }

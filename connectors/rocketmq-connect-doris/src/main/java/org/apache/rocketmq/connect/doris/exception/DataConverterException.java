@@ -19,20 +19,29 @@
 
 package org.apache.rocketmq.connect.doris.exception;
 
-public class DorisException extends RuntimeException {
+public class DataConverterException extends RuntimeException {
 
-    public DorisException() {
+    public DataConverterException() {
+        super();
     }
 
-    public DorisException(String message) {
+    public DataConverterException(String message) {
         super(message);
     }
 
-    public DorisException(String message, Throwable cause) {
+    public DataConverterException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DorisException(Throwable cause) {
+    public DataConverterException(Throwable cause) {
         super(cause);
+    }
+
+    protected DataConverterException(
+        String message,
+        Throwable cause,
+        boolean enableSuppression,
+        boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

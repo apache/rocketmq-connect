@@ -17,22 +17,15 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.writer.load;
 
-public class DorisException extends RuntimeException {
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.Serializable;
 
-    public DorisException() {
-    }
-
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+public abstract class DataLoad implements Serializable {
+    protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    protected String database;
+    protected String table;
+    protected String user;
+    protected String password;
 }

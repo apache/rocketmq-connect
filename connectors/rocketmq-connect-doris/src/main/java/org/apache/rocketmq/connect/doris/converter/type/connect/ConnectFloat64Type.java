@@ -16,23 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.rocketmq.connect.doris.converter.type.connect;
 
-package org.apache.rocketmq.connect.doris.exception;
+import io.openmessaging.connector.api.data.Schema;
+import org.apache.rocketmq.connect.doris.converter.type.doris.DorisType;
 
-public class DorisException extends RuntimeException {
+public class ConnectFloat64Type extends AbstractConnectSchemaType {
 
-    public DorisException() {
+    public static final ConnectFloat64Type INSTANCE = new ConnectFloat64Type();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {"FLOAT64"};
     }
 
-    public DorisException(String message) {
-        super(message);
+    @Override
+    public String getTypeName(Schema schema) {
+        return DorisType.DOUBLE;
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    public boolean isNumber() {
+        return true;
     }
 }

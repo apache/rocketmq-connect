@@ -17,22 +17,30 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
-public class DorisException extends RuntimeException {
+import io.debezium.data.geometry.Point;
+import io.openmessaging.connector.api.data.Struct;
+import org.apache.rocketmq.connect.doris.converter.type.AbstractGeometryType;
+import org.apache.rocketmq.connect.doris.converter.type.util.GeoUtils;
 
-    public DorisException() {
+public class PointType extends AbstractGeometryType {
+    public static final PointType INSTANCE = new PointType();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {Point.LOGICAL_NAME};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
+    @Override
+    public Object getValue(Object sourceValue) {
+        if (sourceValue == null) {
+            return null;
+        }
+        if (sourceValue instanceof Struct) {
+            return GeoUtils.handleGeoStructData(sourceValue);
+        }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+        return sourceValue;
     }
 }

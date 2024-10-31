@@ -17,22 +17,21 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.writer;
 
-public class DorisException extends RuntimeException {
+import java.util.regex.Pattern;
 
-    public DorisException() {
-    }
+/**
+ * util for handle response.
+ */
+public class ResponseUtil {
+    public static final Pattern LABEL_EXIST_PATTERN =
+        Pattern.compile("Label \\[(.*)\\] has already been used, relate to txn \\[(\\d+)\\]");
+    public static final Pattern COMMITTED_PATTERN =
+        Pattern.compile(
+            "transaction \\[(\\d+)\\] is already \\b(COMMITTED|committed|VISIBLE|visible)\\b, not pre-committed.");
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    public static boolean isCommitted(String msg) {
+        return COMMITTED_PATTERN.matcher(msg).find();
     }
 }

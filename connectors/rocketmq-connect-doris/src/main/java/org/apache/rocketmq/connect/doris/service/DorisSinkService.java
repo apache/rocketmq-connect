@@ -17,22 +17,27 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.service;
 
-public class DorisException extends RuntimeException {
+import io.openmessaging.connector.api.data.ConnectRecord;
+import io.openmessaging.connector.api.data.RecordOffset;
+import io.openmessaging.connector.api.data.RecordPartition;
+import java.util.List;
+import java.util.Map;
 
-    public DorisException() {
-    }
+/**
+ * Background service of data sink, responsible to create/drop table and insert/delete files
+ */
+public interface DorisSinkService {
 
-    public DorisException(String message) {
-        super(message);
-    }
+    void startService(String topic);
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    void insert(final List<ConnectRecord> records);
 
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+    void insert(final ConnectRecord record);
+
+    void commit(Map<RecordPartition, RecordOffset> currentOffsets);
+
+    int getDorisWriterSize();
+
 }

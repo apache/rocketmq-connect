@@ -16,23 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
-package org.apache.rocketmq.connect.doris.exception;
+import io.debezium.time.NanoTimestamp;
+import java.time.LocalDateTime;
+import org.apache.rocketmq.connect.doris.converter.type.util.DateTimeUtils;
 
-public class DorisException extends RuntimeException {
+/**
+ * An implementation of {@link org.apache.doris.kafka.connector.converter.type.Type} for {@link
+ * MicroTimestamp} values.
+ */
+public class NanoTimestampType extends AbstractDebeziumTimestampType {
 
-    public DorisException() {
+    public static final NanoTimestampType INSTANCE = new NanoTimestampType();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {NanoTimestamp.SCHEMA_NAME};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    protected LocalDateTime getLocalDateTime(long value) {
+        return DateTimeUtils.toLocalDateTimeFromInstantEpochNanos(value);
     }
 }

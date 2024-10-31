@@ -16,23 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.rocketmq.connect.doris.converter.type;
 
-package org.apache.rocketmq.connect.doris.exception;
+import io.openmessaging.connector.api.data.Schema;
+import org.apache.rocketmq.connect.doris.converter.type.doris.DorisType;
 
-public class DorisException extends RuntimeException {
+/**
+ * An abstract base class for all temporal date implementations of {@link Type}.
+ */
+public abstract class AbstractDateType extends AbstractTemporalType {
 
-    public DorisException() {
-    }
-
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    public String getTypeName(Schema schema) {
+        return DorisType.DATE;
     }
 }

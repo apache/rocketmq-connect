@@ -17,22 +17,16 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.service;
 
-public class DorisException extends RuntimeException {
+import io.openmessaging.KeyValue;
 
-    public DorisException() {
-    }
+/**
+ * A factory to create {@link DorisSinkService}
+ */
+public class DorisSinkServiceFactory {
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    public static DorisSinkService getDorisSinkService(KeyValue connectorConfig) {
+        return new DorisDefaultSinkService(connectorConfig);
     }
 }

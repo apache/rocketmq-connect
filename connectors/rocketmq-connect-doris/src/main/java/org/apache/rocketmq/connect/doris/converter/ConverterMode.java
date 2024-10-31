@@ -17,22 +17,29 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter;
 
-public class DorisException extends RuntimeException {
+public enum ConverterMode {
+    NORMAL("normal"),
 
-    public DorisException() {
+    // kafka upstream data comes from debezium
+    DEBEZIUM_INGESTION("debezium_ingestion");
+
+    private final String name;
+
+    ConverterMode(String name) {
+        this.name = name;
     }
 
-    public DorisException(String message) {
-        super(message);
+    public static ConverterMode of(String name) {
+        return ConverterMode.valueOf(name.toUpperCase());
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
+    public String getName() {
+        return name;
     }
 
-    public DorisException(Throwable cause) {
-        super(cause);
+    public static String[] instances() {
+        return new String[] {NORMAL.name, DEBEZIUM_INGESTION.name};
     }
 }
