@@ -27,6 +27,7 @@ import io.openmessaging.connector.api.component.task.source.SourceTask;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import io.openmessaging.connector.api.data.RecordConverter;
 import io.openmessaging.connector.api.errors.ConnectException;
+import io.prometheus.client.CollectorRegistry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +51,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.connect.metrics.DropwizardExports;
+import org.apache.rocketmq.connect.metrics.PrometheusSampleBuilder;
 import org.apache.rocketmq.connect.runtime.common.ConnectKeyValue;
 import org.apache.rocketmq.connect.runtime.common.LoggerName;
 import org.apache.rocketmq.connect.runtime.config.ConnectorConfig;
@@ -148,6 +151,7 @@ public class Worker {
         this.executor = Executors.newCachedThreadPool();
         this.connectMetrics = new ConnectMetrics(workerConfig);
         this.stateManagementService = stateManagementService;
+        CollectorRegistry.defaultRegistry.register(new DropwizardExports(connectMetrics.registry(), new PrometheusSampleBuilder()));
     }
 
     public void start() {
