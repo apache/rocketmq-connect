@@ -388,7 +388,7 @@ public class Worker {
                     @Override
                     public void onCompletion(Throwable error, TargetState result) {
                         if (error != null) {
-                            log.error(error.getMessage());
+                            log.error("Start connector failed", error);
                         } else {
                             log.info("Start connector {} and set target state {} successed!!", connectorName, result);
                         }
