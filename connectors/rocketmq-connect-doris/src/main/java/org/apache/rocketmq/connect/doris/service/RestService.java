@@ -63,6 +63,7 @@ public class RestService {
     private static final String BACKENDS_V2 = "/api/backends?is_alive=true";
     private static final String TABLE_SCHEMA_API = "http://%s/api/%s/%s/_schema";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String UNIQUE_KEYS_TYPE = "UNIQUE_KEYS";
 
     /**
      * get Doris BE nodes to request.
@@ -109,6 +110,18 @@ public class RestService {
             nodeList.add(BackendV2.BackendRowV2.of(split[0], Integer.parseInt(split[1]), true));
         }
         return nodeList;
+    }
+
+    public static boolean isUniqueKeyType(
+        DorisOptions dorisOptions, String tableName, Logger logger) {
+        try {
+            return UNIQUE_KEYS_TYPE.equals(
+                getSchema(dorisOptions, dorisOptions.getDatabase(), tableName, logger)
+                    .getKeysType());
+        } catch (Exception e) {
+            logger.error("Failed to match table unique key types", e);
+            throw new DorisException(e);
+        }
     }
 
     /**

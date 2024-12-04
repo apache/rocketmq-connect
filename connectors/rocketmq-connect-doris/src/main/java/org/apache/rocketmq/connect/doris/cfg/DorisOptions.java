@@ -54,7 +54,8 @@ public class DorisOptions {
     private final boolean enableCustomJMX;
     private final int taskId;
     private final boolean enableDelete;
-    private final boolean enable2PC;
+    private boolean enable2PC = true;
+    private boolean force2PC;
     private boolean autoRedirect = true;
     private int requestReadTimeoutMs;
     private int requestConnectTimeoutMs;
@@ -95,7 +96,14 @@ public class DorisOptions {
         this.flushTime = Long.parseLong(config.getString(DorisSinkConnectorConfig.BUFFER_FLUSH_TIME_SEC));
         this.topicMap = getTopicToTableMap(config);
 
-        this.enable2PC = Boolean.parseBoolean(config.getString(DorisSinkConnectorConfig.ENABLE_2PC));
+        if (config.containsKey(DorisSinkConnectorConfig.ENABLE_2PC)) {
+            if (Boolean.parseBoolean(config.getString(DorisSinkConnectorConfig.ENABLE_2PC))) {
+                this.enable2PC = true;
+                this.force2PC = true;
+            } else {
+                this.enable2PC = false;
+            }
+        }
         this.enableCustomJMX = Boolean.parseBoolean(config.getString(DorisSinkConnectorConfig.JMX_OPT));
         this.enableDelete =
             Boolean.parseBoolean(config.getString(DorisSinkConnectorConfig.ENABLE_DELETE));
@@ -120,8 +128,7 @@ public class DorisOptions {
             parseClusterProxyConfig(config);
         }
         this.streamLoadProp = getStreamLoadPropFromConfig(config);
-        this.enableGroupCommit =
-            ConfigCheckUtils.validateGroupCommitMode(getStreamLoadProp(), enable2PC());
+        this.enableGroupCommit = ConfigCheckUtils.validateGroupCommitMode(this);
     }
 
     private void parseClusterProxyConfig(KeyValue config) {
@@ -198,6 +205,14 @@ public class DorisOptions {
 
     public String getTopicMapTable(String topic) {
         return topicMap.get(topic);
+    }
+
+    public boolean force2PC() {
+        return force2PC;
+    }
+
+    public void setEnable2PC(boolean enable2PC) {
+        this.enable2PC = enable2PC;
     }
 
     public boolean enableGroupCommit() {

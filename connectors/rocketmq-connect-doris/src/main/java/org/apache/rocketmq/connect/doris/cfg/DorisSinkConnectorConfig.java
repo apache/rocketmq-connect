@@ -112,7 +112,6 @@ public class DorisSinkConnectorConfig {
         setFieldToDefaultValues(config, CONVERTER_MODE, CONVERT_MODE_DEFAULT);
         setFieldToDefaultValues(
             config, DEBEZIUM_SCHEMA_EVOLUTION, DEBEZIUM_SCHEMA_EVOLUTION_DEFAULT);
-        setFieldToDefaultValues(config, ENABLE_2PC, String.valueOf(ENABLE_2PC_DEFAULT));
         setFieldToDefaultValues(config, JMX_OPT, String.valueOf(JMX_OPT_DEFAULT));
         setFieldToDefaultValues(config, DORIS_CUSTOM_CLUSTER, DORIS_CUSTOM_CLUSTER_DEFAULT);
     }

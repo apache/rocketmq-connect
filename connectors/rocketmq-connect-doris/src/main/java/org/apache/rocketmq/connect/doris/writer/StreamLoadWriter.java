@@ -19,6 +19,7 @@
 
 package org.apache.rocketmq.connect.doris.writer;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.openmessaging.connector.api.data.ConnectRecord;
 import java.io.IOException;
 import java.sql.Connection;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.connect.doris.connection.ConnectionProvider;
 import org.apache.rocketmq.connect.doris.exception.StreamLoadException;
 import org.apache.rocketmq.connect.doris.metrics.DorisConnectMonitor;
 import org.apache.rocketmq.connect.doris.model.KafkaRespContent;
+import org.apache.rocketmq.connect.doris.service.RestService;
 import org.apache.rocketmq.connect.doris.utils.BackendUtils;
 import org.apache.rocketmq.connect.doris.utils.FileNameUtils;
 import org.apache.rocketmq.connect.doris.writer.commit.DorisCommittable;
@@ -65,6 +67,22 @@ public class StreamLoadWriter extends DorisWriter {
         BackendUtils backendUtils = BackendUtils.getInstance(dorisOptions, LOG);
         this.dorisCommitter = new DorisCommitter(dorisOptions, backendUtils);
         this.dorisStreamLoad = new DorisStreamLoad(backendUtils, dorisOptions, topic);
+        checkDorisTableKey(tableName);
+    }
+
+    /**
+     * The uniq model has 2pc close by default unless 2pc is forced open.
+     */
+    @VisibleForTesting
+    public void checkDorisTableKey(String tableName) {
+        if (dorisOptions.enable2PC()
+            && !dorisOptions.force2PC()
+            && RestService.isUniqueKeyType(dorisOptions, tableName, LOG)) {
+            LOG.info(
+                "The {} table type is unique model, the two phase commit default value should be disabled.",
+                tableName);
+            dorisOptions.setEnable2PC(false);
+        }
     }
 
     public void fetchOffset() {
