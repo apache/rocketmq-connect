@@ -83,6 +83,13 @@ public class DorisSinkConnectorConfig {
     public static final String DEBEZIUM_SCHEMA_EVOLUTION_DEFAULT =
         SchemaEvolutionMode.NONE.getName();
 
+    // custom cluster config
+    public static final String DORIS_CUSTOM_CLUSTER = "doris.custom.cluster";
+    public static final String DORIS_CUSTOM_CLUSTER_DEFAULT = "false";
+    public static final String SOCKS5_ENDPOINT = "socks5Endpoint";
+    public static final String SOCKS5_USERNAME = "socks5UserName";
+    public static final String SOCKET5_PASSWORD = "socks5Password";
+
     // metrics
     public static final String JMX_OPT = "jmx";
     public static final boolean JMX_OPT_DEFAULT = true;
@@ -107,6 +114,7 @@ public class DorisSinkConnectorConfig {
             config, DEBEZIUM_SCHEMA_EVOLUTION, DEBEZIUM_SCHEMA_EVOLUTION_DEFAULT);
         setFieldToDefaultValues(config, ENABLE_2PC, String.valueOf(ENABLE_2PC_DEFAULT));
         setFieldToDefaultValues(config, JMX_OPT, String.valueOf(JMX_OPT_DEFAULT));
+        setFieldToDefaultValues(config, DORIS_CUSTOM_CLUSTER, DORIS_CUSTOM_CLUSTER_DEFAULT);
     }
 
     private static void setFieldToDefaultValues(KeyValue config, String field, String value) {

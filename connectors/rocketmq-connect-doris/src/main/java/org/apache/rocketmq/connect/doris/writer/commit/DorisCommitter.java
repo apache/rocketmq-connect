@@ -47,13 +47,14 @@ public class DorisCommitter {
     private static final Logger LOG = LoggerFactory.getLogger(DorisCommitter.class);
     private static final String COMMIT_PATTERN = "http://%s/api/%s/_stream_load_2pc";
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final CloseableHttpClient httpClient = new HttpUtils().getHttpClient();
+    private final CloseableHttpClient httpClient;
     private final BackendUtils backendUtils;
     private final DorisOptions dorisOptions;
 
     public DorisCommitter(DorisOptions dorisOptions, BackendUtils backendUtils) {
         this.backendUtils = backendUtils;
         this.dorisOptions = dorisOptions;
+        this.httpClient = new HttpUtils(dorisOptions).getHttpClient();
     }
 
     public void commit(List<DorisCommittable> dorisCommittables) {

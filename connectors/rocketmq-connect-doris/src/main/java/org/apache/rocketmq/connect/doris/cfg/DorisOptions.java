@@ -26,10 +26,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.connect.doris.converter.ConverterMode;
 import org.apache.rocketmq.connect.doris.converter.schema.SchemaEvolutionMode;
+import org.apache.rocketmq.connect.doris.exception.DorisException;
 import org.apache.rocketmq.connect.doris.utils.ConfigCheckUtils;
 import org.apache.rocketmq.connect.doris.writer.DeliveryGuarantee;
 import org.apache.rocketmq.connect.doris.writer.load.LoadModel;
@@ -57,6 +59,8 @@ public class DorisOptions {
     private int requestReadTimeoutMs;
     private int requestConnectTimeoutMs;
     private final boolean enableGroupCommit;
+    private boolean customCluster;
+    private ProxyConfig proxyConfig;
     /**
      * Properties for the StreamLoad.
      */
@@ -111,9 +115,26 @@ public class DorisOptions {
             this.requestReadTimeoutMs =
                 Integer.parseInt(config.getString(DorisSinkConnectorConfig.REQUEST_READ_TIMEOUT_MS));
         }
+        if (config.containsKey(DorisSinkConnectorConfig.DORIS_CUSTOM_CLUSTER)) {
+            this.customCluster = Boolean.parseBoolean(config.getString(DorisSinkConnectorConfig.DORIS_CUSTOM_CLUSTER));
+            parseClusterProxyConfig(config);
+        }
         this.streamLoadProp = getStreamLoadPropFromConfig(config);
         this.enableGroupCommit =
             ConfigCheckUtils.validateGroupCommitMode(getStreamLoadProp(), enable2PC());
+    }
+
+    private void parseClusterProxyConfig(KeyValue config) {
+        if (customCluster) {
+            String socks5Endpoint = config.getString(DorisSinkConnectorConfig.SOCKS5_ENDPOINT);
+            String socks5UserName = config.getString(DorisSinkConnectorConfig.SOCKS5_USERNAME);
+            String socks5Password = config.getString(DorisSinkConnectorConfig.SOCKET5_PASSWORD);
+            if (socks5Endpoint == null || socks5UserName == null || socks5Password == null) {
+                throw new DorisException(
+                    "Currently it is doris custom cluster mode, and socks5Endpoint, socks5UserName, socks5Password need to be provided.");
+            }
+            this.proxyConfig = new ProxyConfig(socks5Endpoint, socks5UserName, socks5Password);
+        }
     }
 
     private Properties getStreamLoadPropFromConfig(KeyValue config) {
@@ -283,6 +304,14 @@ public class DorisOptions {
         return enableDelete;
     }
 
+    public boolean customCluster() {
+        return customCluster;
+    }
+
+    public Optional<ProxyConfig> getProxyConfig() {
+        return Optional.ofNullable(proxyConfig);
+    }
+
     /**
      * parse topic to table map
      *
@@ -301,4 +330,43 @@ public class DorisOptions {
         }
         return new HashMap<>();
     }
+
+    public class ProxyConfig {
+        private final String socks5Endpoint;
+        private final String socks5UserName;
+        private final String socks5Password;
+        private final String socks5Host;
+        private final Integer socks5Port;
+
+        public ProxyConfig(String socks5Endpoint, String socks5UserName, String socks5Password) {
+            this.socks5Endpoint = socks5Endpoint;
+            this.socks5UserName = socks5UserName;
+            this.socks5Password = socks5Password;
+            String[] splitEndpoint = socks5Endpoint.split(":");
+            socks5Host = splitEndpoint[0];
+            socks5Port = Integer.parseInt(splitEndpoint[1]);
+            assert socks5Host != null;
+        }
+
+        public String getSocks5Endpoint() {
+            return socks5Endpoint;
+        }
+
+        public String getSocks5Host() {
+            return socks5Host;
+        }
+
+        public String getSocks5Password() {
+            return socks5Password;
+        }
+
+        public Integer getSocks5Port() {
+            return socks5Port;
+        }
+
+        public String getSocks5UserName() {
+            return socks5UserName;
+        }
+    }
+
 }

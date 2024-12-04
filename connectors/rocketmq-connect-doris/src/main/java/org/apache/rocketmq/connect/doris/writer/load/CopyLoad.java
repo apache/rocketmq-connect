@@ -33,7 +33,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.rocketmq.connect.doris.cfg.DorisOptions;
 import org.apache.rocketmq.connect.doris.exception.CopyLoadException;
@@ -44,6 +43,7 @@ import org.apache.rocketmq.connect.doris.model.LoadOperation;
 import org.apache.rocketmq.connect.doris.utils.BackoffAndRetryUtils;
 import org.apache.rocketmq.connect.doris.utils.HttpPostBuilder;
 import org.apache.rocketmq.connect.doris.utils.HttpPutBuilder;
+import org.apache.rocketmq.connect.doris.utils.HttpUtils;
 import org.apache.rocketmq.connect.doris.writer.CopySQLBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ public class CopyLoad extends DataLoad {
             database,
             tableName,
             dorisOptions,
-            HttpClients.custom().disableRedirectHandling().build());
+            new HttpUtils(dorisOptions).getHttpClient());
     }
 
     public CopyLoad(

@@ -20,11 +20,16 @@
 package org.apache.rocketmq.connect.doris.connection;
 
 import java.io.Serializable;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import org.apache.rocketmq.connect.doris.cfg.DorisOptions;
+import org.apache.rocketmq.connect.doris.cfg.DorisOptions.ProxyConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +39,7 @@ public class JdbcConnectionProvider implements ConnectionProvider, Serializable 
     protected final String driverName = "com.mysql.jdbc.Driver";
     protected final String cjDriverName = "com.mysql.cj.jdbc.Driver";
     private static final String JDBC_URL_TEMPLATE = "jdbc:mysql://%s";
+    private static final String JDBC_URL_PROXY_TEMPLATE = "jdbc:mysql://%s?useSSL=false&proxyHost=%s&proxyPort=%d";
 
     private static final long serialVersionUID = 1L;
 
@@ -57,7 +63,19 @@ public class JdbcConnectionProvider implements ConnectionProvider, Serializable 
                 "can not found class com.mysql.cj.jdbc.Driver, use class com.mysql.jdbc.Driver");
             Class.forName(driverName);
         }
-        String jdbcUrl = String.format(JDBC_URL_TEMPLATE, options.getQueryUrl());
+        String jdbcUrl;
+        if (options.customCluster()) {
+            ProxyConfig proxyConfig = options.getProxyConfig()
+                .orElseThrow(() -> new NoSuchElementException("Failed to get ProxyConfig."));
+            String proxyHost = proxyConfig.getSocks5Host();
+            int proxyPort = proxyConfig.getSocks5Port();
+            String queryUrl = options.getQueryUrl();
+            jdbcUrl = String.format(JDBC_URL_PROXY_TEMPLATE, queryUrl, proxyHost, proxyPort);
+            configureSocks5ProxyAuthentication();
+        } else {
+            jdbcUrl = String.format(JDBC_URL_TEMPLATE, options.getQueryUrl());
+        }
+
         if (!Objects.isNull(options.getUser())) {
             connection =
                 DriverManager.getConnection(jdbcUrl, options.getUser(), options.getPassword());
@@ -65,6 +83,26 @@ public class JdbcConnectionProvider implements ConnectionProvider, Serializable 
             connection = DriverManager.getConnection(jdbcUrl);
         }
         return connection;
+    }
+
+    private void configureSocks5ProxyAuthentication() {
+        if (options.customCluster()) {
+            ProxyConfig proxyConfig = options.getProxyConfig()
+                .orElseThrow(() -> new NoSuchElementException("Failed to get ProxyConfig."));
+            String socks5UserName = proxyConfig.getSocks5UserName();
+            String socks5Password = proxyConfig.getSocks5Password();
+            Authenticator.setDefault(new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    if (Proxy.Type.SOCKS.name().equalsIgnoreCase(getRequestingProtocol())) {
+                        return new PasswordAuthentication(socks5UserName, socks5Password.toCharArray());
+                    }
+                    return null;
+                }
+            });
+            System.setProperty("java.net.socks.username", socks5UserName);
+            System.setProperty("java.net.socks.password", socks5Password);
+        }
     }
 
     @Override

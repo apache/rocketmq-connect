@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.rocketmq.connect.doris.converter;
 
 import io.openmessaging.connector.api.data.ConnectRecord;
@@ -214,7 +215,8 @@ public class RecordDescriptor {
         }
 
         private boolean isFlattened(ConnectRecord record) {
-            return record.getSchema().getValueSchema().getName() == null || !record.getSchema().getValueSchema().getName().contains("Envelope");
+            return record.getSchema().getValueSchema().getName() == null || !record.getSchema().getValueSchema()
+                .getName().contains("Envelope");
         }
 
         private boolean isTombstone(ConnectRecord record) {

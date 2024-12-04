@@ -50,7 +50,7 @@ public class DorisStreamLoad extends DataLoad {
     private final DorisOptions dorisOptions;
     private final String topic;
     private String hostPort;
-    private final CloseableHttpClient httpClient = new HttpUtils().getHttpClient();
+    private final CloseableHttpClient httpClient;
     private final BackendUtils backendUtils;
     private Queue<KafkaRespContent> respContents = new LinkedList<>();
     private final boolean enableGroupCommit;
@@ -65,6 +65,7 @@ public class DorisStreamLoad extends DataLoad {
         this.backendUtils = backendUtils;
         this.topic = topic;
         this.enableGroupCommit = dorisOptions.enableGroupCommit();
+        this.httpClient = new HttpUtils(dorisOptions).getHttpClient();
     }
 
     /**

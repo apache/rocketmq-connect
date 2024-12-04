@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
 import io.debezium.time.NanoTimestamp;

@@ -19,15 +19,34 @@
 
 package org.apache.rocketmq.connect.doris.utils;
 
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.rocketmq.connect.doris.cfg.DorisOptions;
+import org.apache.rocketmq.connect.doris.cfg.DorisOptions.ProxyConfig;
 
 /**
  * util to build http client.
  */
 public class HttpUtils {
+    private final DorisOptions dorisOptions;
+    private final ProxyConfig proxyConfig;
+
+    public HttpUtils(DorisOptions dorisOptions) {
+        this.dorisOptions = dorisOptions;
+        this.proxyConfig = dorisOptions.getProxyConfig()
+            .orElseThrow(() -> new NoSuchElementException("Failed to get ProxyConfig."));
+    }
+
     private final HttpClientBuilder httpClientBuilder =
         HttpClients.custom()
             .setRedirectStrategy(
@@ -36,7 +55,33 @@ public class HttpUtils {
                     protected boolean isRedirectable(String method) {
                         return true;
                     }
-                });
+                })
+            .setDefaultRequestConfig(createRequestConfigWithProxy())
+            .setDefaultCredentialsProvider(createCredentialsProvider());
+
+    private RequestConfig createRequestConfigWithProxy() {
+        if (Objects.requireNonNull(dorisOptions).customCluster()) {
+            String socksProxyHost = proxyConfig.getSocks5Host();
+            int socksProxyPort = proxyConfig.getSocks5Port();           // Socks5 代理端口
+            HttpHost proxy = new HttpHost(socksProxyHost, socksProxyPort);
+            return RequestConfig.custom()
+                .setProxy(proxy)
+                .build();
+        } else {
+            return RequestConfig.custom().build();
+        }
+    }
+
+    private CredentialsProvider createCredentialsProvider() {
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        if (Objects.requireNonNull(dorisOptions).customCluster()) {
+            credentialsProvider.setCredentials(
+                new AuthScope(proxyConfig.getSocks5Host(), proxyConfig.getSocks5Port()),
+                new UsernamePasswordCredentials(proxyConfig.getSocks5UserName(), proxyConfig.getSocks5Password())
+            );
+        }
+        return credentialsProvider;
+    }
 
     public CloseableHttpClient getHttpClient() {
         return httpClientBuilder.build();

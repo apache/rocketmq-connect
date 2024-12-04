@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.rocketmq.connect.doris.converter.type.connect;
 
 import io.openmessaging.connector.api.data.logical.Date;

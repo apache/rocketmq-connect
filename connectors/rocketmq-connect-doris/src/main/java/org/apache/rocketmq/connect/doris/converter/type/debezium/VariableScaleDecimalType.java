@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
 import io.debezium.data.SpecialValueDecimal;
@@ -68,6 +69,7 @@ public class VariableScaleDecimalType extends AbstractType {
     }
 
     private static SpecialValueDecimal toLogical(final Struct value) {
-        return new SpecialValueDecimal(new BigDecimal(new BigInteger(value.getBytes("value")), value.getInt32("scale")));
+        return new SpecialValueDecimal(
+            new BigDecimal(new BigInteger(value.getBytes("value")), value.getInt32("scale")));
     }
 }

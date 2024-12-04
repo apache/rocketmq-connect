@@ -76,6 +76,7 @@ public class DorisSinkTaskTest {
 
     @Test
     public void testPut() {
+        keyValue.put(DorisSinkConnectorConfig.ENABLE_2PC, "false");
         dorisSinkTask.start(keyValue);
         List<ConnectRecord> connectRecordList = new ArrayList<>();
         ConnectRecord connectRecord = new ConnectRecord(recordPartition, offset, System.currentTimeMillis());
@@ -87,7 +88,6 @@ public class DorisSinkTaskTest {
 
     @Test
     public void testPutAndFlush() {
-        keyValue.put(DorisSinkConnectorConfig.ENABLE_2PC, "true");
         dorisSinkTask.start(keyValue);
 
         List<ConnectRecord> connectRecordList = new ArrayList<>();
@@ -101,22 +101,41 @@ public class DorisSinkTaskTest {
         dorisSinkTask.flush(currentOffsets);
     }
 
-//    @Test
-//    public void testDebeziumConverterPut() {
-//        keyValue.put(DorisSinkConnectorConfig.CONVERTER_MODE, ConverterMode.DEBEZIUM_INGESTION.getName());
-//        dorisSinkTask.start(keyValue);
-//
-//        List<ConnectRecord> connectRecordList = new ArrayList<>();
-//        ConnectRecord connectRecord = new ConnectRecord(recordPartition, offset, System.currentTimeMillis());
-//        String msg = "";
-//        SchemaAndValue schemaAndValue = jsonConverter.toConnectData("a", msg.getBytes(StandardCharsets.UTF_8));
-//
-//        connectRecord.setData(schemaAndValue.value());
-//        connectRecord.setSchema(schemaAndValue.schema());
-//        connectRecordList.add(connectRecord);
-//        connectRecordList.add(connectRecord);
-//        dorisSinkTask.put(connectRecordList);
-//    }
+    @Test
+    public void testCustomClusterProxy() {
+        keyValue.put(DorisSinkConnectorConfig.DORIS_CUSTOM_CLUSTER, "true");
+        keyValue.put(DorisSinkConnectorConfig.SOCKS5_ENDPOINT, "");
+        keyValue.put(DorisSinkConnectorConfig.SOCKS5_USERNAME, "");
+        keyValue.put(DorisSinkConnectorConfig.SOCKET5_PASSWORD, "");
+        dorisSinkTask.start(keyValue);
+
+        List<ConnectRecord> connectRecordList = new ArrayList<>();
+        ConnectRecord connectRecord = new ConnectRecord(recordPartition, offset, System.currentTimeMillis());
+        connectRecord.setData("{\"id\":2,\"name\":\"zhangsan\",\"age\":13}");
+        connectRecordList.add(connectRecord);
+        connectRecordList.add(connectRecord);
+        dorisSinkTask.put(connectRecordList);
+        Map<RecordPartition, RecordOffset> currentOffsets = new HashMap<>();
+        currentOffsets.put(recordPartition, offset);
+        dorisSinkTask.flush(currentOffsets);
+    }
+
+    //    @Test
+    //    public void testDebeziumConverterPut() {
+    //        keyValue.put(DorisSinkConnectorConfig.CONVERTER_MODE, ConverterMode.DEBEZIUM_INGESTION.getName());
+    //        dorisSinkTask.start(keyValue);
+    //
+    //        List<ConnectRecord> connectRecordList = new ArrayList<>();
+    //        ConnectRecord connectRecord = new ConnectRecord(recordPartition, offset, System.currentTimeMillis());
+    //        String msg = "";
+    //        SchemaAndValue schemaAndValue = jsonConverter.toConnectData("a", msg.getBytes(StandardCharsets.UTF_8));
+    //
+    //        connectRecord.setData(schemaAndValue.value());
+    //        connectRecord.setSchema(schemaAndValue.schema());
+    //        connectRecordList.add(connectRecord);
+    //        connectRecordList.add(connectRecord);
+    //        dorisSinkTask.put(connectRecordList);
+    //    }
 
     @Test
     public void testCopyIntoLoad() {
