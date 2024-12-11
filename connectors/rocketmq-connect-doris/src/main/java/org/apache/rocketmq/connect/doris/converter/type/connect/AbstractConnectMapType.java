@@ -17,22 +17,26 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.connect;
 
-public class DorisException extends RuntimeException {
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openmessaging.connector.api.errors.ConnectException;
 
-    public DorisException() {
+public abstract class AbstractConnectMapType extends AbstractConnectSchemaType {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {"MAP"};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    protected String mapToJsonString(Object value) {
+        try {
+            return MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new ConnectException("Failed to deserialize MAP data to JSON", e);
+        }
     }
 }

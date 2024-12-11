@@ -17,22 +17,19 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.connection;
 
-public class DorisException extends RuntimeException {
+import java.sql.Connection;
 
-    public DorisException() {
-    }
+public interface ConnectionProvider {
 
-    public DorisException(String message) {
-        super(message);
-    }
+    /**
+     * Get existing connection or establish an new one if there is none.
+     */
+    Connection getOrEstablishConnection() throws Exception;
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+    /**
+     * Close possible existing connection.
+     */
+    void closeConnection();
 }

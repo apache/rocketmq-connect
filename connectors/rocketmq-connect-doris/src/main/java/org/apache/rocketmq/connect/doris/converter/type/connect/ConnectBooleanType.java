@@ -17,22 +17,22 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.connect;
 
-public class DorisException extends RuntimeException {
+import io.openmessaging.connector.api.data.Schema;
+import org.apache.rocketmq.connect.doris.converter.type.doris.DorisType;
 
-    public DorisException() {
+public class ConnectBooleanType extends AbstractConnectSchemaType {
+
+    public static final ConnectBooleanType INSTANCE = new ConnectBooleanType();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {"BOOLEAN"};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    public String getTypeName(Schema schema) {
+        return DorisType.BOOLEAN;
     }
 }

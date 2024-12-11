@@ -17,22 +17,23 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
-public class DorisException extends RuntimeException {
+import io.debezium.time.MicroTimestamp;
+import java.time.LocalDateTime;
+import org.apache.rocketmq.connect.doris.converter.type.util.DateTimeUtils;
 
-    public DorisException() {
+public class MicroTimestampType extends AbstractDebeziumTimestampType {
+
+    public static final MicroTimestampType INSTANCE = new MicroTimestampType();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {MicroTimestamp.SCHEMA_NAME};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    protected LocalDateTime getLocalDateTime(long value) {
+        return DateTimeUtils.toLocalDateTimeFromInstantEpochMicros(value);
     }
 }

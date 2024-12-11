@@ -17,22 +17,26 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.connect;
 
-public class DorisException extends RuntimeException {
+import io.openmessaging.connector.api.data.Schema;
+import java.util.Map;
 
-    public DorisException() {
+public class ConnectMapToConnectStringType extends AbstractConnectMapType {
+
+    public static final ConnectMapToConnectStringType INSTANCE =
+        new ConnectMapToConnectStringType();
+
+    @Override
+    public String getTypeName(Schema schema) {
+        return ConnectStringType.INSTANCE.getTypeName(schema);
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    public Object getValue(Object sourceValue) {
+        if (sourceValue instanceof Map) {
+            sourceValue = mapToJsonString(sourceValue);
+        }
+        return ConnectStringType.INSTANCE.getValue(sourceValue);
     }
 }

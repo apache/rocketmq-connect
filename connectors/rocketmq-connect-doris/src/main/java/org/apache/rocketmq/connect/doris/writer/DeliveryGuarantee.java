@@ -17,22 +17,28 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.writer;
 
-public class DorisException extends RuntimeException {
+public enum DeliveryGuarantee {
+    EXACTLY_ONCE("exactly_once"),
 
-    public DorisException() {
+    AT_LEAST_ONCE("at_least_once");
+
+    private final String name;
+
+    DeliveryGuarantee(String name) {
+        this.name = name;
     }
 
-    public DorisException(String message) {
-        super(message);
+    public static DeliveryGuarantee of(String name) {
+        return DeliveryGuarantee.valueOf(name.toUpperCase());
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
+    public String getName() {
+        return name;
     }
 
-    public DorisException(Throwable cause) {
-        super(cause);
+    public static String[] instances() {
+        return new String[] {EXACTLY_ONCE.name, AT_LEAST_ONCE.name};
     }
 }

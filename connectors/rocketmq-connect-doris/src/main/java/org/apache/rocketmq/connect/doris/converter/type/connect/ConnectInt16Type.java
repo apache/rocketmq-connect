@@ -17,22 +17,27 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.connect;
 
-public class DorisException extends RuntimeException {
+import io.openmessaging.connector.api.data.Schema;
+import org.apache.rocketmq.connect.doris.converter.type.doris.DorisType;
 
-    public DorisException() {
+public class ConnectInt16Type extends AbstractConnectSchemaType {
+
+    public static final ConnectInt16Type INSTANCE = new ConnectInt16Type();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {"INT16"};
     }
 
-    public DorisException(String message) {
-        super(message);
+    @Override
+    public String getTypeName(Schema schema) {
+        return DorisType.SMALLINT;
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    public boolean isNumber() {
+        return true;
     }
 }

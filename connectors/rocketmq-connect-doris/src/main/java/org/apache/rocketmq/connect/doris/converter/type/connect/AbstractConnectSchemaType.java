@@ -17,22 +17,9 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.connect;
 
-public class DorisException extends RuntimeException {
+import org.apache.rocketmq.connect.doris.converter.type.AbstractType;
 
-    public DorisException() {
-    }
-
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+public abstract class AbstractConnectSchemaType extends AbstractType {
 }

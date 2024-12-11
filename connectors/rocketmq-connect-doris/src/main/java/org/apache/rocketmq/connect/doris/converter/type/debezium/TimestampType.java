@@ -17,22 +17,24 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
-public class DorisException extends RuntimeException {
+import io.debezium.time.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
-    public DorisException() {
+public class TimestampType extends AbstractDebeziumTimestampType {
+
+    public static final TimestampType INSTANCE = new TimestampType();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {Timestamp.SCHEMA_NAME};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    protected LocalDateTime getLocalDateTime(long value) {
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC);
     }
 }

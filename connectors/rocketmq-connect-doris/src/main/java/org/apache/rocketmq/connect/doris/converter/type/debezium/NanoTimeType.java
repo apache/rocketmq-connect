@@ -17,22 +17,23 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.debezium;
 
-public class DorisException extends RuntimeException {
+import io.debezium.time.NanoTime;
+import java.time.LocalTime;
+import org.apache.rocketmq.connect.doris.converter.type.util.DateTimeUtils;
 
-    public DorisException() {
+public class NanoTimeType extends AbstractDebeziumTimeType {
+
+    public static final NanoTimeType INSTANCE = new NanoTimeType();
+
+    @Override
+    public String[] getRegistrationKeys() {
+        return new String[] {NanoTime.SCHEMA_NAME};
     }
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
+    @Override
+    protected LocalTime getLocalTime(Number value) {
+        return DateTimeUtils.toLocalTimeFromDurationNanoseconds(value.longValue());
     }
 }

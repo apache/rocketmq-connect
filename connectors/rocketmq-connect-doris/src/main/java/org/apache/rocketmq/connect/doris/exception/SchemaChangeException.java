@@ -19,20 +19,31 @@
 
 package org.apache.rocketmq.connect.doris.exception;
 
-public class DorisException extends RuntimeException {
-
-    public DorisException() {
+/**
+ * Doris Schema Change run exception.
+ */
+public class SchemaChangeException extends RuntimeException {
+    public SchemaChangeException() {
+        super();
     }
 
-    public DorisException(String message) {
+    public SchemaChangeException(String message) {
         super(message);
     }
 
-    public DorisException(String message, Throwable cause) {
+    public SchemaChangeException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DorisException(Throwable cause) {
+    public SchemaChangeException(Throwable cause) {
         super(cause);
+    }
+
+    protected SchemaChangeException(
+        String message,
+        Throwable cause,
+        boolean enableSuppression,
+        boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

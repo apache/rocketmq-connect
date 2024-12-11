@@ -17,22 +17,18 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.writer;
 
-public class DorisException extends RuntimeException {
+public class LoadConstants {
+    public static final String DORIS_DELETE_SIGN = "__DORIS_DELETE_SIGN__";
+    public static final String DELETE_KET = "__deleted";
+    public static final String DORIS_DEL_TRUE = "1";
+    public static final String DORIS_DEL_FALSE = "0";
 
-    public DorisException() {
-    }
+    // Special identifier, label separator used for kafka-connect sink data
+    public static final String FILE_DELIM_DEFAULT = "__KC_";
 
-    public DorisException(String message) {
-        super(message);
-    }
-
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+    // since apache doris 2.1.0, support stream load with group commit mode.
+    public static final String GROUP_COMMIT = "group_commit";
+    public static final String PARTIAL_COLUMNS = "partial_columns";
 }

@@ -17,22 +17,16 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.type.doris;
 
-public class DorisException extends RuntimeException {
+public class DorisTypeProperties {
 
-    public DorisException() {
-    }
+    /* Max precision of datetime type of Doris. */
+    public static final int MAX_SUPPORTED_DATE_TIME_PRECISION = 6;
 
-    public DorisException(String message) {
-        super(message);
-    }
+    public static final int TIMESTAMP_TYPE_MAX_PRECISION = 9;
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    public static final int MAX_VARCHAR_SIZE = 65533;
 
-    public DorisException(Throwable cause) {
-        super(cause);
-    }
+    public static final int MAX_CHAR_SIZE = 255;
 }

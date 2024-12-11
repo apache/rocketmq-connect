@@ -17,22 +17,28 @@
  * under the License.
  */
 
-package org.apache.rocketmq.connect.doris.exception;
+package org.apache.rocketmq.connect.doris.converter.schema;
 
-public class DorisException extends RuntimeException {
+public enum SchemaEvolutionMode {
+    NONE("none"),
 
-    public DorisException() {
+    BASIC("basic");
+
+    private final String name;
+
+    SchemaEvolutionMode(String name) {
+        this.name = name;
     }
 
-    public DorisException(String message) {
-        super(message);
+    public static SchemaEvolutionMode of(String name) {
+        return SchemaEvolutionMode.valueOf(name.toUpperCase());
     }
 
-    public DorisException(String message, Throwable cause) {
-        super(message, cause);
+    public String getName() {
+        return name;
     }
 
-    public DorisException(Throwable cause) {
-        super(cause);
+    public static String[] instances() {
+        return new String[] {NONE.name, BASIC.name};
     }
 }
