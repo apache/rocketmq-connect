@@ -271,8 +271,8 @@ public class ConnectStatsService extends ServiceThread {
             }
 
             this.sinkTaskTimesList.add(new CallSnapshot(System.currentTimeMillis(), sinkTaskTimesTotal()));
-            if (this.sourceTaskTimesList.size() > (MAX_RECORDS_OF_SAMPLING + 1)) {
-                this.sourceTaskTimesList.removeFirst();
+            if (this.sinkTaskTimesList.size() > (MAX_RECORDS_OF_SAMPLING + 1)) {
+                this.sinkTaskTimesList.removeFirst();
             }
         } finally {
             this.lockSampling.unlock();
