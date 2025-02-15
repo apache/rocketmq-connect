@@ -34,8 +34,10 @@ public class TaskDivideConfig {
 
     private String srcSecretKey;
 
+    private String filterRule;
+
     public TaskDivideConfig(String sourceNamesrvAddr, String srcCluster, String storeTopic, String srcRecordConverter,
-        int dataType, boolean srcAclEnable, String srcAccessKey, String srcSecretKey) {
+        int dataType, boolean srcAclEnable, String srcAccessKey, String srcSecretKey, String filterRule) {
         this.sourceNamesrvAddr = sourceNamesrvAddr;
         this.srcCluster = srcCluster;
         this.storeTopic = storeTopic;
@@ -44,6 +46,7 @@ public class TaskDivideConfig {
         this.srcAclEnable = srcAclEnable;
         this.srcAccessKey = srcAccessKey;
         this.srcSecretKey = srcSecretKey;
+        this.filterRule = filterRule;
     }
 
     public String getSourceNamesrvAddr() {
@@ -108,5 +111,13 @@ public class TaskDivideConfig {
 
     public void setSrcSecretKey(String srcSecretKey) {
         this.srcSecretKey = srcSecretKey;
+    }
+
+    public String getFilterRule() {
+        return filterRule;
+    }
+
+    public void setFilterRule(String filterRule) {
+        this.filterRule = filterRule;
     }
 }

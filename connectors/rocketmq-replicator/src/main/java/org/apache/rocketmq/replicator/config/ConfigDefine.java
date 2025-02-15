@@ -51,6 +51,8 @@ public class ConfigDefine {
 
     public static final String OFFSET_SYNC_TOPIC = "offset.sync.topic";
 
+    public static final String FILTER_RULE = "filter-rule";
+
     /**
      * The required key for all configurations.
      */
