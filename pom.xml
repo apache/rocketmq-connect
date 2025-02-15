@@ -66,6 +66,8 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <commons-lang3.version>3.12.0</commons-lang3.version>
+        <prometheus.version>0.6.0</prometheus.version>
+
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -201,6 +203,16 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient</artifactId>
+                <version>${prometheus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_dropwizard</artifactId>
+                <version>${prometheus.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
